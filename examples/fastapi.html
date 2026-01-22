@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Readiness Report | fastapi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #09090b;
+      --bg-secondary: #0f0f12;
+      --bg-tertiary: #18181b;
+      --bg-card: #121215;
+      --text-primary: #fafafa;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --border-color: #27272a;
+      --border-subtle: #1f1f23;
+      --green: #22c55e;
+      --green-dim: #16a34a;
+      --yellow: #eab308;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --orange: #f97316;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
+
+    /* Header */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding: 1.5rem 0 2rem;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 2rem;
+    }
+
+    .header-left h1 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 0.5rem;
+    }
+
+    .header-left .repo-name {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .header-left .meta {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+    }
+
+    .header-right { text-align: right; }
+
+    .header-right .level-display {
+      font-size: 3rem;
+      font-weight: 700;
+      line-height: 1;
+      letter-spacing: -0.02em;
+    }
+
+    .header-right .level-name {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 0.25rem;
+    }
+
+    /* Summary Row */
+    .summary-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .summary-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+
+    .summary-card .label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 0.75rem;
+    }
+
+    .summary-card .value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .summary-card .value.green { color: var(--green); }
+    .summary-card .value.yellow { color: var(--yellow); }
+    .summary-card .value.red { color: var(--red); }
+
+    .summary-card .subtext {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    /* Executive Summary */
+    .executive-summary {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .executive-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.5rem;
+    }
+
+    .executive-card h2 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .strength-headline {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--green);
+      margin-bottom: 0.75rem;
+      letter-spacing: -0.01em;
+    }
+
+    .strength-description {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+    }
+
+    .strength-pills {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .strength-pill {
+      background: rgba(34, 197, 94, 0.1);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+      color: var(--green);
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      font-weight: 500;
+    }
+
+    .opportunities-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .opportunity-item {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+    }
+
+    .opportunity-num {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--orange);
+      min-width: 2rem;
+    }
+
+    .opportunity-content h4 {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 0.25rem;
+    }
+
+    .opportunity-content p {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* Level Progress Bars */
+    .level-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .level-section h2 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+    }
+
+    .level-bars {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .level-bar-item {
+      opacity: 0.5;
+    }
+
+    .level-bar-item.active {
+      opacity: 1;
+    }
+
+    .level-bar-item.current {
+      opacity: 1;
+    }
+
+    .level-bar-header {
+      display: flex;
+      align-items: baseline;
+      gap: 0.5rem;
+      margin-bottom: 0.35rem;
+    }
+
+    .level-bar-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      min-width: 1.75rem;
+    }
+
+    .level-bar-name {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      flex: 1;
+    }
+
+    .level-bar-pct {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+
+    .level-bar-track {
+      height: 6px;
+      background: var(--bg-tertiary);
+      border-radius: 3px;
+      overflow: hidden;
+    }
+
+    .level-bar-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.3s ease;
+    }
+
+    /* Chart Section */
+    .chart-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .chart-section h2 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+    }
+
+    .radar-chart {
+      width: 100%;
+      max-width: 300px;
+      margin: 0 auto;
+      display: block;
+    }
+
+    /* Pillars Grid */
+    .pillars-section h2 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .pillars-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .pillar-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+
+    .pillar-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .pillar-header h3 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .pillar-level {
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+      font-size: 0.65rem;
+      font-weight: 600;
+    }
+
+    .pillar-stats {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 0.5rem;
+    }
+
+    .pillar-score {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .pillar-count {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .progress-bar {
+      height: 4px;
+      background: var(--bg-tertiary);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-bottom: 1rem;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 2px;
+      transition: width 0.3s ease;
+    }
+
+    .progress-fill.green { background: var(--green); }
+    .progress-fill.yellow { background: var(--yellow); }
+    .progress-fill.red { background: var(--red); }
+
+    /* Checks Details (Collapsible) */
+    .checks-details {
+      border-top: 1px solid var(--border-subtle);
+      padding-top: 0.75rem;
+    }
+
+    .checks-details summary {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      user-select: none;
+      padding: 0.25rem 0;
+    }
+
+    .checks-details summary:hover {
+      color: var(--text-secondary);
+    }
+
+    .checks-details[open] summary {
+      margin-bottom: 0.75rem;
+    }
+
+    .checks-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .check-row {
+      display: grid;
+      grid-template-columns: 18px 1fr;
+      gap: 0.5rem;
+      align-items: start;
+      font-size: 0.75rem;
+      padding: 0.35rem 0;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .check-row:last-child {
+      border-bottom: none;
+    }
+
+    .check-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-top: 2px;
+    }
+
+    .check-name {
+      color: var(--text-secondary);
+    }
+
+    .check-row.pass .check-name {
+      color: var(--text-primary);
+    }
+
+    .check-details {
+      display: block;
+      grid-column: 2;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 0.125rem;
+    }
+
+    /* Apps Section */
+    .apps-section {
+      margin-bottom: 2rem;
+    }
+
+    .apps-section h2 {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+
+    .apps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+    }
+
+    .app-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+
+    .app-name {
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .app-lang {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    .app-score {
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-top: 0.5rem;
+    }
+
+    /* Blocking Gaps Section */
+    .blocking-section {
+      background: rgba(239, 68, 68, 0.03);
+      border: 1px solid rgba(239, 68, 68, 0.15);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .blocking-section h2 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--red);
+      margin-bottom: 0.5rem;
+    }
+
+    .blocking-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 1.25rem;
+    }
+
+    .blocking-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 0.75rem;
+    }
+
+    .blocking-item {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      padding: 0.75rem;
+      background: rgba(239, 68, 68, 0.05);
+      border-radius: 6px;
+    }
+
+    .blocking-pillar {
+      font-size: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--red);
+      font-weight: 600;
+    }
+
+    .blocking-name {
+      font-size: 0.8rem;
+      color: var(--text-primary);
+    }
+
+    .blocking-details {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+    }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border-color);
+      padding: 1.5rem 0 0;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .summary-row { grid-template-columns: repeat(2, 1fr); }
+      .executive-summary { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+      .summary-row { grid-template-columns: 1fr; }
+      .container { padding: 1rem; }
+      header { flex-direction: column; gap: 1rem; }
+      .header-right { text-align: left; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="header-left">
+        <h1>Agent Readiness Report v2.0.0</h1>
+        <p class="repo-name">fastapi</p>
+        <p class="meta">python · single · weighted scoring · 2026-01-22</p>
+      </div>
+      <div class="header-right">
+        <div class="level-display" style="color: #eab308">L3</div>
+        <p class="level-name">Standardized</p>
+      </div>
+    </header>
+
+    <section class="summary-row">
+      <div class="summary-card">
+        <p class="label">Maturity Level</p>
+        <p class="value">Level 3</p>
+        <p class="subtext">Standardized</p>
+      </div>
+      <div class="summary-card">
+        <p class="label">Overall Score</p>
+        <p class="value red">56.3%</p>
+        <p class="subtext">36/76 criteria</p>
+      </div>
+      <div class="summary-card">
+        <p class="label">Strongest Pillar</p>
+        <p class="value" style="font-size: 1.25rem;">Style</p>
+        <p class="subtext">88%</p>
+      </div>
+      <div class="summary-card">
+        <p class="label">Blocking Gaps</p>
+        <p class="value red">26</p>
+        <p class="subtext">items to address</p>
+      </div>
+    </section>
+
+    <section class="executive-summary">
+      <div class="executive-card">
+        <h2>Strengths</h2>
+        <p class="strength-headline">Strong Code Quality</p>
+        <p class="strength-description">
+          This codebase excels in style & validation, testing, build system with scores above 50%. These areas provide a solid foundation for AI agent collaboration.
+        </p>
+        
+        <div class="strength-pills">
+          <span class="strength-pill">Style & Validation 88%</span><span class="strength-pill">Testing 67%</span><span class="strength-pill">Build System 63%</span>
+        </div>
+      </div>
+      <div class="executive-card">
+        <h2>Opportunities</h2>
+        
+	<div class="opportunities-grid">
+		
+			<div class="opportunity-item">
+				<span class="opportunity-num">01</span>
+				<div class="opportunity-content">
+					<h4>Debugging & Observability</h4>
+					<p>Add structured logging, error tracking, and health checks for foundational observability.</p>
+				</div>
+			</div>
+			<div class="opportunity-item">
+				<span class="opportunity-num">02</span>
+				<div class="opportunity-content">
+					<h4>Product & Experimentation</h4>
+					<p>Configure feature flags and CI test execution for foundational experimentation.</p>
+				</div>
+			</div>
+			<div class="opportunity-item">
+				<span class="opportunity-num">03</span>
+				<div class="opportunity-content">
+					<h4>Task Discovery</h4>
+					<p>Add Makefile, PR templates, and task documentation for foundational task discovery.</p>
+				</div>
+			</div>
+	</div>
+      </div>
+    </section>
+
+    <section class="level-section">
+      <h2>Level Progress</h2>
+      
+	<div class="level-bars">
+		
+			<div class="level-bar-item active ">
+				<div class="level-bar-header">
+					<span class="level-bar-label">L1</span>
+					<span class="level-bar-name">Functional</span>
+					<span class="level-bar-pct">100%</span>
+				</div>
+				<div class="level-bar-track">
+					<div class="level-bar-fill" style="width: 100%; background: var(--green)"></div>
+				</div>
+			</div>
+			<div class="level-bar-item active ">
+				<div class="level-bar-header">
+					<span class="level-bar-label">L2</span>
+					<span class="level-bar-name">Documented</span>
+					<span class="level-bar-pct">100%</span>
+				</div>
+				<div class="level-bar-track">
+					<div class="level-bar-fill" style="width: 100%; background: var(--green)"></div>
+				</div>
+			</div>
+			<div class="level-bar-item active current">
+				<div class="level-bar-header">
+					<span class="level-bar-label">L3</span>
+					<span class="level-bar-name">Standardized</span>
+					<span class="level-bar-pct">42%</span>
+				</div>
+				<div class="level-bar-track">
+					<div class="level-bar-fill" style="width: 42%; background: var(--green)"></div>
+				</div>
+			</div>
+			<div class="level-bar-item  ">
+				<div class="level-bar-header">
+					<span class="level-bar-label">L4</span>
+					<span class="level-bar-name">Optimized</span>
+					<span class="level-bar-pct">0%</span>
+				</div>
+				<div class="level-bar-track">
+					<div class="level-bar-fill" style="width: 0%; background: var(--bg-tertiary)"></div>
+				</div>
+			</div>
+			<div class="level-bar-item  ">
+				<div class="level-bar-header">
+					<span class="level-bar-label">L5</span>
+					<span class="level-bar-name">Autonomous</span>
+					<span class="level-bar-pct">0%</span>
+				</div>
+				<div class="level-bar-track">
+					<div class="level-bar-fill" style="width: 0%; background: var(--bg-tertiary)"></div>
+				</div>
+			</div>
+	</div>
+    </section>
+
+    <section class="chart-section">
+      <h2>Pillar Distribution</h2>
+      
+    <svg viewBox="0 0 300 300" class="radar-chart">
+      <circle cx="150" cy="150" r="22" fill="none" stroke="#404040" stroke-width="0.5" stroke-dasharray="2,2"/><circle cx="150" cy="150" r="44" fill="none" stroke="#404040" stroke-width="0.5" stroke-dasharray="2,2"/><circle cx="150" cy="150" r="66" fill="none" stroke="#404040" stroke-width="0.5" stroke-dasharray="2,2"/><circle cx="150" cy="150" r="88" fill="none" stroke="#404040" stroke-width="0.5" stroke-dasharray="2,2"/><circle cx="150" cy="150" r="110" fill="none" stroke="#404040" stroke-width="0.5" stroke-dasharray="0"/>
+      <line x1="150" y1="150" x2="150" y2="40" stroke="#404040" stroke-width="0.5"/><line x1="150" y1="150" x2="220.70663706551932" y2="65.73511125691242" stroke="#404040" stroke-width="0.5"/><line x1="150" y1="150" x2="258.3288528313429" y2="130.89870045663767" stroke="#404040" stroke-width="0.5"/><line x1="150" y1="150" x2="245.26279441628827" y2="204.99999999999997" stroke="#404040" stroke-width="0.5"/><line x1="150" y1="150" x2="187.62221576582357" y2="253.36618828644993" stroke="#404040" stroke-width="0.5"/><line x1="150" y1="150" x2="112.37778423417643" y2="253.36618828644993" stroke="#404040" stroke-width="0.5"/><line x1="150" y1="150" x2="54.73720558371177" y2="205.00000000000003" stroke="#404040" stroke-width="0.5"/><line x1="150" y1="150" x2="41.6711471686571" y2="130.8987004566377" stroke="#404040" stroke-width="0.5"/><line x1="150" y1="150" x2="79.29336293448065" y2="65.73511125691243" stroke="#404040" stroke-width="0.5"/>
+      <polygon points="150,53.2 194.54518135127717,96.91312009185484 222.58033139699972,137.20212930594724 207.15767664977295,183 162.41533120272177,184.11084213452847 150,150 92.84232335022706,183.00000000000003 117.50134415059713,144.2696101369913 132.32334073362017,128.9337778142281" fill="rgba(249, 115, 22, 0.3)" stroke="#f97316" stroke-width="2"/>
+      <circle cx="150" cy="53.2" r="4" fill="#f97316"/><circle cx="194.54518135127717" cy="96.91312009185484" r="4" fill="#f97316"/><circle cx="222.58033139699972" cy="137.20212930594724" r="4" fill="#f97316"/><circle cx="207.15767664977295" cy="183" r="4" fill="#f97316"/><circle cx="162.41533120272177" cy="184.11084213452847" r="4" fill="#f97316"/><circle cx="150" cy="150" r="4" fill="#f97316"/><circle cx="92.84232335022706" cy="183.00000000000003" r="4" fill="#f97316"/><circle cx="117.50134415059713" cy="144.2696101369913" r="4" fill="#f97316"/><circle cx="132.32334073362017" cy="128.9337778142281" r="4" fill="#f97316"/>
+      <text x="150" y="15" text-anchor="middle" dominant-baseline="middle" fill="#a3a3a3" font-size="10">Style</text><text x="236.77632730768283" y="46.58400017893797" text-anchor="middle" dominant-baseline="middle" fill="#a3a3a3" font-size="10">Build</text><text x="282.9490466566481" y="126.5574960149644" text-anchor="middle" dominant-baseline="middle" fill="#a3a3a3" font-size="10">Testing</text><text x="266.9134295108992" y="217.49999999999997" text-anchor="middle" dominant-baseline="middle" fill="#a3a3a3" font-size="10">Documentation</text><text x="196.1727193489653" y="276.8585038060976" text-anchor="middle" dominant-baseline="middle" fill="#a3a3a3" font-size="10">Development</text><text x="103.82728065103473" y="276.85850380609764" text-anchor="middle" dominant-baseline="middle" fill="#a3a3a3" font-size="10">Debugging</text><text x="33.08657048910081" y="217.50000000000006" text-anchor="middle" dominant-baseline="middle" fill="#a3a3a3" font-size="10">Security</text><text x="17.050953343351892" y="126.55749601496444" text-anchor="middle" dominant-baseline="middle" fill="#a3a3a3" font-size="10">Task</text><text x="63.223672692317166" y="46.584000178937984" text-anchor="middle" dominant-baseline="middle" fill="#a3a3a3" font-size="10">Product</text>
+    </svg>
+  
+    </section>
+
+    
+
+    <section class="pillars-section">
+      <h2>Detailed Breakdown</h2>
+      <div class="pillars-grid">
+        
+		<div class="pillar-card" data-pillar="style">
+			<div class="pillar-header">
+				<h3>Style & Validation</h3>
+				<span class="pillar-level" style="background: #3b82f620; color: #3b82f6;">L5</span>
+			</div>
+			<div class="pillar-stats">
+				<span class="pillar-score">88%</span>
+				<span class="pillar-count">7/8</span>
+			</div>
+			<div class="progress-bar">
+				<div class="progress-fill green" style="width: 88%"></div>
+			</div>
+			<details class="checks-details">
+				<summary>View 8 criteria</summary>
+				<div class="checks-list">
+					
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Linter configured</span>
+					
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Type checker configured</span>
+					
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Formatter configured</span>
+					
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Pre-commit hooks installed</span>
+					<span class="check-details">With Python hooks</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">No linter ignore comments</span>
+					<span class="check-details">Assumed clean (not scanned)</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">No unsafe type casts</span>
+					<span class="check-details">mypy configured</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Strict mode enabled</span>
+					<span class="check-details">mypy strict mode enabled</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Zero lint errors</span>
+					<span class="check-details">Lint errors present</span>
+				</div>
+				</div>
+			</details>
+		</div>
+		<div class="pillar-card" data-pillar="build">
+			<div class="pillar-header">
+				<h3>Build System</h3>
+				<span class="pillar-level" style="background: #ef444420; color: #ef4444;">L1</span>
+			</div>
+			<div class="pillar-stats">
+				<span class="pillar-score">63%</span>
+				<span class="pillar-count">5/8</span>
+			</div>
+			<div class="progress-bar">
+				<div class="progress-fill yellow" style="width: 63%"></div>
+			</div>
+			<details class="checks-details">
+				<summary>View 8 criteria</summary>
+				<div class="checks-list">
+					
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Dependency manifest exists</span>
+					
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Lock file committed</span>
+					<span class="check-details">Dependencies in pyproject.toml</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Package manifest exists</span>
+					<span class="check-details">pyproject.toml found</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Build command documented</span>
+					<span class="check-details">Build system in pyproject.toml</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">CI pipeline configured</span>
+					
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Build is deterministic</span>
+					<span class="check-details">No lock file for reproducibility</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">No deprecated dependencies</span>
+					<span class="check-details">Override required</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Dependencies installed</span>
+					<span class="check-details">No venv or lock file</span>
+				</div>
+				</div>
+			</details>
+		</div>
+		<div class="pillar-card" data-pillar="testing">
+			<div class="pillar-header">
+				<h3>Testing</h3>
+				<span class="pillar-level" style="background: #ef444420; color: #ef4444;">L1</span>
+			</div>
+			<div class="pillar-stats">
+				<span class="pillar-score">67%</span>
+				<span class="pillar-count">4/6</span>
+			</div>
+			<div class="progress-bar">
+				<div class="progress-fill yellow" style="width: 67%"></div>
+			</div>
+			<details class="checks-details">
+				<summary>View 6 criteria</summary>
+				<div class="checks-list">
+					
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Test framework configured</span>
+					<span class="check-details">pytest configured in pyproject.toml</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Coverage threshold defined</span>
+					<span class="check-details">Coverage configured in pyproject.toml</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Integration tests exist</span>
+					<span class="check-details">No integration tests</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">E2E tests exist</span>
+					<span class="check-details">No E2E tests found</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Tests are isolated</span>
+					<span class="check-details">Assumed isolated</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">At least one test exists</span>
+					<span class="check-details">Test files found</span>
+				</div>
+				</div>
+			</details>
+		</div>
+		<div class="pillar-card" data-pillar="documentation">
+			<div class="pillar-header">
+				<h3>Documentation</h3>
+				<span class="pillar-level" style="background: #ef444420; color: #ef4444;">L1</span>
+			</div>
+			<div class="pillar-stats">
+				<span class="pillar-score">60%</span>
+				<span class="pillar-count">6/10</span>
+			</div>
+			<div class="progress-bar">
+				<div class="progress-fill yellow" style="width: 60%"></div>
+			</div>
+			<details class="checks-details">
+				<summary>View 10 criteria</summary>
+				<div class="checks-list">
+					
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">README exists</span>
+					<span class="check-details">Found</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Architecture documented</span>
+					<span class="check-details">No architecture documentation</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">API documentation exists</span>
+					<span class="check-details">FastAPI/Starlette auto-generates OpenAPI</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">CHANGELOG exists</span>
+					<span class="check-details">Missing</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Inline documentation</span>
+					
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Examples exist</span>
+					<span class="check-details">Examples in README</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">CLAUDE.md or AGENTS.md exists</span>
+					<span class="check-details">README + docs (OSS equivalent)</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">CLAUDE.md includes build/test commands</span>
+					<span class="check-details">CLAUDE.md missing</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">CLAUDE.md is concise (&lt;300 lines)</span>
+					<span class="check-details">README: 479 lines, structured</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">CLAUDE.md updated within 30 days</span>
+					<span class="check-details">741 days ago</span>
+				</div>
+				</div>
+			</details>
+		</div>
+		<div class="pillar-card" data-pillar="devenv">
+			<div class="pillar-header">
+				<h3>Development Environment</h3>
+				<span class="pillar-level" style="background: #ef444420; color: #ef4444;">L1</span>
+			</div>
+			<div class="pillar-stats">
+				<span class="pillar-score">33%</span>
+				<span class="pillar-count">3/9</span>
+			</div>
+			<div class="progress-bar">
+				<div class="progress-fill red" style="width: 33%"></div>
+			</div>
+			<details class="checks-details">
+				<summary>View 9 criteria</summary>
+				<div class="checks-list">
+					
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Setup script exists</span>
+					<span class="check-details">No setup script found</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Devcontainer configured</span>
+					<span class="check-details">Not configured</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">.editorconfig exists</span>
+					<span class="check-details">Missing</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Debug configurations</span>
+					<span class="check-details">No debug configurations</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Local environment documented</span>
+					<span class="check-details">Development setup documented</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Watch mode available</span>
+					<span class="check-details">Auto-reload tool configured</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">.gitignore exists</span>
+					<span class="check-details">Found</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Environment template exists</span>
+					<span class="check-details">No .env.example</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Docker Compose for local services</span>
+					<span class="check-details">Not configured</span>
+				</div>
+				</div>
+			</details>
+		</div>
+		<div class="pillar-card" data-pillar="observability">
+			<div class="pillar-header">
+				<h3>Debugging & Observability</h3>
+				<span class="pillar-level" style="background: #ef444420; color: #ef4444;">L1</span>
+			</div>
+			<div class="pillar-stats">
+				<span class="pillar-score">0%</span>
+				<span class="pillar-count">0/7</span>
+			</div>
+			<div class="progress-bar">
+				<div class="progress-fill red" style="width: 0%"></div>
+			</div>
+			<details class="checks-details">
+				<summary>View 7 criteria</summary>
+				<div class="checks-list">
+					
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Structured logging configured</span>
+					<span class="check-details">No structured logging library (structlog recommended)</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Error tracking configured</span>
+					<span class="check-details">No error tracking</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Distributed tracing configured</span>
+					<span class="check-details">No distributed tracing configured</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Metrics collection configured</span>
+					<span class="check-details">No metrics collection configured</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Health check endpoints</span>
+					<span class="check-details">No health endpoints found</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Log levels configured</span>
+					<span class="check-details">No log level configuration</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Minimal console.log usage</span>
+					<span class="check-details">44 print() calls</span>
+				</div>
+				</div>
+			</details>
+		</div>
+		<div class="pillar-card" data-pillar="security">
+			<div class="pillar-header">
+				<h3>Security</h3>
+				<span class="pillar-level" style="background: #ef444420; color: #ef4444;">L1</span>
+			</div>
+			<div class="pillar-stats">
+				<span class="pillar-score">60%</span>
+				<span class="pillar-count">6/10</span>
+			</div>
+			<div class="progress-bar">
+				<div class="progress-fill yellow" style="width: 60%"></div>
+			</div>
+			<details class="checks-details">
+				<summary>View 10 criteria</summary>
+				<div class="checks-list">
+					
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Security scanning configured</span>
+					<span class="check-details">No security scanning configured</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">No secrets in repository</span>
+					<span class="check-details">No secrets found</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Authentication implemented</span>
+					
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Input validation</span>
+					<span class="check-details">Using pydantic</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Audit logging configured</span>
+					<span class="check-details">No audit logging</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Vulnerability policy defined</span>
+					
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Git repository initialized</span>
+					<span class="check-details">Yes</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">CODEOWNERS file exists</span>
+					<span class="check-details">Missing CODEOWNERS</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Branch protection documented</span>
+					<span class="check-details">Not documented</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Dependency scanning configured</span>
+					
+				</div>
+				</div>
+			</details>
+		</div>
+		<div class="pillar-card" data-pillar="taskdiscovery">
+			<div class="pillar-header">
+				<h3>Task Discovery</h3>
+				<span class="pillar-level" style="background: #ef444420; color: #ef4444;">L1</span>
+			</div>
+			<div class="pillar-stats">
+				<span class="pillar-score">30%</span>
+				<span class="pillar-count">3/10</span>
+			</div>
+			<div class="progress-bar">
+				<div class="progress-fill red" style="width: 30%"></div>
+			</div>
+			<details class="checks-details">
+				<summary>View 10 criteria</summary>
+				<div class="checks-list">
+					
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Task definitions exist</span>
+					
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Makefile exists</span>
+					<span class="check-details">Missing</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Common task aliases</span>
+					<span class="check-details">Only 0/5 common aliases</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Tasks documented</span>
+					<span class="check-details">No task documentation</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">CI tasks aligned with local</span>
+					<span class="check-details">CI or task runner missing</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">PR template exists</span>
+					<span class="check-details">Missing PR template</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Issue templates exist</span>
+					
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">CONTRIBUTING.md exists</span>
+					<span class="check-details">Found</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Branch naming convention documented</span>
+					<span class="check-details">Not documented</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Commit convention documented</span>
+					<span class="check-details">No commit convention</span>
+				</div>
+				</div>
+			</details>
+		</div>
+		<div class="pillar-card" data-pillar="product">
+			<div class="pillar-header">
+				<h3>Product & Experimentation</h3>
+				<span class="pillar-level" style="background: #ef444420; color: #ef4444;">L1</span>
+			</div>
+			<div class="pillar-stats">
+				<span class="pillar-score">25%</span>
+				<span class="pillar-count">2/8</span>
+			</div>
+			<div class="progress-bar">
+				<div class="progress-fill red" style="width: 25%"></div>
+			</div>
+			<details class="checks-details">
+				<summary>View 8 criteria</summary>
+				<div class="checks-list">
+					
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Feature flags configured</span>
+					<span class="check-details">No feature flags</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Analytics instrumented</span>
+					<span class="check-details">No analytics library detected</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">A/B testing framework</span>
+					<span class="check-details">No A/B testing</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Monitoring dashboards</span>
+					<span class="check-details">No monitoring dashboards configured</span>
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">Error budgets defined</span>
+					<span class="check-details">No error budgets defined</span>
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">Release process documented</span>
+					
+				</div>
+				<div class="check-row pass">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></span>
+					<span class="check-name">CI pipeline configured</span>
+					
+				</div>
+				<div class="check-row fail">
+					<span class="check-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></span>
+					<span class="check-name">CI runs tests on every PR</span>
+					<span class="check-details">No tests in CI</span>
+				</div>
+				</div>
+			</details>
+		</div>
+      </div>
+    </section>
+
+    
+	<section class="blocking-section">
+		<h2>Blocking Gaps (26)</h2>
+		<p class="blocking-subtitle">These items must be addressed to advance to the next maturity level</p>
+		<div class="blocking-grid">
+			
+			<div class="blocking-item">
+				<span class="blocking-pillar">Build System</span>
+				<span class="blocking-name">No deprecated dependencies</span>
+				<span class="blocking-details">Override required</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Build System</span>
+				<span class="blocking-name">Dependencies installed</span>
+				<span class="blocking-details">No venv or lock file</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Testing</span>
+				<span class="blocking-name">Integration tests exist</span>
+				<span class="blocking-details">No integration tests</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Documentation</span>
+				<span class="blocking-name">Architecture documented</span>
+				<span class="blocking-details">No architecture documentation</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Documentation</span>
+				<span class="blocking-name">CHANGELOG exists</span>
+				<span class="blocking-details">Missing</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Documentation</span>
+				<span class="blocking-name">CLAUDE.md includes build/test commands</span>
+				<span class="blocking-details">CLAUDE.md missing</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Development Environment</span>
+				<span class="blocking-name">Setup script exists</span>
+				<span class="blocking-details">No setup script found</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Development Environment</span>
+				<span class="blocking-name">Devcontainer configured</span>
+				<span class="blocking-details">Not configured</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Development Environment</span>
+				<span class="blocking-name">.editorconfig exists</span>
+				<span class="blocking-details">Missing</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Development Environment</span>
+				<span class="blocking-name">Debug configurations</span>
+				<span class="blocking-details">No debug configurations</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Development Environment</span>
+				<span class="blocking-name">Environment template exists</span>
+				<span class="blocking-details">No .env.example</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Debugging & Observability</span>
+				<span class="blocking-name">Structured logging configured</span>
+				<span class="blocking-details">No structured logging library (structlog recommended)</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Debugging & Observability</span>
+				<span class="blocking-name">Error tracking configured</span>
+				<span class="blocking-details">No error tracking</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Debugging & Observability</span>
+				<span class="blocking-name">Health check endpoints</span>
+				<span class="blocking-details">No health endpoints found</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Debugging & Observability</span>
+				<span class="blocking-name">Log levels configured</span>
+				<span class="blocking-details">No log level configuration</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Debugging & Observability</span>
+				<span class="blocking-name">Minimal console.log usage</span>
+				<span class="blocking-details">44 print() calls</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Security</span>
+				<span class="blocking-name">Security scanning configured</span>
+				<span class="blocking-details">No security scanning configured</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Security</span>
+				<span class="blocking-name">CODEOWNERS file exists</span>
+				<span class="blocking-details">Missing CODEOWNERS</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Task Discovery</span>
+				<span class="blocking-name">Makefile exists</span>
+				<span class="blocking-details">Missing</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Task Discovery</span>
+				<span class="blocking-name">Common task aliases</span>
+				<span class="blocking-details">Only 0/5 common aliases</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Task Discovery</span>
+				<span class="blocking-name">Tasks documented</span>
+				<span class="blocking-details">No task documentation</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Task Discovery</span>
+				<span class="blocking-name">PR template exists</span>
+				<span class="blocking-details">Missing PR template</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Task Discovery</span>
+				<span class="blocking-name">Branch naming convention documented</span>
+				<span class="blocking-details">Not documented</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Task Discovery</span>
+				<span class="blocking-name">Commit convention documented</span>
+				<span class="blocking-details">No commit convention</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Product & Experimentation</span>
+				<span class="blocking-name">Feature flags configured</span>
+				<span class="blocking-details">No feature flags</span>
+			</div>
+			<div class="blocking-item">
+				<span class="blocking-pillar">Product & Experimentation</span>
+				<span class="blocking-name">CI runs tests on every PR</span>
+				<span class="blocking-details">No tests in CI</span>
+			</div>
+		</div>
+	</section>
+
+    <footer>
+      Generated by Agent Readiness Check v1.0.0 · <a href="https://github.com/mneves75/skills">https://github.com/mneves75/skills</a> · 9 Pillars · 5 Levels
+    </footer>
+  </div>
+</body>
+</html>
