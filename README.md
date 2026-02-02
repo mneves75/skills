@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue)
+![Version](https://img.shields.io/badge/version-1.1.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
 
@@ -11,6 +11,7 @@ Production-ready skills for AI coding agents. Tool-agnostic by design.
 | Skill | Description |
 |-------|-------------|
 | [agent-readiness](skills/agent-readiness/) | Evaluate codebase readiness for AI agents (Factory.ai aligned) |
+| [teach-back-srs](skills/teach-back-srs/) | Spaced-repetition learning through codebase teach-back sessions (SM-2 + SQLite) |
 
 ## Quick Start
 
