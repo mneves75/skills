@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-07-08
+
+### Added
+
+- **Fable Orchestrator Skill** - Model-routing policy for multi-agent Claude Code sessions
+  - Fable (main session) as advisor: repo understanding, architecture decisions, task decomposition, spec writing, final review
+  - Opus subagents as frontend executors (components, styling, layout)
+  - Codex (GPT-5.5 xhigh via `/codex:rescue`) as heavy executor (implementation, debugging, test fixing, multi-file refactors)
+  - `supergoal` + `/goal` for long-horizon, multi-phase work
+  - Delegation contract (goal, paths, constraints, proof, output shape) and mandatory Fable-side verification of all delegated output
+  - Codex invocation patterns adapted from [steipete/agent-scripts — codex-first](https://github.com/steipete/agent-scripts/blob/main/skills/codex-first/SKILL.md)
+
 ## [1.1.0] - 2026-02-01
 
 ### Added
@@ -44,5 +56,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This project is inspired by [Factory.ai](https://factory.ai)'s Code Readiness framework.
 
+[1.2.0]: https://github.com/mneves75/skills/releases/tag/v1.2.0
 [1.1.0]: https://github.com/mneves75/skills/releases/tag/v1.1.0
 [1.0.0]: https://github.com/mneves75/skills/releases/tag/v1.0.0
