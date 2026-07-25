@@ -1,5 +1,5 @@
 ---
-name: teach-back-srs
+name: mneves-teach-back-srs
 description: "Spaced-repetition learning through teach-back sessions. This skill should be used when the user wants to explain their understanding of a project or codebase so Claude can identify knowledge gaps, ask Socratic follow-ups, and generate flashcards stored in a per-project SQLite database with SM-2 scheduling. Triggers on phrases like 'let me explain', 'teach back', 'quiz me', 'review cards', 'what do I know about', or 'test my understanding'."
 ---
 
@@ -25,7 +25,7 @@ This is the core loop. The user teaches; Claude listens, verifies, and fills gap
 Before the first session in any project, ensure the database exists:
 
 ```bash
-python3 ~/.claude/skills/teach-back-srs/scripts/srs_db.py init
+python3 ~/.claude/skills/mneves-teach-back-srs/scripts/srs_db.py init
 ```
 
 This creates `.ai-learn/srs.db` in the current project directory (auto-gitignored).
@@ -88,7 +88,7 @@ After the follow-up discussion, generate flashcards from every gap and misconcep
 To store cards, run the script for each card:
 
 ```bash
-python3 ~/.claude/skills/teach-back-srs/scripts/srs_db.py add-card \
+python3 ~/.claude/skills/mneves-teach-back-srs/scripts/srs_db.py add-card \
   --question "Why does the safety pipeline check intent before sanitizing input?" \
   --answer "Intent gate (safety/intent.rs) runs first because it can reject catastrophic intents without any model call, saving latency and cost. Sanitization (ai/sanitize.rs) runs after because it only matters if the query will reach the model." \
   --context "safety/intent.rs, ai/sanitize.rs" \
@@ -99,7 +99,7 @@ python3 ~/.claude/skills/teach-back-srs/scripts/srs_db.py add-card \
 ### Step 7: Record the Session
 
 ```bash
-python3 ~/.claude/skills/teach-back-srs/scripts/srs_db.py add-session \
+python3 ~/.claude/skills/mneves-teach-back-srs/scripts/srs_db.py add-session \
   --topic "Safety pipeline architecture" \
   --summary "User understood pattern detection but missed intent gate ordering rationale" \
   --gaps 3 \
@@ -121,7 +121,7 @@ When the user wants to review due cards.
 ### Step 1: Check Due Cards
 
 ```bash
-python3 ~/.claude/skills/teach-back-srs/scripts/srs_db.py due
+python3 ~/.claude/skills/mneves-teach-back-srs/scripts/srs_db.py due
 ```
 
 If no cards are due, report the next scheduled review date and suggest a teach-back session on a new topic instead.
@@ -150,7 +150,7 @@ SM-2 quality scale (present to user as options):
 Record each review:
 
 ```bash
-python3 ~/.claude/skills/teach-back-srs/scripts/srs_db.py review --card-id ID --quality Q
+python3 ~/.claude/skills/mneves-teach-back-srs/scripts/srs_db.py review --card-id ID --quality Q
 ```
 
 ### Step 4: Review Summary
@@ -164,7 +164,7 @@ After all due cards are reviewed, show:
 ## Mode 3: Stats Dashboard
 
 ```bash
-python3 ~/.claude/skills/teach-back-srs/scripts/srs_db.py stats
+python3 ~/.claude/skills/mneves-teach-back-srs/scripts/srs_db.py stats
 ```
 
 Present the JSON output in a readable format:
@@ -176,8 +176,8 @@ Present the JSON output in a readable format:
 ## Mode 4: Export
 
 ```bash
-python3 ~/.claude/skills/teach-back-srs/scripts/srs_db.py export --format md
-python3 ~/.claude/skills/teach-back-srs/scripts/srs_db.py export --format csv
+python3 ~/.claude/skills/mneves-teach-back-srs/scripts/srs_db.py export --format md
+python3 ~/.claude/skills/mneves-teach-back-srs/scripts/srs_db.py export --format csv
 ```
 
 CSV format is compatible with Anki import (question, answer columns).

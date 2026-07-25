@@ -44,7 +44,7 @@ git clone https://github.com/mneves75/skills.git ~/.claude/skills/mneves-skills
 Or symlink just this skill:
 
 ```bash
-ln -s /path/to/skills/skills/fable-orchestrator ~/.claude/skills/fable-orchestrator
+ln -s /path/to/skills/skills/mneves-fable-orchestrator ~/.claude/skills/mneves-fable-orchestrator
 ```
 
 ## Credits

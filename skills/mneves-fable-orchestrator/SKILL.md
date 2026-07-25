@@ -1,6 +1,6 @@
 ---
-name: fable-orchestrator
-description: Model-routing policy — Fable advises, plans, decomposes, and reviews; Opus subagents execute frontend tasks; Codex (GPT-5.5 xhigh via /codex:rescue) executes heavy implementation; skill + /goal drives long-horizon work. Use when starting any non-trivial task, deciding who should execute work, delegating implementation, or when the user says "delegate", "orchestrate", "use codex", "heavy task", or "long-running task".
+name: mneves-fable-orchestrator
+description: Model-routing policy — Fable advises, plans, decomposes, and reviews; Opus subagents execute frontend tasks; Codex (GPT-5.6-sol, reasoning high, via /codex:rescue) executes heavy implementation; skill + /goal drives long-horizon work. Use when starting any non-trivial task, deciding who should execute work, delegating implementation, or when the user says "delegate", "orchestrate", "use codex", "heavy task", or "long-running task".
 ---
 
 # Fable Orchestrator
@@ -33,8 +33,8 @@ intent, constraints). Parallelize independent frontend tasks in one message.
 
 **Codex gets** (via `/codex:rescue`): implementation from a frozen spec, bug fixes with
 known repro, test writing/fixing, mechanical migrations, multi-file refactors, CI fixes.
-- Prefer **GPT-5.5 at xhigh**: pass `--model gpt-5.5 --effort xhigh` (this skill counts as
-  the explicit user request the rescue agent waits for).
+- Prefer **GPT-5.6-sol at high**: pass `--model gpt-5.6-sol --effort high` (this skill counts
+  as the explicit user request the rescue agent waits for).
 - Keep each Codex task **focused and specific** — one goal per dispatch, not a grab-bag.
 - Use `--background` for open-ended/long runs; `--resume` for follow-up fixes (cheaper
   than fresh runs, keeps Codex context).

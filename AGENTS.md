@@ -10,13 +10,13 @@ Production-ready skills for AI coding agents. Tool-agnostic by design.
 
 ```
 skills/
-├── skills/agent-readiness/     # Codebase readiness assessment skill
-│   ├── SKILL.md                # Skill definition (YAML frontmatter)
-│   └── README.md               # Detailed documentation
-├── skills/fable-orchestrator/  # Model-routing policy (Fable plans, executors type)
+├── skills/mneves-agent-readiness/     # Codebase readiness assessment skill
+│   ├── SKILL.md                      # Skill definition (YAML frontmatter)
+│   └── README.md                     # Detailed documentation
+├── skills/mneves-fable-orchestrator/ # Model-routing policy (Fable plans, executors type)
 │   ├── SKILL.md
 │   └── README.md
-├── skills/teach-back-srs/      # Spaced-repetition learning via teach-back sessions
+├── skills/mneves-teach-back-srs/     # Spaced-repetition learning via teach-back sessions
 ├── tools/                    # Assessment tool (Bun + TypeScript)
 │   ├── readiness-check.ts    # Main entry point
 │   └── lib/                  # Shared modules

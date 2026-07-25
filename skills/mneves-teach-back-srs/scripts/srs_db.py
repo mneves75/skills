@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-SRS Database Manager for teach-back-srs skill.
+SRS Database Manager for mneves-teach-back-srs skill.
 
 Manages a per-project SQLite database with SM-2 spaced repetition scheduling.
 Stores cards generated from teach-back sessions, tracks reviews, and schedules

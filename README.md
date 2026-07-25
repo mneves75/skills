@@ -10,9 +10,9 @@ Production-ready skills for AI coding agents. Tool-agnostic by design.
 
 | Skill | Description |
 |-------|-------------|
-| [agent-readiness](skills/agent-readiness/) | Evaluate codebase readiness for AI agents (Factory.ai aligned) |
-| [fable-orchestrator](skills/fable-orchestrator/) | Model-routing policy: Fable plans and reviews, Opus subagents build frontend, Codex (GPT-5.5 xhigh) executes heavy implementation |
-| [teach-back-srs](skills/teach-back-srs/) | Spaced-repetition learning through codebase teach-back sessions (SM-2 + SQLite) |
+| [mneves-agent-readiness](skills/mneves-agent-readiness/) | Evaluate codebase readiness for AI agents (Factory.ai aligned) |
+| [mneves-fable-orchestrator](skills/mneves-fable-orchestrator/) | Model-routing policy: Fable plans and reviews, Opus subagents build frontend, Codex (GPT-5.6-sol high) executes heavy implementation |
+| [mneves-teach-back-srs](skills/mneves-teach-back-srs/) | Spaced-repetition learning through codebase teach-back sessions (SM-2 + SQLite) |
 
 ## Quick Start
 

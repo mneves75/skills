@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-07-24
+
+### Changed
+
+- **BREAKING** — all skills now carry the `mneves-` prefix: `agent-readiness` → `mneves-agent-readiness`, `fable-orchestrator` → `mneves-fable-orchestrator`, `teach-back-srs` → `mneves-teach-back-srs`. Directory name and frontmatter `name:` match. Re-link installs: `ln -s <repo>/skills/mneves-<skill> ~/.claude/skills/mneves-<skill>`.
+- Fable Orchestrator routes heavy implementation to GPT-5.6-sol at reasoning `high` (was GPT-5.5 at `xhigh`).
+
 ## [1.2.0] - 2026-07-08
 
 ### Added
