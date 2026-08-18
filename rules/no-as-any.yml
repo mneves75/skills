@@ -1,0 +1,6 @@
+id: no-as-any
+language: TypeScript
+severity: error
+message: Do not use `as any`; use `unknown` with a narrowing guard instead.
+rule:
+  pattern: $E as any

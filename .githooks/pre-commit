@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Block commits that stage `as any` type assertions (rules/no-as-any.yml).
+# Only staged .ts/.tsx ACMR files are checked; a staged file with unstaged edits
+# is rejected rather than scanned, because the working tree no longer matches
+# what is about to be committed. With no staged relevant files, exit 0.
+
+# The config ships next to this hook (repo root), not inside the guarded repo,
+# so resolve it from the hook's own location.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG="$SCRIPT_DIR/../sgconfig.yml"
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+status=0
+while IFS= read -r -d '' file; do
+  if ! command -v ast-grep >/dev/null 2>&1; then
+    echo "pre-commit: ast-grep not found on PATH; cannot verify. Blocking commit." >&2
+    echo "pre-commit: install it — https://ast-grep.github.io/guide/quick-start.html" >&2
+    exit 1
+  fi
+  if [ -n "$(git diff --name-only -- "$file")" ]; then
+    echo "pre-commit: '$file' has unstaged changes; stage them or restore the file first." >&2
+    status=1
+    continue
+  fi
+  if ! ast-grep scan --config "$CONFIG" "$file"; then
+    echo "pre-commit: '$file' contains 'as any'. Replace with 'unknown' + a narrowing guard." >&2
+    status=1
+  fi
+done < <(git diff --cached --name-only --diff-filter=ACMR -z -- '*.ts' '*.tsx')
+
+exit "$status"

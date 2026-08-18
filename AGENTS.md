@@ -18,10 +18,14 @@ skills/
 │   ├── README.md
 │   └── tools/codex-lane              # Resumable Codex thread wrapper (bash)
 ├── skills/mneves-teach-back-srs/     # Spaced-repetition learning via teach-back sessions
+├── skills/mneves-verify/             # Independent verification before done/fixed/shipped
 ├── tools/                    # Assessment tool (Bun + TypeScript)
 │   ├── readiness-check.ts    # Main entry point
 │   └── lib/                  # Shared modules
 ├── examples/                 # Sample reports (GitHub Pages)
+├── rules/                    # ast-grep rules: reject `as any` (TS + TSX)
+├── sgconfig.yml              # ast-grep config (points at rules/)
+├── .githooks/pre-commit      # Blocking pre-commit hook (ast-grep scan)
 ├── CHANGELOG.md              # Version history
 └── NOTICE                    # Attribution notices
 ```
@@ -49,6 +53,8 @@ bun --bun tools/readiness-check.ts --skip-tests --skip-build
 | `skills/*/SKILL.md` | Skill definition with YAML metadata |
 | `tools/readiness-check.ts` | Assessment tool (9 pillars, 51+ checks) |
 | `skills/mneves-fable-orchestrator/tools/codex-lane` | Named, resumable Codex threads (`start`/`next`/`adopt`/`last`) |
+| `sgconfig.yml` + `rules/no-as-any.yml` + `rules/no-as-any-tsx.yml` | Repo's own ast-grep guard (rejects `as any` in TS + TSX) |
+| `.githooks/pre-commit` | Blocking hook running the ast-grep scan (fails closed without ast-grep) |
 | `VERSION` | Semantic version |
 
 ## Conventions

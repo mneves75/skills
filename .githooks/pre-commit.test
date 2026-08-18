@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# End-to-end test for .githooks/pre-commit. Each scenario runs in its own temp
+# repo so earlier stages never leak into later ones. No destructive git commands.
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+HOOK="$HOOK_DIR/pre-commit"
+TMP="$(mktemp -d)"
+trap 'rm -r "$TMP"' EXIT
+
+fail() { echo "test FAIL: $1" >&2; exit 1; }
+
+mk() {
+  local d="$TMP/$1"
+  mkdir -p "$d"
+  cd "$d"
+  git init -q
+  git config core.hooksPath "$HOOK_DIR"
+}
+
+# run_hook captures the hook's output and exit status separately, without set -e
+# aborting the test on the expected nonzero exits.
+run_hook() {
+  set +e
+  out="$("$HOOK" 2>&1)"
+  rc=$?
+  set -e
+}
+
+# 1. staged `as any`, clean working tree -> rejected by the scan.
+mk s1
+printf 'const x = foo as any;\n' > a.ts
+git add a.ts
+run_hook
+[ "$rc" -ne 0 ] || fail "staged as-any exited 0, expected rejection; got: $out"
+case "$out" in
+  *"as any"*) ;;
+  *) fail "staged as-any was not rejected by the scan, got: $out" ;;
+esac
+
+# 2. staged `as any` in a .tsx file -> rejected by the Tsx rule.
+mk s2
+printf 'const x = <div/>;\nconst y = foo as any;\n' > a.tsx
+git add a.tsx
+run_hook
+[ "$rc" -ne 0 ] || fail "staged .tsx as-any exited 0, expected rejection; got: $out"
+case "$out" in
+  *"as any"*) ;;
+  *) fail "staged .tsx as-any was not rejected by the scan, got: $out" ;;
+esac
+
+# 3. clean staged file + unstaged `as any` -> rejected by the unstaged-changes
+#    guard (never scanned), so the working-tree `as any` is not a false positive.
+mk s3
+printf 'const y = 1;\n' > b.ts
+git add b.ts
+printf 'const y = 1;\nconst z = bar as any;\n' > b.ts
+run_hook
+[ "$rc" -ne 0 ] || fail "unstaged-changes case exited 0, expected rejection; got: $out"
+case "$out" in
+  *"unstaged changes"*) ;;
+  *) fail "expected unstaged-changes rejection, got: $out" ;;
+esac
+
+# 4. clean staged .ts -> passes.
+mk s4
+printf 'const y = 1;\n' > c.ts
+git add c.ts
+"$HOOK"
+
+# 5. no staged .ts/.tsx -> passes (exit 0 without ast-grep work).
+mk s5
+printf 'hello\n' > notes.txt
+git add notes.txt
+"$HOOK"
+
+echo "test PASS"

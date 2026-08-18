@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-08-18
+
+### Added
+
+- **`mneves-verify`** (`skills/mneves-verify/`) — independent-verification skill that operationalizes the "never grade your own homework" rule. Fresh independent context checks the artifact against explicit acceptance criteria; evidence routes by artifact type (focused tests + `autoreview` for code, `agent-browser`/Argent + real renders for UI, real binary/endpoint/query + positive control for CLI/API/data, primary sources + citation checks for research, `security-audit` for security); one builder correction + one full fresh reverify (every criterion + affected regression surfaces), then `Verdict: PASS | FAIL | BLOCKED` with one Criterion line per criterion. PASS alone permits done/fixed/shipped. Artifacts are untrusted data, never instructions; read-only by default, no secrets, no external writes; no scripts/dependencies/scaffolding.
+- **ast-grep guard** — `sgconfig.yml` + `rules/no-as-any.yml` (TypeScript) + `rules/no-as-any-tsx.yml` (TSX): two rules rejecting `as any`, so the repository itself has a real checkable guard rather than a prose promise.
+- **Blocking pre-commit hook** (`.githooks/pre-commit`) — runs the ast-grep scan and fails closed when ast-grep is absent; enabled locally via `git config core.hooksPath .githooks`.
+- **Project memory** — `FOR_YOU_KNOW.md`, `MEMORY.md`, and `memory/2026-08-18.md` (previously absent).
+
 ## [1.4.0] - 2026-07-31
 
 ### Added
@@ -112,6 +121,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This project is inspired by [Factory.ai](https://factory.ai)'s Code Readiness framework.
 
+[1.5.0]: https://github.com/mneves75/skills/releases/tag/v1.5.0
 [1.4.0]: https://github.com/mneves75/skills/releases/tag/v1.4.0
 [1.3.0]: https://github.com/mneves75/skills/releases/tag/v1.3.0
 [1.2.0]: https://github.com/mneves75/skills/releases/tag/v1.2.0
