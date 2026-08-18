@@ -1,0 +1,449 @@
+#!/usr/bin/env bash
+# codex-lane — stateful Codex dispatch.
+#
+# Why this exists: a bare `codex exec` starts a brand-new thread every time, so a
+# multi-round delegation throws away the model's private reasoning between rounds
+# and re-pays the full instruction preamble uncached. `codex exec resume` replays
+# the thread's stored reasoning items instead. A lane is just a named thread id
+# plus its logs, so round 2..N of the same job continue round 1's thinking.
+#
+# Measured (codex-cli 0.146.0, gpt-5.6-sol):
+#   fresh exec -> 34,091 input tokens, 0 cached, no prior reasoning
+#   resume     -> 35,584 cached input tokens, prior reasoning items replayed,
+#                 0 reasoning output tokens spent re-deriving the problem
+#
+# Usage:
+#   codex-lane start <lane> <spec-file> [-- <codex args>...]
+#   codex-lane next  <lane> <prompt|->
+#   codex-lane adopt <lane> <thread-id> [cwd] [-- <codex args>...]
+#   codex-lane id    <lane>
+#   codex-lane log   <lane>
+#   codex-lane last  <lane>
+#   codex-lane list
+#   codex-lane drop  <lane>
+#
+# A lane is bound to one workspace and one execution policy:
+#   * `next` runs in the directory the lane was started (or adopted) in, not the
+#     caller's cwd, so resuming from elsewhere cannot point the executor at the
+#     wrong tree. The recorded path is the physical one (`pwd -P`), so a lane
+#     started through a symlink still resumes in the real tree.
+#     `-C` / `--cd` is therefore rejected — cd into the workspace instead.
+#   * the codex args given to `start` (sandbox, model, reasoning, profile, ...)
+#     are stored and replayed on every `next`; there is no per-turn override.
+#     `codex exec resume` rebuilds its config from the current invocation, so
+#     without this a lane started `-s workspace-write` would silently resume
+#     under the machine default.
+#     `adopt` cannot recover the flags the original `codex exec` ran under, so
+#     restate them: `adopt api-rls <tid> [cwd] -- -s workspace-write`.
+#   * the model is whatever `~/.codex/config.toml` selects unless you pin it at
+#     `start` (e.g. `-- -c model="gpt-5.6-terra"`); the pin then sticks.
+#
+# Prompts reach codex on stdin, never as argv. The prompt argument is ALWAYS
+# literal text; `-` reads the wrapper's stdin. An inline prompt still travels in
+# this wrapper's own argv first, so for anything large (a pasted build log, a
+# review report) redirect a file, or stdin, explicitly:
+#   codex-lane next api-rls - < /tmp/gate3-failure.log
+#
+# Lane names are filenames: [A-Za-z0-9._-] only. State lives in
+# $CODEX_LANE_DIR (default ~/.codex/lanes), created mode 700 because the event
+# logs hold the full model transcript.
+#
+# Requires: codex CLI, bash, python3 (JSON state), awk, mktemp.
+#
+# Every run is backgrounded by the caller, not by this script: it writes to
+# stdout/stderr and exits with codex's exit code, so `codex-lane ... &` or a
+# harness background task both work.
+
+set -euo pipefail
+
+# Lane logs hold the full model transcript for the job, which can quote repo
+# contents. Keep them owner-only.
+umask 077
+
+LANE_DIR="${CODEX_LANE_DIR:-$HOME/.codex/lanes}"
+# `next` cds into the lane's workspace, so every lane path must be absolute
+# before that happens or state and logs would be written under the wrong root.
+case "$LANE_DIR" in /*) ;; *) LANE_DIR="$PWD/$LANE_DIR" ;; esac
+
+die() { printf 'codex-lane: %s\n' "$1" >&2; exit 2; }
+
+# Print the leading comment block (everything after the shebang up to the first
+# line of code) as the help text, so help and header can never drift apart.
+# usage [exit-code] — 0 when help was asked for, 2 when the invocation was wrong.
+# An explicit `--help` that exits nonzero breaks install checks and `set -e` callers.
+usage() {
+  awk 'NR==1{next} /^#/{sub(/^# ?/,""); print; next} {exit}' "$0"
+  exit "${1:-2}"
+}
+
+# A lane name becomes a filename. Anything outside this set could escape
+# LANE_DIR (e.g. `drop ../../thing` would rm a file elsewhere).
+validate_lane() {
+  case "${1-}" in
+    '') die "empty lane name" ;;
+    -*) die "invalid lane name '$1': cannot start with '-'" ;;
+    # A leading dot (including `.` and `..`) would hide the state file from
+    # `list`'s glob, so the lane would work everywhere except where you look for it.
+    .*) die "invalid lane name '$1': cannot start with '.'" ;;
+    *[!A-Za-z0-9._-]*) die "invalid lane name '$1': allowed characters are A-Z a-z 0-9 . _ -" ;;
+  esac
+}
+
+# A thread id becomes the argument to `codex exec resume`. A value beginning with
+# `-` would be parsed as a flag by codex, so reject it before it is persisted or
+# passed on.
+validate_tid() {
+  case "${1-}" in
+    '') die "empty thread id" ;;
+    -*) die "invalid thread id '$1': cannot start with '-'" ;;
+  esac
+}
+
+lane_file() { printf '%s/%s.json' "$LANE_DIR" "$1"; }
+
+# ---------------------------------------------------------------------------
+# Cleanup: a lane name is reserved (empty state file) before the long codex run
+# and published afterwards; the lock serializes concurrent runs on one lane.
+# Both are globals, not function locals, because the EXIT trap fires after the
+# function has already returned.
+# ---------------------------------------------------------------------------
+RESERVED_FILE=""
+LOCK_DIR=""
+PROMPT_TMP=""
+cleanup() {
+  if [ -n "$RESERVED_FILE" ]; then rm -f "$RESERVED_FILE"; RESERVED_FILE=""; fi
+  if [ -n "$PROMPT_TMP" ];    then rm -f "$PROMPT_TMP";    PROMPT_TMP=""; fi
+  if [ -n "$LOCK_DIR" ];      then rmdir "$LOCK_DIR" 2>/dev/null || true; LOCK_DIR=""; fi
+}
+trap cleanup EXIT
+
+reserve_lane() {
+  # reserve_lane <state-file> — fails if it already exists (noclobber is atomic).
+  ( set -o noclobber; : > "$1" ) 2>/dev/null || return 1
+  RESERVED_FILE="$1"
+}
+
+lock_lane() {
+  # One writer per lane. Two `next` calls on one thread would interleave turns
+  # and race to overwrite the state file. mkdir is atomic on every POSIX fs.
+  local d="$LANE_DIR/$1.lock"
+  mkdir "$d" 2>/dev/null \
+    || die "lane '$1' is busy (another codex-lane run holds $d); if that run died, rmdir it"
+  LOCK_DIR="$d"
+}
+
+require_deps() {
+  # Checked before codex runs, never after: state is written with python3, so a
+  # host without it would let an agent modify the workspace and then lose the
+  # thread id that makes the work resumable.
+  command -v codex   >/dev/null 2>&1 || die "codex CLI not found on PATH"
+  command -v python3 >/dev/null 2>&1 || die "python3 not found on PATH (needed for lane state)"
+}
+
+# Sets LANE_F. Must be called directly, never inside $( ) — `die` in a command
+# substitution only kills the subshell and the caller would sail on with "".
+require_lane() {
+  validate_lane "${1-}"
+  LANE_F="$(lane_file "$1")"
+  [ -f "$LANE_F" ] || die "unknown lane '$1' (codex-lane list)"
+}
+
+json_field() {
+  # json_field <file> <key> — top-level string value for <key>, "" if absent.
+  python3 - "$1" "$2" <<'PY'
+import json,sys
+try:
+    with open(sys.argv[1]) as fh:
+        print(json.load(fh).get(sys.argv[2], ""))
+except Exception:
+    print("")
+PY
+}
+
+json_args() {
+  # json_args <file> — the stored codex args, one NUL-terminated element each.
+  python3 - "$1" <<'PY'
+import json,sys
+try:
+    with open(sys.argv[1]) as fh:
+        args = json.load(fh).get("args") or []
+except Exception:
+    args = []
+sys.stdout.write("".join(str(a) + "\0" for a in args))
+PY
+}
+
+thread_id_from_jsonl() {
+  python3 - "$1" <<'PY'
+import json,sys
+for line in open(sys.argv[1], errors="replace"):
+    try:
+        obj = json.loads(line)
+    except Exception:
+        continue
+    tid = obj.get("thread_id")
+    if tid:
+        print(tid)
+        break
+PY
+}
+
+write_lane() {
+  # write_lane <lane> <thread_id> <cwd> <events> <last> [codex args...]
+  python3 - "$(lane_file "$1")" "$@" <<'PY'
+import json, os, sys, tempfile
+path, lane, tid, cwd, events, last = sys.argv[1:7]
+state = {"lane": lane, "thread_id": tid, "cwd": cwd, "events": events,
+         "last": last, "args": sys.argv[7:]}
+# Write-then-rename: `open(path, "w")` truncates the ONLY copy of the thread id
+# before the new one is durable, so a crash mid-write would strand the lane.
+# os.replace is atomic within a directory, so a reader sees old state or new,
+# never a half-written file.
+d = os.path.dirname(path) or "."
+fd, tmp = tempfile.mkstemp(dir=d, prefix=".lane-", suffix=".tmp")
+try:
+    with os.fdopen(fd, "w") as fh:
+        json.dump(state, fh, indent=2)
+        fh.flush()
+        os.fsync(fh.fileno())
+    os.replace(tmp, path)
+except BaseException:
+    os.unlink(tmp)
+    raise
+PY
+}
+
+split_args() {
+  # Everything after a literal `--` is passed through to codex. A token BEFORE
+  # the delimiter is an error, never a no-op: silently dropping it would let
+  # `codex-lane start l spec -s read-only` run under the machine default —
+  # possibly wider permissions than the caller just asked for.
+  CODEX_ARGS=()
+  local seen=0 a
+  for a in "$@"; do
+    if [ "$seen" = 1 ]; then CODEX_ARGS+=("$a"); continue; fi
+    [ "$a" = "--" ] && { seen=1; continue; }
+    die "unexpected argument '$a': codex args must follow a literal '--' (e.g. -- -s workspace-write)"
+  done
+  for a in ${CODEX_ARGS[@]+"${CODEX_ARGS[@]}"}; do
+    case "$a" in
+      # A cwd override decouples the lane from the workspace it records, so a
+      # later `next` would resume against a different repository. `-C x`, `-Cx`
+      # and `-C=x` are all accepted by the Codex CLI — reject every form.
+      -C|-C*|--cd|--cd=*)
+        die "refusing '$a': a lane is bound to one workspace — cd into it and run codex-lane there" ;;
+      # These belong to the wrapper: it owns the event stream and the last-message
+      # file, and an ephemeral thread cannot be resumed at all, which is the one
+      # thing a lane exists to do.
+      --json|-o|-o*|--output-last-message|--output-last-message=*|--ephemeral)
+        die "refusing '$a': codex-lane owns this flag (--json, --output-last-message) or it would make the thread unresumable (--ephemeral)" ;;
+    esac
+  done
+}
+
+read_stored_args() {
+  # read_stored_args <state-file> -> STORED_ARGS
+  STORED_ARGS=()
+  local a
+  while IFS= read -r -d '' a; do STORED_ARGS+=("$a"); done < <(json_args "$1")
+}
+
+prompt_to_stdin_file() {
+  # The prompt argument is always literal text; only `-` reads the wrapper's
+  # stdin. codex always receives the prompt on stdin (as `-`), which has no
+  # length limit — but an inline prompt still has to survive this wrapper's own
+  # argv first, and the kernel rejects a multi-MB one with E2BIG before the
+  # script starts. So a big prompt must arrive via explicit stdin redirection:
+  #   codex-lane next api-rls - < /tmp/gate3-failure.log
+  PROMPT_TMP="$(mktemp "${TMPDIR:-/tmp}/codex-lane.XXXXXX")"
+  if [ "$1" = "-" ]; then
+    cat > "$PROMPT_TMP"
+  else
+    printf '%s' "$1" > "$PROMPT_TMP"
+  fi
+  [ -s "$PROMPT_TMP" ] || die "empty prompt"
+}
+
+artifact_paths() {
+  # artifact_paths <lane> -> EVENTS, LAST. $$ disambiguates two runs that start
+  # within the same second, which would otherwise share (and truncate) files.
+  local stamp; stamp="$(date -u +%Y%m%dT%H%M%SZ).$$"
+  EVENTS="$LANE_DIR/$1.$stamp.jsonl"
+  LAST="$LANE_DIR/$1.$stamp.last.txt"
+}
+
+init_lane_dir() {
+  # Only tighten a directory we created ourselves. CODEX_LANE_DIR is user-supplied,
+  # and chmod-ing an existing one would silently strip access from whatever else
+  # lives there.
+  [ -d "$LANE_DIR" ] && return 0
+  mkdir -p "$LANE_DIR"
+  chmod 700 "$LANE_DIR"   # transcripts of the whole job live here
+}
+
+cmd_start() {
+  [ $# -ge 2 ] || usage
+  local lane="$1" spec="$2"; shift 2
+  validate_lane "$lane"
+  require_deps
+  [ -r "$spec" ] || die "spec file not readable: $spec"
+  split_args "$@"
+
+  init_lane_dir
+  lock_lane "$lane"
+  # Reserve the name BEFORE the (long) codex run: a plain `[ -f ]` check would
+  # leave two concurrent `start`s racing for the whole duration of the run.
+  reserve_lane "$(lane_file "$lane")" \
+    || die "lane '$lane' already exists — use 'codex-lane next $lane ...' to continue it, or 'drop' it first"
+
+  artifact_paths "$lane"
+  local rc=0
+  codex exec --json --output-last-message "$LAST" \
+    ${CODEX_ARGS[@]+"${CODEX_ARGS[@]}"} - < "$spec" > "$EVENTS" || rc=$?
+
+  local tid
+  tid="$(thread_id_from_jsonl "$EVENTS")"
+  [ -n "$tid" ] || die "no thread_id in $EVENTS (codex exited $rc; see that file)"
+  validate_tid "$tid"
+  # Record the PHYSICAL path: $PWD keeps the logical (symlinked) spelling, and a
+  # later `next` must land in the same real tree the spec was written for.
+  write_lane "$lane" "$tid" "$(pwd -P)" "$EVENTS" "$LAST" ${CODEX_ARGS[@]+"${CODEX_ARGS[@]}"}
+  RESERVED_FILE=""   # published: the state file is real now, keep it
+
+  printf 'lane %s -> thread %s\n' "$lane" "$tid" >&2
+  printf 'events: %s\n' "$EVENTS" >&2
+  cat "$LAST" 2>/dev/null || true
+  return $rc
+}
+
+cmd_next() {
+  [ $# -ge 2 ] || usage
+  local lane="$1" prompt="$2"; shift 2
+  # `next` takes exactly <lane> <prompt|->. The execution args are the
+  # lane's policy, stored at start/adopt and replayed every turn, so a trailing
+  # arg is a mistake, never a per-turn override.
+  [ $# -eq 0 ] || die "unexpected argument '$1': next takes only <lane> <prompt|-> — execution args are stored at start/adopt and replayed every turn"
+  validate_lane "$lane"
+  require_deps
+  # Lock BEFORE reading any state. Reading first left a window in which a
+  # concurrent `drop` could delete the lane after we read its thread id: the
+  # drop reported success, then this turn resumed the thread anyway and
+  # write_lane resurrected the state file the user thought was gone.
+  [ -d "$LANE_DIR" ] || die "unknown lane '$lane' (codex-lane list)"
+  lock_lane "$lane"
+  require_lane "$lane"
+  local f tid lane_cwd
+  f="$LANE_F"
+  tid="$(json_field "$f" thread_id)"
+  [ -n "$tid" ] || die "lane '$lane' has no thread_id"
+  validate_tid "$tid"
+
+  # Resolve the prompt against the CALLER's cwd, before we move.
+  prompt_to_stdin_file "$prompt"
+
+  # Always replay what `start` (or `adopt`) stored. `codex exec resume` takes
+  # its sandbox/model/profile from the current invocation, not from the thread,
+  # so the stored set IS the lane's execution policy.
+  read_stored_args "$f"
+
+  # Codex acts on its working directory. A lane is bound to one workspace, so
+  # `next` must run where the lane started.
+  lane_cwd="$(json_field "$f" cwd)"
+  [ -n "$lane_cwd" ] || die "lane '$lane' has no recorded cwd (re-adopt it: codex-lane adopt $lane $tid <cwd>)"
+  [ -d "$lane_cwd" ] || die "lane '$lane' cwd no longer exists: $lane_cwd"
+  cd "$lane_cwd" || die "cannot cd to lane cwd: $lane_cwd"
+
+  artifact_paths "$lane"
+
+  # Global flags MUST precede `resume`; `codex exec resume -s read-only` is a
+  # parse error ("unexpected argument '-s'"). The prompt is `-` (stdin).
+  local rc=0
+  codex exec --json --output-last-message "$LAST" \
+    ${STORED_ARGS[@]+"${STORED_ARGS[@]}"} \
+    resume "$tid" - < "$PROMPT_TMP" > "$EVENTS" || rc=$?
+
+  # Re-persist the stored args unchanged: they are the lane's policy.
+  write_lane "$lane" "$tid" "$lane_cwd" "$EVENTS" "$LAST" ${STORED_ARGS[@]+"${STORED_ARGS[@]}"}
+  printf 'lane %s resumed thread %s\n' "$lane" "$tid" >&2
+  printf 'events: %s\n' "$EVENTS" >&2
+  cat "$LAST" 2>/dev/null || true
+  return $rc
+}
+
+# A plain `codex exec` that turns out to need a round 2 is the common case: the
+# thread exists, but no lane wraps it. Adopt it instead of re-specifying the job.
+cmd_adopt() {
+  [ $# -ge 2 ] || usage
+  local lane="$1" tid="$2"; shift 2
+  local cwd="$PWD"
+  case "${1-}" in
+    ''|--) : ;;
+    *) cwd="$1"; shift ;;
+  esac
+  validate_lane "$lane"
+  require_deps
+  validate_tid "$tid"
+  [ -d "$cwd" ] || die "not a directory: $cwd"
+  # `CDPATH=` and `>/dev/null`: with CDPATH set, bash's cd echoes the resolved
+  # directory, so a relative arg would record two newline-separated paths and
+  # every later `next` would die on a cwd that "is not a directory".
+  # `pwd -P` stores the physical path, so a symlinked workspace records the real tree.
+  cwd="$(CDPATH='' cd -- "$cwd" >/dev/null && pwd -P)"
+  split_args "$@"
+
+  init_lane_dir
+  lock_lane "$lane"
+  reserve_lane "$(lane_file "$lane")" || die "lane '$lane' already exists — drop it first"
+  write_lane "$lane" "$tid" "$cwd" "" "" ${CODEX_ARGS[@]+"${CODEX_ARGS[@]}"}
+  RESERVED_FILE=""
+  printf 'lane %s -> thread %s (cwd %s)\n' "$lane" "$tid" "$cwd" >&2
+}
+
+cmd_id()   { [ $# -eq 1 ] || usage; require_lane "${1-}"; json_field "$LANE_F" thread_id; }
+cmd_log()  { [ $# -eq 1 ] || usage; require_lane "${1-}"; json_field "$LANE_F" events; }
+# Locked like start/next, and locked BEFORE the existence check: dropping a lane
+# out from under a running turn would let that turn republish the state file
+# after the drop reported success.
+cmd_drop() {
+  [ $# -eq 1 ] || usage
+  validate_lane "${1-}"
+  [ -d "$LANE_DIR" ] || die "unknown lane '$1' (codex-lane list)"
+  lock_lane "$1"
+  require_lane "$1"
+  rm -f "$LANE_F"
+  printf 'dropped lane %s\n' "$1"
+}
+
+cmd_last() {
+  [ $# -eq 1 ] || usage
+  require_lane "${1-}"
+  local p; p="$(json_field "$LANE_F" last)"
+  [ -n "$p" ] && [ -f "$p" ] || die "lane '$1' has no last-message file yet"
+  cat "$p"
+}
+
+cmd_list() {
+  [ $# -eq 0 ] || usage
+  [ -d "$LANE_DIR" ] || { printf 'no lanes\n'; return 0; }
+  local f
+  for f in "$LANE_DIR"/*.json; do
+    [ -e "$f" ] || { printf 'no lanes\n'; return 0; }
+    printf '%-24s %s  %s\n' \
+      "$(json_field "$f" lane)" "$(json_field "$f" thread_id)" "$(json_field "$f" cwd)"
+  done
+}
+
+[ $# -ge 1 ] || usage
+sub="$1"; shift
+case "$sub" in
+  start) cmd_start "$@" ;;
+  next)  cmd_next  "$@" ;;
+  adopt) cmd_adopt "$@" ;;
+  id)    cmd_id    "$@" ;;
+  log)   cmd_log   "$@" ;;
+  last)  cmd_last  "$@" ;;
+  list)  cmd_list  "$@" ;;
+  drop)  cmd_drop  "$@" ;;
+  -h|--help|help) usage 0 ;;
+  *) die "unknown subcommand '$sub'" ;;
+esac
