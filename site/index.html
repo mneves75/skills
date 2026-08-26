@@ -237,10 +237,12 @@ bun --bun /path/to/skills/tools/readiness-check.ts \
     <section aria-labelledby="h-log">
       <h2 id="h-log">Changelog</h2>
       <ul class="log">
-        <li><span class="v">1.10.0<span class="d">2026-08-26</span></span><span>Orchestrator adopts codex-first lessons; every skill validates against the Agent Skills spec.</span></li>
-        <li><span class="v">1.9.0<span class="d">2026-08-26</span></span><span>This landing page; site source moved to <code>site/</code>; Dependabot branches pruned.</span></li>
-        <li><span class="v">1.8.2<span class="d">2026-08-26</span></span><span>HOWTO with a worked example per skill, rendered to <a href="howto.html">howto.html</a>.</span></li>
-        <li><span class="v">1.8.1<span class="d">2026-08-26</span></span><span>Sample report regenerated with the fixed tool; Factory.ai attribution reduced to verifiable facts.</span></li>
+        <!-- changelog:start -->
+        <li><span class="v">1.11.0<span class="d">2026-08-26</span></span><span>Recorded sessions in <code>HOWTO.md</code>: <code>mneves-eli5</code> and <code>mneves-expert-review</code> examples are verbatim <code>claude -p</code> runs (claude-fable-5, 2026-08-26); <code>mneves-teach-back-srs</code> shows real <code>srs_db.py</code> output; the readiness example was already a real run.</span></li>
+        <li><span class="v">1.10.0<span class="d">2026-08-26</span></span><span><code>mneves-fable-orchestrator</code> adopts five rules from steipete's <code>codex-first</code> (2026-08-20 revision): every hard prohibition in a spec carries an escape hatch (the minification incident), check for a live worker with <code>pgrep -fl "codex exec"</code> before editing, verify beyond the diff (merged surface, uncommissioned commit messages, guard files, test-helper edits), a diagnosis list for executors that die instantly or go quiet (with lane resume), and never passing credentials via <code>-c</code> (use a <code>CODEX_HOME</code> overlay).</span></li>
+        <li><span class="v">1.9.0<span class="d">2026-08-26</span></span><span>Landing page at https://mneves75.github.io/skills/ (<code>site/index.html</code>): install commands with copy buttons, one card per skill linking into the how-to, how it works, the readiness tool with the sample score, start-here links, recent changelog.</span></li>
+        <li><span class="v">1.8.2<span class="d">2026-08-26</span></span><span><code>HOWTO.md</code>: what each of the six skills does, its trigger phrases, prerequisites, a worked example and tips; rendered to <code>examples/howto.html</code> on GitHub Pages by <code>tools/scripts/build-howto.sh</code> (bun + marked, nothing added to the repo's dependencies).</span></li>
+        <!-- changelog:end -->
       </ul>
       <p style="margin-top:1rem"><a href="https://github.com/mneves75/skills/blob/main/CHANGELOG.md">Full changelog →</a></p>
     </section>

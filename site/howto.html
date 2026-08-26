@@ -77,18 +77,20 @@ you wrote in.</p>
 &quot;explique de forma simples&quot;, or any request to re-explain something for a different audience.</p>
 <p><strong>Audience levels.</strong> <code>child</code>, <code>layperson</code>, <code>executive</code>, <code>junior</code>, <code>expert</code>. Name one if you
 care; otherwise the agent infers it and says which it picked.</p>
-<p><strong>Example.</strong></p>
+<p><strong>Example</strong> (recorded 2026-08-26, <code>claude -p</code> on claude-fable-5, verbatim).</p>
 <blockquote>
-<p><strong>You:</strong> Explain what a database index is to a product manager.</p>
-<p><strong>Agent:</strong> <em>(explaining for an executive)</em>
-An index is the table of contents at the back of a book. Without it, finding every mention
-of &quot;refunds&quot; means reading every page; with it, you jump straight to the right pages. The
-database does the same for a column you search often. The cost: every time you add a page,
-the table of contents has to be updated too, so writes get slightly slower and storage grows.
-Decision for you: index the columns your reports filter on, not every column.
-Where the analogy breaks: a book has one index; a table can have many, and the wrong
-combination can slow things down instead of speeding them up.
-Takeaway: an index trades a little write cost for much faster reads on the columns you query.</p>
+<p><strong>You:</strong> Use the mneves-eli5 skill. Explain what a database index is to a product manager.</p>
+<p><strong>Agent:</strong> Explaining for a product manager (executive level: what it is, why it matters, the decision).</p>
+<p><strong>A database index is a lookup table that lets the database jump straight to the rows it needs instead of reading every row.</strong></p>
+<p>Think of a 500-page book. Without an index, finding every mention of &quot;refunds&quot; means reading all 500 pages. With the index at the back, you flip to &quot;refunds → pages 12, 87, 203&quot; and go straight there. A database index does the same for a column: &quot;customer_email → row 4,812&quot;. A query that took 3 seconds scanning 10 million rows can take 3 milliseconds.</p>
+<p>Why it matters to you:</p>
+<ul>
+<li><strong>Speed is a product feature.</strong> Slow search, slow dashboards, and timeouts under load are very often &quot;missing index&quot; problems, and they surface only once real data volume arrives — not in demos.</li>
+<li><strong>Indexes are not free.</strong> Every index is a second copy the database must update on each write. Over-indexing slows down inserts and eats storage; the book analogy breaks here, because a book&#39;s index doesn&#39;t have to be rewritten every time you add a page.</li>
+<li><strong>The decision you&#39;ll face:</strong> when an engineer says &quot;we need an index on that field&quot; it&#39;s a cheap, low-risk fix for read speed; when they say &quot;too many indexes&quot; on a write-heavy table (event logs, orders), that tradeoff is real and worth a conversation.</li>
+</ul>
+<p>Takeaway to repeat: an index trades a little write cost and storage for much faster lookups on the columns you search by most.</p>
+<p>Want the version with the mechanism (B-trees, composite indexes, why the column order matters)?</p>
 </blockquote>
 <p><strong>Tips.</strong></p>
 <ul>
@@ -108,24 +110,28 @@ stakes: a factual one-liner gets the mental version, a migration plan gets the f
 <p><strong>Triggers.</strong> &quot;expert review&quot;, &quot;rigorous pass&quot;, &quot;best possible answer&quot;, &quot;challenge this&quot;,
 &quot;stress-test&quot;, &quot;revisão rigorosa&quot;, &quot;melhor solução&quot;, or before any high-stakes plan, design,
 recommendation or architecture decision.</p>
-<p><strong>Example.</strong></p>
+<p><strong>Example</strong> (recorded 2026-08-26, <code>claude -p</code> on claude-fable-5, verbatim; the prompt asked for under 400 words).</p>
 <blockquote>
-<p><strong>You:</strong> Here&#39;s my plan to move sessions from Redis to Postgres. Challenge it.</p>
-<p><strong>Agent:</strong> Objective: cut one piece of infrastructure without changing login behaviour.
-Audience: the two engineers who run this. Success: no p95 regression on session reads,
-zero forced logouts.</p>
-<p>Panel findings: the plan assumes session reads are rare; the middleware reads one per
-request (<code>auth.ts:41</code>). At current traffic that is 1.2k reads/s, which the plan never
-budgets. The migration script deletes Redis keys before the Postgres write is confirmed.</p>
-<p>Alternatives compared (weights: risk 40%, ops cost 30%, effort 20%, reversibility 10%):
-keep Redis (baseline), Postgres with <code>UNLOGGED</code> table, Postgres + in-process LRU, signed
-stateless cookies, SQLite on each node, and <em>do nothing until the Redis contract renews</em>.
-Winner: signed cookies for the hot path with Postgres for revocation, 7.2/10; plain
-Postgres scored 5.1 on read risk.</p>
-<p>Premise challenge (reported even though rejected): the cost driver is the managed Redis
-tier, not Redis itself; a smaller tier removes 80% of the saving&#39;s motivation.</p>
-<p>Pre-mortem: cookie size limits on the mobile client. Mitigation: cap claims to 3 fields.
-Remaining uncertainty: revocation latency target was never stated; assumed under 60 s.</p>
+<p><strong>You:</strong> Use the mneves-expert-review skill. Challenge this plan and return the improved version: &quot;We will move user sessions from Redis to Postgres to cut one piece of infrastructure. Steps: 1) add a sessions table, 2) change the auth middleware to read/write Postgres, 3) run a script that copies live Redis keys into the table and deletes them from Redis, 4) turn off Redis. Session reads are rare so performance is not a concern.&quot;</p>
+<p><strong>Agent:</strong> <strong>Improved plan: sessions Redis → Postgres</strong></p>
+<p><strong>Challenge the premise first.</strong> &quot;Cut one piece of infrastructure&quot; only holds if nothing else uses Redis (rate limiting, caches, queues, pub/sub). Grep for every Redis client before step 1 — if anything else depends on it, this migration removes nothing and the plan should stop here. Also: &quot;reads are rare&quot; is almost never true for sessions — the auth middleware reads on <em>every authenticated request</em>. Measure current Redis ops/sec; that number is the real load Postgres inherits.</p>
+<p><strong>Plan</strong></p>
+<ol>
+<li><strong>Inventory and baseline.</strong> List all Redis usages. Record session read/write rates and p99 auth-middleware latency (the acceptance bar for step 5).</li>
+<li><strong>Schema.</strong> <code>sessions(id PK, user_id, data jsonb, expires_at timestamptz, created_at)</code>, index on <code>expires_at</code> and <code>user_id</code>. Redis TTL is free; Postgres needs a scheduled purge (<code>DELETE WHERE expires_at &lt; now()</code> via pg_cron or a job) — without it the table grows forever. Session IDs stay opaque/random; store a hash if you treat them as secrets.</li>
+<li><strong>Dual-write, Redis-read.</strong> Middleware writes to both, reads Redis. Ships behind a flag, fully reversible.</li>
+<li><strong>Backfill.</strong> Copy remaining Redis keys with their TTLs (<code>TTL</code> → <code>expires_at</code>) into Postgres. <strong>Do not delete from Redis</strong> — the original step 3&#39;s &quot;copy then delete&quot; is a one-way door with no rollback and a race against sessions written mid-copy.</li>
+<li><strong>Flip reads to Postgres.</strong> Compare latency/error rate against the step 1 baseline for at least one full session-lifetime cycle. Roll back = flip the flag.</li>
+<li><strong>Stop writing to Redis, then decommission</strong> after the longest session TTL has elapsed — remaining keys expire on their own, no deletion script.</li>
+</ol>
+<p><strong>Key risks the original missed</strong></p>
+<ul>
+<li>Write amplification: touching <code>last_seen</code> on every request creates a hot UPDATE row per user and WAL/vacuum churn. Update at most once per N minutes, or drop the sliding-expiry behaviour.</li>
+<li>Logout / &quot;revoke all sessions&quot; must work identically in both stores during dual-write.</li>
+<li>Connection pool: middleware now holds a DB connection per request; check pooler limits (PgBouncer) before flipping.</li>
+</ul>
+<p><strong>Rejected alternative worth stating:</strong> stateless signed tokens (JWT/PASETO) remove the session store entirely — but revocation becomes hard. Only pick it if you don&#39;t need server-side logout.</p>
+<p><strong>Remaining uncertainty:</strong> whether Redis is actually single-purpose, and the real read rate. Both are five-minute checks and decide whether the project exists at all.</p>
 </blockquote>
 <p><strong>Tips.</strong></p>
 <ul>
@@ -146,7 +152,7 @@ a substantial task. Skipped for simple answers, plans and prose.</p>
 real browser render, never the builder&#39;s screenshot claim. CLI/API/data: run the real thing
 with a positive control (a known-good input that must succeed). Research: the primary source,
 checked for saying what the claim says. Security: an independent audit.</p>
-<p><strong>Example output.</strong></p>
+<p><strong>Example output</strong> (illustrative; a real run needs a second model and an artifact to check).</p>
 <pre><code>Verdict: FAIL
 Builder: claude-fable-5 / Edit, Bash / session 3f2a
 Verifier: gpt-5.6-sol / read-only sandbox / fresh context
@@ -182,7 +188,7 @@ any non-trivial task where the agent has to decide who executes.</p>
 <pre><code class="language-bash">ln -s ~/.agents/skills/mneves-fable-orchestrator/tools/codex-lane ~/bin/codex-lane
 </code></pre>
 <p>(Adjust the source path to wherever the skill was installed.)</p>
-<p><strong>Example.</strong> You ask for row-level security on a multi-tenant API.</p>
+<p><strong>Example</strong> (illustrative; a real run dispatches Codex). You ask for row-level security on a multi-tenant API.</p>
 <ol>
 <li>The advisor writes <code>/tmp/spec.md</code>: goal, acceptance criteria, exact files, the files it must
 not touch (the frontend, which an Opus subagent owns), the test command that must pass.</li>
@@ -230,7 +236,7 @@ bun --bun ~/src/skills/tools/readiness-check.ts --min-level=3       # exit 1 bel
 bun --bun ~/src/skills/tools/readiness-check.ts --app packages/api  # one app in a monorepo
 </code></pre>
 <p><code>--help</code> lists the rest (<code>--format json</code>, <code>--scoring strict|average</code>, <code>--language</code>).</p>
-<p><strong>Example.</strong> Against FastAPI (<code>9a8a13f</code>, static checks) the tool reports L3 at 61.7%:
+<p><strong>Example</strong> (real run, 2026-08-26). Against FastAPI (<code>9a8a13f</code>, static checks) the tool reports L3 at 61.7%:
 Style 88%, strong documentation, weaker on task discovery and product signals. The
 <a href="https://mneves75.github.io/skills/fastapi.html">live report</a> shows the full breakdown.</p>
 <p><strong>The five-question shortcut</strong> the skill uses when you just want a feel for a repo:</p>
@@ -291,7 +297,7 @@ about&quot;, &quot;test my understanding&quot;.</p>
 <blockquote>
 <p><strong>You:</strong> Let me explain the safety pipeline in ai-shell. There&#39;s a regex matcher for
 dangerous commands and a scorer from 1 to 10; high scores get blocked.</p>
-<p><strong>Agent:</strong> <em>(reads <code>safety/</code>)</em> Pattern detection and scoring are right. Three follow-ups:</p>
+<p><strong>Agent</strong> <em>(illustrative session; reads <code>safety/</code>)</em>: Pattern detection and scoring are right. Three follow-ups:</p>
 <ol>
 <li><code>safety/intent.rs</code> runs <em>before</em> the matcher. What does it do, and why first?</li>
 <li><code>safety/scorer.rs:47</code> treats 7+ and 9+ differently. What is the difference?</li>
@@ -306,13 +312,29 @@ Session recorded. First review due in one day.</li>
 </blockquote>
 <p>Later, &quot;quiz me&quot; shows the question, waits, shows the answer, asks for a 0–5 rating, and
 reschedules: a 5 pushes the card out, anything under 3 resets it.</p>
-<p><strong>Behind the scenes</strong> the agent calls the bundled script; you can too:</p>
-<pre><code class="language-bash">S=~/.agents/skills/mneves-teach-back-srs/scripts/srs_db.py   # or wherever it was installed
-python3 $S init
-python3 $S due
-python3 $S stats
-python3 $S export --format csv &gt; cards.csv
+<p><strong>Behind the scenes</strong> the agent runs <code>scripts/srs_db.py</code> from the skill&#39;s folder, with your
+project as the working directory. Recorded 2026-08-26 in an empty directory:</p>
+<pre><code>$ python3 scripts/srs_db.py init
+Initialized SRS database at /tmp/demo/.ai-learn/srs.db
+
+$ python3 scripts/srs_db.py add-card --question &quot;Why does the intent gate run before pattern matching?&quot; \
+    --answer &quot;It can reject catastrophic intents without a model call (safety/intent.rs), so the cheaper check runs first.&quot; \
+    --context &quot;safety/intent.rs&quot; --tags &quot;safety,pipeline&quot; --difficulty medium
+Card #1 added: Why does the intent gate run before pattern matching?...
+
+$ python3 scripts/srs_db.py due
+1 card(s) due:
+
+  #1 [medium] Why does the intent gate run before pattern matching?
+    EF=2.50 | interval=0d | reps=0
+
+$ python3 scripts/srs_db.py review --card-id 1 --quality 4
+{&quot;card_id&quot;: 1, &quot;quality&quot;: 4, &quot;new_interval_days&quot;: 1, &quot;new_ease_factor&quot;: 2.5, &quot;next_review&quot;: &quot;2026-08-27 19:14:48&quot;, &quot;repetitions&quot;: 1}
+
+$ python3 scripts/srs_db.py stats
+{&quot;total_cards&quot;: 1, &quot;due_now&quot;: 0, &quot;mastered&quot;: 0, &quot;struggling&quot;: 0, &quot;sessions&quot;: 1, &quot;total_reviews&quot;: 1, &quot;today_reviews&quot;: 1, &quot;upcoming_7d&quot;: 1, &quot;avg_ease_factor&quot;: 2.5, &quot;next_scheduled&quot;: &quot;2026-08-27 19:14:48&quot;}
 </code></pre>
+<p><code>export --format csv &gt; cards.csv</code> writes an Anki-importable file.</p>
 <p><strong>Tips.</strong></p>
 <ul>
 <li>Scope a session to one subsystem or one data flow. &quot;The whole backend&quot; produces vague cards.</li>

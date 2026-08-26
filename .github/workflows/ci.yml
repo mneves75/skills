@@ -58,6 +58,11 @@ jobs:
       - name: Pre-commit hook test
         run: bash .githooks/pre-commit.test
 
+      - name: Generated site files are current
+        run: |
+          tools/scripts/build-site.sh
+          git diff --exit-code -- site/ || { echo "run tools/scripts/build-site.sh and commit"; exit 1; }
+
       - name: tools typecheck + lint
         working-directory: tools
         run: |

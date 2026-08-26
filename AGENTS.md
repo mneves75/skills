@@ -38,7 +38,7 @@ bun run typecheck && bun run lint       # from tools/
 ast-grep scan --config sgconfig.yml .   # from repo root
 bash .githooks/pre-commit.test          # hook e2e test
 bun --bun tools/readiness-check.ts --format=html --output=report.html   # assess cwd
-tools/scripts/build-howto.sh            # HOWTO.md -> site/howto.html (after editing HOWTO.md)
+tools/scripts/build-site.sh            # HOWTO.md -> site/howto.html + landing changelog rows (CI checks freshness)
 npx skills@latest add . --list          # what the skills CLI will discover
 ```
 
@@ -59,5 +59,5 @@ npx skills@latest add . --list          # what the skills CLI will discover
 ## Adding a Skill
 
 1. `skills/<mneves-name>/SKILL.md` with frontmatter; `README.md` for longer docs.
-2. Root `README.md` table, a `HOWTO.md` section (then `tools/scripts/build-howto.sh`), the tree above, `VERSION`, `CHANGELOG.md`, README badge.
+2. Root `README.md` table, a `HOWTO.md` section, the tree above, `VERSION`, `CHANGELOG.md`, README badge; then `tools/scripts/build-site.sh` (CI fails on stale site files).
 3. `npx skills@latest add . --list` shows the new skill; CI green.

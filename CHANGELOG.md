@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 2026-08-26
+
+### Added
+
+- **Recorded sessions in `HOWTO.md`**: `mneves-eli5` and `mneves-expert-review` examples are verbatim `claude -p` runs (claude-fable-5, 2026-08-26); `mneves-teach-back-srs` shows real `srs_db.py` output; the readiness example was already a real run. The two remaining examples are labelled illustrative.
+- Branch ruleset on `main`: no force-push, no deletion.
+- CI fails when `site/howto.html` or the landing page's changelog rows are stale (`tools/scripts/build-site.sh` regenerates both).
+
+### Changed
+
+- **`mneves-teach-back-srs`** no longer hardcodes `~/.claude/skills/...`; commands reference `scripts/srs_db.py` relative to the skill folder, as the Agent Skills spec recommends, so any install location works.
+- **`mneves-fable-orchestrator`** keeps model ids in one Models table (role, id, effort, where it is set); the body refers to roles.
+- Landing-page changelog rows are generated from `CHANGELOG.md` by `tools/scripts/changelog-rows.py` instead of copied by hand. `build-howto.sh` renamed to `build-site.sh`.
+
 ## [1.10.0] - 2026-08-26
 
 ### Changed
@@ -197,6 +211,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This project is inspired by [Factory.ai](https://factory.ai)'s Code Readiness framework.
 
+[1.11.0]: https://github.com/mneves75/skills/releases/tag/v1.11.0
 [1.10.0]: https://github.com/mneves75/skills/releases/tag/v1.10.0
 [1.9.0]: https://github.com/mneves75/skills/releases/tag/v1.9.0
 [1.8.2]: https://github.com/mneves75/skills/releases/tag/v1.8.2

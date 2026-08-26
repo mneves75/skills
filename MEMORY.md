@@ -14,6 +14,8 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.11.0** (2026-08-26): recorded sessions in HOWTO, ruleset on `main`, teach-back script path relative,
+  model table in orchestrator, landing changelog generated (`build-site.sh`).
 - **1.10.0** (2026-08-26): orchestrator adopts codex-first lessons (escape hatches, live-worker check,
   verify beyond the diff, death diagnosis); `license:` in every skill; prose pass.
 - **1.9.0** (2026-08-26): landing page (`site/index.html`), Pages source `examples/` → `site/`, only `main` remains.
@@ -60,5 +62,6 @@ measure whether a *target* codebase is ready for agents.
 
 ## Known gaps
 
-- Only `v1.0.0`, `v1.6.0`, `v1.7.0`, `v1.8.0` are tagged; 1.1–1.5 changelog links point at tags
-  that do not exist.
+- 1.1–1.5 changelog links point at tags that do not exist (every release since 1.6.0 is tagged).
+- `mneves75.github.io` (user site) does not exist as a repo; linking this project from it needs
+  that repo to be created first.

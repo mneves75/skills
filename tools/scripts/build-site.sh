@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
-# Render HOWTO.md to site/howto.html (published by GitHub Pages). Needs bun.
+# Build the generated parts of site/ (published by GitHub Pages). Needs bun and python3.
+#   site/howto.html          <- HOWTO.md (marked, links rewritten to GitHub, heading ids)
+#   site/index.html changelog <- top four entries of CHANGELOG.md, between the markers
+# Run after editing HOWTO.md or CHANGELOG.md; CI fails if the outputs are stale.
 set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)
+
 # Relative links point at repo files; on Pages they must go to GitHub.
 body=$(bunx --silent marked@18 --gfm -i "$root/HOWTO.md" \
   | sed -E 's#href="([^"#/][^":]*)"#href="https://github.com/mneves75/skills/blob/main/\1"#g' \
@@ -31,3 +35,6 @@ $body
 </html>
 HTML
 echo "wrote site/howto.html ($(wc -c < "$root/site/howto.html") bytes)"
+
+python3 "$root/tools/scripts/changelog-rows.py" "$root/CHANGELOG.md" "$root/site/index.html"
+echo "updated changelog rows in site/index.html"

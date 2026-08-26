@@ -16,8 +16,19 @@ review; move generation and grind to cheaper/flat-rate executors.
 |------|-----|------|
 | Advisor | **Fable (main session)** | Repo understanding, architecture decisions, task decomposition, spec writing, final review |
 | Frontend executor | **Opus subagents** (`Agent` tool, `model: "opus"`) | UI components, styling, layout, visual polish, frontend refactors |
-| Heavy executor | **Codex** (`codex exec` / `codex-lane`, GPT-5.6-sol at `high`) | Heavy implementation, debugging, test fixing, refactoring, multi-file edits |
+| Heavy executor | **Codex** (`codex exec` / `codex-lane`) | Heavy implementation, debugging, test fixing, refactoring, multi-file edits |
 | Long-horizon driver | **`supergoal` skill + `/goal`** | Multi-phase work driven to completion without babysitting |
+
+## Models (the only place ids live; update here when a generation changes)
+
+| Role | Current id | Effort | Set where |
+|------|-----------|--------|-----------|
+| Advisor | `claude-fable-5` | session default | the session itself |
+| Frontend executor | `opus` (family alias) | default | `Agent` tool `model:` |
+| Heavy executor, default | `gpt-5.6-sol` | `high` | `~/.codex/config.toml` |
+| Heavy executor, bulk/mechanical | `gpt-5.6-terra` | `xhigh` | pinned per lane at `start` |
+
+The rest of this skill names roles; the command examples use the ids above.
 
 ## Routing
 
@@ -36,8 +47,7 @@ intent, constraints). Parallelize independent frontend tasks in one message.
 writing/fixing, mechanical migrations, multi-file refactors, CI fixes, and read-heavy
 exploration when the raw reading far exceeds the answer (parallel runs, one output file per
 thread, instead of Claude subagents). One goal per dispatch, not a grab-bag. A new work order
-gets a fresh thread: a long, saturated thread reads a new order as configuration and no-ops. Default `gpt-5.6-sol` at reasoning `high`; bulk/mechanical
-runs (data analysis, migrations) go to `gpt-5.6-terra` at `xhigh`.
+gets a fresh thread: a long, saturated thread reads a new order as configuration and no-ops. Bulk/mechanical runs (data analysis, migrations) use the bulk row of the Models table.
 
 The wrapper does not inject a model; it inherits whatever the Codex CLI resolves. Make
 that policy real once, in `~/.codex/config.toml`:
