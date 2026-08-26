@@ -1,6 +1,7 @@
 ---
 name: mneves-agent-readiness
 description: Evaluate codebase readiness for AI coding agents using automated assessment. Use when onboarding repos, diagnosing agent struggles, or planning infrastructure improvements.
+license: Apache-2.0
 ---
 
 # Agent Readiness Evaluation

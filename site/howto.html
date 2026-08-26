@@ -201,6 +201,8 @@ fact with <code>codex-lane adopt &lt;lane&gt; &lt;thread-id&gt;</code>.</p>
 <p><strong>Tips.</strong></p>
 <ul>
 <li>One goal per dispatch. A grab-bag spec produces a grab-bag diff.</li>
+<li>Pair every hard &quot;never&quot; in a spec with an exit (&quot;if the gate fails after honest attempts, stop and report&quot;). A cornered executor satisfies the letter of the rule in ways you will not like.</li>
+<li>Before you edit, <code>pgrep -fl &quot;codex exec&quot;</code>: a worker that already delivered can still be looping and will overwrite your fixes.</li>
 <li>Edits under about twenty lines stay with the advisor; delegation costs more than it saves.</li>
 <li>The advisor never delegates review. Executor claims are advisory until the advisor has run
 the proof.</li>

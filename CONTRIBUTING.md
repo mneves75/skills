@@ -23,7 +23,7 @@ description: Clear description of what this skill does and when to use it.
 ---
 ```
 
-4. Add `README.md` with comprehensive documentation
+4. Add `README.md` with the longer documentation
 5. Run `npx skills@latest add . --list` and confirm your skill appears
 6. Submit a pull request
 

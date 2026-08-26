@@ -12,11 +12,11 @@ You explain what you know. Claude cross-references the actual code, finds gaps i
 You explain → Claude verifies against code → Socratic follow-ups → Cards from gaps → SM-2 scheduling
 ```
 
-1. **Teach-back session** — You explain a module, data flow, or architectural decision
-2. **Gap analysis** — Claude reads the actual code and identifies misconceptions, blind spots, and vague areas
-3. **Socratic probing** — 3-5 targeted follow-up questions with specific file:line references
-4. **Card generation** — Flashcards created from every gap found, stored in SQLite
-5. **Spaced review** — SM-2 algorithm schedules reviews at optimal intervals for retention
+1. **Teach-back session**: You explain a module, data flow, or architectural decision
+2. **Gap analysis**: Claude reads the actual code and identifies misconceptions, blind spots, and vague areas
+3. **Socratic probing**: 3-5 targeted follow-up questions with specific file:line references
+4. **Card generation**: Flashcards created from every gap found, stored in SQLite
+5. **Spaced review**: SM-2 algorithm schedules reviews at optimal intervals for retention
 
 ## Quick Start
 
@@ -53,8 +53,8 @@ You explain → Claude verifies against code → Socratic follow-ups → Cards f
 - **Location**: `<project-root>/.ai-learn/srs.db`
 - **Auto-gitignored** on first init
 - **WAL mode** for concurrent safety
-- **Soft deletes** — cards are never hard-deleted
-- **No external dependencies** — Python 3.10+ stdlib only
+- **Soft deletes**: cards are never hard-deleted
+- **No external dependencies**: Python 3.10+ stdlib only
 
 ## SM-2 Algorithm
 
@@ -90,10 +90,10 @@ python3 $SCRIPT export --format csv               # Anki-compatible export
 
 Cards follow these principles:
 
-- **One concept per card** — never bundle multiple ideas
-- **Why > What** — "Why does X use pattern Y?" over "What pattern does X use?"
-- **Context anchored** — tied to specific files, functions, or architectural decisions
-- **Interference-resistant** — distinct enough to not confuse with other cards
+- **One concept per card**: never bundle multiple ideas
+- **Why > What**: "Why does X use pattern Y?" over "What pattern does X use?"
+- **Context anchored**: tied to specific files, functions, or architectural decisions
+- **Interference-resistant**: distinct enough to not confuse with other cards
 
 ## File Structure
 
@@ -110,7 +110,7 @@ mneves-teach-back-srs/
 ## Requirements
 
 - Python 3.10+ (for `X | None` union syntax)
-- No external packages — stdlib sqlite3, argparse, json only
+- No external packages: stdlib sqlite3, argparse, json only
 
 ## License
 

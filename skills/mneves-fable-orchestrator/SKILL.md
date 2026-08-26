@@ -1,12 +1,13 @@
 ---
 name: mneves-fable-orchestrator
-description: Model-routing policy — Fable advises, plans, decomposes, and reviews; Opus subagents execute frontend tasks; Codex (GPT-5.6-sol, reasoning high) executes heavy implementation in a resumable lane; skill + /goal drives long-horizon work. Use when starting any non-trivial task, deciding who should execute work, delegating implementation, following up on a delegation, or when the user says "delegate", "orchestrate", "use codex", "heavy task", or "long-running task".
+description: Model-routing policy. Fable advises, plans, decomposes, and reviews; Opus subagents execute frontend tasks; Codex (GPT-5.6-sol, reasoning high) executes heavy implementation in a resumable lane; skill + /goal drives long-horizon work. Use when starting any non-trivial task, deciding who should execute work, delegating implementation, following up on a delegation, or when the user says "delegate", "orchestrate", "use codex", "heavy task", or "long-running task".
+license: Apache-2.0
 ---
 
 # Fable Orchestrator
 
 Division of labor: **Fable thinks, others type.** Fable (this session) is the senior
-advisor — expensive, high-judgment. Spend its tokens on understanding, decisions, and
+advisor: expensive, high-judgment. Spend its tokens on understanding, decisions, and
 review; move generation and grind to cheaper/flat-rate executors.
 
 ## Roles
@@ -23,20 +24,22 @@ review; move generation and grind to cheaper/flat-rate executors.
 **Fable keeps** (never delegated):
 - Design, API/architecture decisions, naming, task decomposition
 - Tasks where writing the spec IS the work (ambiguity = design work)
-- Tiny edits (<~20 lines, single obvious change) — delegation overhead loses
+- Tiny edits (<~20 lines, single obvious change); delegation overhead loses
 - Anything needing session tools (MCP, secrets); destructive/irreversible ops, releases, pushes
-- **Review of all delegated output — never delegated, never skipped**
+- **Review of all delegated output: never delegated, never skipped**
 
-**Opus subagents get**: frontend tasks — components, pages, styling, animations, visual
+**Opus subagents get**: frontend tasks: components, pages, styling, animations, visual
 fixes. Spawn via `Agent` with `model: "opus"` and a self-contained brief (files, design
 intent, constraints). Parallelize independent frontend tasks in one message.
 
 **Codex gets**: implementation from a frozen spec, bug fixes with known repro, test
-writing/fixing, mechanical migrations, multi-file refactors, CI fixes. One goal per
-dispatch, not a grab-bag. Default `gpt-5.6-sol` at reasoning `high`; bulk/mechanical
+writing/fixing, mechanical migrations, multi-file refactors, CI fixes, and read-heavy
+exploration when the raw reading far exceeds the answer (parallel runs, one output file per
+thread, instead of Claude subagents). One goal per dispatch, not a grab-bag. A new work order
+gets a fresh thread: a long, saturated thread reads a new order as configuration and no-ops. Default `gpt-5.6-sol` at reasoning `high`; bulk/mechanical
 runs (data analysis, migrations) go to `gpt-5.6-terra` at `xhigh`.
 
-The wrapper does not inject a model — it inherits whatever the Codex CLI resolves. Make
+The wrapper does not inject a model; it inherits whatever the Codex CLI resolves. Make
 that policy real once, in `~/.codex/config.toml`:
 
 ```toml
@@ -47,7 +50,7 @@ model_reasoning_effort = "high"
 Then pin the exception per dispatch: `-- -c model="gpt-5.6-terra" -c model_reasoning_effort="xhigh"`.
 A pin given to `start` sticks for the whole lane.
 
-**Long-horizon** (multi-phase, "don't stop until done"): invoke the `supergoal` skill —
+**Long-horizon** (multi-phase, "don't stop until done"): invoke the `supergoal` skill;
 it plans phases and emits a single `/goal` command with retry + verification built in.
 Goals beat ad-hoc loops for anything spanning many phases or hours.
 
@@ -66,7 +69,7 @@ Measured with codex-cli 0.146.0 / gpt-5.6-sol: a fresh `exec` sends ~34k input t
 with 0 cached; a `resume` on the same thread serves the preamble from cache (~35k
 cached) and replays the stored reasoning items.
 
-Single round — plain exec:
+Single round, plain exec:
 
 ```bash
 codex exec -s workspace-write \
@@ -74,7 +77,7 @@ codex exec -s workspace-write \
   - < /tmp/spec.md > /tmp/codex.log 2>&1
 ```
 
-Two or more rounds — a named lane (`tools/codex-lane`, state in `~/.codex/lanes/`):
+Two or more rounds, a named lane (`tools/codex-lane`, state in `~/.codex/lanes/`):
 
 ```bash
 codex-lane start api-rls /tmp/spec.md -- -s workspace-write
@@ -82,7 +85,7 @@ codex-lane next  api-rls "fix the failing gate"   # literal text, or `-` to pipe
 codex-lane last  api-rls        # final message  |  also: log / id / list / drop
 ```
 
-A long prompt (a full build log, a review report) must go in via stdin — the
+A long prompt (a full build log, a review report) must go in via stdin. The
 prompt argument is always literal text, and an inline string still has to fit
 the wrapper's own argv:
 
@@ -90,7 +93,7 @@ the wrapper's own argv:
 codex-lane next api-rls - < /tmp/gate3-failure.log
 ```
 
-A one-round `codex exec` that turns out to need a round 2 is not a lost cause — wrap its
+A one-round `codex exec` that turns out to need a round 2 is not a lost cause: wrap its
 thread instead of writing a second spec. Restate the flags that exec ran under, since they
 can't be recovered from the thread:
 
@@ -101,12 +104,12 @@ codex-lane adopt api-rls <thread-id> [cwd] -- -s workspace-write
 A lane is bound to one workspace and one execution policy, because `codex exec resume`
 rebuilds its config from the *current* invocation rather than from the thread:
 
-- `next` runs in the directory the lane was started (or adopted) in — recorded as the
+- `next` runs in the directory the lane was started (or adopted) in, recorded as the
   physical path (`pwd -P`), so a symlinked entry point can't make `next` resolve elsewhere.
   Resuming from another repo (or from `$HOME`) therefore can't point the executor at the
   wrong tree. `-C` / `--cd` is rejected.
 - the args given to `start` (sandbox, model, reasoning, profile) are stored and replayed on
-  every `next` — otherwise a lane started `-s workspace-write` would quietly resume under
+  every `next`; otherwise a lane started `-s workspace-write` would quietly resume under
   the machine default and be unable to edit. There is no per-turn override: `next` takes
   only `<lane> <prompt|->` and rejects trailing args.
 - the model is whatever `~/.codex/config.toml` selects unless pinned at `start`
@@ -114,15 +117,15 @@ rebuilds its config from the *current* invocation rather than from the thread:
 
 Pick the sandbox level deliberately: `-s read-only` for investigation, `-s workspace-write`
 for implementation. Reach for `--dangerously-bypass-approvals-and-sandbox` only when the
-executor genuinely must run migrations or system commands, and only in a repo you own.
+executor must run migrations or system commands, and only in a repo you own.
 
 Rules:
 - Fix-ups, review findings, failing gates and follow-up questions **all go through
   `next`** on the same thread. Never re-spec what the executor already reasoned through.
-- Start a new lane only for a genuinely different job.
+- Start a new lane only for a different job.
 - Global flags must precede `resume`: `codex exec resume <id> -s read-only` is a parse
   error; `codex exec -s read-only resume <id>` is correct. `codex-lane` handles the
-  ordering — pass extras after a literal `--` to `start` (or `adopt`).
+  ordering; pass extras after a literal `--` to `start` (or `adopt`).
 - Don't hand-roll history trimming. Codex compacts rather than truncates
   (`codex features list` → `remote_compaction_v2`); manual trimming on top of it
   reintroduces exactly the loss compaction exists to avoid.
@@ -142,20 +145,52 @@ Executors start with zero session context. Every prompt must carry:
 Carve out file ownership so parallel diffs never collide (e.g. Codex owns backend,
 Opus subagent owns frontend, Fable owns specs).
 
-If delegation is unavailable, say so — never imply a dispatch happened. Either continue
+Every hard prohibition needs an escape hatch. A cornered executor satisfies the letter of
+the gate: told "never raise the size budget" while its design inflated the bundle, Codex
+hand-minified identifiers to single letters and passed every gate, review included. Pair
+each hard constraint with the sanctioned exit: "if gate X fails after honest attempts, STOP,
+report exact numbers and diagnosis, do not work around." A stop-report is a successful run;
+it is the advisor's decision point.
+
+Never pass a credential through `-c key=value`; it lands in argv, process listings and shell
+history. A run that needs different provider settings gets a private overlay: a mode-0700
+directory with a mode-0600 `config.toml`, selected with `CODEX_HOME`.
+
+If delegation is unavailable, say so; never imply a dispatch happened. Either continue
 locally and state that, or hand back the ready-to-run brief.
 
 ## Verify (Fable, always)
 
-After ANY executor finishes — **inspect before accepting. Never blindly trust output.**
-1. `git status -sb` + read the full diff; judge it like a contributor PR
-2. Run the focused tests/build yourself, or demand proof output — executor claims are advisory
+After ANY executor finishes, **inspect before accepting. Never blindly trust output.**
+0. `pgrep -fl "codex exec"` before editing or committing. A run whose deliverable is already
+   in the tree can keep looping and overwrite your fixes mid-review; stop it once its output
+   is verified instead of racing it.
+1. `git status -sb` + read the full diff; judge it like a contributor PR. Reports are accurate
+   but incomplete; pathologies live in the code. Read the merged surface (types, names), treat
+   any commit message you did not commission as a lead, diff-stat the guard/budget files the
+   spec forbade touching, and treat test-helper edits as a red-flag class of their own.
+2. Run the focused tests/build yourself, or demand proof output; executor claims are advisory
 3. Wrong result → iterate via `codex-lane next` (Codex) or `SendMessage` (subagent) with a
    corrective prompt; after 2 failed rounds, Fable takes over and does it directly.
    If the job ran as a plain `codex exec` and now needs a round 2, do **not** re-spec it:
    take the thread id from the run's output (or its rollout under `~/.codex/sessions/`) and
    `codex-lane adopt <lane> <thread-id> [cwd]`, then continue with `next`.
 4. Normal closeout still applies (autoreview/verify before ship)
+
+## When the executor dies or goes quiet
+
+A run that exits in seconds with nothing produced is almost never the task; it is the model
+route or the account. Read the log tail before relaunching: `401` means the bearer is wrong
+for that endpoint; `502 / All target providers failed` means the model id did not match the
+router's catalogue; `stream disconnected` against a loopback URL means nothing is listening;
+`requires a sandbox with reviewed escalations` means `--dangerously-bypass-approvals-and-sandbox`
+is unsupported on that route (retry once with `--approve-for-me`). Exit 0 with no diff and a
+fast return: check the lane log for `usage limit`; an exhausted account reports success.
+
+For a long run, keep stderr in a log and watch its mtime. Thinking keeps the file fresh, so
+five minutes of true silence with the process alive is a hang, not reasoning: kill the pid and
+`codex-lane next` the same lane with "You were interrupted; continue exactly where you left
+off and finish the report." Nothing is lost because the thread is the lane.
 
 ## Economics
 
@@ -166,7 +201,10 @@ once per job instead of once per round.
 
 ## Reference
 
-Deeper Codex invocation patterns (temp-file prompts, background runs, resume mechanics):
-[codex-first SKILL.md](https://github.com/steipete/agent-scripts/blob/main/skills/codex-first/SKILL.md).
+Several rules above (escape hatches, live-worker check, verification beyond the diff, the
+death-diagnosis list) are adopted from steipete's
+[codex-first SKILL.md](https://github.com/steipete/agent-scripts/blob/main/skills/codex-first/SKILL.md)
+(read 2026-08-26 at its 2026-08-20 revision). Not adopted: its rule that git rebase, merge and
+landing always go to Codex; here releases, pushes and landing stay with the advisor.
 The `/codex:rescue` command from the openai-codex plugin is an equivalent front-end when
 that plugin is installed; the routing and continuity rules above apply either way.

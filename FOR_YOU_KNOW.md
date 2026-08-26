@@ -1,4 +1,4 @@
-# FOR_YOU_KNOW.md — mneves-skills, explained plainly
+# FOR_YOU_KNOW.md: mneves-skills, explained plainly
 
 Re-read after months away. The enforceable rules live in [`AGENTS.md`](./AGENTS.md) (canonical);
 the shipped record lives in [`CHANGELOG.md`](./CHANGELOG.md); current state and lessons live in
@@ -6,7 +6,7 @@ the shipped record lives in [`CHANGELOG.md`](./CHANGELOG.md); current state and 
 
 ## The one idea
 
-This repo ships **skills** — reusable instruction modules for AI coding agents. A skill is a
+This repo ships **skills**: reusable instruction modules for AI coding agents. A skill is a
 folder under `skills/` with a `SKILL.md` (YAML frontmatter: `name:` + `description:`, then the
 procedure) and a `README.md` (human-facing). The frontmatter `description:` is the routing
 signal agents use to decide whether to load the skill, so it names the trigger conditions.
@@ -21,9 +21,9 @@ with upstream/community skill names. Directory name and frontmatter `name:` must
 
 **One skill ships a shell script, and it is the exception.** `mneves-fable-orchestrator/tools/codex-lane`
 is the only executable shipped **inside a skill**. It is distinct from the repo's own
-`.githooks/pre-commit` guard — a repository-level hook, not a skill. Shipped scripts are
+`.githooks/pre-commit` guard, a repository-level hook, not a skill. Shipped scripts are
 `bash` with `set -euo pipefail`, must pass `bash -n`, and users install them by **symlink onto
-`PATH`** — the repo copy is canonical, never copied out. Everything else is Markdown only;
+`PATH`**; the repo copy is canonical, never copied out. Everything else is Markdown only;
 skills that need code point at `tools/`.
 
 **`mneves-verify` ships no scripts at all.** It is deliberately machinery-free: the whole skill
@@ -33,7 +33,7 @@ an accident of laziness.
 
 ## The repo's own guard: ast-grep
 
-The repository itself is guarded by two ast-grep rules — reject `as any` in TypeScript
+The repository itself is guarded by two ast-grep rules: reject `as any` in TypeScript
 (`rules/no-as-any.yml`) and TSX (`rules/no-as-any-tsx.yml`), both wired through `sgconfig.yml`.
 A blocking pre-commit hook
 (`.githooks/pre-commit`, active via `git config core.hooksPath .githooks`) **fails closed** if
@@ -44,12 +44,12 @@ it; the natural replacement for `as any` is `unknown` + a narrowing guard.
 ## Before you touch things
 
 - `VERSION` is the single source of the version; the README badge and `CHANGELOG.md` top entry
-  must match it. (1.4.0 shipped with the badge still reading 1.2.0 — that was the bug.)
+  must match it. (1.4.0 shipped with the badge still reading 1.2.0; that was the bug.)
 - Adding a skill touches five places: the `SKILL.md`/`README.md` pair, the root `README.md`
   table + badge, `AGENTS.md` (tree; `CLAUDE.md` just imports it), `VERSION`, and
   `CHANGELOG.md`.
 - `tools/` is a separate Bun project (`tools/package.json`, lockfile committed). Its runtime is
-  Bun; there are no external runtime deps — only dev deps (Biome, TypeScript, bun-types).
+  Bun; there are no external runtime deps, only dev deps (Biome, TypeScript, bun-types).
 - Shipped text must work from a stranger's clone: no home paths, no machine layout. CI checks
   the skill layout the `npx skills` CLI relies on (folder name == frontmatter `name`).
 

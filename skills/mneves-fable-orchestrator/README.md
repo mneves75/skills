@@ -17,7 +17,7 @@ not typing speed. This skill encodes a standing division of labor:
 
 ## Continuity is the whole game
 
-The expensive mistake in agentic delegation isn't picking the wrong model — it's throwing
+The expensive mistake in agentic delegation isn't picking the wrong model. It's throwing
 away what the executor already worked out. A bare `codex exec` starts a fresh thread every
 time, so round 2 of a job loses round 1's private reasoning and re-pays the full
 instruction preamble uncached.
@@ -42,7 +42,7 @@ the prompt argument is always literal text, so a pasted build log or review
 report arrives on stdin, never as an argv-sized inline string.
 
 If a job you dispatched as a plain `codex exec` turns out to need a second round, wrap its
-thread rather than re-specifying it: `codex-lane adopt api-rls <thread-id> [cwd]`.
+thread instead of re-specifying it: `codex-lane adopt api-rls <thread-id> [cwd]`.
 
 A lane is bound to one workspace **and** one execution policy. `codex exec resume` rebuilds
 its config from the current invocation, not from the thread, so the wrapper stores what
@@ -55,7 +55,7 @@ quietly lose write access. There is no per-turn override: `next` takes only
 
 Everything after `--` is passed through to `codex`, so the sandbox level is your call
 (`-s read-only` to investigate, `-s workspace-write` to implement). Lane state lives in
-`$CODEX_LANE_DIR` (default `~/.codex/lanes`), created mode `700` — the event logs hold
+`$CODEX_LANE_DIR` (default `~/.codex/lanes`), created mode `700`; the event logs hold
 the full model transcript for the job.
 
 Measured locally (codex-cli 0.146.0, gpt-5.6-sol): fresh exec ≈ 34k input tokens, 0
@@ -64,13 +64,13 @@ cached; resume on the same thread ≈ 35k cached with prior reasoning items repl
 ## Requirements
 
 - **Claude Code** with subagent support (`Agent` tool)
-- **[Codex CLI](https://github.com/openai/codex)** installed and authenticated — for the
+- **[Codex CLI](https://github.com/openai/codex)** installed and authenticated, for the
   heavy-executor path. The `/codex:rescue` command from the openai-codex plugin is an
   equivalent front-end if you have that plugin; the routing rules apply either way.
   The wrapper never injects a model, so set the routing default once in
   `~/.codex/config.toml` (`model = "gpt-5.6-sol"`, `model_reasoning_effort = "high"`) and
   pin exceptions per lane with `-- -c model="..."`.
-- **`supergoal` skill** — optional, for the long-horizon path
+- **`supergoal` skill**: optional, for the long-horizon path
 
 Install the lane wrapper by symlinking it onto your `PATH`:
 
@@ -88,7 +88,7 @@ ln -s /path/to/skills/skills/mneves-fable-orchestrator/tools/codex-lane ~/bin/co
    `codex-lane next`, never a fresh spec that restates solved reasoning.
 4. **File ownership is carved out per executor** so parallel diffs never collide.
 5. **Two failed correction rounds → Fable takes over** and does the work directly.
-6. **Tiny edits stay in Fable** — delegation overhead loses below ~20 lines.
+6. **Tiny edits stay in Fable**: delegation overhead loses below ~20 lines.
 
 ## Install
 
@@ -105,6 +105,6 @@ ln -s /path/to/skills/skills/mneves-fable-orchestrator ~/.claude/skills/mneves-f
 ## Credits
 
 Routing philosophy and Codex invocation patterns adapted from
-[steipete/agent-scripts — codex-first](https://github.com/steipete/agent-scripts/blob/main/skills/codex-first/SKILL.md).
+[steipete/agent-scripts codex-first](https://github.com/steipete/agent-scripts/blob/main/skills/codex-first/SKILL.md).
 Continuity rationale from OpenAI's
 [ARC-AGI-3 harness writeup](https://openai.com/index/how-two-settings-tripled-our-arc-agi-3-scores/).

@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-08-26
+
+### Changed
+
+- **`mneves-fable-orchestrator`** adopts five rules from steipete's `codex-first` (2026-08-20 revision): every hard prohibition in a spec carries an escape hatch (the minification incident), check for a live worker with `pgrep -fl "codex exec"` before editing, verify beyond the diff (merged surface, uncommissioned commit messages, guard files, test-helper edits), a diagnosis list for executors that die instantly or go quiet (with lane resume), and never passing credentials via `-c` (use a `CODEX_HOME` overlay). Read-heavy exploration may go to Codex; a new work order always gets a fresh thread. Not adopted: routing git rebase/merge/landing to Codex.
+- Every `SKILL.md` declares `license: Apache-2.0` (Agent Skills spec optional field); all six validate with `skills-ref`.
+- Prose pass over skills and repo docs: list-item em dashes replaced with colons, sentence-level ones with punctuation, "production-ready"/"genuinely" dropped. The verdict format in `mneves-verify` is unchanged (it is a contract).
+
 ## [1.9.0] - 2026-08-26
 
 ### Added
@@ -189,6 +197,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This project is inspired by [Factory.ai](https://factory.ai)'s Code Readiness framework.
 
+[1.10.0]: https://github.com/mneves75/skills/releases/tag/v1.10.0
 [1.9.0]: https://github.com/mneves75/skills/releases/tag/v1.9.0
 [1.8.2]: https://github.com/mneves75/skills/releases/tag/v1.8.2
 [1.8.1]: https://github.com/mneves75/skills/releases/tag/v1.8.1

@@ -29,7 +29,7 @@ jobs:
           bun-version: latest
 
       - name: Install ast-grep
-        run: npm install -g @ast-grep/cli
+        run: npm install -g @ast-grep/cli@0.45.2
 
       - name: Skill layout (what `npx skills add mneves75/skills` discovers)
         run: |
@@ -42,6 +42,9 @@ jobs:
             grep -qx "name: $name" "$f" || { echo "$f: frontmatter name must be '$name'"; exit 1; }
             grep -qE '^description: .{20,}' "$f" || { echo "$f: missing/short description"; exit 1; }
           done
+
+      - name: Agent Skills spec (skills-ref validate)
+        run: for d in skills/*/; do npx -y skills-ref@0.1.5 validate "$d"; done
 
       - name: Shell syntax
         run: bash -n skills/mneves-fable-orchestrator/tools/codex-lane .githooks/pre-commit .githooks/pre-commit.test

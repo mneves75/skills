@@ -191,6 +191,8 @@ fact with `codex-lane adopt <lane> <thread-id>`.
 
 **Tips.**
 - One goal per dispatch. A grab-bag spec produces a grab-bag diff.
+- Pair every hard "never" in a spec with an exit ("if the gate fails after honest attempts, stop and report"). A cornered executor satisfies the letter of the rule in ways you will not like.
+- Before you edit, `pgrep -fl "codex exec"`: a worker that already delivered can still be looping and will overwrite your fixes.
 - Edits under about twenty lines stay with the advisor; delegation costs more than it saves.
 - The advisor never delegates review. Executor claims are advisory until the advisor has run
   the proof.

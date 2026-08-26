@@ -1,6 +1,7 @@
 ---
 name: mneves-teach-back-srs
 description: "Spaced-repetition learning through teach-back sessions. This skill should be used when the user wants to explain their understanding of a project or codebase so Claude can identify knowledge gaps, ask Socratic follow-ups, and generate flashcards stored in a per-project SQLite database with SM-2 scheduling. Triggers on phrases like 'let me explain', 'teach back', 'quiz me', 'review cards', 'what do I know about', or 'test my understanding'."
+license: Apache-2.0
 ---
 
 # Teach-Back SRS
@@ -22,7 +23,7 @@ This is the core loop. The user teaches; Claude listens, verifies, and fills gap
 
 ### Step 1: Initialize Database
 
-Before the first session in any project, ensure the database exists:
+Before the first session in any project, create the database:
 
 ```bash
 python3 ~/.claude/skills/mneves-teach-back-srs/scripts/srs_db.py init
@@ -40,10 +41,10 @@ Ask the user what area of the codebase they want to explain. Scope it to a meani
 ### Step 3: Listen to the Explanation
 
 Let the user explain without interrupting. Take mental notes on:
-- **Correct understanding** — what they got right
-- **Misconceptions** — incorrect mental models
-- **Gaps** — things they didn't mention that matter
-- **Vague areas** — hand-waving or hedging language ("I think maybe...")
+- **Correct understanding**: what they got right
+- **Misconceptions**: incorrect mental models
+- **Gaps**: things they didn't mention that matter
+- **Vague areas**: hand-waving or hedging language ("I think maybe...")
 
 ### Step 4: Cross-Reference the Codebase
 
@@ -57,10 +58,10 @@ While the user explains, read the actual code to verify claims. Use Glob, Grep, 
 
 Ask 3-5 targeted questions that probe the weakest areas. Follow-up question types, ordered by priority:
 
-1. **Misconception correction** — "You mentioned X does Y, but looking at `file.rs:42`, it actually does Z. Why do you think that distinction matters?"
-2. **Gap probing** — "You covered A and B well, but didn't mention C. What happens when [scenario involving C]?"
-3. **Depth testing** — "You said the system uses pattern X. Can you explain why that was chosen over pattern Y?"
-4. **Edge case exploration** — "What happens if [boundary condition]? Walk me through the code path."
+1. **Misconception correction**: "You mentioned X does Y, but looking at `file.rs:42`, it actually does Z. Why do you think that distinction matters?"
+2. **Gap probing**: "You covered A and B well, but didn't mention C. What happens when [scenario involving C]?"
+3. **Depth testing**: "You said the system uses pattern X. Can you explain why that was chosen over pattern Y?"
+4. **Edge case exploration**: "What happens if [boundary condition]? Walk me through the code path."
 
 Important: Reference specific files and line numbers when correcting. Vague corrections do not create durable memories.
 
@@ -79,9 +80,9 @@ After the follow-up discussion, generate flashcards from every gap and misconcep
 - Explain the "why" behind the correct answer
 
 **Difficulty assignment:**
-- `easy` — Simple fact the user almost had right
-- `medium` — Conceptual gap requiring understanding
-- `hard` — Deep misconception or architectural blind spot
+- `easy`: Simple fact the user almost had right
+- `medium`: Conceptual gap requiring understanding
+- `hard`: Deep misconception or architectural blind spot
 
 **Tag with:** module name, concept category (e.g., "auth,security,middleware")
 
@@ -186,21 +187,21 @@ CSV format is compatible with Anki import (question, answer columns).
 
 High-quality cards follow these principles:
 
-1. **One concept per card** — Never bundle multiple ideas
-2. **Cloze-friendly questions** — "What does X do when Y?" not "Describe X"
-3. **Context anchored** — Always tie back to a specific file, function, or architectural decision
-4. **Interference-resistant** — Avoid cards that could be confused with each other
-5. **Why > What** — "Why does the system use SM-2 instead of Leitner?" over "What algorithm does the SRS use?"
+1. **One concept per card**: Never bundle multiple ideas
+2. **Cloze-friendly questions**: "What does X do when Y?" not "Describe X"
+3. **Context anchored**: Always tie back to a specific file, function, or architectural decision
+4. **Interference-resistant**: Avoid cards that could be confused with each other
+5. **Why > What**: "Why does the system use SM-2 instead of Leitner?" over "What algorithm does the SRS use?"
 
 ## Cross-Session Continuity
 
 Claude's conversation context resets between sessions. The SQLite database is the persistent memory. At the start of any new conversation where the user triggers this skill:
 
-1. Check if `.ai-learn/srs.db` exists — if yes, run `stats` and `due` to understand current state
+1. Check if `.ai-learn/srs.db` exists. If it does, run `stats` and `due` to understand current state
 2. Report: total cards, due count, last session topic
 3. If cards are due, suggest a review before starting a new teach-back
 
-This ensures continuity even though Claude has no memory of previous conversations.
+Continuity survives even though Claude has no memory of previous conversations.
 
 ## Example Dialogue
 
@@ -208,7 +209,7 @@ This ensures continuity even though Claude has no memory of previous conversatio
 
 **Claude:** *reads safety/ directory, cross-references*
 
-**Claude:** "Go ahead — explain the safety pipeline from user input to command execution."
+**Claude:** "Go ahead. Explain the safety pipeline from user input to command execution."
 
 **User:** "So there's a pattern matcher that checks for dangerous commands like rm -rf, and a scoring system that rates commands 1-10. If the score is too high it blocks the command."
 
@@ -233,8 +234,8 @@ This ensures continuity even though Claude has no memory of previous conversatio
 
 ### scripts/
 
-- `srs_db.py` — SQLite database manager with SM-2 algorithm. Handles: init, add-card, add-session, due, review, stats, cards, sessions, export. Python 3.10+ stdlib only, no external dependencies.
+- `srs_db.py`: SQLite database manager with SM-2 algorithm. Handles: init, add-card, add-session, due, review, stats, cards, sessions, export. Python 3.10+ stdlib only, no external dependencies.
 
 ### references/
 
-- `sm2-algorithm.md` — Detailed SM-2 formula reference, ease factor interpretation, interval progression examples. Load when explaining scheduling decisions to the user.
+- `sm2-algorithm.md`: Detailed SM-2 formula reference, ease factor interpretation, interval progression examples. Load when explaining scheduling decisions to the user.

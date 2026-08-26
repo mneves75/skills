@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.9.0-blue)
+![Version](https://img.shields.io/badge/version-1.10.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)

@@ -70,4 +70,4 @@ Review 3: 13 days (6 * 2.14 = 12.8 → 13)
 Review 4: 26 days (13 * 1.96 = 25.5 → 26)
 ```
 
-Notice how quality=3 barely passes but steadily decreases EF, making reviews more frequent — the algorithm adapts to difficulty.
+Notice how quality=3 barely passes but steadily decreases EF, making reviews more frequent; the algorithm adapts to difficulty.

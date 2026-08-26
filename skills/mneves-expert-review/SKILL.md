@@ -1,6 +1,7 @@
 ---
 name: mneves-expert-review
-description: Rigorous expert-panel review and optimization pass run on a draft answer or deliverable before it is finalized — clarify the real objective, rebuild from first principles, research current best practice (web + the project's local guidelines, if any), attack the draft as a hostile expert panel, generate 6 genuinely different alternatives and compare them on weighted criteria, pre-mortem, five-year test, steelman the contrarian view, audit accuracy/completeness/simplicity, then return the improved deliverable with trade-offs, risks, evidence and remaining uncertainty. This skill should be used when the user asks for an expert review, a rigorous pass, "best possible answer", "challenge this", "stress-test", "revisão rigorosa", "melhor solução", or before delivering any high-stakes plan, design, recommendation, document or architecture decision.
+description: Rigorous expert-panel review and optimization pass run on a draft answer or deliverable before it is finalized. Clarify the real objective, rebuild from first principles, research current best practice (web + the project's local guidelines, if any), attack the draft as a hostile expert panel, generate 6 different alternatives and compare them on weighted criteria, pre-mortem, five-year test, steelman the contrarian view, audit accuracy/completeness/simplicity, then return the improved deliverable with trade-offs, risks, evidence and remaining uncertainty. This skill should be used when the user asks for an expert review, a rigorous pass, "best possible answer", "challenge this", "stress-test", "revisão rigorosa", "melhor solução", or before delivering any high-stakes plan, design, recommendation, document or architecture decision.
+license: Apache-2.0
 ---
 
 # Expert review and optimization pass
@@ -32,7 +33,7 @@ a step feels thin.
    recent high-quality analyses, and the project's own guidelines when present (e.g. `DOCS/GUIDELINES-REF/`). Check publication dates when
    recency matters. Search for evidence that contradicts the draft, not evidence that comforts
    it. Label each claim: verified fact / expert consensus / disputed / inference / own judgment.
-   Do not search when the answer is already fully supported — tool calls are not rigor.
+   Do not search when the answer is already fully supported; tool calls are not rigor.
 
 4. **Attack the draft as a panel.** Review it as, at minimum: subject-matter expert, senior
    practitioner, skeptical reviewer, end user, implementer, risk analyst, and editor or design
@@ -40,9 +41,9 @@ a step feels thin.
    unnecessary complexity, logical gaps, usability problems, implementation risk, edge cases,
    maintainability debt, misleading wording, and places that are merely conventional. Try to
    disprove the draft; do not defend it. For checkable outcomes (code, UI, data, citations)
-   the panel is not enough — hand the artifact to an independent verifier (`mneves-verify`).
+   the panel is not enough; hand the artifact to an independent verifier (`mneves-verify`).
 
-5. **Generate 6+ genuinely different approaches.** Required: one conservative, one
+5. **Generate 6+ approaches that differ in kind.** Required: one conservative, one
    simple/minimal, one ambitious, one unconventional, one optimized for long-term quality, and
    one that challenges the premise of the request. For each: expected quality, advantages,
    disadvantages, risks, complexity, effort, scalability, maintainability, reversibility,
@@ -60,7 +61,7 @@ a step feels thin.
 8. **Five-year test.** Reviewed five years on with far more experience: what looks naive, which
    shortcut aged badly, what created technical/financial/strategic/operational debt, what should
    have been simpler, what more extensible, what emerging change invalidates the assumptions?
-   Revise — without engineering for hypothetical futures.
+   Revise, without engineering for hypothetical futures.
 
 9. **Steelman the contrarian.** Find credible expert positions against the chosen approach.
    Where do practitioners disagree, what would a skeptical senior advisor criticize, what

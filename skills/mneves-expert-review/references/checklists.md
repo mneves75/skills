@@ -7,8 +7,8 @@ Open when a step in SKILL.md feels thin. These are prompts to think with, not se
 - Intended audience and what they already know / will do with it.
 - Success criteria: how would the user know it worked?
 - Binding constraints: time, budget, stack, compliance, reversibility.
-- Assumptions being made — list them so they can be wrong visibly.
-- Acceptable vs. genuinely excellent: what would make an expert say "that is the right call"?
+- Assumptions being made: list them so they can be wrong visibly.
+- Acceptable vs. excellent: what would make an expert say "that is the right call"?
 
 ## 2. First principles
 - What must be true for this to work?
@@ -34,7 +34,7 @@ complexity · logical gaps · usability problems · implementation risks · edge
 maintainability issues · misleading wording · simplification opportunities · "merely
 conventional" spots.
 
-## 5. Alternatives (≥ 6, genuinely different)
+## 5. Alternatives (≥ 6, different in kind)
 Mandatory slots: conservative · simple/minimal · ambitious · unconventional · long-term
 quality · challenges the premise of the request.
 

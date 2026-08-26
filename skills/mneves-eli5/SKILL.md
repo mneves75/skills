@@ -1,12 +1,13 @@
 ---
 name: mneves-eli5
 description: Explain any technical, scientific, business, or design detail with the Feynman technique, calibrated to the listener's level and background (child, layperson, executive, junior dev, domain expert) and answered in the user's language. This skill should be used when the user asks to explain something simply, "ELI5", "like I'm five", "for a non-technical person", "explain to my boss/client/mom", "in plain words", "explique de forma simples", or when a concept must be re-explained for a different audience.
+license: Apache-2.0
 ---
 
 # Explain Like I'm 5 (Feynman technique)
 
 Feynman's test: if it cannot be explained simply, it is not understood yet. Simplicity here
-means the listener could repeat the idea back to someone else — it never means lying,
+means the listener could repeat the idea back to someone else. It never means lying,
 skipping the part that matters, or padding with cute words.
 
 ## Procedure
@@ -16,7 +17,7 @@ skipping the part that matters, or padding with cute words.
    ("Explaining for a non-technical manager"). Ask only when two levels would produce
    materially different answers and nothing in the request settles it.
 2. **Find the core.** Write the idea in one sentence a listener at that level would accept.
-   If the sentence needs a term the listener does not know, that term is the real subject —
+   If the sentence needs a term the listener does not know, that term is the real subject;
    explain it first.
 3. **Anchor with one analogy from the listener's world.** Choose something they already
    handle (kitchen, traffic, money, school, their own job). One analogy, carried through;
@@ -27,7 +28,7 @@ skipping the part that matters, or padding with cute words.
 5. **Say where the analogy breaks.** Every analogy is wrong somewhere. Name the gap in one
    sentence so the simple model does not become a false one.
 6. **Check the gap-finding step.** Reread the explanation as the listener: is there a
-   "because…" that is actually a hand-wave? Fill it or admit "this part is genuinely
+   "because…" that is actually a hand-wave? Fill it or admit "this part is
    complicated; the short version is…". Never fake precision.
 7. **Close with the takeaway.** One line the listener can repeat. Offer the next level up
    ("Want the version with the actual mechanism?") only when it is real, not as a ritual.
@@ -49,7 +50,7 @@ engineers" block underneath. Do not average the levels into something that serve
 
 - **Answer in the user's language.** pt-BR in → pt-BR out with correct accents; same for any
   other language. Keep code identifiers, commands, product names, and established English
-  terms in the original — but gloss them in the user's language the first time.
+  terms in the original, but gloss them in the user's language the first time.
 - Simple ≠ wrong. If a simplification would leave the listener believing something false
   that matters for their decision, keep the complexity and explain it instead.
 - No condescension. Never "it's easy" / "obviously" / "simply". Being 5 is about vocabulary,

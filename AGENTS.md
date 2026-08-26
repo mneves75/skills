@@ -5,7 +5,7 @@ keep every rule here only.
 
 ## Overview
 
-Production-ready skills for AI coding agents. Tool-agnostic by design: each skill is a folder
+Skills for AI coding agents. Each skill is a folder
 under `skills/` with a `SKILL.md` (YAML frontmatter `name` + `description`, then the procedure).
 Users install with `npx skills@latest add mneves75/skills` or a plain `git clone`.
 
@@ -51,7 +51,7 @@ npx skills@latest add . --list          # what the skills CLI will discover
 - Skills are Markdown-first. Shipped executables are `bash` + `set -euo pipefail`, `bash -n`
   clean, installed by symlink onto `PATH` (the repo copy is canonical). Only
   `mneves-fable-orchestrator/tools/codex-lane` and `mneves-teach-back-srs/scripts/srs_db.py` exist.
-- No `any` / `as any` in `tools/` — `unknown` + a narrowing guard; ast-grep blocks it.
+- No `any` / `as any` in `tools/`; use `unknown` + a narrowing guard. ast-grep blocks it.
 - No personal paths, machine layout, secrets or client names in shipped files; a skill must work
   for a stranger's clone.
 - `VERSION`, the README badge and the top `CHANGELOG.md` entry agree.

@@ -120,7 +120,7 @@ readiness-check --scoring=average
 
 ## Relationship to Factory.ai
 
-The pillar and maturity-level structure follows the shape of [Factory.ai's Agent Readiness](https://factory.ai/agent-readiness) (a commercial, hosted assessment). This tool is independent: open source (Apache-2.0), runs locally with no upload, every check is visible in `tools/lib/`, and the scoring modes are configurable. Scores are not comparable with Factory.ai's — the checks and weights are this tool's own.
+The pillar and maturity-level structure follows the shape of [Factory.ai's Agent Readiness](https://factory.ai/agent-readiness) (a commercial, hosted assessment). This tool is independent: open source (Apache-2.0), runs locally with no upload, every check is visible in `tools/lib/`, and the scoring modes are configurable. Scores are not comparable with Factory.ai's; the checks and weights are this tool's own.
 
 ## License
 
