@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.1] - 2026-08-26
+
+### Changed
+
+- **Example report regenerated** with the fixed tool against FastAPI `9a8a13f` (2026-08-25): L3, 61.7% (`--skip-tests --skip-build`). The previous numbers disagreed across README (L4 / 65.4%), the HTML report (56.3%) and `scoring.ts` comments (53%); all now show the same run with its provenance.
+- **Factory.ai attribution made factual.** Removed the speculative comparison table (competitor pricing, language list, "limited monorepo") and marketing prose ("pioneered", "set the standard"); README, NOTICE and the skill README now state only that the pillar/level structure follows Factory.ai's Agent Readiness assessment and that this is an independent, local-only implementation whose scores are not comparable.
+
 ## [1.8.0] - 2026-08-26
 
 ### Added
@@ -160,6 +167,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This project is inspired by [Factory.ai](https://factory.ai)'s Code Readiness framework.
 
+[1.8.1]: https://github.com/mneves75/skills/releases/tag/v1.8.1
 [1.8.0]: https://github.com/mneves75/skills/releases/tag/v1.8.0
 [1.7.0]: https://github.com/mneves75/skills/releases/tag/v1.7.0
 [1.6.0]: https://github.com/mneves75/skills/releases/tag/v1.6.0

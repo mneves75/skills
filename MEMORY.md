@@ -14,6 +14,8 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.8.1** (2026-08-26): example report regenerated (FastAPI L3 61.7%, with provenance); Factory.ai
+  attribution reduced to verifiable facts.
 - **1.8.0** (2026-08-26): public-repo hardening — CI workflow, SECURITY.md, Dependabot, SHA-pinned
   actions, `npx skills add mneves75/skills` documented as primary install, maintainer-local path
   removed from `mneves-expert-review`.

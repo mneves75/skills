@@ -124,9 +124,8 @@ export interface OrgScore {
 /**
  * Default pillar weights based on Factory.ai apparent behavior
  *
- * Calibrated against Factory.ai benchmark scores:
- * - FastAPI (Python): Factory.ai L3 (53%) vs Our L3 (53%) ✓
- * - CockroachDB (Go): Factory.ai L4 (74%) vs Our L3 (56%)
+ * Calibrated once (Jan 2026) against Factory.ai's then-published scores for FastAPI
+ * and CockroachDB; results have drifted since and are not comparable with Factory.ai.
  *
  * Key insight: Factory.ai weights "visible maturity indicators" higher:
  * - Documentation, build, and style are most visible for OSS projects

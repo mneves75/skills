@@ -3,9 +3,9 @@ Copyright 2025-2026 Marcus Neves
 
 This product includes software developed by Marcus Neves.
 
-This project is inspired by Factory.ai's Code Readiness framework.
-Factory.ai pioneered the approach of evaluating codebases for AI agent
-compatibility using structured pillars and maturity levels.
+The readiness tool's pillar/maturity-level structure is inspired by
+Factory.ai's Agent Readiness assessment (https://factory.ai/agent-readiness).
+No Factory.ai code or data is included.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
