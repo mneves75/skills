@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-08-26
+
+### Added
+
+- **`mneves-eli5`** (`skills/mneves-eli5/`) — Feynman-technique explainer calibrated to the listener (child, layperson, executive, junior, expert): fix the audience, one-sentence core, one analogy carried through, show-then-name jargon, state where the analogy breaks, one repeatable takeaway. Answers in the user's language; re-explains for a new audience without re-deriving. SKILL.md only, no scripts.
+
 ## [1.5.0] - 2026-08-18
 
 ### Added
