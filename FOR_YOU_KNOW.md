@@ -46,17 +46,18 @@ it; the natural replacement for `as any` is `unknown` + a narrowing guard.
 - `VERSION` is the single source of the version; the README badge and `CHANGELOG.md` top entry
   must match it. (1.4.0 shipped with the badge still reading 1.2.0 — that was the bug.)
 - Adding a skill touches five places: the `SKILL.md`/`README.md` pair, the root `README.md`
-  table + badge, `AGENTS.md` and `CLAUDE.md` (tree + key-files rows), `VERSION`, and
+  table + badge, `AGENTS.md` (tree; `CLAUDE.md` just imports it), `VERSION`, and
   `CHANGELOG.md`.
 - `tools/` is a separate Bun project (`tools/package.json`, lockfile committed). Its runtime is
   Bun; there are no external runtime deps — only dev deps (Biome, TypeScript, bun-types).
-- Don't touch `~/.claude/CLAUDE.md` — global config lives outside this repo.
+- Shipped text must work from a stranger's clone: no home paths, no machine layout. CI checks
+  the skill layout the `npx skills` CLI relies on (folder name == frontmatter `name`).
 
 ## Where things live
 
 | Need | Go to |
 |------|-------|
-| Enforceable rules | `AGENTS.md` (canonical) / `CLAUDE.md` |
+| Enforceable rules | `AGENTS.md` (canonical; `CLAUDE.md` imports it) |
 | What shipped, when | `CHANGELOG.md` |
 | Current state, lessons | `MEMORY.md` + `memory/YYYY-MM-DD.md` |
 | A skill's procedure | `skills/<name>/SKILL.md` |

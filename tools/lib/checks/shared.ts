@@ -10,20 +10,21 @@
  * Uses the dependency parsing module for library detection across languages.
  */
 
-import { $ } from "bun";
+import fs from "node:fs";
 import path from "node:path";
+import { $ } from "bun";
 import {
-	type CheckRunner,
 	type CheckContext,
 	type CheckResult,
+	type CheckRunner,
+	dirExists,
 	fileExists,
 	readText,
-	dirExists,
 } from "../check-registry.js";
 import {
-	parseDependencies,
-	hasLibraryCategory,
 	type DependencyManifest,
+	hasLibraryCategory,
+	parseDependencies,
 } from "../readiness/deps/index.js";
 
 // ============================================================================

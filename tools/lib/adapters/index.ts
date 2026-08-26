@@ -7,13 +7,13 @@
  * to get the appropriate adapter for a detected language.
  */
 
-import type { Language } from "../language-detection.js";
 import type { LanguageAdapter } from "../check-registry.js";
-import { typescriptAdapter, javascriptAdapter } from "./typescript.js";
+import type { Language } from "../language-detection.js";
 import { goAdapter } from "./go.js";
+import { javaAdapter } from "./java.js";
 import { pythonAdapter } from "./python.js";
 import { rustAdapter } from "./rust.js";
-import { javaAdapter } from "./java.js";
+import { javascriptAdapter, typescriptAdapter } from "./typescript.js";
 
 // ============================================================================
 // Adapter Registry
@@ -63,11 +63,11 @@ export function getSupportedLanguages(): Language[] {
 // Re-exports
 // ============================================================================
 
-export { typescriptAdapter, javascriptAdapter } from "./typescript.js";
 export { goAdapter } from "./go.js";
+export { javaAdapter } from "./java.js";
 export { pythonAdapter } from "./python.js";
 export { rustAdapter } from "./rust.js";
-export { javaAdapter } from "./java.js";
+export { javascriptAdapter, typescriptAdapter } from "./typescript.js";
 
 // Export all check IDs for reference
 export const ALL_CHECK_IDS = [

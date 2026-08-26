@@ -14,19 +14,19 @@ import type {
 	Dependency,
 	DependencyManifest,
 	LibraryCategory,
-	LibraryMatch,
 	LibraryMappings,
+	LibraryMatch,
 	ParseOptions,
 } from "./types.js";
 
 // Re-export types
 export * from "./types.js";
 
-// Import parsers
-import { parsePackageJson, hasScript, getScriptNames } from "./package-json.js";
-import { parseGoMod, moduleMatches } from "./go-mod.js";
-import { parsePyProject, parseRequirementsTxt } from "./pyproject.js";
 import { parseCargoToml } from "./cargo-toml.js";
+import { moduleMatches, parseGoMod } from "./go-mod.js";
+// Import parsers
+import { getScriptNames, hasScript, parsePackageJson } from "./package-json.js";
+import { parsePyProject, parseRequirementsTxt } from "./pyproject.js";
 
 // Re-export helpers
 export { hasScript, getScriptNames, moduleMatches };
@@ -361,7 +361,7 @@ export function hasMatchingScript(
 // Re-exports
 // ============================================================================
 
-export { parsePackageJson } from "./package-json.js";
-export { parseGoMod } from "./go-mod.js";
-export { parsePyProject, parseRequirementsTxt } from "./pyproject.js";
 export { parseCargoToml } from "./cargo-toml.js";
+export { parseGoMod } from "./go-mod.js";
+export { parsePackageJson } from "./package-json.js";
+export { parsePyProject, parseRequirementsTxt } from "./pyproject.js";

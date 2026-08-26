@@ -24,7 +24,8 @@ description: Clear description of what this skill does and when to use it.
 ```
 
 4. Add `README.md` with comprehensive documentation
-5. Submit a pull request
+5. Run `npx skills@latest add . --list` and confirm your skill appears
+6. Submit a pull request
 
 ### Improving Existing Skills
 
@@ -34,6 +35,11 @@ description: Clear description of what this skill does and when to use it.
 4. Submit a pull request with clear description
 
 ## Skill Requirements
+
+Skills must stay discoverable by `npx skills@latest add mneves75/skills`: one folder per
+skill under `skills/`, folder name equal to the frontmatter `name`, no `SKILL.md` at the
+repo root (it would shadow the rest), no absolute or home-directory paths in the text.
+Verify with `npx skills@latest add . --list` before opening a PR. CI runs the same check.
 
 - **SKILL.md**: Required. Must have valid YAML frontmatter with `name` and `description`.
 - **README.md**: Recommended. Detailed documentation for the skill.

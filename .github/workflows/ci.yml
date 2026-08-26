@@ -1,0 +1,62 @@
+# CI: the gates this repo already enforces locally, run for every push and PR.
+#
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2025-2026 Marcus Neves
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
+        with:
+          bun-version: latest
+
+      - name: Install ast-grep
+        run: npm install -g @ast-grep/cli
+
+      - name: Skill layout (what `npx skills add mneves75/skills` discovers)
+        run: |
+          set -euo pipefail
+          test ! -f SKILL.md  # a root SKILL.md would shadow every skill below it
+          for dir in skills/*/; do
+            name=$(basename "$dir")
+            f="$dir/SKILL.md"
+            test -f "$f" || { echo "$dir: missing SKILL.md"; exit 1; }
+            grep -qx "name: $name" "$f" || { echo "$f: frontmatter name must be '$name'"; exit 1; }
+            grep -qE '^description: .{20,}' "$f" || { echo "$f: missing/short description"; exit 1; }
+          done
+
+      - name: Shell syntax
+        run: bash -n skills/mneves-fable-orchestrator/tools/codex-lane .githooks/pre-commit .githooks/pre-commit.test
+
+      - name: Python syntax
+        run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py
+
+      - name: ast-grep scan
+        run: ast-grep scan --config sgconfig.yml .
+
+      - name: Pre-commit hook test
+        run: bash .githooks/pre-commit.test
+
+      - name: tools typecheck + lint
+        working-directory: tools
+        run: |
+          bun install --frozen-lockfile
+          bun run typecheck
+          bun run lint

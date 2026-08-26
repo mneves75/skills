@@ -13,13 +13,13 @@
  * pass security" style reporting.
  */
 
-import type {
-	Pillar,
-	Level,
-	CheckResultWithMeta,
-	CheckDefinition,
-} from "./check-registry.js";
 import type { DetectedApp } from "./app-discovery.js";
+import type {
+	CheckDefinition,
+	CheckResultWithMeta,
+	Level,
+	Pillar,
+} from "./check-registry.js";
 
 // ============================================================================
 // Types

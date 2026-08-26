@@ -14,9 +14,9 @@
  * This allows the same 9 pillars to work across Go, Python, Rust, etc.
  */
 
-import type { Language } from "./language-detection.js";
 import type { DetectedApp } from "./app-discovery.js";
 import type { FileCache } from "./file-cache.js";
+import type { Language } from "./language-detection.js";
 
 // ============================================================================
 // Core Types

@@ -14,19 +14,21 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
-- **1.6.0** (2026-08-26): adds `mneves-eli5` (Feynman explainer, audience-calibrated); linked into
-  the shared `~/.agents/skills` catalog and every agent farm (Codex, OpenCode, Cursor, Pi, Gemini, …).
+- **1.8.0** (2026-08-26): public-repo hardening — CI workflow, SECURITY.md, Dependabot, SHA-pinned
+  actions, `npx skills add mneves75/skills` documented as primary install, maintainer-local path
+  removed from `mneves-expert-review`.
+- **1.7.0 / 1.6.0** (2026-08-26): `mneves-expert-review`, `mneves-eli5`.
 - **1.5.0** shipped: adds `mneves-verify` (independent-verification skill) plus the
   repo's own ast-grep `as any` guard and a blocking pre-commit hook.
-- Skills: `mneves-agent-readiness`, `mneves-fable-orchestrator` (ships `codex-lane`),
-  `mneves-teach-back-srs`, `mneves-verify`, `mneves-eli5`.
+- Skills: `mneves-agent-readiness`, `mneves-eli5`, `mneves-expert-review`,
+  `mneves-fable-orchestrator` (ships `codex-lane`), `mneves-teach-back-srs`, `mneves-verify`.
 - `tools/` is a Bun + TypeScript project with no external runtime deps; dev deps only (Biome,
   TypeScript, bun-types).
 
 ## Decisions that still bind
 
 - **`mneves-` prefix on every skill** (1.3.0). Directory name and frontmatter `name:` must match.
-- **Skills are Markdown-first.** Exactly one executable ships **inside a skill** — `codex-lane`
+- **Skills are Markdown-first.** Two executables ship inside skills — `srs_db.py` (helper) and `codex-lane`
   (`skills/mneves-fable-orchestrator/tools/codex-lane`). It is distinct from the repo's own
   `.githooks/pre-commit` guard (a repository-level hook, not a skill). It is `bash` +
   `set -euo pipefail`, `bash -n` clean, and installed by symlink onto `PATH` (repo copy is
@@ -46,7 +48,11 @@ measure whether a *target* codebase is ready for agents.
   read before loading anything; a description that doesn't name when-to-use makes the skill
   undiscoverable.
 
+- **Shipped text must work from a stranger's clone.** 1.7.0 baked `~/dev/GUIDELINES-REF` into a
+  skill's frontmatter `description:`; every installing agent was told to read a directory only
+  the maintainer has. The public-repo scan is: no home paths, no machine layout, no client names.
+
 ## Known gaps
 
-- No CI for the `tools/` typecheck/lint (the `.github/workflows/static.yml` publishes the
-  examples page, not the code). Typecheck/lint run locally via Bun/Biome when needed.
+- Only `v1.0.0`, `v1.6.0`, `v1.7.0`, `v1.8.0` are tagged; 1.1–1.5 changelog links point at tags
+  that do not exist.

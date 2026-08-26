@@ -20,7 +20,7 @@ Open when a step in SKILL.md feels thin. These are prompts to think with, not se
 ## 3. Research
 - Prefer: primary sources, official docs/standards, academic research, professional bodies,
   recognized practitioners, recent high-quality analyses, real examples from leading teams,
-  `~/dev/GUIDELINES-REF` (repo-specific `DOCS/REF_DOCS`, `DOCS/GUIDELINES-REF` when present).
+  the project's own guidelines when present (`DOCS/REF_DOCS`, `DOCS/GUIDELINES-REF`).
 - Verify publication dates when recency matters; note the date next to the claim.
 - Search for disconfirmation explicitly ("X considered harmful", "why not X", post-mortems).
 - Label claims: verified fact / expert consensus / disputed / reasonable inference / own judgment.

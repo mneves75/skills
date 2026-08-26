@@ -8,9 +8,9 @@
  * while inheriting common patterns from the shared check library.
  */
 
+import type { CheckRunner, LanguageAdapter } from "../check-registry.js";
+import { listSharedChecks, sharedChecks } from "../checks/shared.js";
 import type { Language } from "../language-detection.js";
-import type { LanguageAdapter, CheckRunner } from "../check-registry.js";
-import { sharedChecks, listSharedChecks } from "../checks/shared.js";
 
 // ============================================================================
 // Types

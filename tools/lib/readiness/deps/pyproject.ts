@@ -378,7 +378,7 @@ function parseToml(content: string): PyProject | null {
 			const kvMatch = line.match(/^([^=]+)=(.*)$/);
 			if (kvMatch) {
 				const key = kvMatch[1]!.trim();
-				let value = kvMatch[2]!.trim();
+				const value = kvMatch[2]!.trim();
 
 				// Start of multiline array
 				if (value.startsWith("[") && !value.includes("]")) {

@@ -35,9 +35,29 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
-
+import {
+	getAdapter,
+	getAllAdapters,
+	getSupportedLanguages,
+	goAdapter,
+	javaAdapter,
+	javascriptAdapter,
+	pythonAdapter,
+	rustAdapter,
+	typescriptAdapter,
+} from "./lib/adapters/index.js";
+import { type DetectedApp, type DiscoveryResult, discoverApps } from "./lib/app-discovery.js";
+import {
+	type CheckContext,
+	type CheckOptions,
+	type CheckResultWithMeta,
+	checkRegistry,
+	LEVEL_NAMES,
+	type Level,
+	PILLAR_NAMES,
+	type Pillar,
+} from "./lib/check-registry.js";
 import { createFileCache, type FileCache } from "./lib/file-cache.js";
-
 import {
 	EXIT_CODES,
 	generateHelp,
@@ -47,47 +67,24 @@ import {
 	hasHelpFlag,
 	parseArgs,
 } from "./lib/index.js";
-
 // Import v2 modules
 import {
-	type Language,
 	detectLanguage,
 	detectLanguageQuick,
+	type Language,
 } from "./lib/language-detection.js";
-import { type DetectedApp, type DiscoveryResult, discoverApps } from "./lib/app-discovery.js";
 import {
-	type Pillar,
-	type Level,
-	type CheckResultWithMeta,
-	type CheckContext,
-	type CheckOptions,
-	checkRegistry,
-	PILLAR_NAMES,
-	LEVEL_NAMES,
-} from "./lib/check-registry.js";
-import {
-	type ScoringMode,
-	type ScoringConfig,
 	type AppScore,
-	type OrgScore,
-	calculateAppScore,
 	aggregateOrgScore,
+	calculateAppScore,
+	DEFAULT_PILLAR_WEIGHTS,
 	formatAppSummary,
 	formatOrgSummary,
 	getTopRecommendations,
-	DEFAULT_PILLAR_WEIGHTS,
+	type OrgScore,
+	type ScoringConfig,
+	type ScoringMode,
 } from "./lib/scoring.js";
-import {
-	getAdapter,
-	getAllAdapters,
-	getSupportedLanguages,
-	typescriptAdapter,
-	javascriptAdapter,
-	goAdapter,
-	pythonAdapter,
-	rustAdapter,
-	javaAdapter,
-} from "./lib/adapters/index.js";
 
 // Register standard check definitions - must import before main()
 import "./lib/checks/index.js";
@@ -1522,7 +1519,11 @@ async function main(): Promise<number> {
 		await Bun.write(outputFile, output);
 		log(`Report written to: ${outputFile}`);
 	} else {
-		console.log(output);
+		// Await the write callback: console.log + process.exit drops pipe data past 64 KiB,
+		// and Bun.write(Bun.stdout) re-emits the buffer after a partial pipe write (bun 1.4.0).
+		await new Promise<void>((resolve, reject) => {
+			process.stdout.write(`${output}\n`, (err) => (err ? reject(err) : resolve()));
+		});
 	}
 
 	// Generate session notes if requested

@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-08-26
+
+### Added
+
+- **`npx skills` install path** — `npx skills@latest add mneves75/skills` is the documented primary install (all six skills verified discoverable with `--list`); manual `git clone` table kept per tool.
+- **CI** (`.github/workflows/ci.yml`) — skill-layout check (folder == frontmatter `name`, description present, no root `SKILL.md`), `bash -n`, `py_compile`, ast-grep scan, pre-commit hook e2e test, `tools/` typecheck + Biome lint. `contents: read` only.
+- `SECURITY.md` (private vulnerability reporting, response windows, scope) and `.github/dependabot.yml` (GitHub Actions + `tools/` npm, weekly).
+
+### Changed
+
+- **`mneves-expert-review`** no longer points at a maintainer-local `~/dev/GUIDELINES-REF`; it references the project's own guidelines when present, so the skill works from any clone.
+- GitHub Actions pinned to commit SHAs in both workflows.
+- `AGENTS.md` is the single agent-instructions file (`CLAUDE.md` imports it); tree refreshed to list all six skills and the CI/security files.
+- `tools/package.json` declares `private`, `license`, `repository`, `engines`; README's readiness-check usage now matches how the tool actually runs (assesses cwd via `bun --bun …/tools/readiness-check.ts`).
+- `.gitignore` covers `.codemap/` and `__pycache__/`.
+
+### Fixed
+
+- `readiness-check` piped output (`| jq`, `> file` via shell) was cut at 64 KiB: `console.log` followed by `process.exit` dropped unflushed data. Output is now written with an awaited `process.stdout.write` callback (`Bun.write(Bun.stdout)` re-emits the buffer after a partial pipe write on Bun 1.4.0); verified with a 100 KB JSON report through a real pipe.
+- `tools/lib/checks/shared.ts` used `fs` without importing it; the "extensive `docs/`" documentation check silently never passed (error swallowed by a `catch`). Typecheck now passes and CI enforces it.
+- `.githooks/pre-commit` passes staged paths after `--`, so a file named `-x.ts` is not read as an ast-grep option.
+- Biome lint errors (import order, unused imports, `let` → `const`) auto-fixed; `bun run lint` is green (warnings only).
+
+### Removed
+
+- `docs/EXAMPLES-EXEC-SPEC.md` (1.0.0-era spec for assets that never existed).
+
 ## [1.7.0] - 2026-08-26
 
 ### Added
@@ -133,6 +160,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This project is inspired by [Factory.ai](https://factory.ai)'s Code Readiness framework.
 
+[1.8.0]: https://github.com/mneves75/skills/releases/tag/v1.8.0
+[1.7.0]: https://github.com/mneves75/skills/releases/tag/v1.7.0
+[1.6.0]: https://github.com/mneves75/skills/releases/tag/v1.6.0
 [1.5.0]: https://github.com/mneves75/skills/releases/tag/v1.5.0
 [1.4.0]: https://github.com/mneves75/skills/releases/tag/v1.4.0
 [1.3.0]: https://github.com/mneves75/skills/releases/tag/v1.3.0

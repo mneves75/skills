@@ -26,7 +26,7 @@ while IFS= read -r -d '' file; do
     status=1
     continue
   fi
-  if ! ast-grep scan --config "$CONFIG" "$file"; then
+  if ! ast-grep scan --config "$CONFIG" -- "$file"; then
     echo "pre-commit: '$file' contains 'as any'. Replace with 'unknown' + a narrowing guard." >&2
     status=1
   fi

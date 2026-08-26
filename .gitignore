@@ -14,3 +14,7 @@ Thumbs.db
 # Build outputs
 dist/
 build/
+
+# Local tool state
+.codemap/
+__pycache__/

@@ -1,7 +1,8 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.7.0-blue)
+![Version](https://img.shields.io/badge/version-1.8.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0-green)
+![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
 
 Production-ready skills for AI coding agents. Tool-agnostic by design.
@@ -17,64 +18,59 @@ Production-ready skills for AI coding agents. Tool-agnostic by design.
 | [mneves-teach-back-srs](skills/mneves-teach-back-srs/) | Spaced-repetition learning through codebase teach-back sessions (SM-2 + SQLite) |
 | [mneves-verify](skills/mneves-verify/) | Independent verification before done/fixed/shipped: fresh context checks the artifact against criteria, PASS/FAIL/BLOCKED |
 
-## Quick Start
+## Install
+
+The fastest path is the [skills CLI](https://github.com/vercel-labs/skills) (`npx skills`),
+which discovers every `skills/*/SKILL.md` in this repo and links it into the agents you pick
+(Claude Code, Codex, OpenCode, Cursor, Cline, Windsurf, Gemini CLI, pi and 70+ more):
 
 ```bash
-# Install skill
-git clone https://github.com/mneves75/skills.git ~/.claude/skills/mneves-skills
+# Interactive: choose skills and agents
+npx skills@latest add mneves75/skills
 
-# Run assessment
-cd your-project
-readiness-check
+# Everything, all detected agents, no prompts (user-wide install)
+npx skills@latest add mneves75/skills --all -g -y
+
+# One skill into one agent
+npx skills@latest add mneves75/skills --skill mneves-verify -a claude-code -y
+
+# See what's available / keep up to date / remove
+npx skills@latest add mneves75/skills --list
+npx skills@latest update
+npx skills@latest remove mneves-verify
 ```
 
-## Installation
+Project-scoped installs (omit `-g`) land in `./.claude/skills/`, `./.agents/skills/`, etc.,
+and can be committed with the project.
 
-### [pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent)
+### Manual (git clone)
+
+Any tool that reads `SKILL.md` folders works with a plain clone:
+
+| Tool | Command |
+|------|---------|
+| Claude Code | `git clone https://github.com/mneves75/skills.git ~/.claude/skills/mneves-skills` |
+| Codex | `git clone https://github.com/mneves75/skills.git ~/.codex/skills/mneves-skills` |
+| [pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) | `git clone https://github.com/mneves75/skills.git ~/.pi/agent/skills/mneves-skills` |
+| [OpenCode](https://opencode.ai/) | `git clone https://github.com/mneves75/skills.git ~/.config/opencode/skills/mneves-skills` |
+| Cursor | `git clone https://github.com/mneves75/skills.git ~/.cursor/skills/mneves-skills` |
+| Shared catalog (any tool) | `git clone https://github.com/mneves75/skills.git ~/.agents/skills/mneves-skills` |
+
+Update a clone with `git -C <dir> pull`.
+
+## Readiness check (tool)
+
+`mneves-agent-readiness` ships a Bun + TypeScript assessor with no runtime dependencies.
+It assesses the current directory:
 
 ```bash
-git clone https://github.com/mneves75/skills.git ~/.pi/agent/skills/mneves-skills
+git clone https://github.com/mneves75/skills.git
+cd skills/tools && bun install
+cd /path/to/your-project
+bun --bun /path/to/skills/tools/readiness-check.ts --format=html --output=report.html
 ```
 
-### [OpenCode](https://opencode.ai/)
-
-```bash
-git clone https://github.com/mneves75/skills.git ~/.config/opencode/skills/mneves-skills
-```
-
-### Claude Code
-
-```bash
-git clone https://github.com/mneves75/skills.git ~/.claude/skills/mneves-skills
-```
-
-### Cursor
-
-```bash
-git clone https://github.com/mneves75/skills.git ~/.cursor/skills/mneves-skills
-```
-
-### VS Code (with AI extensions)
-
-```bash
-git clone https://github.com/mneves75/skills.git ~/.vscode/skills/mneves-skills
-```
-
-### Codex / OpenAI
-
-```bash
-# Via OpenSkills
-npx openskills add mneves75/skills
-
-# Manual
-git clone https://github.com/mneves75/skills.git ~/.agent/skills/mneves-skills
-```
-
-### Windsurf / Aider / Other Tools
-
-```bash
-git clone https://github.com/mneves75/skills.git ~/.agent/skills/mneves-skills
-```
+`--help` lists every option (`--min-level` for CI gates, `--app` for monorepos, `--skip-tests`).
 
 ## Benchmark Examples
 
@@ -84,28 +80,9 @@ Real assessments of popular open-source projects. **[View Live Reports →](http
 |---------|----------|-------|-------|--------|
 | FastAPI | Python | L4 | 65.4% | [View](https://mneves75.github.io/skills/fastapi.html) |
 
-See [examples/](https://mneves75.github.io/skills/) for live reports.
-
-## Skill Locations
-
-Skills are discovered in these locations (priority order):
-
-| Location | Scope | Tool |
-|----------|-------|------|
-| `./.agent/skills/` | Project | Universal |
-| `~/.agent/skills/` | Global | Universal |
-| `./.pi/skills/` | Project | pi |
-| `~/.pi/agent/skills/` | Global | pi |
-| `./.opencode/skills/` | Project | OpenCode |
-| `~/.config/opencode/skills/` | Global | OpenCode |
-| `./.claude/skills/` | Project | Claude Code |
-| `~/.claude/skills/` | Global | Claude Code |
-| `~/.cursor/skills/` | Global | Cursor |
-| `~/.vscode/skills/` | Global | VS Code |
-
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md). Security reports: [SECURITY.md](SECURITY.md).
 
 ## License
 
@@ -121,4 +98,4 @@ This project is inspired by [Factory.ai](https://factory.ai)'s Code Readiness fr
 - [pi coding agent](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) - Open-source coding agent with skills support
 - [OpenCode](https://opencode.ai/) - Terminal-based AI coding assistant with skills support
 - [OpenSkills](https://github.com/numman-ali/openskills) - Universal skills loader
-- [skills.sh](https://skills.sh) - Skill registry
+- [skills CLI](https://github.com/vercel-labs/skills) / [skills.sh](https://skills.sh) - `npx skills` installer and registry

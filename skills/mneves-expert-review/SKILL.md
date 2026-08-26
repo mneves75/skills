@@ -1,6 +1,6 @@
 ---
 name: mneves-expert-review
-description: Rigorous expert-panel review and optimization pass run on a draft answer or deliverable before it is finalized — clarify the real objective, rebuild from first principles, research current best practice (web + ~/dev/GUIDELINES-REF), attack the draft as a hostile expert panel, generate 6 genuinely different alternatives and compare them on weighted criteria, pre-mortem, five-year test, steelman the contrarian view, audit accuracy/completeness/simplicity, then return the improved deliverable with trade-offs, risks, evidence and remaining uncertainty. This skill should be used when the user asks for an expert review, a rigorous pass, "best possible answer", "challenge this", "stress-test", "revisão rigorosa", "melhor solução", or before delivering any high-stakes plan, design, recommendation, document or architecture decision.
+description: Rigorous expert-panel review and optimization pass run on a draft answer or deliverable before it is finalized — clarify the real objective, rebuild from first principles, research current best practice (web + the project's local guidelines, if any), attack the draft as a hostile expert panel, generate 6 genuinely different alternatives and compare them on weighted criteria, pre-mortem, five-year test, steelman the contrarian view, audit accuracy/completeness/simplicity, then return the improved deliverable with trade-offs, risks, evidence and remaining uncertainty. This skill should be used when the user asks for an expert review, a rigorous pass, "best possible answer", "challenge this", "stress-test", "revisão rigorosa", "melhor solução", or before delivering any high-stakes plan, design, recommendation, document or architecture decision.
 ---
 
 # Expert review and optimization pass
@@ -29,7 +29,7 @@ a step feels thin.
 
 3. **Research when it changes the answer.** If external facts could materially raise accuracy or
    quality, search: primary sources, official docs and standards, recognized practitioners,
-   recent high-quality analyses, and `~/dev/GUIDELINES-REF`. Check publication dates when
+   recent high-quality analyses, and the project's own guidelines when present (e.g. `DOCS/GUIDELINES-REF/`). Check publication dates when
    recency matters. Search for evidence that contradicts the draft, not evidence that comforts
    it. Label each claim: verified fact / expert consensus / disputed / inference / own judgment.
    Do not search when the answer is already fully supported — tool calls are not rigor.

@@ -10,16 +10,16 @@
  * and only implements TypeScript-specific checks here.
  */
 
-import { $ } from "bun";
 import path from "node:path";
+import { $ } from "bun";
 import {
-	type CheckRunner,
 	type CheckContext,
 	type CheckResult,
+	type CheckRunner,
+	dirExists,
 	fileExists,
 	readJson,
 	readText,
-	dirExists,
 	runWithTimeout,
 } from "../check-registry.js";
 import { createLanguageAdapter } from "./base.js";
@@ -827,7 +827,7 @@ const tsSpecificRunners: Record<string, CheckRunner> = {
 
 	"no-lint-ignores": async (ctx: CheckContext): Promise<CheckResult> => {
 		// This would require scanning source files - mark as pass by default
-		// A thorough implementation would grep for eslint-disable, @ts-ignore, etc.
+		// A thorough implementation would grep for eslint-disable, @ts-expect-error, etc.
 		return { pass: true, details: "Assumed clean (not scanned)" };
 	},
 

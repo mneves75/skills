@@ -11,16 +11,16 @@
  * and only implements Java-specific checks here.
  */
 
-import { $ } from "bun";
-import path from "node:path";
 import fs from "node:fs";
+import path from "node:path";
+import { $ } from "bun";
 import {
-	type CheckRunner,
 	type CheckContext,
 	type CheckResult,
+	type CheckRunner,
+	dirExists,
 	fileExists,
 	readText,
-	dirExists,
 	runWithTimeout,
 } from "../check-registry.js";
 import { createLanguageAdapter } from "./base.js";

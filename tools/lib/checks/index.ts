@@ -10,15 +10,15 @@
  * Also re-exports shared check implementations for use by adapters.
  */
 
-import { type Level, type Pillar, checkRegistry, defineCheck } from "../check-registry.js";
+import { checkRegistry, defineCheck, type Level, type Pillar } from "../check-registry.js";
 
 // Re-export shared checks for adapter use
 export {
-	sharedChecks,
+	createDirCheck,
+	createPathCheck,
 	getSharedCheck,
 	listSharedChecks,
-	createPathCheck,
-	createDirCheck,
+	sharedChecks,
 } from "./shared.js";
 
 // ============================================================================

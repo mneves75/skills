@@ -1,73 +1,61 @@
 # AGENTS.md
 
-Instructions for AI coding agents working with this repository.
+Instructions for AI coding agents working with this repository. `CLAUDE.md` imports this file;
+keep every rule here only.
 
 ## Overview
 
-Production-ready skills for AI coding agents. Tool-agnostic by design.
+Production-ready skills for AI coding agents. Tool-agnostic by design: each skill is a folder
+under `skills/` with a `SKILL.md` (YAML frontmatter `name` + `description`, then the procedure).
+Users install with `npx skills@latest add mneves75/skills` or a plain `git clone`.
 
 ## Project Structure
 
 ```
 skills/
-├── skills/mneves-agent-readiness/     # Codebase readiness assessment skill
-│   ├── SKILL.md                      # Skill definition (YAML frontmatter)
-│   └── README.md                     # Detailed documentation
-├── skills/mneves-fable-orchestrator/ # Model-routing policy (Fable plans, executors type)
-│   ├── SKILL.md
-│   ├── README.md
-│   └── tools/codex-lane              # Resumable Codex thread wrapper (bash)
-├── skills/mneves-teach-back-srs/     # Spaced-repetition learning via teach-back sessions
+├── skills/mneves-agent-readiness/    # Codebase readiness assessment (pairs with tools/)
+├── skills/mneves-eli5/               # Feynman explainer, audience-calibrated
+├── skills/mneves-expert-review/      # Expert-panel review/optimization pass (+ references/)
+├── skills/mneves-fable-orchestrator/ # Model-routing policy; ships tools/codex-lane (bash)
+├── skills/mneves-teach-back-srs/     # Spaced-repetition teach-back (+ scripts/srs_db.py)
 ├── skills/mneves-verify/             # Independent verification before done/fixed/shipped
-├── tools/                    # Assessment tool (Bun + TypeScript)
-│   ├── readiness-check.ts    # Main entry point
-│   └── lib/                  # Shared modules
-├── examples/                 # Sample reports (GitHub Pages)
-├── rules/                    # ast-grep rules: reject `as any` (TS + TSX)
-├── sgconfig.yml              # ast-grep config (points at rules/)
-├── .githooks/pre-commit      # Blocking pre-commit hook (ast-grep scan)
-├── CHANGELOG.md              # Version history
-└── NOTICE                    # Attribution notices
+├── tools/                    # Readiness assessor (Bun + TypeScript): readiness-check.ts + lib/
+├── examples/                 # Sample reports (GitHub Pages via .github/workflows/static.yml)
+├── rules/ + sgconfig.yml     # ast-grep guard: reject `as any` (TS + TSX)
+├── .githooks/pre-commit      # Blocking pre-commit hook (ast-grep scan) + its test
+├── .github/workflows/ci.yml  # CI: layout check, bash -n, py_compile, ast-grep, hook test, typecheck, lint
+├── CHANGELOG.md · VERSION    # Keep a Changelog; VERSION is the single source of the version
+├── SECURITY.md · NOTICE      # Vulnerability reporting; attributions
+└── MEMORY.md · memory/ · FOR_YOU_KNOW.md   # Project memory and the plain-language "why"
 ```
 
 ## Commands
 
 ```bash
-# Install dependencies
-cd tools && bun install
-
-# Run readiness assessment
-bun --bun tools/readiness-check.ts
-
-# Generate HTML report
-bun --bun tools/readiness-check.ts --format=html --output=report.html
-
-# Skip long-running checks
-bun --bun tools/readiness-check.ts --skip-tests --skip-build
+cd tools && bun install                 # dev deps only (Biome, TypeScript, bun-types)
+bun run typecheck && bun run lint       # from tools/
+ast-grep scan --config sgconfig.yml .   # from repo root
+bash .githooks/pre-commit.test          # hook e2e test
+bun --bun tools/readiness-check.ts --format=html --output=report.html   # assess cwd
+npx skills@latest add . --list          # what the skills CLI will discover
 ```
 
-## Key Files
+## Invariants (CI enforces the checkable ones)
 
-| File | Purpose |
-|------|---------|
-| `skills/*/SKILL.md` | Skill definition with YAML metadata |
-| `tools/readiness-check.ts` | Assessment tool (9 pillars, 51+ checks) |
-| `skills/mneves-fable-orchestrator/tools/codex-lane` | Named, resumable Codex threads (`start`/`next`/`adopt`/`last`) |
-| `sgconfig.yml` + `rules/no-as-any.yml` + `rules/no-as-any-tsx.yml` | Repo's own ast-grep guard (rejects `as any` in TS + TSX) |
-| `.githooks/pre-commit` | Blocking hook running the ast-grep scan (fails closed without ast-grep) |
-| `VERSION` | Semantic version |
-
-## Conventions
-
-- **Bun runtime** - All TypeScript runs via Bun
-- **No external runtime deps** - Only dev dependencies
-- **Multi-language support** - TypeScript, JavaScript, Go, Python, Rust, Java
-- **Shipped shell scripts** - `bash` with `set -euo pipefail`; must pass `bash -n`; users
-  install them by symlink onto `PATH`, so the repo copy is canonical (never a copy-out)
+- Directory name == frontmatter `name:`, every skill carries the `mneves-` prefix, and
+  `description:` names when to use the skill (it is the routing trigger agents read).
+- Never add a root `SKILL.md`: the skills CLI lets a shallower `SKILL.md` shadow everything
+  below it.
+- Skills are Markdown-first. Shipped executables are `bash` + `set -euo pipefail`, `bash -n`
+  clean, installed by symlink onto `PATH` (the repo copy is canonical). Only
+  `mneves-fable-orchestrator/tools/codex-lane` and `mneves-teach-back-srs/scripts/srs_db.py` exist.
+- No `any` / `as any` in `tools/` — `unknown` + a narrowing guard; ast-grep blocks it.
+- No personal paths, machine layout, secrets or client names in shipped files; a skill must work
+  for a stranger's clone.
+- `VERSION`, the README badge and the top `CHANGELOG.md` entry agree.
 
 ## Adding a Skill
 
-1. Create `skills/{skill-name}/SKILL.md` with YAML frontmatter
-2. Add `skills/{skill-name}/README.md` for detailed docs
-3. Update root `README.md` to list the new skill
-4. Bump `VERSION`, add a `CHANGELOG.md` entry, and update the README version badge
+1. `skills/<mneves-name>/SKILL.md` with frontmatter; `README.md` for longer docs.
+2. Root `README.md` table, the tree above, `VERSION`, `CHANGELOG.md`, README badge.
+3. `npx skills@latest add . --list` shows the new skill; CI green.

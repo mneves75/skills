@@ -33,14 +33,14 @@
 // ============================================================================
 
 export {
-	type Language,
-	type SignalSource,
-	type LanguageSignal,
-	type LanguageDetection,
 	detectLanguage,
 	detectLanguageQuick,
-	isPolyglot,
 	getLanguageName,
+	isPolyglot,
+	type Language,
+	type LanguageDetection,
+	type LanguageSignal,
+	type SignalSource,
 } from "../language-detection.js";
 
 // ============================================================================
@@ -49,13 +49,13 @@ export {
 
 export {
 	type AppType,
-	type ManifestType,
 	type DetectedApp,
 	type DiscoveryResult,
-	type WorkspaceConfig,
 	discoverApps,
 	getDeployableApps,
 	getPrimaryApp,
+	type ManifestType,
+	type WorkspaceConfig,
 } from "../app-discovery.js";
 
 // ============================================================================
@@ -63,27 +63,27 @@ export {
 // ============================================================================
 
 export {
-	type Pillar,
-	type Level,
-	type CheckResult,
-	type CheckDefinition,
 	type CheckContext,
+	type CheckDefinition,
 	type CheckOptions,
-	type CheckRunner,
-	type RegisteredCheck,
+	type CheckResult,
 	type CheckResultWithMeta,
+	type CheckRunner,
+	checkRegistry,
+	createAdapter,
+	defineCheck,
+	dirExists,
+	fileExists,
 	type LanguageAdapter,
 	type LanguageAdapterFactory,
-	checkRegistry,
-	defineCheck,
-	createAdapter,
-	fileExists,
-	dirExists,
+	LEVEL_NAMES,
+	type Level,
+	PILLAR_NAMES,
+	type Pillar,
+	type RegisteredCheck,
 	readJson,
 	readText,
 	runWithTimeout,
-	PILLAR_NAMES,
-	LEVEL_NAMES,
 } from "../check-registry.js";
 
 // ============================================================================
@@ -91,25 +91,25 @@ export {
 // ============================================================================
 
 export {
-	type ScoringMode,
-	type ScoringConfig,
-	type PillarScore,
-	type AppScore,
 	type AggregatedPillarScore,
-	type OrgScore,
-	scoreToLevel,
+	type AppScore,
+	aggregateOrgScore,
+	calculateAppScore,
+	calculateAverage,
 	calculatePillarScores,
 	calculateStrict,
 	calculateWeighted,
-	calculateAverage,
-	calculateAppScore,
-	aggregateOrgScore,
+	compareScores,
+	DEFAULT_PILLAR_WEIGHTS,
 	formatAppSummary,
 	formatOrgSummary,
 	getTopRecommendations,
-	compareScores,
-	DEFAULT_PILLAR_WEIGHTS,
 	LEVEL_THRESHOLDS,
+	type OrgScore,
+	type PillarScore,
+	type ScoringConfig,
+	type ScoringMode,
+	scoreToLevel,
 } from "../scoring.js";
 
 // ============================================================================
@@ -117,14 +117,14 @@ export {
 // ============================================================================
 
 export {
-	getAdapter,
-	getAllAdapters,
-	hasAdapter,
-	getSupportedLanguages,
-	typescriptAdapter,
-	javascriptAdapter,
-	goAdapter,
-	pythonAdapter,
 	ALL_CHECK_IDS,
 	type CheckId,
+	getAdapter,
+	getAllAdapters,
+	getSupportedLanguages,
+	goAdapter,
+	hasAdapter,
+	javascriptAdapter,
+	pythonAdapter,
+	typescriptAdapter,
 } from "../adapters/index.js";
