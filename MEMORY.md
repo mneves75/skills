@@ -14,10 +14,12 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.6.0** (2026-08-26): adds `mneves-eli5` (Feynman explainer, audience-calibrated); linked into
+  the shared `~/.agents/skills` catalog and every agent farm (Codex, OpenCode, Cursor, Pi, Gemini, …).
 - **1.5.0** shipped: adds `mneves-verify` (independent-verification skill) plus the
   repo's own ast-grep `as any` guard and a blocking pre-commit hook.
 - Skills: `mneves-agent-readiness`, `mneves-fable-orchestrator` (ships `codex-lane`),
-  `mneves-teach-back-srs`, `mneves-verify`.
+  `mneves-teach-back-srs`, `mneves-verify`, `mneves-eli5`.
 - `tools/` is a Bun + TypeScript project with no external runtime deps; dev deps only (Biome,
   TypeScript, bun-types).
 

@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.5.0-blue)
+![Version](https://img.shields.io/badge/version-1.6.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
 
@@ -10,6 +10,7 @@ Production-ready skills for AI coding agents. Tool-agnostic by design.
 
 | Skill | Description |
 |-------|-------------|
+| [mneves-eli5](skills/mneves-eli5/) | Feynman-technique explainer calibrated to the listener (child, layperson, executive, junior, expert), answered in the user's language |
 | [mneves-agent-readiness](skills/mneves-agent-readiness/) | Evaluate codebase readiness for AI agents (Factory.ai aligned) |
 | [mneves-fable-orchestrator](skills/mneves-fable-orchestrator/) | Model-routing policy: Fable plans and reviews, Opus subagents build frontend, Codex (GPT-5.6-sol high) executes heavy implementation in a resumable lane. Ships [`codex-lane`](skills/mneves-fable-orchestrator/tools/codex-lane) |
 | [mneves-teach-back-srs](skills/mneves-teach-back-srs/) | Spaced-repetition learning through codebase teach-back sessions (SM-2 + SQLite) |
