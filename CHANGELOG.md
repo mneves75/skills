@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-08-26
+
+### Added
+
+- **`mneves-expert-review`** (`skills/mneves-expert-review/`) — expert-panel review and optimization pass run on a draft before it is finalized: clarify the real objective, rebuild from first principles, research only when it changes the answer (web + `~/dev/GUIDELINES-REF`, disconfirmation first, claims labelled fact/consensus/disputed/inference/judgment), attack the draft as a seven-role panel, generate six genuinely different alternatives (incl. one that challenges the premise) and compare them on weighted criteria, pre-mortem, five-year test, contrarian steelman, quality audit, then return the improved deliverable with trade-offs, risks, evidence and remaining uncertainty. Scales to stakes; checkable artifacts hand off to `mneves-verify`. SKILL.md + `references/checklists.md`, no scripts.
+
 ## [1.6.0] - 2026-08-26
 
 ### Added
