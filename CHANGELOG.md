@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.2] - 2026-08-26
+
+### Added
+
+- **`HOWTO.md`**: what each of the six skills does, its trigger phrases, prerequisites, a worked example and tips; rendered to `examples/howto.html` on GitHub Pages by `tools/scripts/build-howto.sh` (bun + marked, nothing added to the repo's dependencies). Linked from the README and the Pages index.
+
+### Fixed
+
+- `mneves-agent-readiness` SKILL.md told the agent to pass a project path to `readiness-check.ts`; the tool assesses the current directory and ignores positional arguments. Usage now says `cd` first. Dropped the stale "v1.0.0" label.
+
 ## [1.8.1] - 2026-08-26
 
 ### Changed
@@ -167,6 +177,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This project is inspired by [Factory.ai](https://factory.ai)'s Code Readiness framework.
 
+[1.8.2]: https://github.com/mneves75/skills/releases/tag/v1.8.2
 [1.8.1]: https://github.com/mneves75/skills/releases/tag/v1.8.1
 [1.8.0]: https://github.com/mneves75/skills/releases/tag/v1.8.0
 [1.7.0]: https://github.com/mneves75/skills/releases/tag/v1.7.0

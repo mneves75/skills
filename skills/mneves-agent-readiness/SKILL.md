@@ -36,21 +36,21 @@ Answer these for an instant maturity estimate:
 
 ## Automated Assessment
 
-Run the readiness-check tool (v1.0.0):
+Run the readiness-check tool. It assesses the current directory, so `cd` into the target
+project first (`SKILLS` is wherever this repo is installed):
 
 ```bash
-# From the skills repository
-cd ~/.claude/skills/mneves-skills
-bun --bun tools/readiness-check.ts /path/to/your/project
+cd /path/to/your/project
+bun --bun $SKILLS/tools/readiness-check.ts
 
 # Quick mode (skip tests/build)
-bun --bun tools/readiness-check.ts --skip-tests --skip-build
+bun --bun $SKILLS/tools/readiness-check.ts --skip-tests --skip-build
 
 # HTML dashboard
-bun --bun tools/readiness-check.ts --format=html --output=readiness-report.html
+bun --bun $SKILLS/tools/readiness-check.ts --format=html --output=readiness-report.html
 
 # CI gate (fail if below level 3)
-bun --bun tools/readiness-check.ts --min-level=3
+bun --bun $SKILLS/tools/readiness-check.ts --min-level=3
 ```
 
 ## Four Phases to Evaluate

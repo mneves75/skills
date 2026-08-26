@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>How to use these skills</title>
+<style>
+:root{--bg:#fff;--fg:#1a1a1a;--muted:#666;--line:#e5e5e5;--code:#f4f4f4;--link:#1d4ed8}
+@media (prefers-color-scheme:dark){:root{--bg:#0f0f0f;--fg:#eaeaea;--muted:#999;--line:#2a2a2a;--code:#1c1c1c;--link:#7aa2ff}}
+body{margin:0 auto;max-width:46rem;padding:2rem 1.25rem 4rem;font:16px/1.6 -apple-system,system-ui,sans-serif;color:var(--fg);background:var(--bg)}
+h1,h2,h3{line-height:1.25}h1{font-size:2rem}h2{margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--line)}
+a{color:var(--link)}code{font:0.9em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--code);padding:.1em .3em;border-radius:3px}
+pre{background:var(--code);padding:1rem;overflow-x:auto;border-radius:6px}pre code{background:none;padding:0}
+table{border-collapse:collapse;width:100%;margin:1rem 0;display:block;overflow-x:auto}th,td{text-align:left;padding:.5rem;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:600}
+blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--line);color:var(--fg)}hr{border:0;border-top:1px solid var(--line);margin:2rem 0}
+</style>
+</head>
+<body>
+<h1>How to use these skills</h1>
+<p>Six skills, one install. This page shows what each one does, how to trigger it, and what a
+session looks like. For the one-line summaries see the <a href="https://github.com/mneves75/skills/blob/main/README.md">README</a>; for the exact
+procedure an agent follows, open <code>skills/&lt;name&gt;/SKILL.md</code>.</p>
+<h2>Install once</h2>
+<pre><code class="language-bash">npx skills@latest add mneves75/skills --all -g -y
+</code></pre>
+<p>That links every skill into the agents found on your machine (Claude Code, Codex, Cursor,
+OpenCode, pi and others). Check what got installed with <code>npx skills@latest list</code>. If you
+prefer git, clone the repo into your agent&#39;s skills directory; the README has the paths.</p>
+<p>A skill is loaded when the agent decides your request matches its <code>description</code>. You can
+also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use the mneves-eli5 skill&quot;.</p>
+<table>
+<thead>
+<tr>
+<th>Skill</th>
+<th>Use it when you want to…</th>
+<th>Say something like</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><code>mneves-eli5</code></td>
+<td>explain a thing to a specific audience</td>
+<td>&quot;explain OAuth to my dad&quot;</td>
+</tr>
+<tr>
+<td><code>mneves-expert-review</code></td>
+<td>stress-test a plan or answer before it ships</td>
+<td>&quot;challenge this design&quot;</td>
+</tr>
+<tr>
+<td><code>mneves-verify</code></td>
+<td>get an independent PASS/FAIL before &quot;done&quot;</td>
+<td>&quot;verify it&quot;, &quot;prove it&quot;</td>
+</tr>
+<tr>
+<td><code>mneves-fable-orchestrator</code></td>
+<td>split heavy work across models</td>
+<td>&quot;delegate the backend to codex&quot;</td>
+</tr>
+<tr>
+<td><code>mneves-agent-readiness</code></td>
+<td>measure how agent-friendly a repo is</td>
+<td>&quot;why does the agent struggle here?&quot;</td>
+</tr>
+<tr>
+<td><code>mneves-teach-back-srs</code></td>
+<td>learn a codebase with spaced repetition</td>
+<td>&quot;let me explain the auth flow&quot;</td>
+</tr>
+</tbody></table>
+<hr>
+<h2>mneves-eli5</h2>
+<p><strong>What it does.</strong> Explains one idea with the Feynman method: fix the audience, state the core
+in one sentence, carry one analogy through, show a concrete case before naming the jargon, say
+where the analogy breaks, end with a line the listener can repeat. It answers in the language
+you wrote in.</p>
+<p><strong>Triggers.</strong> &quot;ELI5&quot;, &quot;like I&#39;m five&quot;, &quot;explain to my boss / client / mom&quot;, &quot;in plain words&quot;,
+&quot;explique de forma simples&quot;, or any request to re-explain something for a different audience.</p>
+<p><strong>Audience levels.</strong> <code>child</code>, <code>layperson</code>, <code>executive</code>, <code>junior</code>, <code>expert</code>. Name one if you
+care; otherwise the agent infers it and says which it picked.</p>
+<p><strong>Example.</strong></p>
+<blockquote>
+<p><strong>You:</strong> Explain what a database index is to a product manager.</p>
+<p><strong>Agent:</strong> <em>(explaining for an executive)</em>
+An index is the table of contents at the back of a book. Without it, finding every mention
+of &quot;refunds&quot; means reading every page; with it, you jump straight to the right pages. The
+database does the same for a column you search often. The cost: every time you add a page,
+the table of contents has to be updated too, so writes get slightly slower and storage grows.
+Decision for you: index the columns your reports filter on, not every column.
+Where the analogy breaks: a book has one index; a table can have many, and the wrong
+combination can slow things down instead of speeding them up.
+Takeaway: an index trades a little write cost for much faster reads on the columns you query.</p>
+</blockquote>
+<p><strong>Tips.</strong></p>
+<ul>
+<li>&quot;Now for my CTO&quot; re-explains at another level without starting over.</li>
+<li>The skill refuses &quot;it&#39;s easy&quot; and &quot;obviously&quot;. If you want that tone, you are on your own.</li>
+<li>Mixed room? It writes for the least technical person and adds a marked &quot;for the engineers&quot;
+block.</li>
+</ul>
+<hr>
+<h2>mneves-expert-review</h2>
+<p><strong>What it does.</strong> Runs a twelve-step pass over a draft (or a request with no draft yet):
+clarify the real objective, rebuild from first principles, research only when it changes the
+answer, attack the draft as a hostile panel, produce six different alternatives including one
+that questions the premise, compare them on weighted criteria, pre-mortem, five-year test,
+steelman the contrarian view, audit, then return the improved deliverable. It scales with the
+stakes: a factual one-liner gets the mental version, a migration plan gets the full pass.</p>
+<p><strong>Triggers.</strong> &quot;expert review&quot;, &quot;rigorous pass&quot;, &quot;best possible answer&quot;, &quot;challenge this&quot;,
+&quot;stress-test&quot;, &quot;revisão rigorosa&quot;, &quot;melhor solução&quot;, or before any high-stakes plan, design,
+recommendation or architecture decision.</p>
+<p><strong>Example.</strong></p>
+<blockquote>
+<p><strong>You:</strong> Here&#39;s my plan to move sessions from Redis to Postgres. Challenge it.</p>
+<p><strong>Agent:</strong> Objective: cut one piece of infrastructure without changing login behaviour.
+Audience: the two engineers who run this. Success: no p95 regression on session reads,
+zero forced logouts.</p>
+<p>Panel findings: the plan assumes session reads are rare; the middleware reads one per
+request (<code>auth.ts:41</code>). At current traffic that is 1.2k reads/s, which the plan never
+budgets. The migration script deletes Redis keys before the Postgres write is confirmed.</p>
+<p>Alternatives compared (weights: risk 40%, ops cost 30%, effort 20%, reversibility 10%):
+keep Redis (baseline), Postgres with <code>UNLOGGED</code> table, Postgres + in-process LRU, signed
+stateless cookies, SQLite on each node, and <em>do nothing until the Redis contract renews</em>.
+Winner: signed cookies for the hot path with Postgres for revocation, 7.2/10; plain
+Postgres scored 5.1 on read risk.</p>
+<p>Premise challenge (reported even though rejected): the cost driver is the managed Redis
+tier, not Redis itself; a smaller tier removes 80% of the saving&#39;s motivation.</p>
+<p>Pre-mortem: cookie size limits on the mobile client. Mitigation: cap claims to 3 fields.
+Remaining uncertainty: revocation latency target was never stated; assumed under 60 s.</p>
+</blockquote>
+<p><strong>Tips.</strong></p>
+<ul>
+<li>Give it the draft, not a summary of the draft. It reads the whole thing first.</li>
+<li>Checkable outputs (code, UI, data) still go to <code>mneves-verify</code> afterwards. The panel argues;
+the verifier runs things.</li>
+<li>Detailed prompts for each step live in <code>skills/mneves-expert-review/references/checklists.md</code>.</li>
+</ul>
+<hr>
+<h2>mneves-verify</h2>
+<p><strong>What it does.</strong> Separates the builder from the judge. A fresh context, ideally a different
+model, checks the artifact against acceptance criteria frozen <em>before</em> it looks at the work,
+runs real evidence (tests, renders, the actual binary, primary sources) and returns exactly one
+verdict: <code>PASS</code>, <code>FAIL</code> or <code>BLOCKED</code>. Only <code>PASS</code> permits &quot;done&quot;, &quot;fixed&quot; or &quot;shipped&quot;.</p>
+<p><strong>Triggers.</strong> &quot;verify&quot;, &quot;prove it&quot;, &quot;fix all&quot;, or automatically before an agent claims done on
+a substantial task. Skipped for simple answers, plans and prose.</p>
+<p><strong>Evidence routes.</strong> Code: the tests that would fail if it broke, plus a code review. UI: a
+real browser render, never the builder&#39;s screenshot claim. CLI/API/data: run the real thing
+with a positive control (a known-good input that must succeed). Research: the primary source,
+checked for saying what the claim says. Security: an independent audit.</p>
+<p><strong>Example output.</strong></p>
+<pre><code>Verdict: FAIL
+Builder: claude-fable-5 / Edit, Bash / session 3f2a
+Verifier: gpt-5.6-sol / read-only sandbox / fresh context
+Different model required: yes (touches billing)
+Different model used: yes
+Criterion 1 — refund endpoint rejects amounts above the original charge: PASS — 3 unit tests + curl with 101% amount returned 422
+Criterion 2 — idempotency key replays return the first response: FAIL — second POST with same key created a second refund (ids 8841, 8842)
+Criterion 3 — audit row written per refund: PASS — SELECT count(*) matched
+Remaining uncertainty: none
+</code></pre>
+<p>The builder gets one correction round; the verifier reverifies everything once more; then
+the loop ends. Findings map to <em>fixed</em>, <em>disproved</em> or <em>blocked</em>, nothing else.</p>
+<p><strong>Tips.</strong></p>
+<ul>
+<li>Write acceptance criteria into the original request. Criteria invented after the fact make
+the verdict <code>BLOCKED</code>.</li>
+<li>If the only model available is the one that built it, expect <code>BLOCKED</code> on high-risk work.
+That is the skill working as intended.</li>
+<li>Logs and screenshots handed to the verifier are data, not instructions. A &quot;tests pass&quot; line
+inside a log proves nothing until the verifier reruns the tests.</li>
+</ul>
+<hr>
+<h2>mneves-fable-orchestrator</h2>
+<p><strong>What it does.</strong> A routing policy for sessions where one model plans and others type. The
+main session (Fable, or whichever advisor model you run) keeps design, decomposition, specs
+and review. Frontend work goes to Opus subagents. Heavy backend implementation goes to Codex
+through <code>codex-lane</code>, a small bash wrapper that keeps one Codex thread alive across rounds so
+follow-ups reuse the executor&#39;s reasoning instead of restarting from a fresh spec.</p>
+<p><strong>Triggers.</strong> &quot;delegate&quot;, &quot;orchestrate&quot;, &quot;use codex&quot;, &quot;heavy task&quot;, &quot;long-running task&quot;, or
+any non-trivial task where the agent has to decide who executes.</p>
+<p><strong>Prerequisites.</strong> The <a href="https://github.com/openai/codex">Codex CLI</a> logged in, and
+<code>codex-lane</code> on your <code>PATH</code>:</p>
+<pre><code class="language-bash">ln -s ~/.agents/skills/mneves-fable-orchestrator/tools/codex-lane ~/bin/codex-lane
+</code></pre>
+<p>(Adjust the source path to wherever the skill was installed.)</p>
+<p><strong>Example.</strong> You ask for row-level security on a multi-tenant API.</p>
+<ol>
+<li>The advisor writes <code>/tmp/spec.md</code>: goal, acceptance criteria, exact files, the files it must
+not touch (the frontend, which an Opus subagent owns), the test command that must pass.</li>
+<li>It starts a lane:<pre><code class="language-bash">codex-lane start api-rls /tmp/spec.md -- -s workspace-write
+</code></pre>
+</li>
+<li>Codex returns; the advisor reads the diff and runs the tests itself. One gate fails.</li>
+<li>Instead of a new spec, the failure goes to the same thread:<pre><code class="language-bash">codex-lane next api-rls - &lt; /tmp/gate3-failure.log
+</code></pre>
+</li>
+<li>Green. The advisor reviews the final diff like a contributor PR, then closes out.</li>
+</ol>
+<p>Other commands: <code>codex-lane last &lt;lane&gt;</code> prints the final message, <code>log</code>, <code>id</code>, <code>list</code>,
+<code>drop</code>. A plain <code>codex exec</code> that unexpectedly needs a second round can be wrapped after the
+fact with <code>codex-lane adopt &lt;lane&gt; &lt;thread-id&gt;</code>.</p>
+<p><strong>Tips.</strong></p>
+<ul>
+<li>One goal per dispatch. A grab-bag spec produces a grab-bag diff.</li>
+<li>Edits under about twenty lines stay with the advisor; delegation costs more than it saves.</li>
+<li>The advisor never delegates review. Executor claims are advisory until the advisor has run
+the proof.</li>
+<li>A lane is bound to the directory and sandbox flags it started with, on purpose: resuming
+from another repo cannot aim Codex at the wrong tree.</li>
+</ul>
+<hr>
+<h2>mneves-agent-readiness</h2>
+<p><strong>What it does.</strong> Scores a repository on how well it supports an agent&#39;s loop of gathering
+context, making a change, verifying it and iterating. Nine pillars (style, build, testing,
+documentation, dev environment, observability, security, task discovery, product), fifty-plus
+checks, a percentage and a maturity level L1–L5. Ships with a Bun/TypeScript tool that runs
+locally and uploads nothing.</p>
+<p><strong>Triggers.</strong> &quot;agent readiness&quot;, &quot;why isn&#39;t the agent working well here&quot;, onboarding a repo,
+planning infrastructure work.</p>
+<p><strong>Running the tool.</strong> It assesses the current directory.</p>
+<pre><code class="language-bash">git clone https://github.com/mneves75/skills.git ~/src/skills
+cd ~/src/skills/tools &amp;&amp; bun install
+
+cd /path/to/your-project
+bun --bun ~/src/skills/tools/readiness-check.ts                     # markdown to stdout
+bun --bun ~/src/skills/tools/readiness-check.ts --format=html --output=report.html
+bun --bun ~/src/skills/tools/readiness-check.ts --skip-tests --skip-build   # static checks only, fast
+bun --bun ~/src/skills/tools/readiness-check.ts --min-level=3       # exit 1 below L3, for CI
+bun --bun ~/src/skills/tools/readiness-check.ts --app packages/api  # one app in a monorepo
+</code></pre>
+<p><code>--help</code> lists the rest (<code>--format json</code>, <code>--scoring strict|average</code>, <code>--language</code>).</p>
+<p><strong>Example.</strong> Against FastAPI (<code>9a8a13f</code>, static checks) the tool reports L3 at 61.7%:
+Style 88%, strong documentation, weaker on task discovery and product signals. The
+<a href="https://mneves75.github.io/skills/fastapi.html">live report</a> shows the full breakdown.</p>
+<p><strong>The five-question shortcut</strong> the skill uses when you just want a feel for a repo:</p>
+<ol>
+<li>Is there a <code>CLAUDE.md</code> / <code>AGENTS.md</code> / <code>.cursorrules</code> with build and test commands?</li>
+<li>Strict typing and a linter?</li>
+<li>Do tests run without manual setup?</li>
+<li>Does CI give a clear pass/fail?</li>
+<li>Is the whole loop under five minutes?</li>
+</ol>
+<p>Five yes answers is L5; each no drops a level. Level 3 is the working minimum.</p>
+<p><strong>Tips.</strong></p>
+<ul>
+<li>The single highest-impact fix is a context file under 300 lines with commands that work.</li>
+<li>Scores are this tool&#39;s own; they are not comparable with Factory.ai&#39;s hosted assessment,
+whose pillar structure inspired them.</li>
+</ul>
+<hr>
+<h2>mneves-teach-back-srs</h2>
+<p><strong>What it does.</strong> You explain part of a codebase; the agent reads the actual code while you
+talk, asks three to five follow-up questions aimed at what you got wrong or skipped, and turns
+each gap into a flashcard. Cards live in <code>.ai-learn/srs.db</code> inside the project (auto-ignored
+by git) and come back on an SM-2 schedule, the same algorithm Anki uses.</p>
+<p><strong>Triggers.</strong> &quot;let me explain&quot;, &quot;teach back&quot;, &quot;quiz me&quot;, &quot;review cards&quot;, &quot;what do I know
+about&quot;, &quot;test my understanding&quot;.</p>
+<p><strong>Prerequisite.</strong> Python 3.10+. No packages.</p>
+<p><strong>Four modes.</strong></p>
+<table>
+<thead>
+<tr>
+<th>You say</th>
+<th>Mode</th>
+<th>What happens</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>&quot;Let me explain how X works&quot;</td>
+<td>Teach-back</td>
+<td>you talk, agent verifies against code, asks follow-ups, writes cards</td>
+</tr>
+<tr>
+<td>&quot;Quiz me&quot; / &quot;what&#39;s due?&quot;</td>
+<td>Review</td>
+<td>due cards one at a time; you self-rate 0–5</td>
+</tr>
+<tr>
+<td>&quot;How am I doing?&quot;</td>
+<td>Stats</td>
+<td>totals, due, mastered, struggling, average ease</td>
+</tr>
+<tr>
+<td>&quot;Export cards&quot;</td>
+<td>Export</td>
+<td>Markdown or CSV (Anki-importable)</td>
+</tr>
+</tbody></table>
+<p><strong>Example.</strong></p>
+<blockquote>
+<p><strong>You:</strong> Let me explain the safety pipeline in ai-shell. There&#39;s a regex matcher for
+dangerous commands and a scorer from 1 to 10; high scores get blocked.</p>
+<p><strong>Agent:</strong> <em>(reads <code>safety/</code>)</em> Pattern detection and scoring are right. Three follow-ups:</p>
+<ol>
+<li><code>safety/intent.rs</code> runs <em>before</em> the matcher. What does it do, and why first?</li>
+<li><code>safety/scorer.rs:47</code> treats 7+ and 9+ differently. What is the difference?</li>
+<li>The matcher uses <code>RegexSet</code> instead of looping. Why does that matter for 56 patterns?</li>
+</ol>
+<p><em>(after your answers)</em> Two gaps found. Cards added:</p>
+<ul>
+<li>&quot;Why does the intent gate run before pattern matching?&quot; (medium)</li>
+<li>&quot;What happens at score 7–8 versus 9+?&quot; (easy)
+Session recorded. First review due in one day.</li>
+</ul>
+</blockquote>
+<p>Later, &quot;quiz me&quot; shows the question, waits, shows the answer, asks for a 0–5 rating, and
+reschedules: a 5 pushes the card out, anything under 3 resets it.</p>
+<p><strong>Behind the scenes</strong> the agent calls the bundled script; you can too:</p>
+<pre><code class="language-bash">S=~/.agents/skills/mneves-teach-back-srs/scripts/srs_db.py   # or wherever it was installed
+python3 $S init
+python3 $S due
+python3 $S stats
+python3 $S export --format csv &gt; cards.csv
+</code></pre>
+<p><strong>Tips.</strong></p>
+<ul>
+<li>Scope a session to one subsystem or one data flow. &quot;The whole backend&quot; produces vague cards.</li>
+<li>Good cards ask <em>why</em> and point at a file. The agent is told to refuse cards that don&#39;t.</li>
+<li>The database is the memory. A new conversation starts by reading it, so nothing is lost
+between sessions.</li>
+</ul>
+<hr>
+<h2>Combining them</h2>
+<p>A typical shipping flow: <code>mneves-fable-orchestrator</code> splits the work and dispatches it;
+<code>mneves-expert-review</code> challenges the plan before code is written; <code>mneves-verify</code> gives the
+final verdict before anything is called done. <code>mneves-agent-readiness</code> is what you run first
+on a repo where agents keep failing, and <code>mneves-eli5</code> is for the moment you have to explain
+any of this to someone else.</p>
+<footer style="margin-top:3rem;color:var(--muted);font-size:.875rem">Source: <a href="https://github.com/mneves75/skills/blob/main/HOWTO.md">HOWTO.md</a> · <a href="https://github.com/mneves75/skills">mneves75/skills</a></footer>
+</body>
+</html>

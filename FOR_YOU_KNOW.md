@@ -61,6 +61,6 @@ it; the natural replacement for `as any` is `unknown` + a narrowing guard.
 | What shipped, when | `CHANGELOG.md` |
 | Current state, lessons | `MEMORY.md` + `memory/YYYY-MM-DD.md` |
 | A skill's procedure | `skills/<name>/SKILL.md` |
-| A skill's docs | `skills/<name>/README.md` |
+| A skill's docs | `skills/<name>/README.md`; usage with examples in `HOWTO.md` |
 | The repo's own lint guard | `sgconfig.yml` + `rules/no-as-any.yml` + `rules/no-as-any-tsx.yml` + `.githooks/pre-commit` |
 | Assessment tool | `tools/readiness-check.ts` |

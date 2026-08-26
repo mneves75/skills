@@ -1,11 +1,13 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.8.1-blue)
+![Version](https://img.shields.io/badge/version-1.8.2-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
 
-Production-ready skills for AI coding agents. Tool-agnostic by design.
+Skills for AI coding agents. Each installs into any tool that reads `SKILL.md` folders.
+
+**New here?** Read [HOWTO.md](HOWTO.md) ([web version](https://mneves75.github.io/skills/howto.html)): what each skill does, how to trigger it, and a worked example for every one.
 
 ## Available Skills
 
