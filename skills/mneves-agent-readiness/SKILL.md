@@ -143,7 +143,7 @@ Works as CLAUDE.md, .cursorrules, or AGENTS.md:
 ## Reference
 
 - **Tool**: [tools/readiness-check.ts](../../tools/readiness-check.ts) (bundled with this skill)
-- **Examples**: [examples/](../../examples/) (sample reports)
+- **Sample report**: [site/fastapi.html](../../site/fastapi.html) (live at https://mneves75.github.io/skills/fastapi.html)
 - **Inspired by**: [Factory.ai Agent Readiness](https://factory.ai/agent-readiness)
 
 > "You can't prompt your way out of bad infrastructure. Fix the environment, not the agent."

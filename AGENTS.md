@@ -20,8 +20,8 @@ skills/
 ├── skills/mneves-teach-back-srs/     # Spaced-repetition teach-back (+ scripts/srs_db.py)
 ├── skills/mneves-verify/             # Independent verification before done/fixed/shipped
 ├── tools/                    # Readiness assessor (Bun + TypeScript): readiness-check.ts + lib/
-├── HOWTO.md                  # Per-skill usage guide with examples (rendered to examples/howto.html)
-├── examples/                 # GitHub Pages: howto.html + sample readiness report
+├── HOWTO.md                  # Per-skill usage guide with examples (rendered to site/howto.html)
+├── site/                     # GitHub Pages: index.html (landing), howto.html, sample readiness report
 ├── rules/ + sgconfig.yml     # ast-grep guard: reject `as any` (TS + TSX)
 ├── .githooks/pre-commit      # Blocking pre-commit hook (ast-grep scan) + its test
 ├── .github/workflows/ci.yml  # CI: layout check, bash -n, py_compile, ast-grep, hook test, typecheck, lint
@@ -38,7 +38,7 @@ bun run typecheck && bun run lint       # from tools/
 ast-grep scan --config sgconfig.yml .   # from repo root
 bash .githooks/pre-commit.test          # hook e2e test
 bun --bun tools/readiness-check.ts --format=html --output=report.html   # assess cwd
-tools/scripts/build-howto.sh            # HOWTO.md -> examples/howto.html (after editing HOWTO.md)
+tools/scripts/build-howto.sh            # HOWTO.md -> site/howto.html (after editing HOWTO.md)
 npx skills@latest add . --list          # what the skills CLI will discover
 ```
 

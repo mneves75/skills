@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mneves75/skills: skills for AI coding agents</title>
+<meta name="description" content="Six skills for AI coding agents: explain, review, verify, orchestrate, measure readiness, learn a codebase. One install for Claude Code, Codex, Cursor, OpenCode, pi and more.">
+<meta property="og:title" content="mneves75/skills">
+<meta property="og:description" content="Skills for AI coding agents. One install, any tool that reads SKILL.md.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://mneves75.github.io/skills/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2314b8a6'/%3E%3Ctext x='16' y='22' font-size='18' font-family='ui-monospace,monospace' font-weight='700' text-anchor='middle' fill='%23fff'%3Es%3C/text%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#f7f6f3;--bg2:#efeee9;--surface:#ffffff;--line:#e3e2dd;
+  --fg:#37352f;--fg2:#787774;--fg3:#9b9a97;
+  --accent:#14b8a6;--accent-hover:#0d9488;--accent-fg:#0f766e;--accent-soft:#e6f7f4;
+  --code:#f1f0ec;--focus:#0d9488;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#191919;--bg2:#202020;--surface:#232323;--line:#333;
+  --fg:#e6e6e3;--fg2:#a3a29e;--fg3:#7d7c78;
+  --accent:#2dd4bf;--accent-hover:#5eead4;--accent-fg:#5eead4;--accent-soft:#12332f;
+  --code:#1c1c1c;--focus:#5eead4;
+}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--accent-fg);text-decoration:none}
+a:hover{text-decoration:underline}
+:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:4px}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+code{font-size:.92em;background:var(--code);padding:.1em .35em;border-radius:4px}
+.wrap{max-width:64rem;margin:0 auto;padding:0 1.25rem}
+h1,h2,h3{line-height:1.2;letter-spacing:-.01em;margin:0}
+h2{font-size:1.6rem;margin-bottom:.5rem}
+.lede{color:var(--fg2);max-width:38rem;margin:0 0 2rem}
+section{padding:3.5rem 0}
+section+section{border-top:1px solid var(--line)}
+
+header.top{display:flex;align-items:center;justify-content:space-between;padding:1.1rem 0;gap:1rem}
+.brand{display:flex;align-items:center;gap:.6rem;font-weight:600;color:var(--fg)}
+.brand .mark{width:26px;height:26px;border-radius:7px;background:var(--accent);color:#fff;display:grid;place-items:center;font:700 15px ui-monospace,monospace}
+nav.top{display:flex;gap:1.1rem;flex-wrap:wrap;justify-content:flex-end}
+nav.top a{color:var(--fg2);font-size:.95rem}
+nav.top a:hover{color:var(--fg)}
+
+.hero{padding:3.5rem 0 3rem}
+.hero h1{font-size:clamp(2rem,5vw,3.1rem);max-width:40rem}
+.hero p.sub{font-size:1.15rem;color:var(--fg2);max-width:38rem;margin:1.25rem 0 2rem}
+.install{display:grid;gap:.9rem;max-width:40rem}
+.cmd{display:flex;align-items:center;gap:.75rem;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:.75rem .9rem}
+.cmd .label{font-size:.75rem;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
+.cmd code{background:none;padding:0;flex:1;min-width:0;overflow-x:auto;white-space:nowrap;font-size:.95rem}
+.cmd button{border:1px solid var(--line);background:var(--bg2);color:var(--fg);border-radius:6px;padding:.35rem .6rem;font:inherit;font-size:.8rem;cursor:pointer}
+.cmd button:hover{border-color:var(--accent)}
+.hero .links{margin-top:1.5rem;color:var(--fg2);font-size:.95rem}
+.hero .links a{margin-right:1.25rem}
+
+.grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(18rem,1fr))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:1.25rem;display:flex;flex-direction:column;gap:.6rem}
+.card h3{font-size:1.05rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600}
+.card p{margin:0;color:var(--fg2)}
+.card .say{font-size:.9rem;color:var(--fg2)}
+.card .say b{color:var(--fg);font-weight:500}
+.card .more{margin-top:auto;padding-top:.5rem;font-size:.95rem}
+
+.steps{counter-reset:s;display:grid;gap:1.25rem;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))}
+.step{position:relative;padding-left:2.6rem}
+.step::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:.05rem;width:1.9rem;height:1.9rem;border-radius:50%;background:var(--accent-soft);color:var(--accent-fg);display:grid;place-items:center;font-weight:600;font-size:.9rem}
+.step h3{font-size:1.05rem;margin-bottom:.3rem}
+.step p{margin:0;color:var(--fg2)}
+
+.tool{display:grid;gap:1.5rem;grid-template-columns:1fr 1fr;align-items:start}
+.tool>*{min-width:0}
+@media (max-width:48rem){.tool{grid-template-columns:1fr}}
+pre.block{margin:0;background:var(--code);border:1px solid var(--line);border-radius:10px;padding:1rem;overflow-x:auto;font-size:.9rem;line-height:1.5}
+.score{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:1.25rem}
+.score .big{font-size:2.2rem;font-weight:600;letter-spacing:-.02em}
+.score .lvl{display:inline-block;background:var(--accent-soft);color:var(--accent-fg);border-radius:6px;padding:.1rem .5rem;font-weight:600;margin-left:.5rem;vertical-align:middle;font-size:1rem}
+.score small{display:block;color:var(--fg3);margin-top:.25rem}
+.bar{height:8px;background:var(--bg2);border-radius:4px;margin:.9rem 0 .3rem;overflow:hidden}
+.bar i{display:block;height:100%;width:61.7%;background:var(--accent);border-radius:4px}
+
+.start{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))}
+.start a.tile{display:block;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:1.1rem 1.25rem;color:var(--fg)}
+.start a.tile:hover{border-color:var(--accent);text-decoration:none}
+.start .tile strong{display:block;margin-bottom:.25rem}
+.start .tile span{color:var(--fg2);font-size:.95rem}
+
+.log{list-style:none;margin:0;padding:0;max-width:44rem}
+.log li{display:grid;grid-template-columns:5.5rem 1fr;gap:1rem;padding:.75rem 0;border-bottom:1px solid var(--line)}
+.log li:last-child{border-bottom:0}
+.log .v{font-family:ui-monospace,monospace;font-weight:600}
+.log .d{color:var(--fg3);font-size:.85rem;display:block}
+
+footer{padding:2.5rem 0 3rem;color:var(--fg2);font-size:.9rem;border-top:1px solid var(--line)}
+footer a{color:var(--fg2)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="./"><span class="mark" aria-hidden="true">s</span>mneves75/skills</a>
+    <nav class="top" aria-label="Site">
+      <a href="#skills">Skills</a>
+      <a href="howto.html">How-to</a>
+      <a href="https://github.com/mneves75/skills">GitHub</a>
+    </nav>
+  </header>
+</div>
+
+<main>
+  <div class="wrap">
+    <section class="hero" aria-labelledby="h-hero">
+      <h1 id="h-hero">Skills for coding agents that hold themselves to a standard.</h1>
+      <p class="sub">Six procedures your agent loads on demand: explain a thing to the right audience, stress-test a plan, get an independent verdict before "done", split heavy work across models, measure how agent-ready a repo is, and learn a codebase with spaced repetition. Works in Claude Code, Codex, Cursor, OpenCode, pi and any tool that reads <code>SKILL.md</code>.</p>
+
+      <div class="install">
+        <div class="cmd">
+          <span class="label">npx</span>
+          <code id="c1">npx skills@latest add mneves75/skills</code>
+          <button type="button" data-copy="c1" aria-label="Copy npx command">Copy</button>
+        </div>
+        <div class="cmd">
+          <span class="label">git</span>
+          <code id="c2">git clone https://github.com/mneves75/skills.git ~/.claude/skills/mneves-skills</code>
+          <button type="button" data-copy="c2" aria-label="Copy git command">Copy</button>
+        </div>
+      </div>
+      <p class="sr" aria-live="polite" id="copied"></p>
+      <p class="links">
+        <a href="howto.html">Read the how-to</a>
+        <a href="https://github.com/mneves75/skills#install">All install paths</a>
+        <a href="https://github.com/mneves75/skills/blob/main/LICENSE">Apache-2.0</a>
+      </p>
+    </section>
+
+    <section id="skills" aria-labelledby="h-skills">
+      <h2 id="h-skills">What you get</h2>
+      <p class="lede">Each skill is a folder with a <code>SKILL.md</code>: a description the agent matches against your request, then the procedure it follows. No servers, nothing phones home.</p>
+      <div class="grid">
+        <article class="card">
+          <h3>mneves-eli5</h3>
+          <p>Explains one idea with the Feynman method, calibrated to the listener: child, layperson, executive, junior, expert. Answers in your language.</p>
+          <p class="say"><b>Say:</b> "explain OAuth to my dad", "ELI5", "explique de forma simples"</p>
+          <a class="more" href="howto.html#mneves-eli5">How to use, with an example →</a>
+        </article>
+        <article class="card">
+          <h3>mneves-expert-review</h3>
+          <p>A twelve-step pass on a draft: first principles, hostile panel, six alternatives compared on weighted criteria, pre-mortem, five-year test. Returns the improved deliverable.</p>
+          <p class="say"><b>Say:</b> "challenge this", "stress-test", "best possible answer"</p>
+          <a class="more" href="howto.html#mneves-expert-review">How to use, with an example →</a>
+        </article>
+        <article class="card">
+          <h3>mneves-verify</h3>
+          <p>A fresh context checks the work against criteria frozen up front, with real evidence: tests, renders, the actual binary. Verdict is PASS, FAIL or BLOCKED. Only PASS allows "done".</p>
+          <p class="say"><b>Say:</b> "verify it", "prove it", "fix all"</p>
+          <a class="more" href="howto.html#mneves-verify">How to use, with an example →</a>
+        </article>
+        <article class="card">
+          <h3>mneves-fable-orchestrator</h3>
+          <p>One model plans and reviews; others type. Heavy backend work goes to Codex through <code>codex-lane</code>, which keeps a thread alive across rounds so fix-ups reuse the executor's reasoning.</p>
+          <p class="say"><b>Say:</b> "delegate", "use codex", "heavy task"</p>
+          <a class="more" href="howto.html#mneves-fable-orchestrator">How to use, with an example →</a>
+        </article>
+        <article class="card">
+          <h3>mneves-agent-readiness</h3>
+          <p>Scores a repository on how well it supports an agent's loop: context, action, verification, iteration. Nine pillars, a percentage, a level from L1 to L5. Runs locally.</p>
+          <p class="say"><b>Say:</b> "why does the agent struggle here?", "agent readiness"</p>
+          <a class="more" href="howto.html#mneves-agent-readiness">How to use, with an example →</a>
+        </article>
+        <article class="card">
+          <h3>mneves-teach-back-srs</h3>
+          <p>You explain part of the codebase; the agent reads the real code, asks what you skipped, and turns each gap into a flashcard scheduled with SM-2 in a per-project SQLite file.</p>
+          <p class="say"><b>Say:</b> "let me explain the auth flow", "quiz me", "what's due?"</p>
+          <a class="more" href="howto.html#mneves-teach-back-srs">How to use, with an example →</a>
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-how">
+      <h2 id="h-how">How it works</h2>
+      <p class="lede">A skill is text the agent reads at the right moment. The install just puts the folders where your tools look.</p>
+      <div class="steps">
+        <div class="step">
+          <h3>Install</h3>
+          <p><code>npx skills add mneves75/skills</code> links each skill into the agents on your machine (<code>-g</code> for user-wide, <code>--all -y</code> for no prompts). Or clone the repo into a skills directory.</p>
+        </div>
+        <div class="step">
+          <h3>The agent matches your request</h3>
+          <p>Every <code>SKILL.md</code> starts with a description that names when to use it. When your message fits, the agent loads the procedure. You can also call one by name: <code>/mneves-verify</code>.</p>
+        </div>
+        <div class="step">
+          <h3>The procedure runs, in your session</h3>
+          <p>Steps, rules and output formats are followed with your tools and your permissions. Two skills ship a small script (<code>codex-lane</code>, <code>srs_db.py</code>); the rest are Markdown only.</p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-tool">
+      <h2 id="h-tool">The readiness tool</h2>
+      <p class="lede"><code>mneves-agent-readiness</code> ships a Bun + TypeScript assessor with no runtime dependencies. Point it at a repo and it tells you where the agent's feedback loop is broken.</p>
+      <div class="tool">
+        <pre class="block"><code>cd /path/to/your-project
+bun --bun /path/to/skills/tools/readiness-check.ts \
+  --format=html --output=report.html
+
+# static checks only, fast
+bun --bun /path/to/skills/tools/readiness-check.ts \
+  --skip-tests --skip-build
+
+# gate a CI job
+bun --bun /path/to/skills/tools/readiness-check.ts \
+  --min-level=3</code></pre>
+        <div class="score">
+          <div><span class="big">61.7%</span><span class="lvl">L3 Standardized</span></div>
+          <small>FastAPI at <code>9a8a13f</code>, static checks, 2026-08-26</small>
+          <div class="bar" role="img" aria-label="61.7 percent"><i></i></div>
+          <small>Style 88% · documentation strong · task discovery and product signals weakest</small>
+          <p style="margin:1rem 0 0"><a href="fastapi.html">Open the full sample report →</a></p>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-start">
+      <h2 id="h-start">Start here</h2>
+      <div class="start">
+        <a class="tile" href="howto.html"><strong>How-to guide</strong><span>Every skill: what it does, trigger phrases, prerequisites, a worked example, tips.</span></a>
+        <a class="tile" href="https://github.com/mneves75/skills/tree/main/skills"><strong>Read the skills</strong><span>The <code>SKILL.md</code> files are short. Reading one is the fastest way to know what your agent will do.</span></a>
+        <a class="tile" href="https://github.com/mneves75/skills/blob/main/CONTRIBUTING.md"><strong>Write your own</strong><span>Folder name equals frontmatter <code>name</code>, a description that says when to use it, no home paths. CI checks the rest.</span></a>
+      </div>
+    </section>
+
+    <section aria-labelledby="h-log">
+      <h2 id="h-log">Changelog</h2>
+      <ul class="log">
+        <li><span class="v">1.9.0<span class="d">2026-08-26</span></span><span>This landing page; site source moved to <code>site/</code>; Dependabot branches pruned.</span></li>
+        <li><span class="v">1.8.2<span class="d">2026-08-26</span></span><span>HOWTO with a worked example per skill, rendered to <a href="howto.html">howto.html</a>.</span></li>
+        <li><span class="v">1.8.1<span class="d">2026-08-26</span></span><span>Sample report regenerated with the fixed tool; Factory.ai attribution reduced to verifiable facts.</span></li>
+        <li><span class="v">1.8.0<span class="d">2026-08-26</span></span><span>CI, SECURITY.md, Dependabot, SHA-pinned actions, <code>npx skills</code> install; fixed 64 KiB pipe corruption in the readiness tool.</span></li>
+      </ul>
+      <p style="margin-top:1rem"><a href="https://github.com/mneves75/skills/blob/main/CHANGELOG.md">Full changelog →</a></p>
+    </section>
+  </div>
+</main>
+
+<div class="wrap">
+  <footer>
+    Apache-2.0 · Marcus Neves · <a href="https://github.com/mneves75/skills">source</a> · <a href="https://github.com/mneves75/skills/blob/main/SECURITY.md">security</a>
+  </footer>
+</div>
+
+<script>
+document.querySelectorAll('button[data-copy]').forEach(function (b) {
+  b.addEventListener('click', function () {
+    var text = document.getElementById(b.dataset.copy).textContent;
+    var done = function () { b.textContent = 'Copied'; document.getElementById('copied').textContent = 'Command copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1500); };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done); else done();
+  });
+});
+</script>
+</body>
+</html>

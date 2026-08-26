@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-08-26
+
+### Added
+
+- **Landing page** at https://mneves75.github.io/skills/ (`site/index.html`): install commands with copy buttons, one card per skill linking into the how-to, how it works, the readiness tool with the sample score, start-here links, recent changelog. Self-contained HTML, light/dark, keyboard-operable.
+
+### Changed
+
+- Pages source directory renamed `examples/` → `site/` (landing, how-to, sample report); the workflow uploads it as-is instead of generating an index from a heredoc.
+- `tools/scripts/build-howto.sh` adds heading ids so the landing page can link to each skill's section.
+- Dependabot PRs #1–#5 closed and their branches deleted; `main` is the only branch. The four green action bumps can be re-requested with `@dependabot recreate`.
+
 ## [1.8.2] - 2026-08-26
 
 ### Added
@@ -177,6 +189,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This project is inspired by [Factory.ai](https://factory.ai)'s Code Readiness framework.
 
+[1.9.0]: https://github.com/mneves75/skills/releases/tag/v1.9.0
 [1.8.2]: https://github.com/mneves75/skills/releases/tag/v1.8.2
 [1.8.1]: https://github.com/mneves75/skills/releases/tag/v1.8.1
 [1.8.0]: https://github.com/mneves75/skills/releases/tag/v1.8.0

@@ -14,7 +14,8 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
-- **1.8.2** (2026-08-26): `HOWTO.md` + rendered `examples/howto.html` (per-skill usage with examples).
+- **1.9.0** (2026-08-26): landing page (`site/index.html`), Pages source `examples/` → `site/`, only `main` remains.
+- **1.8.2** (2026-08-26): `HOWTO.md` + rendered `site/howto.html` (per-skill usage with examples).
 - **1.8.1** (2026-08-26): example report regenerated (FastAPI L3 61.7%, with provenance); Factory.ai
   attribution reduced to verifiable facts.
 - **1.8.0** (2026-08-26): public-repo hardening — CI workflow, SECURITY.md, Dependabot, SHA-pinned

@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# Render HOWTO.md to examples/howto.html (published by GitHub Pages). Needs bun.
+# Render HOWTO.md to site/howto.html (published by GitHub Pages). Needs bun.
 set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)
 # Relative links point at repo files; on Pages they must go to GitHub.
 body=$(bunx --silent marked@18 --gfm -i "$root/HOWTO.md" \
-  | sed -E 's#href="([^"#/][^":]*)"#href="https://github.com/mneves75/skills/blob/main/\1"#g')
-cat > "$root/examples/howto.html" <<HTML
+  | sed -E 's#href="([^"#/][^":]*)"#href="https://github.com/mneves75/skills/blob/main/\1"#g' \
+  | perl -pe 's{<h2>([^<]+)</h2>}{my $t=$1; (my $id=lc $t) =~ s/[^a-z0-9]+/-/g; $id =~ s/^-|-$//g; "<h2 id=\"$id\">$t</h2>"}e')
+cat > "$root/site/howto.html" <<HTML
 <!doctype html>
 <html lang="en">
 <head>
@@ -29,4 +30,4 @@ $body
 </body>
 </html>
 HTML
-echo "wrote examples/howto.html ($(wc -c < "$root/examples/howto.html") bytes)"
+echo "wrote site/howto.html ($(wc -c < "$root/site/howto.html") bytes)"
