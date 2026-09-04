@@ -36,7 +36,7 @@
 #     `adopt` cannot recover the flags the original `codex exec` ran under, so
 #     restate them: `adopt api-rls <tid> [cwd] -- -s workspace-write`.
 #   * the model is whatever `~/.codex/config.toml` selects unless you pin it at
-#     `start` (e.g. `-- -c model="gpt-5.6-terra"`); the pin then sticks.
+#     `start` (e.g. `-- -c model="<id>"`); the pin then sticks.
 #
 # Prompts reach codex on stdin, never as argv. The prompt argument is ALWAYS
 # literal text; `-` reads the wrapper's stdin. An inline prompt still travels in

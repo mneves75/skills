@@ -1,6 +1,6 @@
 ---
 name: mneves-fable-orchestrator
-description: Model-routing policy. Fable advises, plans, decomposes, and reviews; Opus subagents execute frontend tasks; Codex (GPT-5.6-sol, reasoning high) executes heavy implementation in a resumable lane; skill + /goal drives long-horizon work. Use when starting any non-trivial task, deciding who should execute work, delegating implementation, following up on a delegation, or when the user says "delegate", "orchestrate", "use codex", "heavy task", or "long-running task".
+description: Model-routing policy. Fable advises, plans, decomposes, and reviews; Opus subagents execute frontend tasks; Codex (GPT-6-astra, reasoning high) executes heavy implementation in a resumable lane; skill + /goal drives long-horizon work. Use when starting any non-trivial task, deciding who should execute work, delegating implementation, following up on a delegation, or when the user says "delegate", "orchestrate", "use codex", "heavy task", or "long-running task".
 license: Apache-2.0
 ---
 
@@ -25,8 +25,7 @@ review; move generation and grind to cheaper/flat-rate executors.
 |------|-----------|--------|-----------|
 | Advisor | `claude-fable-5` | session default | the session itself |
 | Frontend executor | `opus` (family alias) | default | `Agent` tool `model:` |
-| Heavy executor, default | `gpt-5.6-sol` | `high` | `~/.codex/config.toml` |
-| Heavy executor, bulk/mechanical | `gpt-5.6-terra` | `xhigh` | pinned per lane at `start` |
+| Heavy executor | `gpt-6-astra` | `high` | `~/.codex/config.toml` |
 
 The rest of this skill names roles; the command examples use the ids above.
 
@@ -47,18 +46,18 @@ intent, constraints). Parallelize independent frontend tasks in one message.
 writing/fixing, mechanical migrations, multi-file refactors, CI fixes, and read-heavy
 exploration when the raw reading far exceeds the answer (parallel runs, one output file per
 thread, instead of Claude subagents). One goal per dispatch, not a grab-bag. A new work order
-gets a fresh thread: a long, saturated thread reads a new order as configuration and no-ops. Bulk/mechanical runs (data analysis, migrations) use the bulk row of the Models table.
+gets a fresh thread: a long, saturated thread reads a new order as configuration and no-ops.
 
 The wrapper does not inject a model; it inherits whatever the Codex CLI resolves. Make
 that policy real once, in `~/.codex/config.toml`:
 
 ```toml
-model = "gpt-5.6-sol"
+model = "gpt-6-astra"
 model_reasoning_effort = "high"
 ```
 
-Then pin the exception per dispatch: `-- -c model="gpt-5.6-terra" -c model_reasoning_effort="xhigh"`.
-A pin given to `start` sticks for the whole lane.
+An exception for one job is pinned per dispatch (`-- -c model="<id>" -c model_reasoning_effort="<effort>"`);
+a pin given to `start` sticks for the whole lane.
 
 **Long-horizon** (multi-phase, "don't stop until done"): invoke the `supergoal` skill;
 it plans phases and emits a single `/goal` command with retry + verification built in.
@@ -123,7 +122,7 @@ rebuilds its config from the *current* invocation rather than from the thread:
   the machine default and be unable to edit. There is no per-turn override: `next` takes
   only `<lane> <prompt|->` and rejects trailing args.
 - the model is whatever `~/.codex/config.toml` selects unless pinned at `start`
-  (`-- -c model="gpt-5.6-terra"`); the pin then sticks for the whole lane.
+  (`-- -c model="<id>"`); the pin then sticks for the whole lane.
 
 Pick the sandbox level deliberately: `-s read-only` for investigation, `-s workspace-write`
 for implementation. Reach for `--dangerously-bypass-approvals-and-sandbox` only when the

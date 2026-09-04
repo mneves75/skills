@@ -16,7 +16,7 @@ Skills for AI coding agents. Each installs into any tool that reads `SKILL.md` f
 | [mneves-eli5](skills/mneves-eli5/) | Feynman-technique explainer calibrated to the listener (child, layperson, executive, junior, expert), answered in the user's language |
 | [mneves-agent-readiness](skills/mneves-agent-readiness/) | Evaluate codebase readiness for AI agents: 9 pillars, maturity levels L1–L5, local-only |
 | [mneves-expert-review](skills/mneves-expert-review/) | Expert-panel review and optimization pass before finalizing: objective, first principles, research, hostile panel, 6 alternatives compared on weighted criteria, pre-mortem, five-year test, contrarian steelman, quality audit, improved deliverable |
-| [mneves-fable-orchestrator](skills/mneves-fable-orchestrator/) | Model-routing policy: Fable plans and reviews, Opus subagents build frontend, Codex (GPT-5.6-sol high) executes heavy implementation in a resumable lane. Ships [`codex-lane`](skills/mneves-fable-orchestrator/tools/codex-lane) |
+| [mneves-fable-orchestrator](skills/mneves-fable-orchestrator/) | Model-routing policy: Fable plans and reviews, Opus subagents build frontend, Codex (GPT-6-astra high) executes heavy implementation in a resumable lane. Ships [`codex-lane`](skills/mneves-fable-orchestrator/tools/codex-lane) |
 | [mneves-teach-back-srs](skills/mneves-teach-back-srs/) | Spaced-repetition learning through codebase teach-back sessions (SM-2 + SQLite) |
 | [mneves-verify](skills/mneves-verify/) | Independent verification before done/fixed/shipped: fresh context checks the artifact against criteria, PASS/FAIL/BLOCKED |
 
