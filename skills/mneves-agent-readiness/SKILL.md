@@ -1,19 +1,10 @@
 ---
 name: mneves-agent-readiness
-description: Evaluate codebase readiness for AI coding agents using automated assessment. Use when onboarding repos, diagnosing agent struggles, or planning infrastructure improvements.
+description: Assess a codebase for AI-agent readiness. Use for repository onboarding, agent friction, or infrastructure priorities.
 license: Apache-2.0
 ---
 
 # Agent Readiness Evaluation
-
-## When to Use This Skill
-
-- Onboarding a new repository for AI-assisted development
-- Diagnosing why your AI agent is struggling with a codebase
-- Evaluating a codebase before AI agent deployment
-- User asks "why isn't my AI working well here?"
-- User asks about "agent readiness" or "codebase evaluation"
-- Planning infrastructure improvements for agent performance
 
 ## Core Insight
 
@@ -58,10 +49,10 @@ bun --bun $SKILLS/tools/readiness-check.ts --min-level=3
 
 | Phase | Question | Key Checks |
 |-------|----------|------------|
-| **CONTEXT** | Can the agent understand? | CLAUDE.md exists, <300 lines, has commands |
-| **ACTION** | Can the agent change things? | No `any`, strict types, linting configured |
+| **CONTEXT** | Can the agent understand? | Context file is concise, has commands, structure is recognizable |
+| **ACTION** | Can the agent change things? | No `any`, strict types, linting and formatting configured |
 | **VERIFICATION** | Can the agent check work? | Tests pass, build works, lockfile committed |
-| **ITERATION** | Can the agent improve? | CI configured, PR template, required checks |
+| **ITERATION** | Can the agent improve? | CI, PR template, required checks, deployment documented |
 
 ## Maturity Levels
 
@@ -108,38 +99,6 @@ Works as CLAUDE.md, .cursorrules, or AGENTS.md:
 ```
 
 **Requirements**: Concise (<300 lines), Actionable (commands work), Current (updated within 30 days)
-
-## Compliance Checklist
-
-### CONTEXT Phase
-- [ ] Context file exists at repository root (CLAUDE.md, .cursorrules, AGENTS.md)
-- [ ] Context file includes build/test commands
-- [ ] Context file is under 300 lines
-- [ ] File structure is recognizable (src/, app/, lib/)
-
-### ACTION Phase
-- [ ] No `any` type casts in codebase (if TypeScript)
-- [ ] Strict mode enabled
-- [ ] Linter configured (ESLint, Biome, golangci-lint, ruff)
-- [ ] Formatter configured
-
-### VERIFICATION Phase
-- [ ] Tests exist and pass
-- [ ] Build succeeds without manual intervention
-- [ ] Lock file is committed
-
-### ITERATION Phase
-- [ ] CI pipeline configured
-- [ ] PR template exists
-- [ ] Deployment process documented
-
-## Common Mistakes
-
-- Blaming the agent when infrastructure is broken (fix the environment!)
-- Missing context file (single most impactful file for agent success)
-- Liberal use of `any` to silence TypeScript (use `unknown` + type guards)
-- Tests that require manual setup (use containers or in-memory DBs)
-- Outdated documentation (keep context files current)
 
 ## Reference
 

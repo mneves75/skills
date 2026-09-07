@@ -14,6 +14,7 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.14.0** (2026-09-07): added the MIT-licensed `imagegen-frontend-mobile` adaptation; Codex routing defaults to GPT-6 Astra at `high` for execution, planning, review, and inherited agents; skill descriptions are concise and launcher mechanics live in a conditional reference.
 - **1.11.0** (2026-08-26): recorded sessions in HOWTO, ruleset on `main`, teach-back script path relative,
   model table in orchestrator, landing changelog generated (`build-site.sh`).
 - **1.10.0** (2026-08-26): orchestrator adopts codex-first lessons (escape hatches, live-worker check,
@@ -28,14 +29,16 @@ measure whether a *target* codebase is ready for agents.
 - **1.7.0 / 1.6.0** (2026-08-26): `mneves-expert-review`, `mneves-eli5`.
 - **1.5.0** shipped: adds `mneves-verify` (independent-verification skill) plus the
   repo's own ast-grep `as any` guard and a blocking pre-commit hook.
-- Skills: `mneves-agent-readiness`, `mneves-eli5`, `mneves-expert-review`,
+- Skills: `imagegen-frontend-mobile`, `mneves-agent-readiness`, `mneves-eli5`, `mneves-expert-review`,
   `mneves-fable-orchestrator` (ships `codex-lane`), `mneves-teach-back-srs`, `mneves-verify`.
 - `tools/` is a Bun + TypeScript project with no external runtime deps; dev deps only (Biome,
   TypeScript, bun-types).
 
 ## Decisions that still bind
 
-- **`mneves-` prefix on every skill** (1.3.0). Directory name and frontmatter `name:` must match.
+- **Naming and provenance.** Original skills use the `mneves-` prefix. Adapted third-party skills
+  retain their upstream name, compatible license, copyright, and source. Directory name and
+  frontmatter `name:` must match.
 - **Skills are Markdown-first.** Two executables ship inside skills, `srs_db.py` (helper) and `codex-lane`
   (`skills/mneves-fable-orchestrator/tools/codex-lane`). It is distinct from the repo's own
   `.githooks/pre-commit` guard (a repository-level hook, not a skill). It is `bash` +

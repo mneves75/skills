@@ -1,6 +1,6 @@
 ---
 name: mneves-teach-back-srs
-description: "Spaced-repetition learning through teach-back sessions. This skill should be used when the user wants to explain their understanding of a project or codebase so Claude can identify knowledge gaps, ask Socratic follow-ups, and generate flashcards stored in a per-project SQLite database with SM-2 scheduling. Triggers on phrases like 'let me explain', 'teach back', 'quiz me', 'review cards', 'what do I know about', or 'test my understanding'."
+description: Run codebase teach-back with Socratic questions and spaced repetition. Use when users teach, want a quiz, or review cards.
 license: Apache-2.0
 ---
 
@@ -72,7 +72,9 @@ Important: Reference specific files and line numbers when correcting. Vague corr
 After the follow-up discussion, generate flashcards from every gap and misconception discovered. Card quality rules:
 
 **Question format:**
+- Cover one concept and avoid wording that overlaps another card
 - Ask about the *why* or *how*, not just *what*
+- Prefer a concrete scenario ("What does X do when Y?") over a broad prompt
 - Reference specific code locations when relevant
 - Frame around the misconception or gap, not the correct answer
 
@@ -185,16 +187,6 @@ python3 scripts/srs_db.py export --format csv
 
 CSV format is compatible with Anki import (question, answer columns).
 
-## Card Generation Guidelines
-
-High-quality cards follow these principles:
-
-1. **One concept per card**: Never bundle multiple ideas
-2. **Cloze-friendly questions**: "What does X do when Y?" not "Describe X"
-3. **Context anchored**: Always tie back to a specific file, function, or architectural decision
-4. **Interference-resistant**: Avoid cards that could be confused with each other
-5. **Why > What**: "Why does the system use SM-2 instead of Leitner?" over "What algorithm does the SRS use?"
-
 ## Cross-Session Continuity
 
 Claude's conversation context resets between sessions. The SQLite database is the persistent memory. At the start of any new conversation where the user triggers this skill:
@@ -204,26 +196,6 @@ Claude's conversation context resets between sessions. The SQLite database is th
 3. If cards are due, suggest a review before starting a new teach-back
 
 Continuity survives even though Claude has no memory of previous conversations.
-
-## Example Dialogue
-
-**User:** "Let me explain how the safety system works in ai-shell"
-
-**Claude:** *reads safety/ directory, cross-references*
-
-**Claude:** "Go ahead. Explain the safety pipeline from user input to command execution."
-
-**User:** "So there's a pattern matcher that checks for dangerous commands like rm -rf, and a scoring system that rates commands 1-10. If the score is too high it blocks the command."
-
-**Claude:** "You've got the pattern detection and scoring right. A few follow-ups:
-
-1. You described two layers, but looking at `safety/intent.rs`, there's actually a third layer that runs *before* pattern detection. What do you think it does and why would it run first?
-
-2. You mentioned the scorer blocks at high scores. Looking at `safety/scorer.rs:47`, what actually happens at score 7+ vs score 9+? They're handled differently.
-
-3. The pattern matcher in `safety/patterns.rs` uses `RegexSet` instead of checking patterns one by one. Why would that matter for 56 patterns?"
-
-*After user responds, cards generated from gaps found*
 
 ## Database Location
 

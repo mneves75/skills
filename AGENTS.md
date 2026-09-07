@@ -12,13 +12,15 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 ## Project Structure
 
 ```
-skills/
-├── skills/mneves-agent-readiness/    # Codebase readiness assessment (pairs with tools/)
-├── skills/mneves-eli5/               # Feynman explainer, audience-calibrated
-├── skills/mneves-expert-review/      # Expert-panel review/optimization pass (+ references/)
-├── skills/mneves-fable-orchestrator/ # Model-routing policy; ships tools/codex-lane (bash)
-├── skills/mneves-teach-back-srs/     # Spaced-repetition teach-back (+ scripts/srs_db.py)
-├── skills/mneves-verify/             # Independent verification before done/fixed/shipped
+.
+├── skills/
+│   ├── imagegen-frontend-mobile/   # Mobile screen/flow image generation (MIT)
+│   ├── mneves-agent-readiness/    # Codebase readiness assessment (pairs with tools/)
+│   ├── mneves-eli5/               # Feynman explainer, audience-calibrated
+│   ├── mneves-expert-review/      # Expert-panel review/optimization pass (+ references/)
+│   ├── mneves-fable-orchestrator/ # Model routing; Codex reference + tools/codex-lane
+│   ├── mneves-teach-back-srs/     # Spaced-repetition teach-back (+ scripts/srs_db.py)
+│   └── mneves-verify/             # Independent verification before done/fixed/shipped
 ├── tools/                    # Readiness assessor (Bun + TypeScript): readiness-check.ts + lib/
 ├── HOWTO.md                  # Per-skill usage guide with examples (rendered to site/howto.html)
 ├── site/                     # GitHub Pages: index.html (landing), howto.html, sample readiness report
@@ -44,8 +46,10 @@ npx skills@latest add . --list          # what the skills CLI will discover
 
 ## Invariants (CI enforces the checkable ones)
 
-- Directory name == frontmatter `name:`, every skill carries the `mneves-` prefix, and
-  `description:` names when to use the skill (it is the routing trigger agents read).
+- Directory name == frontmatter `name:`. Original skills carry the `mneves-` prefix;
+  adapted third-party skills retain their upstream name, copyright, license, and provenance.
+  `description:` is one short capability-and-trigger line; keyword inventories and
+  procedures belong in the body or a routed reference.
 - Never add a root `SKILL.md`: the skills CLI lets a shallower `SKILL.md` shadow everything
   below it.
 - Skills are Markdown-first. Shipped executables are `bash` + `set -euo pipefail`, `bash -n`
@@ -58,6 +62,7 @@ npx skills@latest add . --list          # what the skills CLI will discover
 
 ## Adding a Skill
 
-1. `skills/<mneves-name>/SKILL.md` with frontmatter; `README.md` for longer docs.
+1. `skills/<mneves-name>/SKILL.md` with frontmatter; `README.md` only when longer docs help.
+   An adapted third-party skill keeps its upstream name and ships its license and provenance.
 2. Root `README.md` table, a `HOWTO.md` section, the tree above, `VERSION`, `CHANGELOG.md`, README badge; then `tools/scripts/build-site.sh` (CI fails on stale site files).
 3. `npx skills@latest add . --list` shows the new skill; CI green.

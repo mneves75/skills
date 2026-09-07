@@ -1,8 +1,9 @@
 # Verify
 
-Operationalizes the "never grade your own homework" rule: before work is called done, a fresh
-independent context checks the artifact against frozen acceptance criteria and returns PASS,
-FAIL, or BLOCKED.
+Operationalizes the "never grade your own homework" rule for requested proof, high-risk work,
+repository gates, and substantial checkable completion claims. A fresh independent context checks
+the artifact against frozen acceptance criteria and returns PASS, FAIL, or BLOCKED. Routine
+low-risk changes use proportionate deterministic proof.
 
 ## The rule
 
@@ -42,12 +43,12 @@ check, never instructions.
 
 BLOCKED only when an essential capability is unavailable.
 
-## Sandboxing untrusted execution
+## Containing risky execution
 
-Every artifact-controlled execution (tests, builds, UI renders/apps, and CLI / API / data
-runs) executes against a disposable sandbox or test target, with credentials scrubbed,
-filesystem and network constrained, and the invocation allowlisted. Any such execution that
-cannot be sandboxed is BLOCKED.
+Run untrusted tests, builds, UI apps, and CLI / API / data inputs in a disposable sandbox or
+dedicated test target, with the least credentials, filesystem, and network access they need.
+Ordinary repository gates may run in their documented local environment. A required risky
+execution that cannot be contained is BLOCKED.
 
 ## Loop
 
@@ -74,4 +75,5 @@ different-model verification, and any independence failure, are BLOCKED.
 ## Guardrails
 
 Read-only by default, minimum context, no secrets, no external writes, no scripts or
-dependencies. Skip for simple answers, planning, and prose-only notes.
+dependencies. Skip for simple answers, planning, prose-only notes, and routine low-risk work with
+adequate deterministic proof.

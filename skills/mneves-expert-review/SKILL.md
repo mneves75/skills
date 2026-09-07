@@ -1,6 +1,6 @@
 ---
 name: mneves-expert-review
-description: Rigorous expert-panel review and optimization pass run on a draft answer or deliverable before it is finalized. Clarify the real objective, rebuild from first principles, research current best practice (web + the project's local guidelines, if any), attack the draft as a hostile expert panel, generate 6 different alternatives and compare them on weighted criteria, pre-mortem, five-year test, steelman the contrarian view, audit accuracy/completeness/simplicity, then return the improved deliverable with trade-offs, risks, evidence and remaining uncertainty. This skill should be used when the user asks for an expert review, a rigorous pass, "best possible answer", "challenge this", "stress-test", "revisão rigorosa", "melhor solução", or before delivering any high-stakes plan, design, recommendation, document or architecture decision.
+description: Stress-test a high-stakes draft or decision. Use for rigorous review, alternatives, evidence, and trade-offs.
 license: Apache-2.0
 ---
 
@@ -94,19 +94,7 @@ a step feels thin.
     Drop any section that would be empty or padding. A requested output format always wins
     over this structure.
 
-## Final challenge
-
-Before sending, answer honestly:
-
-- Is this the best solution found, or the first plausible one?
-- Were the user's assumptions challenged as hard as my own?
-- Was disconfirming evidence actually sought?
-- Is there a simpler solution that achieves nearly the same result?
-- Would a recognized expert spot an obvious weakness?
-- Would this hold up in front of a panel of senior experts?
-- Five years from now, what would I wish had been done differently?
-
-Any answer that exposes a material weakness sends the work back to step 11.
+Before sending, rerun the quality audit. Any material weakness sends the work back to step 11.
 
 ## Boundaries
 

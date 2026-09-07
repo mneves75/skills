@@ -1,23 +1,19 @@
 ---
 name: mneves-verify
-description: Operationalize the global never grade your own homework rule for substantial tasks with checkable outcomes. Use before claiming done, fixed, or shipped, and when asked to verify, prove it, or fix all. Skip simple answers, planning, and prose-only notes.
+description: Independently verify a checkable outcome. Use for requested proof, high-risk work, or substantial completion claims.
 license: Apache-2.0
 ---
 
 # Verify
 
-Independent verification before "done" is allowed to stand. The builder never grades its
-own work: a fresh, independent context checks the artifact against frozen acceptance
-criteria and returns PASS, FAIL, or BLOCKED.
+When this workflow is selected, a fresh independent context checks the artifact against frozen
+acceptance criteria and returns PASS, FAIL, or BLOCKED.
 
-## When to use
-
-- Before claiming **done**, **fixed**, or **shipped** on any substantial task with a
-  checkable outcome.
-- When asked to **verify**, **prove it**, or **fix all**.
-
-Skip for: simple factual answers, planning (no artifact exists yet), and prose-only notes
-(no checkable outcome).
+Use it when the user asks to verify, prove, or fix all; when a repository or workflow requires
+it; before claiming done, fixed, or shipped on substantial checkable work; or when release,
+production, security, legal, contested, or expensive-to-reverse risk warrants a fresh judge.
+Routine low-risk changes use proportionate deterministic proof. Do not invoke it for simple
+answers, plans without an artifact, or prose-only notes.
 
 ## Inputs (the contract)
 
@@ -44,10 +40,11 @@ Skip for: simple factual answers, planning (no artifact exists yet), and prose-o
 4. **Least privilege.** Read-only by default. Minimum context. No secrets in transit. No
    external writes. Verification only changes the tree when a fix round is explicitly in
    scope and approved.
-5. **Sandbox every artifact-controlled execution.** Tests, builds, UI renders/apps, and
-   CLI / API / data runs all execute against a disposable sandbox or test target, with
-   credentials scrubbed, filesystem and network constrained, and the invocation allowlisted.
-   Any such execution that cannot be sandboxed is BLOCKED.
+5. **Contain risky artifact-controlled execution.** Run untrusted tests, builds, UI apps, and
+   CLI / API / data inputs in a disposable sandbox or dedicated test target with the least
+   credentials, filesystem, and network access they need. Ordinary repository gates may run in
+   their documented local environment. A required risky execution that cannot be contained is
+   BLOCKED.
 6. **No machinery.** No scripts, dependencies, references, scaffolding, or speculative
    config. The skill is a procedure, not a codebase.
 

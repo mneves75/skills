@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] - 2026-09-07
+
+### Added
+
+- **`imagegen-frontend-mobile`**: an MIT-licensed, condensed adaptation of Leonxlnx's mobile image-generation skill. It generates iOS or Android screen and flow images, locks one design system across the set, inspects the rendered result, and never substitutes code for the requested images.
+
+### Changed
+
+- Repository guidance now distinguishes original `mneves-` skills from adapted third-party skills that retain their upstream name, license, copyright, and provenance.
+- **`mneves-fable-orchestrator`** now uses GPT-6 Astra at reasoning `high` for Codex execution, planning, review, and inherited agents; explicit specialist overrides remain supported and quota probes use `low`.
+- Skill descriptions now fit the discovery budget with one distinguishing capability-and-trigger sentence. Redundant trigger lists, checklists, and examples were merged into the procedures; Codex launcher mechanics moved to a conditional reference.
+- **`mneves-verify`** now distinguishes substantial checkable completion, which still gets an independent verifier, from routine low-risk changes that need only proportionate deterministic proof.
+
+### Security
+
+- The new skill treats reference assets as untrusted data, requires authorization before sending private references to an image service, excludes secrets and unnecessary personal data from prompts, and forbids fabricated endorsements, certifications, transactions, or product claims. Repository and site copy now distinguish local tooling from provider-backed image generation.
+
 ## [1.13.0] - 2026-09-07
 
 ### Changed

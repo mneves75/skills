@@ -1,6 +1,6 @@
 ---
 name: mneves-eli5
-description: Explain any technical, scientific, business, or design detail with the Feynman technique, calibrated to the listener's level and background (child, layperson, executive, junior dev, domain expert) and answered in the user's language. This skill should be used when the user asks to explain something simply, "ELI5", "like I'm five", "for a non-technical person", "explain to my boss/client/mom", "in plain words", "explique de forma simples", or when a concept must be re-explained for a different audience.
+description: Explain ideas in plain language for a chosen audience. Use for ELI5 or audience-specific re-explanations.
 license: Apache-2.0
 ---
 

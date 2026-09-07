@@ -1,266 +1,72 @@
 ---
 name: mneves-fable-orchestrator
-description: Model-routing policy. Fable advises, plans, decomposes, and reviews; Opus subagents execute frontend tasks; Codex (gpt-5.6-sol, reasoning xhigh) executes heavy implementation in a resumable lane, with gpt-6-astra (high) reserved for codex-side planning and review; skill + /goal drives long-horizon work. Use when starting any non-trivial task, deciding who should execute work, delegating implementation, following up on a delegation, or when the user says "delegate", "orchestrate", "use codex", "heavy task", or "long-running task".
+description: Route non-trivial work across agents. Use for delegation, parallel work, Codex dispatch, or long-running implementation.
 license: Apache-2.0
 ---
 
 # Fable Orchestrator
 
-Division of labor: **Fable thinks, others type.** Fable (this session) is the senior
-advisor: expensive, high-judgment. Spend its tokens on understanding, decisions, and
-review; move generation and grind to cheaper/flat-rate executors.
+Route only when delegation saves time or adds independent evidence. The active main session owns
+requirements, architecture, high-stakes judgment, integration, and final acceptance.
 
-## Roles
+## Current roles
 
-| Role | Who | What |
-|------|-----|------|
-| Advisor | **Fable (main session)** | Repo understanding, architecture decisions, task decomposition, spec writing, final review |
-| Frontend executor | **Opus subagents** (`Agent` tool, `model: "opus"`) | UI components, styling, layout, visual polish, frontend refactors |
-| Heavy executor | **Codex** (`codex exec` / `codex-lane`) | Heavy implementation, debugging, test fixing, refactoring, multi-file edits |
-| Long-horizon driver | **`supergoal` skill + `/goal`** | Multi-phase work driven to completion without babysitting |
+| Role | Default | Responsibility |
+|---|---|---|
+| Claude main session | Fable 5.1 | Framing, design decisions, decomposition, acceptance |
+| Claude subagent | Opus 5 | Bounded frontend or independent work |
+| Codex | `gpt-6-astra`, reasoning `high` | Execution, planning, review, and ordinary inherited agents |
+| Specialist | Explicit model/agent selection | Deliberate comparison or capability-specific work |
 
-## Models (the only place ids live; update here when a generation changes)
+The user's current instruction beats this routing. Preserve explicit caller overrides and
+specialist selections. Astra is an executor; do not insert an advisor-only handoff before it can
+perform ordinary implementation. Quota probes may use Astra at `low`; do not use unsupported
+`minimal` or `none` effort.
 
-| Role | Current id | Effort | Set where |
-|------|-----------|--------|-----------|
-| Advisor | `claude-fable-5-1` | session default | the session itself |
-| Frontend executor | `opus` (family alias) | default | `Agent` tool `model:` |
-| Heavy executor | `gpt-5.6-sol` | `xhigh` | `~/.codex/config.toml` (+ `codex-auto` pins both) |
-| Codex-side reviewer/planner | `gpt-6-astra` | `high` | `codex-auto review`; `$autoreview --model`; `~/.codex/agents/astra-advisor.toml` |
+## Route the task
 
-The rest of this skill names roles; the command examples use the ids above.
+Keep work in the main session when it is a small direct edit, depends on session-only tools or
+credentials, changes authorization, or requires a product/architecture decision.
 
-## Routing
+Delegate when the work is independent, substantial, objectively verifiable, and has disjoint
+file ownership. Parallelize only independent workstreams. Do not delegate a few direct reads or
+duplicate work already assigned.
 
-**Fable keeps** (never delegated):
-- Design, API/architecture decisions, naming, task decomposition
-- Tasks where writing the spec IS the work (ambiguity = design work)
-- Tiny edits (<~20 lines, single obvious change); delegation overhead loses
-- Anything needing session tools (MCP, secrets); destructive/irreversible ops, releases, pushes
-- **Review of all delegated output: never delegated, never skipped**
+When the active session is already Codex, implement and verify directly. Spawn a specialist only
+for a genuinely independent workstream or a review that benefits from fresh context.
 
-**Opus subagents get**: frontend tasks: components, pages, styling, animations, visual
-fixes. Spawn via `Agent` with `model: "opus"` and a self-contained brief (files, design
-intent, constraints). Parallelize independent frontend tasks in one message.
+For a Codex dispatch from Claude or another harness, use `codex-auto`. Read
+[references/codex-dispatch.md](references/codex-dispatch.md) before the first launcher or lane
+command; it owns account selection, explicit overrides, continuity, and recovery.
 
-**Codex gets**: implementation from a frozen spec, bug fixes with known repro, test
-writing/fixing, mechanical migrations, multi-file refactors, CI fixes, and read-heavy
-exploration when the raw reading far exceeds the answer (parallel runs, one output file per
-thread, instead of Claude subagents). One goal per dispatch, not a grab-bag. A new work order
-gets a fresh thread: a long, saturated thread reads a new order as configuration and no-ops.
+For a user-requested multi-phase goal that must continue across many rounds, use the available
+goal workflow. A long task alone does not authorize pushes, deployments, destructive operations,
+or other external writes.
 
-The wrapper does not inject a model; it inherits whatever the Codex CLI resolves. Make
-that policy real once, in `~/.codex/config.toml`:
+## Delegation brief
 
-```toml
-model = "gpt-5.6-sol"
-model_reasoning_effort = "xhigh"
-```
+Every executor starts with zero private session context. Include:
 
-`gpt-6-astra` (`high`) stays on the codex side too, but only for planning, orchestration
-and review — the seat Fable holds here. It never executes.
+1. Goal and falsifiable acceptance criteria.
+2. Repository and exact paths.
+3. Relevant behavior, evidence, and errors.
+4. Constraints, non-goals, ownership, and behavior to preserve.
+5. Exact proof commands and expected output.
 
-An exception for one job is pinned per dispatch (`-- -c model="<id>" -c model_reasoning_effort="<effort>"`);
-a pin given to `start` sticks for the whole lane.
+Tell the worker it is not alone in the tree, must preserve other changes, must not spawn agents,
+and must not run cross-session memory. Pair a hard prohibition with a safe stop condition: if an
+honest attempt cannot satisfy a gate, report the exact result instead of gaming the constraint.
 
-**Long-horizon** (multi-phase, "don't stop until done"): invoke the `supergoal` skill;
-it plans phases and emits a single `/goal` command with retry + verification built in.
-Goals beat ad-hoc loops for anything spanning many phases or hours.
+## Accept delegated work
 
-## Inside a codex run: sol drives, astra advises
+Inspect the actual diff and merged surface. Run the focused proof yourself or verify captured
+output. Review guard, budget, fixture, and test-helper edits closely because they can weaken the
+check rather than fix the behavior. Check the brief's assumptions and production rules; test
+existence is not a substitute for the required behavior.
 
-Sol owns the whole task — progress, implementation, verification, and reporting. It
-does not hand the task off and wait. Astra is a **consultant it calls and returns from**,
-never a stage it passes through.
+Use an independent fresh-context review when risk, the repository, or the user requires it.
+Routine edits need only proportionate deterministic checks. If a correction is needed, continue
+the existing agent or lane so it retains context.
 
-**Call the advisor only for**: a genuinely hard decision with real downside either way,
-an architectural trade-off that will be expensive to reverse, or an independent review of
-work sol just finished. Nothing else. A question sol can answer by reading the code is a
-question sol answers by reading the code — delegating it costs a round trip and buys
-nothing. Do not call an advisor to look thorough.
-
-**How to call it.** The advisor is the `astra-advisor` agent (`~/.codex/agents/astra-advisor.toml`),
-which pins `model = "gpt-6-astra"`, `model_reasoning_effort = "high"`, and
-`sandbox_mode = "read-only"`. Name the agent explicitly on `spawn_agent` — asking for a
-model in the prompt text is a wish, the agent file is the setting. Pass
-`fork_turns: "none"`: the advisor gets a fresh context, so the brief must carry everything.
-
-The brief is self-contained, like any other delegation here:
-
-- **The question**, stated as a decision, not a topic ("Do we X or Y, given Z?").
-- **The materials**: paths, the relevant diff or error verbatim, what was already tried
-  and ruled out, and why.
-- **The constraints** the answer must respect: stack, compatibility, files it must not
-  propose touching, deadlines, prior decisions that are settled.
-
-**What the advisor may not do**: edit files, run the work, or spawn agents of its own.
-It returns recommendation → why (with the trade-off accepted) → risks and the cheapest
-check that would settle them. Sol then decides, applies, and verifies. The advisor's
-answer is input, not an instruction: sol is free to reject it, and says so if it does.
-
-**Approvals are unchanged.** Nothing about consulting an advisor grants permission.
-Destructive or irreversible ops, anything leaving the machine, credentials, and scope
-expansions still stop and ask the human — whoever recommended them.
-
-Fable-side equivalent: the `Agent` tool's `model` param takes Claude ids only, so astra
-is not reachable as a Claude subagent. Consult it through Bash instead:
-`CODEX_AUTO_MODEL=gpt-6-astra CODEX_AUTO_EFFORT=high codex-auto exec -s read-only --skip-git-repo-check`
-(the `codex-advise` function in `~/.zshrc` wraps exactly this). Use the env knobs, not
-`-c model="..."`: `codex-auto` passes `--model=<executor>` as a flag, the flag beats the
-`-c` override, and the run lands on sol while the caller believes it got astra. The
-session header's `model:` line is the proof — read it.
-
-## Continuity: one round is an exec, two rounds is a lane
-
-**A delegation that will take more than one round is a LANE.** A bare `codex exec` opens
-a brand-new thread every time. Round 2 therefore loses every private reasoning item from
-round 1 and re-pays the whole instruction preamble uncached, so the executor re-derives
-the problem from its own diff instead of continuing the plan it already made.
-
-This is the failure mode OpenAI documented on ARC-AGI-3: a harness that discarded
-reasoning between actions and used rolling truncation scored 13.3% RHAE, while retaining
-reasoning and enabling compaction scored 38.3% with 6× fewer output tokens
-([writeup](https://openai.com/index/how-two-settings-tripled-our-arc-agi-3-scores/)).
-Measured with codex-cli 0.146.0 / gpt-5.6-sol: a fresh `exec` sends ~34k input tokens
-with 0 cached; a `resume` on the same thread serves the preamble from cache (~35k
-cached) and replays the stored reasoning items.
-
-Single round, plain exec:
-
-```bash
-codex exec -s workspace-write \
-  --output-last-message /tmp/codex-result.txt \
-  - < /tmp/spec.md > /tmp/codex.log 2>&1
-```
-
-Two or more rounds, a named lane (`tools/codex-lane`, state in `~/.codex/lanes/`):
-
-```bash
-codex-lane start api-rls /tmp/spec.md -- -s workspace-write
-codex-lane next  api-rls "fix the failing gate"   # literal text, or `-` to pipe stdin
-codex-lane last  api-rls        # final message  |  also: log / id / list / drop
-```
-
-A long prompt (a full build log, a review report) must go in via stdin. The
-prompt argument is always literal text, and an inline string still has to fit
-the wrapper's own argv:
-
-```bash
-codex-lane next api-rls - < /tmp/gate3-failure.log
-```
-
-A one-round `codex exec` that turns out to need a round 2 is not a lost cause: wrap its
-thread instead of writing a second spec. Restate the flags that exec ran under, since they
-can't be recovered from the thread:
-
-```bash
-codex-lane adopt api-rls <thread-id> [cwd] -- -s workspace-write
-```
-
-A lane is bound to one workspace and one execution policy, because `codex exec resume`
-rebuilds its config from the *current* invocation rather than from the thread:
-
-- `next` runs in the directory the lane was started (or adopted) in, recorded as the
-  physical path (`pwd -P`), so a symlinked entry point can't make `next` resolve elsewhere.
-  Resuming from another repo (or from `$HOME`) therefore can't point the executor at the
-  wrong tree. `-C` / `--cd` is rejected.
-- the args given to `start` (sandbox, model, reasoning, profile) are stored and replayed on
-  every `next`; otherwise a lane started `-s workspace-write` would quietly resume under
-  the machine default and be unable to edit. There is no per-turn override: `next` takes
-  only `<lane> <prompt|->` and rejects trailing args.
-- the model is whatever `~/.codex/config.toml` selects unless pinned at `start`
-  (`-- -c model="<id>"`); the pin then sticks for the whole lane.
-
-Pick the sandbox level deliberately: `-s read-only` for investigation, `-s workspace-write`
-for implementation. Reach for `--dangerously-bypass-approvals-and-sandbox` only when the
-executor must run migrations or system commands, and only in a repo you own.
-
-Rules:
-- Fix-ups, review findings, failing gates and follow-up questions **all go through
-  `next`** on the same thread. Never re-spec what the executor already reasoned through.
-- Start a new lane only for a different job.
-- Global flags must precede `resume`: `codex exec resume <id> -s read-only` is a parse
-  error; `codex exec -s read-only resume <id>` is correct. `codex-lane` handles the
-  ordering; pass extras after a literal `--` to `start` (or `adopt`).
-- Don't hand-roll history trimming. Codex compacts rather than truncates
-  (`codex features list` → `remote_compaction_v2`); manual trimming on top of it
-  reintroduces exactly the loss compaction exists to avoid.
-
-The same principle governs subagents: continue an existing agent with `SendMessage`
-rather than spawning a fresh one that re-explores from zero.
-
-## Delegation contract (every dispatch)
-
-Executors start with zero session context. Every prompt must carry:
-1. Goal (one sentence) + acceptance criteria
-2. Exact repo + key file paths
-3. Constraints ("don't touch X") and non-goals
-4. Proof expected (exact test/build command)
-5. Output shape ("report files changed + test output")
-
-Carve out file ownership so parallel diffs never collide (e.g. Codex owns backend,
-Opus subagent owns frontend, Fable owns specs).
-
-Every hard prohibition needs an escape hatch. A cornered executor satisfies the letter of
-the gate: told "never raise the size budget" while its design inflated the bundle, Codex
-hand-minified identifiers to single letters and passed every gate, review included. Pair
-each hard constraint with the sanctioned exit: "if gate X fails after honest attempts, STOP,
-report exact numbers and diagnosis, do not work around." A stop-report is a successful run;
-it is the advisor's decision point.
-
-Never pass a credential through `-c key=value`; it lands in argv, process listings and shell
-history. A run that needs different provider settings gets a private overlay: a mode-0700
-directory with a mode-0600 `config.toml`, selected with `CODEX_HOME`.
-
-If delegation is unavailable, say so; never imply a dispatch happened. Either continue
-locally and state that, or hand back the ready-to-run brief.
-
-## Verify (Fable, always)
-
-After ANY executor finishes, **inspect before accepting. Never blindly trust output.**
-0. `pgrep -fl "codex exec"` before editing or committing. A run whose deliverable is already
-   in the tree can keep looping and overwrite your fixes mid-review; stop it once its output
-   is verified instead of racing it.
-1. `git status -sb` + read the full diff; judge it like a contributor PR. Reports are accurate
-   but incomplete; pathologies live in the code. Read the merged surface (types, names), treat
-   any commit message you did not commission as a lead, diff-stat the guard/budget files the
-   spec forbade touching, and treat test-helper edits as a red-flag class of their own.
-2. Run the focused tests/build yourself, or demand proof output; executor claims are advisory
-3. Wrong result → iterate via `codex-lane next` (Codex) or `SendMessage` (subagent) with a
-   corrective prompt; after 2 failed rounds, Fable takes over and does it directly.
-   If the job ran as a plain `codex exec` and now needs a round 2, do **not** re-spec it:
-   take the thread id from the run's output (or its rollout under `~/.codex/sessions/`) and
-   `codex-lane adopt <lane> <thread-id> [cwd]`, then continue with `next`.
-4. Normal closeout still applies (autoreview/verify before ship)
-
-## When the executor dies or goes quiet
-
-A run that exits in seconds with nothing produced is almost never the task; it is the model
-route or the account. Read the log tail before relaunching: `401` means the bearer is wrong
-for that endpoint; `502 / All target providers failed` means the model id did not match the
-router's catalogue; `stream disconnected` against a loopback URL means nothing is listening;
-`requires a sandbox with reviewed escalations` means `--dangerously-bypass-approvals-and-sandbox`
-is unsupported on that route (retry once with `--approve-for-me`). Exit 0 with no diff and a
-fast return: check the lane log for `usage limit`; an exhausted account reports success.
-
-For a long run, keep stderr in a log and watch its mtime. Thinking keeps the file fresh, so
-five minutes of true silence with the process alive is a hang, not reasoning: kill the pid and
-`codex-lane next` the same lane with "You were interrupted; continue exactly where you left
-off and finish the report." Nothing is lost because the thread is the lane.
-
-## Economics
-
-Win = generation + exploration tokens moved off Fable; Fable spends only on spec + diff
-review. Don't ping-pong trivia through delegation; don't re-read what an executor already
-summarized correctly (spot-check instead). Lanes compound the win: the preamble is paid
-once per job instead of once per round.
-
-## Reference
-
-Several rules above (escape hatches, live-worker check, verification beyond the diff, the
-death-diagnosis list) are adopted from steipete's
-[codex-first SKILL.md](https://github.com/steipete/agent-scripts/blob/main/skills/codex-first/SKILL.md)
-(read 2026-08-26 at its 2026-08-20 revision). Not adopted: its rule that git rebase, merge and
-landing always go to Codex; here releases, pushes and landing stay with the advisor.
-The `/codex:rescue` command from the openai-codex plugin is an equivalent front-end when
-that plugin is installed; the routing and continuity rules above apply either way.
+Delegation never widens permission. Destructive or irreversible actions, credentials, external
+writes, and scope expansion keep the main session's approval boundary.

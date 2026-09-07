@@ -1,19 +1,17 @@
 # Fable Orchestrator
 
-Model-routing policy for multi-agent Claude Code sessions: the expensive, high-judgment
-model (Fable) advises, plans, and reviews; cheaper or flat-rate executors do the typing.
+Model-routing policy for sessions that can use a main agent, Codex, and subagents.
 
 ## The idea
 
-Frontier-model tokens are metered and expensive, and the top model's edge is judgment,
-not typing speed. This skill encodes a standing division of labor:
+Delegate only when the work is independent, substantial, and objectively verifiable:
 
 | Role | Who | What |
 |------|-----|------|
 | Advisor | Fable (main session) | Repo understanding, architecture decisions, task decomposition, spec writing, final review |
 | Frontend executor | Opus subagents | UI components, styling, layout, visual polish |
-| Heavy executor | Codex (`gpt-5.6-sol` at `xhigh`, via `codex exec` / `codex-lane`) | Heavy implementation, debugging, test fixing, multi-file refactors |
-| Long-horizon driver | `supergoal` skill + `/goal` | Multi-phase work driven to completion without babysitting |
+| Codex | `gpt-6-astra` at `high` via `codex-auto` / `codex-lane` | Execution, planning, review, debugging, and refactors |
+| Long-horizon driver | Available goal workflow | User-requested multi-phase work driven to its stopping condition |
 
 ## Continuity is the whole game
 
@@ -58,20 +56,15 @@ Everything after `--` is passed through to `codex`, so the sandbox level is your
 `$CODEX_LANE_DIR` (default `~/.codex/lanes`), created mode `700`; the event logs hold
 the full model transcript for the job.
 
-Measured locally (codex-cli 0.146.0, gpt-5.6-sol): fresh exec ≈ 34k input tokens, 0
-cached; resume on the same thread ≈ 35k cached with prior reasoning items replayed.
-
 ## Requirements
 
 - **Claude Code** with subagent support (`Agent` tool)
 - **[Codex CLI](https://github.com/openai/codex)** installed and authenticated, for the
   heavy-executor path. The `/codex:rescue` command from the openai-codex plugin is an
   equivalent front-end if you have that plugin; the routing rules apply either way.
-  The wrapper never injects a model, so set the routing default once in
-  `~/.codex/config.toml` (`model = "gpt-5.6-sol"`, `model_reasoning_effort = "xhigh"`) and
-  pin exceptions per lane with `-- -c model="..."`. Reviews and planning on the codex side
-  use `gpt-6-astra` at `high` instead.
-- **`supergoal` skill**: optional, for the long-horizon path
+  Set the shared Codex default to `gpt-6-astra` at `high`. Preserve deliberate per-call
+  specialist overrides. See `references/codex-dispatch.md` for launcher mechanics.
+- **Goal workflow**: optional; use the goal mechanism exposed by the active agent runtime
 
 Install the lane wrapper by symlinking it onto your `PATH`:
 
@@ -81,15 +74,14 @@ ln -s /path/to/skills/skills/mneves-fable-orchestrator/tools/codex-lane ~/bin/co
 
 ## Key rules
 
-1. **Fable never delegates review.** Every executor's diff is read in full and judged
-   like a contributor PR; executor claims are advisory until proven.
+1. **The main session owns acceptance.** Executor claims remain advisory until checked.
 2. **Every dispatch is a self-contained work order**: goal, exact paths, constraints,
    non-goals, proof expected, output shape. Executors start with zero session context.
 3. **Multi-round work runs in a lane.** Fix-ups and review findings go to
    `codex-lane next`, never a fresh spec that restates solved reasoning.
 4. **File ownership is carved out per executor** so parallel diffs never collide.
-5. **Two failed correction rounds → Fable takes over** and does the work directly.
-6. **Tiny edits stay in Fable**: delegation overhead loses below ~20 lines.
+5. **Independent review is risk-based.** Use it when the task or repository requires it.
+6. **Small direct edits stay in the active session.**
 
 ## Install
 

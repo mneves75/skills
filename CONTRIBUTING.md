@@ -40,6 +40,8 @@ Skills must stay discoverable by `npx skills@latest add mneves75/skills`: one fo
 skill under `skills/`, folder name equal to the frontmatter `name`, no `SKILL.md` at the
 repo root (it would shadow the rest), no absolute or home-directory paths in the text.
 Verify with `npx skills@latest add . --list` before opening a PR. CI runs the same check.
+Original skills use the `mneves-` prefix. An adapted third-party skill may retain its upstream
+name only when its copyright, compatible license, source, and material modifications are recorded.
 
 - **SKILL.md**: Required. Must have valid YAML frontmatter with `name` and `description`.
 - **README.md**: Recommended. Detailed documentation for the skill.
@@ -52,4 +54,5 @@ Be respectful. Be helpful. Be kind.
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under Apache-2.0.
+By contributing original work, you agree that it will be licensed under Apache-2.0. Adapted
+third-party work retains its compatible upstream license as identified in that skill's directory.

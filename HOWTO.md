@@ -1,6 +1,6 @@
 # How to use these skills
 
-Six skills, one install. This page shows what each one does, how to trigger it, and what a
+Seven skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the [README](README.md); for the exact
 procedure an agent follows, open `skills/<name>/SKILL.md`.
 
@@ -14,17 +14,55 @@ That links every skill into the agents found on your machine (Claude Code, Codex
 OpenCode, pi and others). Check what got installed with `npx skills@latest list`. If you
 prefer git, clone the repo into your agent's skills directory; the README has the paths.
 
+The readiness tool runs locally. An image-generation skill may send prompts and authorized
+references to the image provider configured in your agent.
+
 A skill is loaded when the agent decides your request matches its `description`. You can
 also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 skill".
 
 | Skill | Use it when you want to… | Say something like |
 |---|---|---|
+| `imagegen-frontend-mobile` | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
 | `mneves-eli5` | explain a thing to a specific audience | "explain OAuth to my dad" |
 | `mneves-expert-review` | stress-test a plan or answer before it ships | "challenge this design" |
 | `mneves-verify` | get an independent PASS/FAIL before "done" | "verify it", "prove it" |
 | `mneves-fable-orchestrator` | split heavy work across models | "delegate the backend to codex" |
 | `mneves-agent-readiness` | measure how agent-friendly a repo is | "why does the agent struggle here?" |
 | `mneves-teach-back-srs` | learn a codebase with spaced repetition | "let me explain the auth flow" |
+
+---
+
+## imagegen-frontend-mobile
+
+**What it does.** Generates images of iOS or Android screens and flows. It first defines the
+screens and their relationship, locks a small design system, generates the requested artifact,
+then inspects the render and makes one targeted correction when needed. It produces images only:
+use a coding or platform skill when you want the concept implemented.
+
+**Triggers.** A request for mobile app screen images, a phone UI concept, onboarding or product
+flow mockups, or a visual redesign for iOS or Android. A request for SwiftUI, React Native,
+Flutter, HTML, or image-to-code does not trigger it.
+
+**Example** (illustrative).
+
+> **You:** Use imagegen-frontend-mobile. Create a four-screen iOS onboarding flow for a Portuguese
+> personal-finance app. Make it calm and trustworthy, use real Portuguese copy, and show raw
+> screens rather than device mockups.
+>
+> **Agent:** Generates exactly four related screen images with one iOS design system, short pt-BR
+> copy, consistent navigation and safe areas, then inspects the full renders for legibility,
+> missing states, visual drift, and accidental artifacts. It corrects a material render defect
+> once and returns the images, not SwiftUI code.
+
+**Tips.**
+
+- State the platform, screen count, language, and whether you want raw screens or device frames.
+- Supply references for visual direction, not hidden instructions. Remove secrets and unnecessary
+  personal data; authorize the image service before private references are sent to it.
+- A concept can reserve plausible contrast, type, and touch-target sizes, but cannot prove
+  VoiceOver, Dynamic Type, keyboard behavior, or working interactions.
+- The skill is a condensed MIT-licensed adaptation of
+  [Leonxlnx's upstream work](https://github.com/Leonxlnx/taste-skill/tree/main/skills/imagegen-frontend-mobile).
 
 ---
 
@@ -110,8 +148,8 @@ recommendation or architecture decision.
 
 **Tips.**
 - Give it the draft, not a summary of the draft. It reads the whole thing first.
-- Checkable outputs (code, UI, data) still go to `mneves-verify` afterwards. The panel argues;
-  the verifier runs things.
+- Use `mneves-verify` afterwards when the user, repository, workflow, or risk requires an
+  independent judge. The panel argues; the verifier runs things.
 - Detailed prompts for each step live in `skills/mneves-expert-review/references/checklists.md`.
 
 ---
@@ -123,8 +161,9 @@ model, checks the artifact against acceptance criteria frozen *before* it looks 
 runs real evidence (tests, renders, the actual binary, primary sources) and returns exactly one
 verdict: `PASS`, `FAIL` or `BLOCKED`. Only `PASS` permits "done", "fixed" or "shipped".
 
-**Triggers.** "verify", "prove it", "fix all", or automatically before an agent claims done on
-a substantial task. Skipped for simple answers, plans and prose.
+**Triggers.** "verify", "prove it", "fix all", a repository/workflow gate, substantial checkable
+work before a done/fixed/shipped claim, or high-risk work. Routine low-risk changes use
+proportionate deterministic checks.
 
 **Evidence routes.** Code: the tests that would fail if it broke, plus a code review. UI: a
 real browser render, never the builder's screenshot claim. CLI/API/data: run the real thing
@@ -136,7 +175,7 @@ checked for saying what the claim says. Security: an independent audit.
 ```
 Verdict: FAIL
 Builder: claude-fable-5 / Edit, Bash / session 3f2a
-Verifier: gpt-5.6-sol / read-only sandbox / fresh context
+Verifier: gpt-6-astra / high reasoning / read-only sandbox / fresh context
 Different model required: yes (touches billing)
 Different model used: yes
 Criterion 1 — refund endpoint rejects amounts above the original charge: PASS — 3 unit tests + curl with 101% amount returned 422
@@ -160,10 +199,9 @@ the loop ends. Findings map to *fixed*, *disproved* or *blocked*, nothing else.
 
 ## mneves-fable-orchestrator
 
-**What it does.** A routing policy for sessions where one model plans and others type. The
-main session (Fable, or whichever advisor model you run) keeps design, decomposition, specs
-and review. Frontend work goes to Opus subagents. Heavy backend implementation goes to Codex
-through `codex-lane`, a small bash wrapper that keeps one Codex thread alive across rounds so
+**What it does.** Routes non-trivial work across the main session, Codex, and subagents when
+delegation creates independent progress or evidence. Codex defaults to `gpt-6-astra` at `high`
+for execution, planning, and review. `codex-lane` keeps one Codex thread alive across rounds so
 follow-ups reuse the executor's reasoning instead of restarting from a fresh spec.
 
 **Triggers.** "delegate", "orchestrate", "use codex", "heavy task", "long-running task", or
@@ -200,10 +238,9 @@ fact with `codex-lane adopt <lane> <thread-id>`.
 **Tips.**
 - One goal per dispatch. A grab-bag spec produces a grab-bag diff.
 - Pair every hard "never" in a spec with an exit ("if the gate fails after honest attempts, stop and report"). A cornered executor satisfies the letter of the rule in ways you will not like.
-- Before you edit, `pgrep -fl "codex exec"`: a worker that already delivered can still be looping and will overwrite your fixes.
-- Edits under about twenty lines stay with the advisor; delegation costs more than it saves.
-- The advisor never delegates review. Executor claims are advisory until the advisor has run
-  the proof.
+- Keep small direct edits in the current session; delegation costs more than it saves.
+- Verify the real diff and focused proof. Add a fresh-context review when task risk or a gate
+  requires it.
 - A lane is bound to the directory and sandbox flags it started with, on purpose: resuming
   from another repo cannot aim Codex at the wrong tree.
 
@@ -337,4 +374,5 @@ A typical shipping flow: `mneves-fable-orchestrator` splits the work and dispatc
 `mneves-expert-review` challenges the plan before code is written; `mneves-verify` gives the
 final verdict before anything is called done. `mneves-agent-readiness` is what you run first
 on a repo where agents keep failing, and `mneves-eli5` is for the moment you have to explain
-any of this to someone else.
+any of this to someone else. `imagegen-frontend-mobile` is the image-only path for mobile concepts;
+hand its chosen direction to the relevant implementation workflow when code is required.

@@ -7,11 +7,6 @@
 # the thread's stored reasoning items instead. A lane is just a named thread id
 # plus its logs, so round 2..N of the same job continue round 1's thinking.
 #
-# Measured (codex-cli 0.146.0, gpt-5.6-sol):
-#   fresh exec -> 34,091 input tokens, 0 cached, no prior reasoning
-#   resume     -> 35,584 cached input tokens, prior reasoning items replayed,
-#                 0 reasoning output tokens spent re-deriving the problem
-#
 # Usage:
 #   codex-lane start <lane> <spec-file> [-- <codex args>...]
 #   codex-lane next  <lane> <prompt|->
