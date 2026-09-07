@@ -238,10 +238,10 @@ bun --bun /path/to/skills/tools/readiness-check.ts \
       <h2 id="h-log">Changelog</h2>
       <ul class="log">
         <!-- changelog:start -->
+        <li><span class="v">1.13.0<span class="d">2026-09-07</span></span><span><code>mneves-fable-orchestrator</code> routes the heavy executor back to GPT-5.6-sol at reasoning <code>xhigh</code>; GPT-6-astra at <code>high</code> keeps only the planning, orchestration and review seat, the one Fable holds on the Claude side.</span></li>
         <li><span class="v">1.12.0<span class="d">2026-09-04</span></span><span><code>mneves-fable-orchestrator</code> routes the heavy executor to GPT-6-astra at reasoning <code>high</code> (was GPT-5.6-sol); the GPT-5.6-terra bulk tier is dropped, exceptions are pinned per lane.</span></li>
         <li><span class="v">1.11.0<span class="d">2026-08-26</span></span><span>Recorded sessions in <code>HOWTO.md</code>: <code>mneves-eli5</code> and <code>mneves-expert-review</code> examples are verbatim <code>claude -p</code> runs (claude-fable-5, 2026-08-26); <code>mneves-teach-back-srs</code> shows real <code>srs_db.py</code> output; the readiness example was already a real run.</span></li>
         <li><span class="v">1.10.0<span class="d">2026-08-26</span></span><span><code>mneves-fable-orchestrator</code> adopts five rules from steipete's <code>codex-first</code> (2026-08-20 revision): every hard prohibition in a spec carries an escape hatch (the minification incident), check for a live worker with <code>pgrep -fl "codex exec"</code> before editing, verify beyond the diff (merged surface, uncommissioned commit messages, guard files, test-helper edits), a diagnosis list for executors that die instantly or go quiet (with lane resume), and never passing credentials via <code>-c</code> (use a <code>CODEX_HOME</code> overlay).</span></li>
-        <li><span class="v">1.9.0<span class="d">2026-08-26</span></span><span>Landing page at https://mneves75.github.io/skills/ (<code>site/index.html</code>): install commands with copy buttons, one card per skill linking into the how-to, how it works, the readiness tool with the sample score, start-here links, recent changelog.</span></li>
         <!-- changelog:end -->
       </ul>
       <p style="margin-top:1rem"><a href="https://github.com/mneves75/skills/blob/main/CHANGELOG.md">Full changelog →</a></p>

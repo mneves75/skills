@@ -12,7 +12,7 @@ not typing speed. This skill encodes a standing division of labor:
 |------|-----|------|
 | Advisor | Fable (main session) | Repo understanding, architecture decisions, task decomposition, spec writing, final review |
 | Frontend executor | Opus subagents | UI components, styling, layout, visual polish |
-| Heavy executor | Codex (GPT-6-astra at `high`, via `codex exec` / `codex-lane`) | Heavy implementation, debugging, test fixing, multi-file refactors |
+| Heavy executor | Codex (`gpt-5.6-sol` at `xhigh`, via `codex exec` / `codex-lane`) | Heavy implementation, debugging, test fixing, multi-file refactors |
 | Long-horizon driver | `supergoal` skill + `/goal` | Multi-phase work driven to completion without babysitting |
 
 ## Continuity is the whole game
@@ -68,8 +68,9 @@ cached; resume on the same thread ≈ 35k cached with prior reasoning items repl
   heavy-executor path. The `/codex:rescue` command from the openai-codex plugin is an
   equivalent front-end if you have that plugin; the routing rules apply either way.
   The wrapper never injects a model, so set the routing default once in
-  `~/.codex/config.toml` (`model = "gpt-6-astra"`, `model_reasoning_effort = "high"`) and
-  pin exceptions per lane with `-- -c model="..."`.
+  `~/.codex/config.toml` (`model = "gpt-5.6-sol"`, `model_reasoning_effort = "xhigh"`) and
+  pin exceptions per lane with `-- -c model="..."`. Reviews and planning on the codex side
+  use `gpt-6-astra` at `high` instead.
 - **`supergoal` skill**: optional, for the long-horizon path
 
 Install the lane wrapper by symlinking it onto your `PATH`:

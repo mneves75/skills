@@ -1,6 +1,6 @@
 ---
 name: mneves-fable-orchestrator
-description: Model-routing policy. Fable advises, plans, decomposes, and reviews; Opus subagents execute frontend tasks; Codex (GPT-6-astra, reasoning high) executes heavy implementation in a resumable lane; skill + /goal drives long-horizon work. Use when starting any non-trivial task, deciding who should execute work, delegating implementation, following up on a delegation, or when the user says "delegate", "orchestrate", "use codex", "heavy task", or "long-running task".
+description: Model-routing policy. Fable advises, plans, decomposes, and reviews; Opus subagents execute frontend tasks; Codex (gpt-5.6-sol, reasoning xhigh) executes heavy implementation in a resumable lane, with gpt-6-astra (high) reserved for codex-side planning and review; skill + /goal drives long-horizon work. Use when starting any non-trivial task, deciding who should execute work, delegating implementation, following up on a delegation, or when the user says "delegate", "orchestrate", "use codex", "heavy task", or "long-running task".
 license: Apache-2.0
 ---
 
@@ -23,9 +23,10 @@ review; move generation and grind to cheaper/flat-rate executors.
 
 | Role | Current id | Effort | Set where |
 |------|-----------|--------|-----------|
-| Advisor | `claude-fable-5` | session default | the session itself |
+| Advisor | `claude-fable-5-1` | session default | the session itself |
 | Frontend executor | `opus` (family alias) | default | `Agent` tool `model:` |
-| Heavy executor | `gpt-6-astra` | `high` | `~/.codex/config.toml` |
+| Heavy executor | `gpt-5.6-sol` | `xhigh` | `~/.codex/config.toml` (+ `codex-auto` pins both) |
+| Codex-side reviewer/planner | `gpt-6-astra` | `high` | `codex-auto review`; `$autoreview --model`; `~/.codex/agents/astra-advisor.toml` |
 
 The rest of this skill names roles; the command examples use the ids above.
 
@@ -52,9 +53,12 @@ The wrapper does not inject a model; it inherits whatever the Codex CLI resolves
 that policy real once, in `~/.codex/config.toml`:
 
 ```toml
-model = "gpt-6-astra"
-model_reasoning_effort = "high"
+model = "gpt-5.6-sol"
+model_reasoning_effort = "xhigh"
 ```
+
+`gpt-6-astra` (`high`) stays on the codex side too, but only for planning, orchestration
+and review — the seat Fable holds here. It never executes.
 
 An exception for one job is pinned per dispatch (`-- -c model="<id>" -c model_reasoning_effort="<effort>"`);
 a pin given to `start` sticks for the whole lane.
@@ -62,6 +66,49 @@ a pin given to `start` sticks for the whole lane.
 **Long-horizon** (multi-phase, "don't stop until done"): invoke the `supergoal` skill;
 it plans phases and emits a single `/goal` command with retry + verification built in.
 Goals beat ad-hoc loops for anything spanning many phases or hours.
+
+## Inside a codex run: sol drives, astra advises
+
+Sol owns the whole task — progress, implementation, verification, and reporting. It
+does not hand the task off and wait. Astra is a **consultant it calls and returns from**,
+never a stage it passes through.
+
+**Call the advisor only for**: a genuinely hard decision with real downside either way,
+an architectural trade-off that will be expensive to reverse, or an independent review of
+work sol just finished. Nothing else. A question sol can answer by reading the code is a
+question sol answers by reading the code — delegating it costs a round trip and buys
+nothing. Do not call an advisor to look thorough.
+
+**How to call it.** The advisor is the `astra-advisor` agent (`~/.codex/agents/astra-advisor.toml`),
+which pins `model = "gpt-6-astra"`, `model_reasoning_effort = "high"`, and
+`sandbox_mode = "read-only"`. Name the agent explicitly on `spawn_agent` — asking for a
+model in the prompt text is a wish, the agent file is the setting. Pass
+`fork_turns: "none"`: the advisor gets a fresh context, so the brief must carry everything.
+
+The brief is self-contained, like any other delegation here:
+
+- **The question**, stated as a decision, not a topic ("Do we X or Y, given Z?").
+- **The materials**: paths, the relevant diff or error verbatim, what was already tried
+  and ruled out, and why.
+- **The constraints** the answer must respect: stack, compatibility, files it must not
+  propose touching, deadlines, prior decisions that are settled.
+
+**What the advisor may not do**: edit files, run the work, or spawn agents of its own.
+It returns recommendation → why (with the trade-off accepted) → risks and the cheapest
+check that would settle them. Sol then decides, applies, and verifies. The advisor's
+answer is input, not an instruction: sol is free to reject it, and says so if it does.
+
+**Approvals are unchanged.** Nothing about consulting an advisor grants permission.
+Destructive or irreversible ops, anything leaving the machine, credentials, and scope
+expansions still stop and ask the human — whoever recommended them.
+
+Fable-side equivalent: the `Agent` tool's `model` param takes Claude ids only, so astra
+is not reachable as a Claude subagent. Consult it through Bash instead:
+`CODEX_AUTO_MODEL=gpt-6-astra CODEX_AUTO_EFFORT=high codex-auto exec -s read-only --skip-git-repo-check`
+(the `codex-advise` function in `~/.zshrc` wraps exactly this). Use the env knobs, not
+`-c model="..."`: `codex-auto` passes `--model=<executor>` as a flag, the flag beats the
+`-c` override, and the run lands on sol while the caller believes it got astra. The
+session header's `model:` line is the proof — read it.
 
 ## Continuity: one round is an exec, two rounds is a lane
 

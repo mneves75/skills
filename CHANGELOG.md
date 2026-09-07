@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0] - 2026-09-07
+
+### Changed
+
+- **`mneves-fable-orchestrator`** routes the heavy executor back to GPT-5.6-sol at reasoning `xhigh`; GPT-6-astra at `high` keeps only the planning, orchestration and review seat, the one Fable holds on the Claude side.
+
+### Added
+
+- **`mneves-fable-orchestrator`**: "Inside a codex run: sol drives, astra advises". Sol owns progress, implementation and verification and never hands the task off; it spawns an advisor only for a decision with real downside, an expensive-to-reverse trade-off, or an independent review. The advisor is named explicitly (a model asked for in prose is a wish, the agent file is the setting), gets a fresh context via `fork_turns: "none"` and a self-contained brief, edits nothing, spawns nothing, and changes no approval boundary.
+- The advisor must be selected with `CODEX_AUTO_MODEL` / `CODEX_AUTO_EFFORT`, never `-c model="..."`: a wrapper that passes `--model=<executor>` wins over the `-c` override and the run lands on the executor while the caller believes otherwise. Verify with the session header's `model:` line.
+
 ## [1.12.0] - 2026-09-04
 
 ### Changed
