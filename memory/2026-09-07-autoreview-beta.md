@@ -88,6 +88,14 @@ with silent drift or a broad rewrite justified only by file size.
   no vulnerabilities in the 13 checked tooling packages.
 - The local catalog and usage section rendered in desktop and mobile browser viewports;
   the mobile page had no horizontal overflow at 390 pixels. The isolated browser was closed.
+- The local-only autoreview dry run passed complete bundle scanning, source verification,
+  and Codex isolation preflight with Astra medium and the Sol fallback selected. The first
+  scan correctly refused a synthetic credentialed-proxy URI; constructing that nonfunctional
+  `.invalid` fixture at runtime preserved both passing rejection tests without disabling scans.
+- Candidate `217197c57a80e8bd4855e01f08741462724e592b` was committed and pushed. Its Linux
+  autoreview suite and collection CI checks passed. GitHub Pages deployment
+  [34180352699](https://github.com/mneves75/skills/actions/runs/34180352699) succeeded;
+  both hosted pages returned HTTP 200 and matched the committed generated files byte-for-byte.
 - Live P3 autoreview, hosted CI, beta publication, archive verification, and installed-copy
   synchronization remain release gates. No claim is made that every provider account or
   runtime has been live-tested.

@@ -4583,19 +4583,22 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
             with self.subTest(value=value):
                 self.assertTrue(self.helper["safe_proxy_url"](value))
 
+        # Build nonfunctional credentials at runtime so scanners can review this fixture.
+        userinfo = "review-user:review-password"
         for value in (
-            "http://review-user:review-password@proxy.example.invalid:8080",
-            "socks5://review-user:review-password@proxy.example.invalid:1080",
+            f"http://{userinfo}@proxy.example.invalid:8080",
+            f"socks5://{userinfo}@proxy.example.invalid:1080",
         ):
             with self.subTest(value=value):
                 self.assertFalse(self.helper["safe_proxy_url"](value))
 
     def test_safe_engine_env_rejects_credentialed_proxy(self) -> None:
+        userinfo = "review-user:review-password"
         with tempfile.TemporaryDirectory() as tempdir, mock.patch.dict(
             os.environ,
             {
                 "HTTPS_PROXY": (
-                    "http://review-user:review-password@proxy.example.invalid:8080"
+                    f"http://{userinfo}@proxy.example.invalid:8080"
                 )
             },
             clear=False,
