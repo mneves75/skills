@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>mneves75/skills: skills for AI coding agents</title>
-<meta name="description" content="Seven skills for AI agents: generate mobile concepts, explain, review, verify, orchestrate, measure readiness, and learn a codebase.">
+<meta name="description" content="Eight skills for AI agents: review code, generate mobile concepts, explain, verify, orchestrate, measure readiness, and learn a codebase.">
 <meta property="og:title" content="mneves75/skills">
 <meta property="og:description" content="Skills for AI coding agents. One install, any tool that reads SKILL.md.">
 <meta property="og:type" content="website">
@@ -116,7 +116,7 @@ footer a{color:var(--fg2)}
   <div class="wrap">
     <section class="hero" aria-labelledby="h-hero">
       <h1 id="h-hero">Skills for coding agents that hold themselves to a standard.</h1>
-      <p class="sub">Seven procedures your agent loads on demand: generate mobile concepts, explain a thing to the right audience, stress-test a plan, get an independent verdict before "done", split heavy work across models, measure how agent-ready a repo is, and learn a codebase with spaced repetition. Works in Claude Code, Codex, Cursor, OpenCode, pi and any tool that reads <code>SKILL.md</code>.</p>
+      <p class="sub">Eight procedures your agent loads on demand: review code, generate mobile concepts, explain a thing to the right audience, stress-test a plan, get an independent verdict before "done", split heavy work across models, measure how agent-ready a repo is, and learn a codebase with spaced repetition. Works in Claude Code, Codex, Cursor, OpenCode, pi and any tool that reads <code>SKILL.md</code>.</p>
 
       <div class="install">
         <div class="cmd">
@@ -142,6 +142,12 @@ footer a{color:var(--fg2)}
       <h2 id="h-skills">What you get</h2>
       <p class="lede">Each skill is a folder with a <code>SKILL.md</code>: a description the agent matches against your request, then the procedure it follows. The repository tooling runs locally; image generation may send prompts and authorized references to your configured provider.</p>
       <div class="grid">
+        <article class="card">
+          <h3>autoreview</h3>
+          <p>Structured code review with isolated tools, credential scanning, and source-integrity checks. Astra medium by default; Sol xhigh on an account-access retry.</p>
+          <p class="say"><b>Say:</b> "use autoreview on my local changes, including P3 findings"</p>
+          <a class="more" href="howto.html#autoreview">How to use, with an example →</a>
+        </article>
         <article class="card">
           <h3>imagegen-frontend-mobile</h3>
           <p>Generates coherent iOS or Android screen and flow images, then inspects the render for legibility, consistency, and mobile conventions. Images only, never code.</p>
@@ -244,10 +250,10 @@ bun --bun /path/to/skills/tools/readiness-check.ts \
       <h2 id="h-log">Changelog</h2>
       <ul class="log">
         <!-- changelog:start -->
+        <li><span class="v">1.15.0<span class="d">2026-09-07</span></span><span><code>autoreview</code>: portable MIT-licensed adaptation of OpenClaw's structured review helper, maintained in this collection with its source revision, license, full tests, and no dependency on an upstream checkout.</span></li>
         <li><span class="v">1.14.0<span class="d">2026-09-07</span></span><span><code>imagegen-frontend-mobile</code>: an MIT-licensed, condensed adaptation of Leonxlnx's mobile image-generation skill.</span></li>
         <li><span class="v">1.13.0<span class="d">2026-09-07</span></span><span><code>mneves-fable-orchestrator</code> routes the heavy executor back to GPT-5.6-sol at reasoning <code>xhigh</code>; GPT-6-astra at <code>high</code> keeps only the planning, orchestration and review seat, the one Fable holds on the Claude side.</span></li>
         <li><span class="v">1.12.0<span class="d">2026-09-04</span></span><span><code>mneves-fable-orchestrator</code> routes the heavy executor to GPT-6-astra at reasoning <code>high</code> (was GPT-5.6-sol); the GPT-5.6-terra bulk tier is dropped, exceptions are pinned per lane.</span></li>
-        <li><span class="v">1.11.0<span class="d">2026-08-26</span></span><span>Recorded sessions in <code>HOWTO.md</code>: <code>mneves-eli5</code> and <code>mneves-expert-review</code> examples are verbatim <code>claude -p</code> runs (claude-fable-5, 2026-08-26); <code>mneves-teach-back-srs</code> shows real <code>srs_db.py</code> output; the readiness example was already a real run.</span></li>
         <!-- changelog:end -->
       </ul>
       <p style="margin-top:1rem"><a href="https://github.com/mneves75/skills/blob/main/CHANGELOG.md">Full changelog →</a></p>

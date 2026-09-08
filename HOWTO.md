@@ -1,6 +1,6 @@
 # How to use these skills
 
-Seven skills, one install. This page shows what each one does, how to trigger it, and what a
+Eight skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the [README](README.md); for the exact
 procedure an agent follows, open `skills/<name>/SKILL.md`.
 
@@ -15,13 +15,15 @@ OpenCode, pi and others). Check what got installed with `npx skills@latest list`
 prefer git, clone the repo into your agent's skills directory; the README has the paths.
 
 The readiness tool runs locally. An image-generation skill may send prompts and authorized
-references to the image provider configured in your agent.
+references to the image provider configured in your agent. Autoreview sends authorized review
+inputs to the selected review provider after scanning them for credentials.
 
 A skill is loaded when the agent decides your request matches its `description`. You can
 also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 skill".
 
 | Skill | Use it when you want to… | Say something like |
 |---|---|---|
+| `autoreview` | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
 | `imagegen-frontend-mobile` | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
 | `mneves-eli5` | explain a thing to a specific audience | "explain OAuth to my dad" |
 | `mneves-expert-review` | stress-test a plan or answer before it ships | "challenge this design" |
@@ -29,6 +31,30 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 | `mneves-fable-orchestrator` | split heavy work across models | "delegate the backend to codex" |
 | `mneves-agent-readiness` | measure how agent-friendly a repo is | "why does the agent struggle here?" |
 | `mneves-teach-back-srs` | learn a codebase with spaced repetition | "let me explain the auth flow" |
+
+---
+
+## autoreview
+
+**What it does.** Freezes the chosen Git target, scans the outgoing input, runs a reviewer in
+an isolated environment, validates its report, and rejects results if sources changed mid-review.
+The default is Astra medium, with one Sol xhigh retry only for account-access failures.
+
+**Example** (illustrative; replace the installed path).
+
+```sh
+python3 /path/to/autoreview/scripts/autoreview --mode local --max-priority P3
+```
+
+Run from the repository being reviewed. Python 3.11+, Git, TruffleHog, and an authenticated
+supported engine are required. No upstream checkout is required. For committed changes, use
+`--mode commit --commit <sha>` or `--mode branch --base <ref>`.
+
+The default threshold is P0 only; the example requests P3. Check the startup model and effort
+because environment variables can override defaults. Authorize private-content disclosure
+before sending inputs. Findings need verification against the actual code; a clean AI report
+does not prove the absence of vulnerabilities. See [the skill README](skills/autoreview/README.md)
+for testing and beta installation.
 
 ---
 

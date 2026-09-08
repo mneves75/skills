@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.15.0] - 2026-09-07
+
+### Added
+
+- **`autoreview`**: portable MIT-licensed adaptation of OpenClaw's structured review helper, maintained in this collection with its source revision, license, full tests, and no dependency on an upstream checkout. Available as the `v1.15.0-beta1` candidate.
+- Autoreview defaults to `gpt-6-astra` with medium reasoning and retries confirmed account-access failures once with `gpt-5.6-sol` at xhigh; primary overrides retain the fallback effort and other failures do not change models.
+- An isolated test runner and CI coverage for the imported review helper, including provider-route, scanner, source-integrity, and filesystem-boundary tests.
+
+### Changed
+
+- Catalog, installation, licensing, and maintenance documentation now include autoreview and explain that authorized review inputs are sent to the selected provider.
+
+### Security
+
+- Preserve the original repository's executable and environment trust boundary during nested submodule snapshots, preventing repository-owned Git binaries from running during preparation.
+- Validate both output targets and the directory entries that will be replaced; normalize accepted paths once so report writes and stale-status cleanup cannot enter the reviewed repository through symlinks or quoted home paths.
+
 ## [1.14.0] - 2026-09-07
 
 ### Added
@@ -245,6 +262,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This project is inspired by [Factory.ai](https://factory.ai)'s Code Readiness framework.
 
+[1.15.0]: https://github.com/mneves75/skills/releases/tag/v1.15.0-beta1
 [1.11.0]: https://github.com/mneves75/skills/releases/tag/v1.11.0
 [1.10.0]: https://github.com/mneves75/skills/releases/tag/v1.10.0
 [1.9.0]: https://github.com/mneves75/skills/releases/tag/v1.9.0

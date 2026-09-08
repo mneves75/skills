@@ -28,10 +28,13 @@ license, copyright, and provenance so its origin stays obvious. Directory name a
 truthfulness, private-reference handling, and the limits of static accessibility evidence explicit.
 Its MIT license travels inside the skill directory; the rest of the repository remains Apache-2.0.
 
-**Two skills ship small executables.** `mneves-fable-orchestrator/tools/codex-lane` is a bash
+**Some skills need executables.** `mneves-fable-orchestrator/tools/codex-lane` is a bash
 wrapper installed by symlink onto `PATH`; `mneves-teach-back-srs/scripts/srs_db.py` is a Python
 helper run from its skill directory. The repo copies are canonical. They are distinct from the
-repository's own `.githooks/pre-commit` guard. Other skills are Markdown-only; the readiness
+repository's own `.githooks/pre-commit` guard. `autoreview` packages a Python review CLI and its
+tests because subprocess isolation, credential scanning, and source integrity need enforcement
+in code. It is an MIT-licensed adaptation with a pinned upstream revision and local maintenance,
+so an installation does not depend on another checkout. Other skills are Markdown-only; the readiness
 assessor lives in the root `tools/` project.
 
 **`mneves-verify` ships no scripts at all.** It is deliberately machinery-free: the whole skill

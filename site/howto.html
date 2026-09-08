@@ -17,7 +17,7 @@ blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--line);c
 </head>
 <body>
 <h1>How to use these skills</h1>
-<p>Seven skills, one install. This page shows what each one does, how to trigger it, and what a
+<p>Eight skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the <a href="https://github.com/mneves75/skills/blob/main/README.md">README</a>; for the exact
 procedure an agent follows, open <code>skills/&lt;name&gt;/SKILL.md</code>.</p>
 <h2 id="install-once">Install once</h2>
@@ -27,7 +27,8 @@ procedure an agent follows, open <code>skills/&lt;name&gt;/SKILL.md</code>.</p>
 OpenCode, pi and others). Check what got installed with <code>npx skills@latest list</code>. If you
 prefer git, clone the repo into your agent&#39;s skills directory; the README has the paths.</p>
 <p>The readiness tool runs locally. An image-generation skill may send prompts and authorized
-references to the image provider configured in your agent.</p>
+references to the image provider configured in your agent. Autoreview sends authorized review
+inputs to the selected review provider after scanning them for credentials.</p>
 <p>A skill is loaded when the agent decides your request matches its <code>description</code>. You can
 also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use the mneves-eli5 skill&quot;.</p>
 <table>
@@ -39,6 +40,11 @@ also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use 
 </tr>
 </thead>
 <tbody><tr>
+<td><code>autoreview</code></td>
+<td>review a fixed Git target with an isolated AI reviewer</td>
+<td>&quot;use autoreview on my local changes, including P3 findings&quot;</td>
+</tr>
+<tr>
 <td><code>imagegen-frontend-mobile</code></td>
 <td>generate mobile screen or flow images, not code</td>
 <td>&quot;design a 4-screen iOS onboarding flow&quot;</td>
@@ -74,6 +80,22 @@ also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use 
 <td>&quot;let me explain the auth flow&quot;</td>
 </tr>
 </tbody></table>
+<hr>
+<h2 id="autoreview">autoreview</h2>
+<p><strong>What it does.</strong> Freezes the chosen Git target, scans the outgoing input, runs a reviewer in
+an isolated environment, validates its report, and rejects results if sources changed mid-review.
+The default is Astra medium, with one Sol xhigh retry only for account-access failures.</p>
+<p><strong>Example</strong> (illustrative; replace the installed path).</p>
+<pre><code class="language-sh">python3 /path/to/autoreview/scripts/autoreview --mode local --max-priority P3
+</code></pre>
+<p>Run from the repository being reviewed. Python 3.11+, Git, TruffleHog, and an authenticated
+supported engine are required. No upstream checkout is required. For committed changes, use
+<code>--mode commit --commit &lt;sha&gt;</code> or <code>--mode branch --base &lt;ref&gt;</code>.</p>
+<p>The default threshold is P0 only; the example requests P3. Check the startup model and effort
+because environment variables can override defaults. Authorize private-content disclosure
+before sending inputs. Findings need verification against the actual code; a clean AI report
+does not prove the absence of vulnerabilities. See <a href="https://github.com/mneves75/skills/blob/main/skills/autoreview/README.md">the skill README</a>
+for testing and beta installation.</p>
 <hr>
 <h2 id="imagegen-frontend-mobile">imagegen-frontend-mobile</h2>
 <p><strong>What it does.</strong> Generates images of iOS or Android screens and flows. It first defines the

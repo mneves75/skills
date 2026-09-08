@@ -14,6 +14,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 ```
 .
 ├── skills/
+│   ├── autoreview/                # Portable AI review CLI + security tests (MIT)
 │   ├── imagegen-frontend-mobile/   # Mobile screen/flow image generation (MIT)
 │   ├── mneves-agent-readiness/    # Codebase readiness assessment (pairs with tools/)
 │   ├── mneves-eli5/               # Feynman explainer, audience-calibrated
@@ -26,7 +27,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 ├── site/                     # GitHub Pages: index.html (landing), howto.html, sample readiness report
 ├── rules/ + sgconfig.yml     # ast-grep guard: reject `as any` (TS + TSX)
 ├── .githooks/pre-commit      # Blocking pre-commit hook (ast-grep scan) + its test
-├── .github/workflows/ci.yml  # CI: layout check, bash -n, py_compile, ast-grep, hook test, typecheck, lint
+├── .github/workflows/ci.yml  # CI: skill checks, syntax, ast-grep, hook/site/tools gates, autoreview tests
 ├── CHANGELOG.md · VERSION    # Keep a Changelog; VERSION is the single source of the version
 ├── SECURITY.md · NOTICE      # Vulnerability reporting; attributions
 └── MEMORY.md · memory/ · FOR_YOU_KNOW.md   # Project memory and the plain-language "why"
@@ -42,6 +43,7 @@ bash .githooks/pre-commit.test          # hook e2e test
 bun --bun tools/readiness-check.ts --format=html --output=report.html   # assess cwd
 tools/scripts/build-site.sh            # HOWTO.md -> site/howto.html + landing changelog rows (CI checks freshness)
 npx skills@latest add . --list          # what the skills CLI will discover
+python3 skills/autoreview/scripts/run-tests.py  # isolated unit/integration/security suite
 ```
 
 ## Invariants (CI enforces the checkable ones)
@@ -53,8 +55,9 @@ npx skills@latest add . --list          # what the skills CLI will discover
 - Never add a root `SKILL.md`: the skills CLI lets a shallower `SKILL.md` shadow everything
   below it.
 - Skills are Markdown-first. Shipped executables are `bash` + `set -euo pipefail`, `bash -n`
-  clean, installed by symlink onto `PATH` (the repo copy is canonical). Only
-  `mneves-fable-orchestrator/tools/codex-lane` and `mneves-teach-back-srs/scripts/srs_db.py` exist.
+  clean when written in Bash. Python helpers use Python 3.11+ and the standard library.
+  Executable skills are `autoreview`, `mneves-fable-orchestrator`, and `mneves-teach-back-srs`;
+  the repository copy is canonical and each ships its relevant verification procedure.
 - No `any` / `as any` in `tools/`; use `unknown` + a narrowing guard. ast-grep blocks it.
 - No personal paths, machine layout, secrets or client names in shipped files; a skill must work
   for a stranger's clone.

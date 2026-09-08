@@ -14,6 +14,7 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.15.0 beta candidate** (2026-09-07): adds portable MIT-licensed `autoreview`, with Astra medium and access-only Sol xhigh fallback. The complete helper and tests are maintained here; installation needs no external upstream checkout.
 - **1.14.0** (2026-09-07): added the MIT-licensed `imagegen-frontend-mobile` adaptation; Codex routing defaults to GPT-6 Astra at `high` for execution, planning, review, and inherited agents; skill descriptions are concise and launcher mechanics live in a conditional reference.
 - **1.11.0** (2026-08-26): recorded sessions in HOWTO, ruleset on `main`, teach-back script path relative,
   model table in orchestrator, landing changelog generated (`build-site.sh`).
@@ -29,7 +30,7 @@ measure whether a *target* codebase is ready for agents.
 - **1.7.0 / 1.6.0** (2026-08-26): `mneves-expert-review`, `mneves-eli5`.
 - **1.5.0** shipped: adds `mneves-verify` (independent-verification skill) plus the
   repo's own ast-grep `as any` guard and a blocking pre-commit hook.
-- Skills: `imagegen-frontend-mobile`, `mneves-agent-readiness`, `mneves-eli5`, `mneves-expert-review`,
+- Skills: `autoreview`, `imagegen-frontend-mobile`, `mneves-agent-readiness`, `mneves-eli5`, `mneves-expert-review`,
   `mneves-fable-orchestrator` (ships `codex-lane`), `mneves-teach-back-srs`, `mneves-verify`.
 - `tools/` is a Bun + TypeScript project with no external runtime deps; dev deps only (Biome,
   TypeScript, bun-types).
@@ -39,11 +40,10 @@ measure whether a *target* codebase is ready for agents.
 - **Naming and provenance.** Original skills use the `mneves-` prefix. Adapted third-party skills
   retain their upstream name, compatible license, copyright, and source. Directory name and
   frontmatter `name:` must match.
-- **Skills are Markdown-first.** Two executables ship inside skills, `srs_db.py` (helper) and `codex-lane`
-  (`skills/mneves-fable-orchestrator/tools/codex-lane`). It is distinct from the repo's own
-  `.githooks/pre-commit` guard (a repository-level hook, not a skill). It is `bash` +
-  `set -euo pipefail`, `bash -n` clean, and installed by symlink onto `PATH` (repo copy is
-  canonical). New skills should stay machinery-free unless a real executable is the point.
+- **Skills are Markdown-first.** `autoreview` ships an isolated review CLI and its tests;
+  `mneves-teach-back-srs` ships `srs_db.py`; `mneves-fable-orchestrator` ships `codex-lane`.
+  These are distinct from the repository's `.githooks/pre-commit` guard. New skills should
+  stay machinery-free unless a real executable is the point.
 - **`VERSION`, the README badge, and the top `CHANGELOG.md` entry must agree.** Single source is
   `VERSION`.
 - **The repo guards itself with ast-grep.** `rules/no-as-any.yml` rejects `as any` in TypeScript

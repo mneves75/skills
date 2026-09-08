@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.14.0-blue)
+![Version](https://img.shields.io/badge/version-1.15.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -13,6 +13,7 @@ Skills for AI coding agents. Each installs into any tool that reads `SKILL.md` f
 
 | Skill | Description |
 |-------|-------------|
+| [autoreview](skills/autoreview/) | Structured, isolated code review; Astra medium with an account-access Sol xhigh fallback; ships its helper and security tests |
 | [imagegen-frontend-mobile](skills/imagegen-frontend-mobile/) | Generate coherent iOS or Android screen and flow images, with platform conventions, visual QA, and no code |
 | [mneves-eli5](skills/mneves-eli5/) | Feynman-technique explainer calibrated to the listener (child, layperson, executive, junior, expert), answered in the user's language |
 | [mneves-agent-readiness](skills/mneves-agent-readiness/) | Evaluate codebase readiness for AI agents: 9 pillars, maturity levels L1–L5, local-only |
@@ -90,11 +91,13 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Security reports: [SECURITY.md](SECURITY
 ## License
 
 Original work in this repository is Apache-2.0. The adapted
-[`imagegen-frontend-mobile`](skills/imagegen-frontend-mobile/) skill retains its upstream MIT
-license and copyright; see its [`LICENSE`](skills/imagegen-frontend-mobile/LICENSE) file.
+[`imagegen-frontend-mobile`](skills/imagegen-frontend-mobile/) and
+[`autoreview`](skills/autoreview/) skills retain their upstream MIT licenses and copyrights;
+see the `LICENSE` file in each directory.
 
 The repository's readiness tooling runs locally. Image-generation workflows may send prompts and
-references to the configured image provider; do not send private references without authorization.
+references to the configured image provider; autoreview sends scanned review inputs to the
+selected review provider. Authorize private-content disclosure before either workflow.
 
 ## Acknowledgments
 
