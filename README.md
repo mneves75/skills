@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.15.0-blue)
+![Version](https://img.shields.io/badge/version-1.16.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -19,6 +19,7 @@ Skills for AI coding agents. Each installs into any tool that reads `SKILL.md` f
 | [mneves-agent-readiness](skills/mneves-agent-readiness/) | Evaluate codebase readiness for AI agents: 9 pillars, maturity levels L1–L5, local-only |
 | [mneves-expert-review](skills/mneves-expert-review/) | Expert-panel review and optimization pass before finalizing: objective, first principles, research, hostile panel, 6 alternatives compared on weighted criteria, pre-mortem, five-year test, contrarian steelman, quality audit, improved deliverable |
 | [mneves-fable-orchestrator](skills/mneves-fable-orchestrator/) | Route non-trivial work across the main agent, Codex (`gpt-6-astra` high), and subagents; ships [`codex-lane`](skills/mneves-fable-orchestrator/tools/codex-lane) |
+| [mneves-superaudit](skills/mneves-superaudit/) | Bounded, delegated audit-and-ship pass: slop, performance, agent DX, PR triage — falsifiable done-conditions and stop gates before every external write |
 | [mneves-teach-back-srs](skills/mneves-teach-back-srs/) | Spaced-repetition learning through codebase teach-back sessions (SM-2 + SQLite) |
 | [mneves-verify](skills/mneves-verify/) | Independent verification before done/fixed/shipped: fresh context checks the artifact against criteria, PASS/FAIL/BLOCKED |
 

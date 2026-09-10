@@ -312,6 +312,44 @@ Style 88%, strong documentation, weaker on task discovery and product signals. T
 whose pillar structure inspired them.</li>
 </ul>
 <hr>
+<h2 id="mneves-superaudit">mneves-superaudit</h2>
+<p><strong>What it does.</strong> Turns &quot;audit everything and clean it up&quot; into a bounded pass with four
+selectable items — slop removal, performance wins, agent DX and verification loops, PR/issue
+triage — each ending on a falsifiable condition, run through five phases with stop gates before
+every external write. It grants no authority: commit, push, tag, release, deploy and PR merge each
+need your explicit word for that action and target.</p>
+<p><strong>Triggers.</strong> &quot;superaudit&quot;, &quot;audit the codebase and clean it up&quot;, &quot;hunt for performance wins&quot;,
+&quot;find slop&quot;, &quot;audit open PRs&quot;, or an end-to-end review → fix → verify → release pass. Not for a
+single bug fix or a one-file change.</p>
+<p><strong>Example</strong> (illustrative). You point it at a repo and pick two items:</p>
+<pre><code>superaudit ~/dev/myapp — items 1,2 only
+</code></pre>
+<ol>
+<li>It fills the brief with you, then opens <code>agent_planning/superaudit-2026-09-10.md</code> and records
+<code>git status -sb</code> before touching anything.</li>
+<li>Three read-only explore agents sweep disjoint path sets. Discovery parallelizes; nothing is
+edited yet.</li>
+<li>It reports ranked findings — what, <code>path:line</code>, why it&#39;s wrong, the fix, the risk, and the check
+that would prove the fix safe. <strong>Stop.</strong> You pick what to cut.</li>
+<li>It implements only your selections. Items 1 and 2 touch the same files, so those run
+partitioned by path or serialized, never as concurrent writers.</li>
+<li>It measures: baseline and candidate, same recorded conditions, one variable. Two of the three
+&quot;wins&quot; land inside noise and are reported inconclusive rather than claimed.</li>
+<li><strong>Stop.</strong> You read the diff. Release only happens if you then ask for it by destination.</li>
+</ol>
+<p><strong>Tips.</strong></p>
+<ul>
+<li>Name the items explicitly. <code>items 1,2</code> skips agent DX and PR triage entirely, and the release
+phase never loads.</li>
+<li>Don&#39;t run it on a tree another agent is writing to. It preserves changes it doesn&#39;t own, but
+concurrent writes make the item-2 measurements worthless.</li>
+<li>Fill <code>Out of scope</code> in the brief. It is the field that most reliably prevents a three-hour run.</li>
+<li>The progress file is the point of a long run, not a byproduct — it is what survives compaction,
+and it is the deliverable for item 3.</li>
+<li>Amend the skill only from failures you actually saw. Instructions added &quot;just in case&quot; cost
+context on every future run.</li>
+</ul>
+<hr>
 <h2 id="mneves-teach-back-srs">mneves-teach-back-srs</h2>
 <p><strong>What it does.</strong> You explain part of a codebase; the agent reads the actual code while you
 talk, asks three to five follow-up questions aimed at what you got wrong or skipped, and turns

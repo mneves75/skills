@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.0] - 2026-09-10
+
+### Added
+
+- **`mneves-superaudit`**: a bounded, delegated audit-and-ship pass over a repository. Four selectable items — slop removal, performance wins, agent DX and verification loops, PR/issue triage — each ending on a falsifiable condition rather than a judgement that the work feels complete. Five phases with typed stop gates: findings before any edit, the diff before any commit, and an explicit release instruction naming a destination before anything leaves the machine.
+- Delegation guidance sized to the documented multi-agent failure modes: a per-task-class worker budget, briefs that name the other workers' paths as *do not touch*, a distilled return contract that passes file references instead of transcripts, and the cases where delegating costs more than it saves. Discovery parallelizes because it is read-only; implementation partitions by path or serializes, since the slop and performance items touch the same files.
+- Measurement rules that can return "inconclusive": a performance result inside noise, or one depending on the change's own instrumentation, is never reported as a win; negative assertions and security gates require a positive control placed where the gate actually looks, and a policy claim counts only against the served artifact.
+- A per-phase progress file (`agent_planning/superaudit-<date>.md`) so a long run survives compaction, and an A/B protocol for testing changes to the skill itself against a fixed repository and commit.
+
+### Changed
+
+- Catalog and HOWTO now cover the new skill, including the item-selection syntax that keeps unused phases out of context.
+
 ## [1.15.0] - 2026-09-07
 
 ### Added
@@ -262,6 +275,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This project is inspired by [Factory.ai](https://factory.ai)'s Code Readiness framework.
 
+[1.16.0]: https://github.com/mneves75/skills/releases/tag/v1.16.0
 [1.15.0]: https://github.com/mneves75/skills/releases/tag/v1.15.0-beta1
 [1.11.0]: https://github.com/mneves75/skills/releases/tag/v1.11.0
 [1.10.0]: https://github.com/mneves75/skills/releases/tag/v1.10.0

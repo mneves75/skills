@@ -320,6 +320,49 @@ Five yes answers is L5; each no drops a level. Level 3 is the working minimum.
 
 ---
 
+## mneves-superaudit
+
+**What it does.** Turns "audit everything and clean it up" into a bounded pass with four
+selectable items — slop removal, performance wins, agent DX and verification loops, PR/issue
+triage — each ending on a falsifiable condition, run through five phases with stop gates before
+every external write. It grants no authority: commit, push, tag, release, deploy and PR merge each
+need your explicit word for that action and target.
+
+**Triggers.** "superaudit", "audit the codebase and clean it up", "hunt for performance wins",
+"find slop", "audit open PRs", or an end-to-end review → fix → verify → release pass. Not for a
+single bug fix or a one-file change.
+
+**Example** (illustrative). You point it at a repo and pick two items:
+
+```
+superaudit ~/dev/myapp — items 1,2 only
+```
+
+1. It fills the brief with you, then opens `agent_planning/superaudit-2026-09-10.md` and records
+   `git status -sb` before touching anything.
+2. Three read-only explore agents sweep disjoint path sets. Discovery parallelizes; nothing is
+   edited yet.
+3. It reports ranked findings — what, `path:line`, why it's wrong, the fix, the risk, and the check
+   that would prove the fix safe. **Stop.** You pick what to cut.
+4. It implements only your selections. Items 1 and 2 touch the same files, so those run
+   partitioned by path or serialized, never as concurrent writers.
+5. It measures: baseline and candidate, same recorded conditions, one variable. Two of the three
+   "wins" land inside noise and are reported inconclusive rather than claimed.
+6. **Stop.** You read the diff. Release only happens if you then ask for it by destination.
+
+**Tips.**
+- Name the items explicitly. `items 1,2` skips agent DX and PR triage entirely, and the release
+  phase never loads.
+- Don't run it on a tree another agent is writing to. It preserves changes it doesn't own, but
+  concurrent writes make the item-2 measurements worthless.
+- Fill `Out of scope` in the brief. It is the field that most reliably prevents a three-hour run.
+- The progress file is the point of a long run, not a byproduct — it is what survives compaction,
+  and it is the deliverable for item 3.
+- Amend the skill only from failures you actually saw. Instructions added "just in case" cost
+  context on every future run.
+
+---
+
 ## mneves-teach-back-srs
 
 **What it does.** You explain part of a codebase; the agent reads the actual code while you
