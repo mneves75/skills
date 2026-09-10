@@ -17,13 +17,13 @@ codex-auto review --commit <sha>
 Use `--opm-profile <id>` only when the caller deliberately selects an account. Automatic account
 selection and an explicit profile must produce the same model policy.
 
-Codex CLI 0.153.4 loads named profiles from `$CODEX_HOME/<name>.config.toml`; legacy
+Current Codex CLI releases load named profiles from `$CODEX_HOME/<name>.config.toml`; legacy
 `[profiles.<name>]` tables in the base file make `--profile` fail. Keep shared provider definitions
 in `config.toml` and profile-specific model settings in the overlay file. Homes that share the
 base config should link the same overlays when they are meant to expose the same named profiles.
 
-Defaults are `gpt-6-astra` at `high` for execution, planning, review, and ordinary inherited
-agents. The live quota probe uses Astra at `low`, disables user instructions and skills, and runs
+The heavy-executor model and effort come from the Defaults block in `SKILL.md` — this file does
+not restate them. The live quota probe uses that model at `low`, disables user instructions and skills, and runs
 in an isolated read-only directory.
 
 For a deliberate exception, set `CODEX_AUTO_MODEL` and `CODEX_AUTO_EFFORT`; review uses
@@ -80,7 +80,7 @@ use a private temporary configuration home when another session is actively edit
 one. Do not silently repair or bypass another session's in-flight configuration.
 
 Model availability can differ by account even when the CLI and shared config are identical.
-When an account rejects Astra, record the exact API error and let the account-selection policy
+When an account rejects the configured model, record the exact API error and let the account-selection policy
 choose a compatible home; do not silently substitute another default model.
 
 Resume the same lane after an interruption. Change strategy only when the error identifies a

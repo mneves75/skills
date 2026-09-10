@@ -1,6 +1,6 @@
 ---
 name: mneves-superaudit
-description: Run a bounded, delegated audit-and-ship pass over a repository — slop removal, performance wins, agent DX and verification loops, PR/issue triage — with typed stop gates before every external write. Use for "superaudit", "audit the codebase and clean it up", "hunt for performance wins", "find slop", "audit open PRs", or an end-to-end review → fix → verify → release pass. Not for a single bug fix or a one-file change.
+description: Bounded delegated audit-and-ship pass over a repo — slop, performance, agent DX, PR triage. Use for a repo-wide cleanup pass.
 license: Apache-2.0
 ---
 
@@ -89,18 +89,11 @@ Read [references/phases.md](references/phases.md) on entering phase 0 — entry/
 performance measurement protocol, security and review requirements, the progress file that keeps a
 long run alive across compaction, and the A/B protocol for testing this skill itself.
 
-## 6. Deliberately absent
+## 6. Do not pad this run
 
-Do not re-add these.
+Skip the rituals: "think of 10 other solutions", "imagine you are 5 years from now", "are you
+satisfied", a second full review pass over unchanged work. None substitutes for a configured
+reasoning effort, and none was traced to a real failure.
 
-- **A copy of your agent's global contract.** It is already loaded. Two copies drift, and
-  contradictory rules cost tokens to reconcile.
-- **Platform-specific guidance** (Apple/Xcode, a given framework). Belongs in the individual
-  project's `AGENTS.md` or `CLAUDE.md`, once.
-- **Model names and reasoning effort.** Routing belongs in your agent's configuration, not in a
-  skill that outlives any particular model.
-- **Ritual instructions** — "think of 10 other solutions", "imagine you are 5 years from now", "are
-  you satisfied", "review it all again", "ultrathink". None substitutes for a configured reasoning
-  effort, and none was traced to a real failure.
-
-When this skill misfires, add one line describing that failure. Nothing else.
+When this skill misfires, add one line describing that failure. Nothing else. The README explains
+what else was deliberately left out and why.

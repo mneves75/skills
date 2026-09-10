@@ -61,6 +61,15 @@ Detail is held behind references so a run that only does item 1 never loads the 
 Stack-specific profilers and repo-wide over-engineering audits sharpen items 1 and 2 when installed.
 Skip an absent one rather than substituting a weaker check.
 
+## Deliberately left out
+
+- **A copy of your agent's global contract.** It is already loaded. Two copies drift, and
+  contradictory rules cost the model tokens to reconcile.
+- **Platform-specific guidance** (Apple/Xcode, a given framework). That belongs in the individual
+  project's `AGENTS.md` or `CLAUDE.md`, once.
+- **Model names and reasoning effort.** Routing belongs in your agent's configuration, not in a
+  skill meant to outlive any particular model.
+
 ## Maintenance
 
 This skill is a hypothesis until measured. `references/phases.md` carries an A/B protocol: same repo,

@@ -48,32 +48,18 @@ engineers" block underneath. Do not average the levels into something that serve
 
 ## Rules
 
-- **Answer in the user's language.** pt-BR in → pt-BR out with correct accents; same for any
-  other language. Keep code identifiers, commands, product names, and established English
-  terms in the original, but gloss them in the user's language the first time.
+- **Answer in the user's language**, with correct accents. Keep code identifiers, commands, and
+  product names in the original, but gloss them the first time.
 - Simple ≠ wrong. If a simplification would leave the listener believing something false
   that matters for their decision, keep the complexity and explain it instead.
 - No condescension. Never "it's easy" / "obviously" / "simply". Being 5 is about vocabulary,
   not intelligence.
 - Concrete beats abstract: a specific number, a named thing, a single scenario. Replace
   every "some", "various", "etc." with the actual case.
-- One idea per paragraph; short sentences; active voice; the listener as subject where
-  possible ("you send…", "your phone asks…").
+- Put the listener in the sentence as the subject ("you send…", "your phone asks…").
 - Re-explain on request without re-deriving: when the user says "now for my CTO" or "more
   technical", keep the same core sentence and analogy, change the level only.
 
-## Quick example (layperson, pt-BR)
+## Examples
 
-Pedido: "explica o que é DNS pro meu pai".
-
-> DNS é a agenda de contatos da internet. Você digita `google.com`, mas o computador só sabe
-> ligar para números (o endereço IP, tipo `142.250.79.14`). Então, antes de abrir o site, ele
-> pergunta a uma "agenda" na rede: "qual é o número do google.com?" — recebe o número e aí sim
-> conecta. Quando um site "não abre" mas a internet funciona, muitas vezes é essa agenda que
-> está fora do ar ou desatualizada.
->
-> Onde a analogia falha: a agenda não é um lugar só, são milhares de cópias espalhadas pelo
-> mundo que se atualizam entre si — por isso uma mudança de endereço pode demorar horas para
-> "chegar" no seu computador.
->
-> Resumo para repetir: DNS traduz nomes de site em números que o computador consegue ligar.
+Worked examples per level: [references/examples.md](references/examples.md).

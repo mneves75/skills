@@ -20,6 +20,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── mneves-eli5/               # Feynman explainer, audience-calibrated
 │   ├── mneves-expert-review/      # Expert-panel review/optimization pass (+ references/)
 │   ├── mneves-fable-orchestrator/ # Model routing; Codex reference + tools/codex-lane
+│   ├── mneves-superaudit/         # Bounded audit-and-ship pass (+ references/)
 │   ├── mneves-teach-back-srs/     # Spaced-repetition teach-back (+ scripts/srs_db.py)
 │   └── mneves-verify/             # Independent verification before done/fixed/shipped
 ├── tools/                    # Readiness assessor (Bun + TypeScript): readiness-check.ts + lib/
@@ -55,12 +56,21 @@ python3 skills/autoreview/scripts/run-tests.py  # isolated unit/integration/secu
 - Never add a root `SKILL.md`: the skills CLI lets a shallower `SKILL.md` shadow everything
   below it.
 - Skills are Markdown-first. Shipped executables are `bash` + `set -euo pipefail`, `bash -n`
-  clean when written in Bash. Python helpers use Python 3.11+ and the standard library.
+  clean when written in Bash. Python helpers use Python 3.10+ and the standard library;
+  each helper states its own floor and that claim must match the syntax it actually uses.
   Executable skills are `autoreview`, `mneves-fable-orchestrator`, and `mneves-teach-back-srs`;
   the repository copy is canonical and each ships its relevant verification procedure.
 - No `any` / `as any` in `tools/`; use `unknown` + a narrowing guard. ast-grep blocks it.
 - No personal paths, machine layout, secrets or client names in shipped files; a skill must work
-  for a stranger's clone.
+  for a stranger's clone. A tool's own documented default (`~/.codex/lanes`) and an install
+  instruction are not machine layout; a path only the author has is.
+- A skill must not require anything it does not ship. Where it names an unshipped tool or a
+  sibling skill, say so and give the fallback, so a single-skill install still works.
+- Model ids and reasoning tiers live in exactly one clearly marked block per skill, or in the
+  user's own configuration. Prose refers to capability roles ("heavy executor"), never to a
+  product name, so a model release is a one-line edit. The same applies to pinned CLI versions.
+- `SKILL.md` bodies stay under 500 lines; detail sits behind `references/`, linked one level
+  deep from `SKILL.md` and never reference-to-reference.
 - `VERSION`, the README badge and the top `CHANGELOG.md` entry agree.
 
 ## Adding a Skill

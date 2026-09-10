@@ -10,7 +10,7 @@ low-risk changes use proportionate deterministic proof.
 The model that built a thing is the least reliable judge of whether it works. Verification
 therefore always runs in an **independent context**:
 
-- Pi built it → a primary Codex or Claude verifies with fresh context.
+- A subagent built it → the primary session verifies with fresh context.
 - The primary built it → a fresh independent permitted model/context verifies.
 - High-risk work (release, production, security, legal, contested) → a **different model**
   than the builder, always. The verdict records whether that was required and whether it ran.

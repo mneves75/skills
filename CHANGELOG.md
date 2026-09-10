@@ -5,6 +5,63 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.17.0] - 2026-09-10
+
+Every skill reviewed against Anthropic's Agent Skills authoring guidance and this repository's own
+invariants. Activated `SKILL.md` bodies drop from 7,889 to 6,045 words while the collection gains
+13 on-demand reference files, so a skill that is triggered now loads materially less and reaches
+the rest only when a task needs it.
+
+### Changed
+
+- **`autoreview`**: body 1,702 → 635 words. The Codex config-projection contract, status-sidecar
+  schema and exit codes, Git target edge cases, runtime boundaries, and engine override mechanics
+  moved to five reference files, each linked one level deep from `SKILL.md`. Every flag and
+  operational fact is preserved.
+- **`mneves-teach-back-srs`**: body 1,197 → 775 words. Review, Stats and Export modes and the
+  card-quality rules moved to references; the teach-back loop, decision tree and database setup
+  stay inline. SM-2 thresholds are no longer restated in prose — the `stats` command owns them.
+- **`mneves-expert-review`**: twelve steps collapse to six. The pre-mortem, five-year test and
+  contrarian steelman were the same move in three costumes and are now one combined attack step;
+  the duplicated second quality audit is gone; the "six or more alternatives" quota becomes
+  "until they stop differing in kind". `references/checklists.md` is deleted — it restated the
+  body rather than deferring anything.
+- **`mneves-eli5`**, **`mneves-agent-readiness`**, **`imagegen-frontend-mobile`**: worked example,
+  context-file template, and safety boilerplate the base agent already applies moved out or
+  removed. Two epigraphs and an unfalsifiable "updated within 30 days" freshness rule deleted.
+- **`mneves-fable-orchestrator`**: model identifiers no longer appear in six places across three
+  files. Prose describes capability roles and a single Defaults block carries the ids, so a model
+  release is a one-line edit. `codex-auto` is now declared a personal launcher that this repository
+  does not ship, with the plain `codex exec` equivalent given.
+- **`mneves-verify`**: the independence rule states the principle instead of naming vendors, and
+  the evidence table leads with the required capability rather than with tools that are not
+  shipped here.
+- **`mneves-superaudit`**: description reduced from 430 to 124 characters — it was loading a
+  trigger-phrase inventory into every session, at roughly three times any sibling.
+- Pinned CLI patch versions removed from `autoreview`'s prerequisites; the helper reports its own
+  current defaults.
+
+### Fixed
+
+- `mneves-expert-review` referenced a private documentation layout (`DOCS/GUIDELINES-REF`,
+  `DOCS/REF_DOCS`) that exists only on the author's machine, and `mneves-teach-back-srs`'s README
+  hardcoded one harness's install path. Both violated the repository's own "must work for a
+  stranger's clone" invariant.
+- `mneves-agent-readiness` described the readiness assessor as "bundled with this skill"; it lives
+  at the repository root and is absent from a single-skill install. The skill now says so and
+  points at the manual pass as the fallback.
+- `AGENTS.md` omitted `mneves-superaudit` from its project tree, and `HOWTO.md` still said "eight
+  skills" with the new one missing from its quick-reference table.
+- `AGENTS.md` required Python 3.11+ for shipped helpers while `srs_db.py` documents and needs only
+  3.10; the invariant was wrong, not the skill.
+
+### Added
+
+- `AGENTS.md` invariants for the rules this pass had to apply by hand: model identifiers confined
+  to one block per skill, no skill requiring anything it does not ship, `SKILL.md` bodies under
+  500 lines with references one level deep, and the distinction between a tool's documented
+  default path and the author's private machine layout.
+
 ## [1.16.0] - 2026-09-10
 
 ### Added
@@ -275,6 +332,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 This project is inspired by [Factory.ai](https://factory.ai)'s Code Readiness framework.
 
+[1.17.0]: https://github.com/mneves75/skills/releases/tag/v1.17.0
 [1.16.0]: https://github.com/mneves75/skills/releases/tag/v1.16.0
 [1.15.0]: https://github.com/mneves75/skills/releases/tag/v1.15.0-beta1
 [1.11.0]: https://github.com/mneves75/skills/releases/tag/v1.11.0

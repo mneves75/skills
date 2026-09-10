@@ -10,8 +10,8 @@ Delegate only when the work is independent, substantial, and objectively verifia
 |------|-----|------|
 | Advisor | Fable (main session) | Repo understanding, architecture decisions, task decomposition, spec writing, final review |
 | Frontend executor | Opus subagents | UI components, styling, layout, visual polish |
-| Codex | `gpt-6-astra` at `high` via `codex-auto` / `codex-lane` | Execution, planning, review, debugging, and refactors |
-| Long-horizon driver | Available goal workflow | User-requested multi-phase work driven to its stopping condition |
+| Heavy executor | Codex via `codex exec` / `codex-lane` (model per the skill's Defaults block) | Execution, planning, review, debugging, and refactors |
+| Long-horizon driver | A lane, a checked-in plan file, or your harness's long-task mechanism | User-requested multi-phase work driven to its stopping condition |
 
 ## Continuity is the whole game
 
@@ -62,7 +62,7 @@ the full model transcript for the job.
 - **[Codex CLI](https://github.com/openai/codex)** installed and authenticated, for the
   heavy-executor path. The `/codex:rescue` command from the openai-codex plugin is an
   equivalent front-end if you have that plugin; the routing rules apply either way.
-  Set the shared Codex default to `gpt-6-astra` at `high`. Preserve deliberate per-call
+  Set the shared Codex default from the skill's Defaults block. Preserve deliberate per-call
   specialist overrides. See `references/codex-dispatch.md` for launcher mechanics.
 - **Goal workflow**: optional; use the goal mechanism exposed by the active agent runtime
 

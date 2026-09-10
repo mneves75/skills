@@ -1,6 +1,6 @@
 # How to use these skills
 
-Eight skills, one install. This page shows what each one does, how to trigger it, and what a
+Nine skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the [README](README.md); for the exact
 procedure an agent follows, open `skills/<name>/SKILL.md`.
 
@@ -31,6 +31,7 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 | `mneves-fable-orchestrator` | split heavy work across models | "delegate the backend to codex" |
 | `mneves-agent-readiness` | measure how agent-friendly a repo is | "why does the agent struggle here?" |
 | `mneves-teach-back-srs` | learn a codebase with spaced repetition | "let me explain the auth flow" |
+| `mneves-superaudit` | run a bounded audit-and-cleanup pass over a repo | "superaudit this repo, slop and perf only" |
 
 ---
 
@@ -38,7 +39,8 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 
 **What it does.** Freezes the chosen Git target, scans the outgoing input, runs a reviewer in
 an isolated environment, validates its report, and rejects results if sources changed mid-review.
-The default is Astra medium, with one Sol xhigh retry only for account-access failures.
+The helper prints its default model and reasoning tier at startup; one retry on the fallback
+is reserved for account-access failures.
 
 **Example** (illustrative; replace the installed path).
 
@@ -135,12 +137,12 @@ care; otherwise the agent infers it and says which it picked.
 
 ## mneves-expert-review
 
-**What it does.** Runs a twelve-step pass over a draft (or a request with no draft yet):
-clarify the real objective, rebuild from first principles, research only when it changes the
-answer, attack the draft as a hostile panel, produce six different alternatives including one
-that questions the premise, compare them on weighted criteria, pre-mortem, five-year test,
-steelman the contrarian view, audit, then return the improved deliverable. It scales with the
-stakes: a factual one-liner gets the mental version, a migration plan gets the full pass.
+**What it does.** Runs a six-step pass over a draft (or a request with no draft yet): clarify
+the real objective, rebuild from first principles, research only when it changes the answer,
+attack it from three angles at once (hostile panel, pre-mortem, the strongest opposing case),
+generate alternatives that differ in kind and compare them on weighted criteria, then improve,
+audit once, and deliver. It scales with the stakes: a factual one-liner gets the mental
+version, a migration plan gets the full pass.
 
 **Triggers.** "expert review", "rigorous pass", "best possible answer", "challenge this",
 "stress-test", "revisão rigorosa", "melhor solução", or before any high-stakes plan, design,
@@ -176,7 +178,8 @@ recommendation or architecture decision.
 - Give it the draft, not a summary of the draft. It reads the whole thing first.
 - Use `mneves-verify` afterwards when the user, repository, workflow, or risk requires an
   independent judge. The panel argues; the verifier runs things.
-- Detailed prompts for each step live in `skills/mneves-expert-review/references/checklists.md`.
+- Ask for the challenge-the-premise alternative explicitly if it does not surface it. That is
+  the one you cannot produce yourself, and it is reported even when rejected.
 
 ---
 

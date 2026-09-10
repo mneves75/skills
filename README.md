@@ -1,24 +1,24 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.16.0-blue)
+![Version](https://img.shields.io/badge/version-1.17.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
 
 Skills for AI coding agents. Each installs into any tool that reads `SKILL.md` folders.
 
-**New here?** Read [HOWTO.md](HOWTO.md) ([web version](https://mneves75.github.io/skills/howto.html)); site: [mneves75.github.io/skills](https://mneves75.github.io/skills/): what each skill does, how to trigger it, and an example for every one (four recorded from real runs, three illustrative and labelled).
+**New here?** Read [HOWTO.md](HOWTO.md) ([web version](https://mneves75.github.io/skills/howto.html)); site: [mneves75.github.io/skills](https://mneves75.github.io/skills/): what each skill does, how to trigger it, and an example for every one (those recorded from real runs and those written as illustrations are each labelled as such).
 
 ## Available Skills
 
 | Skill | Description |
 |-------|-------------|
-| [autoreview](skills/autoreview/) | Structured, isolated code review; Astra medium with an account-access Sol xhigh fallback; ships its helper and security tests |
+| [autoreview](skills/autoreview/) | Structured, isolated code review of a fixed Git target; ships its helper, security tests, and its own engine defaults |
 | [imagegen-frontend-mobile](skills/imagegen-frontend-mobile/) | Generate coherent iOS or Android screen and flow images, with platform conventions, visual QA, and no code |
 | [mneves-eli5](skills/mneves-eli5/) | Feynman-technique explainer calibrated to the listener (child, layperson, executive, junior, expert), answered in the user's language |
 | [mneves-agent-readiness](skills/mneves-agent-readiness/) | Evaluate codebase readiness for AI agents: 9 pillars, maturity levels L1–L5, local-only |
-| [mneves-expert-review](skills/mneves-expert-review/) | Expert-panel review and optimization pass before finalizing: objective, first principles, research, hostile panel, 6 alternatives compared on weighted criteria, pre-mortem, five-year test, contrarian steelman, quality audit, improved deliverable |
-| [mneves-fable-orchestrator](skills/mneves-fable-orchestrator/) | Route non-trivial work across the main agent, Codex (`gpt-6-astra` high), and subagents; ships [`codex-lane`](skills/mneves-fable-orchestrator/tools/codex-lane) |
+| [mneves-expert-review](skills/mneves-expert-review/) | Six-step stress test before finalizing: objective, first principles, research that changes the answer, one combined attack (panel + pre-mortem + opposing case), alternatives compared on weighted criteria, improved deliverable |
+| [mneves-fable-orchestrator](skills/mneves-fable-orchestrator/) | Route non-trivial work across the main session, a heavy executor, and subagents; models live in one Defaults block; ships [`codex-lane`](skills/mneves-fable-orchestrator/tools/codex-lane) |
 | [mneves-superaudit](skills/mneves-superaudit/) | Bounded, delegated audit-and-ship pass: slop, performance, agent DX, PR triage — falsifiable done-conditions and stop gates before every external write |
 | [mneves-teach-back-srs](skills/mneves-teach-back-srs/) | Spaced-repetition learning through codebase teach-back sessions (SM-2 + SQLite) |
 | [mneves-verify](skills/mneves-verify/) | Independent verification before done/fixed/shipped: fresh context checks the artifact against criteria, PASS/FAIL/BLOCKED |

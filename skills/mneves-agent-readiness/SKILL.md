@@ -8,9 +8,7 @@ license: Apache-2.0
 
 ## Core Insight
 
-> "The agent is not broken. The environment is."
-
-AI coding agents operate in a feedback loop: **gather context -> take action -> verify work -> iterate**
+Agent failure is usually an environment problem, not a model problem. AI coding agents operate in a feedback loop: **gather context -> take action -> verify work -> iterate**
 
 This skill evaluates whether your codebase supports each phase of that loop.
 
@@ -78,32 +76,11 @@ bun --bun $SKILLS/tools/readiness-check.ts --min-level=3
 
 ## Context File Template
 
-Works as CLAUDE.md, .cursorrules, or AGENTS.md:
-
-```markdown
-# Project Context
-
-## Overview
-[1-2 sentences: what this does and WHY]
-
-## Commands
-- Build: `bun run build`
-- Test: `bun test`
-- Lint: `bun run lint`
-
-## Architecture
-[Brief description of key directories]
-
-## Key Decisions
-- [Decision]: [Why]
-```
-
-**Requirements**: Concise (<300 lines), Actionable (commands work), Current (updated within 30 days)
+See [references/context-file-template.md](references/context-file-template.md).
 
 ## Reference
 
-- **Tool**: [tools/readiness-check.ts](../../tools/readiness-check.ts) (bundled with this skill)
-- **Sample report**: [site/fastapi.html](../../site/fastapi.html) (live at https://mneves75.github.io/skills/fastapi.html)
+- **Tool**: `tools/readiness-check.ts`, in the collection repository — present in a full clone,
+  not in a single-skill install. Without it, use the manual pass above.
+- **Sample report**: https://mneves75.github.io/skills/fastapi.html
 - **Inspired by**: [Factory.ai Agent Readiness](https://factory.ai/agent-readiness)
-
-> "You can't prompt your way out of bad infrastructure. Fix the environment, not the agent."

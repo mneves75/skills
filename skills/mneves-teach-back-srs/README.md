@@ -72,7 +72,7 @@ The same spaced-repetition algorithm used by Anki:
 The skill includes `scripts/srs_db.py` for direct database operations:
 
 ```bash
-SCRIPT=~/.claude/skills/mneves-teach-back-srs/scripts/srs_db.py
+SCRIPT=<this skill folder>/scripts/srs_db.py   # wherever your agent installed it
 
 python3 $SCRIPT init                              # Create database
 python3 $SCRIPT add-card --question Q --answer A  # Add flashcard

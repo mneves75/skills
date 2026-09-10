@@ -19,8 +19,8 @@ Run the helper from the repository you want reviewed:
 python3 /path/to/autoreview/scripts/autoreview --mode local --max-priority P3
 ```
 
-The default is `gpt-6-astra` with `medium` reasoning. A confirmed account-access failure
-retries once with `gpt-5.6-sol` at `xhigh`. Rate limits, capacity failures, scanner refusals,
+The helper owns the default model and reasoning tier and prints them at startup; `--help`
+reports the current values. A confirmed account-access failure retries once on the fallback. Rate limits, capacity failures, scanner refusals,
 and invalid reports do not trigger that fallback. A custom primary model disables it.
 `--model` and `--thinking` override environment settings; environment settings override
 the defaults. The fallback effort remains `xhigh` when primary effort is overridden.
