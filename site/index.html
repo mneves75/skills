@@ -144,7 +144,7 @@ footer a{color:var(--fg2)}
       <div class="grid">
         <article class="card">
           <h3>autoreview</h3>
-          <p>Structured code review with isolated tools, credential scanning, and source-integrity checks. Astra xhigh by default; Sol xhigh on an account-access retry.</p>
+          <p>Structured code review with isolated tools, credential scanning, and source-integrity checks. Astra high by default; Sol xhigh on an account-access retry.</p>
           <p class="say"><b>Say:</b> "use autoreview on my local changes, including P3 findings"</p>
           <a class="more" href="howto.html#autoreview">How to use, with an example →</a>
         </article>
@@ -174,7 +174,7 @@ footer a{color:var(--fg2)}
         </article>
         <article class="card">
           <h3>mneves-fable-orchestrator</h3>
-          <p>The main session owns decisions and acceptance. GPT-5.6 Sol executes, GPT-6 Astra reviews, Opus subagents take the frontend; <code>codex-lane</code> preserves context across rounds.</p>
+          <p>The main session owns decisions and acceptance. GPT-5.6 Sol executes, GPT-6 Astra advises and reviews, Opus subagents take the frontend; <code>codex-lane</code> preserves context across rounds.</p>
           <p class="say"><b>Say:</b> "delegate", "use codex", "heavy task"</p>
           <a class="more" href="howto.html#mneves-fable-orchestrator">How to use, with an example →</a>
         </article>
@@ -250,10 +250,10 @@ bun --bun /path/to/skills/tools/readiness-check.ts \
       <h2 id="h-log">Changelog</h2>
       <ul class="log">
         <!-- changelog:start -->
+        <li><span class="v">1.18.1<span class="d">2026-09-12</span></span><span>Astra returns to <code>high</code> for orchestration, advice and review; GPT-5.6 Sol at <code>xhigh</code> stays.</span></li>
         <li><span class="v">1.18.0<span class="d">2026-09-12</span></span><span><code>mneves-fable-orchestrator</code>: new Defaults.</span></li>
         <li><span class="v">1.17.0<span class="d">2026-09-10</span></span><span><code>autoreview</code>: body 1,702 → 635 words.</span></li>
         <li><span class="v">1.16.0<span class="d">2026-09-10</span></span><span><code>mneves-superaudit</code>: a bounded, delegated audit-and-ship pass over a repository.</span></li>
-        <li><span class="v">1.15.0<span class="d">2026-09-07</span></span><span><code>autoreview</code>: portable MIT-licensed adaptation of OpenClaw's structured review helper, maintained in this collection with its source revision, license, full tests, and no dependency on an upstream checkout.</span></li>
         <!-- changelog:end -->
       </ul>
       <p style="margin-top:1rem"><a href="https://github.com/mneves75/skills/blob/main/CHANGELOG.md">Full changelog →</a></p>

@@ -230,8 +230,8 @@ the loop ends. Findings map to *fixed*, *disproved* or *blocked*, nothing else.
 
 **What it does.** Routes non-trivial work across the main session, Codex, and subagents when
 delegation creates independent progress or evidence. The main session is Fable 5.1 or
-`gpt-6-astra` at `xhigh`; frontend work goes to an Opus 5.1 subagent, other execution to
-`gpt-5.6-sol` at `xhigh`, and review to `gpt-6-astra` at `xhigh`. `codex-lane` keeps one Codex thread alive across rounds so
+`gpt-6-astra` at `high`; frontend work goes to an Opus 5.1 subagent, other execution to
+`gpt-5.6-sol` at `xhigh`, and advice and review to `gpt-6-astra` at `high`. `codex-lane` keeps one Codex thread alive across rounds so
 follow-ups reuse the executor's reasoning instead of restarting from a fresh spec.
 
 **Triggers.** "delegate", "orchestrate", "use codex", "heavy task", "long-running task", or

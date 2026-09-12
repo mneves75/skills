@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.1] - 2026-09-12
+
+### Changed
+
+- **Astra returns to `high`** for orchestration, advice and review; GPT-5.6 Sol at `xhigh` stays
+  the executor. `autoreview`'s Codex default drops from `xhigh` to `high` (the access-only Sol
+  `xhigh` retry is unchanged), and the orchestrator's Defaults name one advisor/reviewer role.
+- **`mneves-fable-orchestrator`**: inside Codex the session's model decides its seat. A session on
+  the orchestrator model delegates substantial work to a heavy-executor worker; a session on the
+  executor model implements directly and spawns the advisor only for a consequential decision or
+  an independent review.
+
 ## [1.18.0] - 2026-09-12
 
 ### Changed

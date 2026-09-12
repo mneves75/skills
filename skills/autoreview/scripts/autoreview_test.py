@@ -1333,8 +1333,8 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
 
     def test_codex_defaults_and_overrides(self) -> None:
         for options, model, thinking, fallback in (
-            ([], "gpt-6-astra", "xhigh", "gpt-5.6-sol"),
-            (["--thinking", "high"], "gpt-6-astra", "high", "gpt-5.6-sol"),
+            ([], "gpt-6-astra", "high", "gpt-5.6-sol"),
+            (["--thinking", "medium"], "gpt-6-astra", "medium", "gpt-5.6-sol"),
             (["--model", "custom-model", "--thinking", "low"], "custom-model", "low", None),
         ):
             with self.subTest(options=options), mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
@@ -1354,7 +1354,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             fallback_model="gpt-5.6-sol",
             model="gpt-6-astra",
             stream_engine_output=False,
-            thinking="xhigh",
+            thinking="high",
             tools=True,
             web_search=False,
         )
@@ -1382,7 +1382,8 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                     self.assertEqual(kwargs["input_text"], prompt)
                     model = command[command.index("--model") + 1]
                     events.append(model)
-                    self.assertIn('model_reasoning_effort="xhigh"', command)
+                    effort = "high" if model == "gpt-6-astra" else "xhigh"
+                    self.assertIn(f'model_reasoning_effort="{effort}"', command)
                     if model == "gpt-6-astra":
                         if failure == "missing":
                             find.return_value = None
