@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.18.0] - 2026-09-12
+
+### Changed
+
+- **`mneves-fable-orchestrator`**: new Defaults. The main session is Fable 5.1 in a Claude harness
+  or GPT-6 Astra at `xhigh` in a Codex harness; the frontend subagent is Opus 5.1; the heavy
+  executor moves from GPT-6 Astra `high` to GPT-5.6 Sol `xhigh` and no longer owns review. A new
+  reviewer role (GPT-6 Astra `xhigh`) owns independent review, through `autoreview` when installed.
+- **`mneves-fable-orchestrator`**: a Codex main session no longer implements substantial work
+  directly; like the Claude side, it delegates independent work to a heavy-executor worker whose
+  model is set in the spawned agent's configuration.
+- **`autoreview`**: the Codex default reasoning rises from `medium` to `xhigh` on GPT-6 Astra. The
+  access-only GPT-5.6 Sol `xhigh` retry is unchanged. Reviews are slower and cost more; pass
+  `--thinking medium` for the previous behavior.
+
 ## [1.17.0] - 2026-09-10
 
 Every skill reviewed against Anthropic's Agent Skills authoring guidance and this repository's own

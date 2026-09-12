@@ -14,6 +14,7 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.18.0** (2026-09-12): orchestrator routes main = Fable 5.1 | Astra xhigh, frontend = Opus 5.1, heavy executor = Sol xhigh, reviewer = Astra xhigh; autoreview Codex default rises to Astra xhigh.
 - **1.15.0 beta candidate** (2026-09-07): adds portable MIT-licensed `autoreview`, with Astra medium and access-only Sol xhigh fallback. The complete helper and tests are maintained here; installation needs no external upstream checkout.
 - **1.14.0** (2026-09-07): added the MIT-licensed `imagegen-frontend-mobile` adaptation; Codex routing defaults to GPT-6 Astra at `high` for execution, planning, review, and inherited agents; skill descriptions are concise and launcher mechanics live in a conditional reference.
 - **1.11.0** (2026-08-26): recorded sessions in HOWTO, ruleset on `main`, teach-back script path relative,

@@ -22,8 +22,8 @@ Current Codex CLI releases load named profiles from `$CODEX_HOME/<name>.config.t
 in `config.toml` and profile-specific model settings in the overlay file. Homes that share the
 base config should link the same overlays when they are meant to expose the same named profiles.
 
-The heavy-executor model and effort come from the Defaults block in `SKILL.md` — this file does
-not restate them. The live quota probe uses that model at `low`, disables user instructions and skills, and runs
+The heavy-executor model and effort come from the Defaults block in `SKILL.md`, and `review`
+uses the reviewer role from the same block — this file does not restate them. The live quota probe uses that model at `low`, disables user instructions and skills, and runs
 in an isolated read-only directory.
 
 For a deliberate exception, set `CODEX_AUTO_MODEL` and `CODEX_AUTO_EFFORT`; review uses

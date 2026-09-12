@@ -17,9 +17,10 @@ whole skill.
 
 | Role | Responsibility |
 |---|---|
-| Main session | Framing, design decisions, decomposition, acceptance |
-| Subagent | Bounded frontend or independent work |
-| Heavy executor | Execution, planning, review, and ordinary inherited agents |
+| Main session | Orchestration: framing, design decisions, decomposition, acceptance |
+| Frontend subagent | Bounded UI work: components, styling, layout, visual polish |
+| Heavy executor | Execution, debugging, refactors, other non-frontend work, and ordinary inherited agents |
+| Reviewer | Independent review of a fixed Git target (`autoreview` when installed) |
 | Specialist | Deliberate comparison or capability-specific work |
 
 The user's current instruction beats this routing. Preserve explicit caller overrides and
@@ -31,9 +32,10 @@ before it can perform ordinary implementation.
 The only place this skill names models. Edit this block on a model release; nothing else.
 
 ```
-main session   = Fable 5.1
-subagent       = Opus 5
-heavy executor = gpt-6-astra, reasoning high   (quota probes: low)
+main session      = Fable 5.1 (Claude harness) | gpt-6-astra, reasoning xhigh (Codex harness)
+frontend subagent = Opus 5.1
+heavy executor    = gpt-5.6-sol, reasoning xhigh   (quota probes: low)
+reviewer          = gpt-6-astra, reasoning xhigh   (autoreview's Codex default)
 ```
 
 Reasoning-effort names are vendor enums and change; if one is rejected, read the CLI's `--help`
@@ -48,8 +50,10 @@ Delegate when the work is independent, substantial, objectively verifiable, and 
 file ownership. Parallelize only independent workstreams. Do not delegate a few direct reads or
 duplicate work already assigned.
 
-When the active session is already Codex, implement and verify directly. Spawn a specialist only
-for a genuinely independent workstream or a review that benefits from fresh context.
+The same split applies when the main session runs inside Codex: substantial independent work goes
+to a heavy-executor worker with its model and effort set in the spawned agent's configuration (a
+model requested in prose is a wish), a fresh context, and a self-contained brief. Small direct
+edits stay in the main session.
 
 For a Codex dispatch from another harness, one round is `codex exec`, and `tools/codex-lane`
 (shipped here) keeps a thread alive across rounds. `codex-auto` appears in the reference as a
@@ -83,7 +87,9 @@ output. Review guard, budget, fixture, and test-helper edits closely because the
 check rather than fix the behavior. Check the brief's assumptions and production rules; test
 existence is not a substitute for the required behavior.
 
-Use an independent fresh-context review when risk, the repository, or the user requires it.
+Use an independent fresh-context review when risk, the repository, or the user requires it; it
+runs on the reviewer role. `autoreview` is a sibling skill in this repository, not shipped with
+this one; without it, run the reviewer model read-only on the diff with a self-contained brief.
 Routine edits need only proportionate deterministic checks. If a correction is needed, continue
 the existing agent or lane so it retains context.
 

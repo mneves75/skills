@@ -243,8 +243,9 @@ inside a log proves nothing until the verifier reruns the tests.</li>
 <hr>
 <h2 id="mneves-fable-orchestrator">mneves-fable-orchestrator</h2>
 <p><strong>What it does.</strong> Routes non-trivial work across the main session, Codex, and subagents when
-delegation creates independent progress or evidence. Codex defaults to <code>gpt-6-astra</code> at <code>high</code>
-for execution, planning, and review. <code>codex-lane</code> keeps one Codex thread alive across rounds so
+delegation creates independent progress or evidence. The main session is Fable 5.1 or
+<code>gpt-6-astra</code> at <code>xhigh</code>; frontend work goes to an Opus 5.1 subagent, other execution to
+<code>gpt-5.6-sol</code> at <code>xhigh</code>, and review to <code>gpt-6-astra</code> at <code>xhigh</code>. <code>codex-lane</code> keeps one Codex thread alive across rounds so
 follow-ups reuse the executor&#39;s reasoning instead of restarting from a fresh spec.</p>
 <p><strong>Triggers.</strong> &quot;delegate&quot;, &quot;orchestrate&quot;, &quot;use codex&quot;, &quot;heavy task&quot;, &quot;long-running task&quot;, or
 any non-trivial task where the agent has to decide who executes.</p>
