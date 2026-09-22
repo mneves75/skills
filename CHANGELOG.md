@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.22.0] - 2026-09-22
+
+GPT-6 Sol at `high` becomes the Codex model for execution, orchestration and review; GPT-6 Astra is
+kept only as the advisor on the Claude main session's plans.
+
+### Changed
+
+- **`mneves-fable-orchestrator`**: the Defaults block binds the heavy executor, the Codex
+  orchestrator and the reviewer to `gpt-6-sol` at `high` (was `gpt-5.6-sol` at `xhigh` and
+  `gpt-6-astra` at `high`). The advisor/reviewer role splits in two: a reviewer for fixed Git
+  targets and a plan advisor (`gpt-6-astra`, `high`) that reviews only the Claude main session's
+  plans. Because the Codex orchestrator and executor now share a model, a Codex session's task,
+  not its model, decides its seat.
+- **`autoreview`**: the `codex` engine defaults to `gpt-6-sol` at `high`, with an access-only retry
+  on `gpt-6-luna` at `xhigh` (was `gpt-6-astra` with a `gpt-5.6-sol` retry); the `amp` engine
+  defaults to `openai/gpt-6-sol`.
+- HOWTO, landing page and the orchestrator README describe the new routing.
+
 ## [1.21.0] - 2026-09-22
 
 The Claude main session moves from Fable to Opus 5.5.

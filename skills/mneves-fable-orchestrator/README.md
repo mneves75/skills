@@ -11,7 +11,8 @@ Delegate only when the work is independent, substantial, and objectively verifia
 | Orchestrator | Main session (Claude or Codex; model per the skill's Defaults block) | Repo understanding, architecture decisions, task decomposition, spec writing, acceptance |
 | Frontend executor | Frontend subagents (model per the Defaults block) | UI components, styling, layout, visual polish |
 | Heavy executor | Codex via `codex exec` / `codex-lane` (model per the Defaults block) | Execution, debugging, refactors, and other non-frontend work |
-| Advisor / reviewer | `autoreview` or a read-only Codex run (model per the Defaults block) | Decision advice with real downside; independent review of a fixed Git target |
+| Plan advisor | A read-only Codex run (model per the Defaults block) | Review of the Claude main session's plan before a decision with real downside |
+| Reviewer | `autoreview` or a read-only Codex run (model per the Defaults block) | Independent review of a fixed Git target |
 | Long-horizon driver | A lane, a checked-in plan file, or your harness's long-task mechanism | User-requested multi-phase work driven to its stopping condition |
 
 ## Continuity is the whole game

@@ -4,7 +4,7 @@
 #
 # The protected vocabulary is DERIVED from the Defaults block itself, so the block is the only
 # thing to edit on a model release and every value it names is automatically protected:
-#   * vendor ids            gpt-6-astra, gpt-5.6-sol, claude-opus-5   (plus their alphabetic
+#   * vendor ids            gpt-6-astra, gpt-6-sol, claude-opus-5   (plus their alphabetic
 #                           segments of 3+ letters: gpt, astra, sol, claude, opus)
 #   * Claude seats          "<Name>, latest release (... alias `x`)" -> Name and x
 #   * reasoning tiers       the word after "reasoning "

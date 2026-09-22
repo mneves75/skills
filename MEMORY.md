@@ -14,6 +14,11 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.22.0** (2026-09-22): Codex execution, orchestration and review on `gpt-6-sol` `high`;
+  `gpt-6-astra` `high` only as plan advisor for the Claude (Opus) main session. autoreview Codex
+  default `gpt-6-sol`, access-only retry `gpt-6-luna` `xhigh`. Probes: `gpt-6-sol` answered at `high`
+  and `xhigh`, `gpt-6-luna` at `xhigh`; a fake id is rejected (400). Host aligned (codex config, agent TOMLs, codex-auto, zshrc,
+  agent-runtime.md, delegate-wave).
 - **1.21.0** (2026-09-22, tag `v1.21.0`): Claude main seat moves from Fable to Opus (`opus`, which
   resolves to `claude-opus-5-5` on Claude Code 2.1.280); autoreview's `claude` engine defaults to
   `claude-opus-5-5`. The skill keeps the name `mneves-fable-orchestrator` so installs and references

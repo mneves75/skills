@@ -373,11 +373,11 @@ PROVIDER_CREDENTIAL_PATH_ENV_KEYS = {
     "SSL_CERT_FILE",
 }
 DEFAULT_MODEL_BY_ENGINE = {
-    "amp": "openai/gpt-5.6-sol",
-    "codex": "gpt-6-astra",
+    "amp": "openai/gpt-6-sol",
+    "codex": "gpt-6-sol",
     "claude": "claude-opus-5-5",
 }
-DEFAULT_CODEX_ACCESS_FALLBACK_MODEL = "gpt-5.6-sol"
+DEFAULT_CODEX_ACCESS_FALLBACK_MODEL = "gpt-6-luna"
 DEFAULT_CODEX_ACCESS_FALLBACK_THINKING = "xhigh"
 AMP_THINKING_VALUES = frozenset({"none", "low", "medium", "high", "xhigh", "max"})
 DEFAULT_THINKING_BY_ENGINE = {
@@ -6320,7 +6320,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--model",
         action="append",
-        help="Model override or engine=model. Repeatable. Defaults: codex=gpt-6-astra (high reasoning) with an access-only gpt-5.6-sol retry (xhigh reasoning), claude=claude-opus-5-5, amp=openai/gpt-5.6-sol.",
+        help="Model override or engine=model. Repeatable. Defaults: codex=gpt-6-sol (high reasoning) with an access-only gpt-6-luna retry (xhigh reasoning), claude=claude-opus-5-5, amp=openai/gpt-6-sol.",
     )
     parser.add_argument("--thinking", action="append", help="Thinking/effort override or engine=level. Repeatable. Codex: none, minimal, low, medium, high, xhigh, max. Claude: low, medium, high, xhigh, max. Amp: none, low, medium, high, xhigh, max. Pi: off, minimal, low, medium, high, xhigh. Kimi: off, on.")
     parser.add_argument(

@@ -21,7 +21,8 @@ whole skill.
 | Main session | Orchestration: framing, design decisions, decomposition, acceptance |
 | Frontend subagent | Bounded UI work: components, styling, layout, visual polish |
 | Heavy executor | Execution, debugging, refactors, other non-frontend work, and ordinary inherited agents |
-| Advisor / reviewer | Read-only advice on a decision with real downside; independent review of a fixed Git target (`autoreview` when installed) |
+| Plan advisor | Read-only review of the Claude main session's plan before a decision with real downside; nothing else |
+| Reviewer | Independent review of a fixed Git target (`autoreview` when installed) |
 | Specialist | Deliberate comparison or capability-specific work |
 
 The user's current instruction beats this routing. Preserve explicit caller overrides and
@@ -33,10 +34,11 @@ before it can perform ordinary implementation.
 The only place this skill names models. Edit this block on a model release; nothing else.
 
 ```
-main session      = Opus, latest release (Claude alias `opus`) | gpt-6-astra, reasoning high (Codex orchestrator)
+main session      = Opus, latest release (Claude alias `opus`) | gpt-6-sol, reasoning high (Codex orchestrator)
 frontend subagent = Opus, latest release (Claude subagent alias `opus`)
-heavy executor    = gpt-5.6-sol, reasoning xhigh
-advisor, reviewer = gpt-6-astra, reasoning high    (autoreview's Codex default)
+heavy executor    = gpt-6-sol, reasoning high
+reviewer          = gpt-6-sol, reasoning high    (autoreview's Codex default)
+plan advisor      = gpt-6-astra, reasoning high  (reviews the Claude main session's plans only)
 ```
 
 Verified against the vendor model lists on 2026-09-22; a release re-verifies every id above and
@@ -56,12 +58,13 @@ file ownership. Parallelize only independent workstreams. Do not delegate a few 
 duplicate work already assigned. Never stash, switch, rebase, or reset someone else's dirty work
 merely to begin a dispatch; give parallel workers their own worktrees instead.
 
-Inside Codex, the session's model decides its seat. A session on the orchestrator model delegates
-substantial independent work to a heavy-executor worker whose model and effort are set in the
-spawned agent's configuration (a model requested in prose is a wish), with a fresh context and a
-self-contained brief. A session on the heavy-executor model is an executor: it implements and
-verifies directly, and spawns the advisor only for a decision with real downside or an
-independent review. Neither hands off ordinary implementation to an advisor.
+Inside Codex, the orchestrator and the heavy executor may share a model, so the session's task
+decides its seat, not its model. A session asked to orchestrate delegates substantial independent
+work to a heavy-executor worker whose model and effort are set in the spawned agent's
+configuration (a model requested in prose is a wish), with a fresh context and a self-contained
+brief. Any other session is an executor: it implements and verifies directly, and spawns the
+reviewer for an independent review. The plan advisor serves only the Claude main session's plans;
+no Codex session hands implementation or review to it.
 
 For a Codex dispatch from another harness, one round is `codex exec`, and `tools/codex-lane`
 (shipped here) keeps a thread alive across rounds. `codex-auto` appears in the reference as a
@@ -99,7 +102,7 @@ check rather than fix the behavior; a commit message you did not commission is a
 existence is not a substitute for the required behavior.
 
 Use an independent fresh-context review when risk, the repository, or the user requires it; it
-runs on the advisor/reviewer role. `autoreview` is a sibling skill in this repository, not shipped with
+runs on the reviewer role. `autoreview` is a sibling skill in this repository, not shipped with
 this one; without it, run the reviewer model read-only on the diff with a self-contained brief.
 Routine edits need only proportionate deterministic checks. If a correction is needed, continue
 the existing agent or lane so it retains context.
