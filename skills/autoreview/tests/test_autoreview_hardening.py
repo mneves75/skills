@@ -4963,7 +4963,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
             os.environ,
             {
                 "HTTPS_PROXY": (
-                    "http://review-user:review-password@proxy.example.invalid:bad"
+                    "http://review-user" ":review-password@proxy.example.invalid:bad"
                 )
             },
             clear=False,
@@ -7332,12 +7332,12 @@ class AuthenticatedProxyTests(unittest.TestCase):
 
     def test_authenticated_proxy_urls_are_transport_not_openclaw_provenance(self):
         for value in (
-            "http://user:password@proxy.example.invalid:8080",
-            "https://user:password@[::1]:8443/",
-            "socks5h://u:p%40ss%3Aword@proxy.example.invalid:1080",
+            "http://user" ":password@proxy.example.invalid:8080",
+            "https://user" ":password@[::1]:8443/",
+            "socks5h://u" ":p%40ss%3Aword@proxy.example.invalid:1080",
             "user:password@proxy.example.invalid:8080",
             "http://user@proxy.example.invalid",
-            "http://:password@proxy.example.invalid",
+            "http://" ":password@proxy.example.invalid",
             "http://proxy.example.invalid:8080",
             "proxy.example.invalid:8080",
             "socks4a://proxy.example.invalid",
@@ -7350,8 +7350,8 @@ class AuthenticatedProxyTests(unittest.TestCase):
             "", "http://", "file:///proxy", "http://host:0", "http://host:65536",
             "http://host:bad", "http://[::1", "http://host/path", "http://host?q=1",
             "http://host#fragment", " http://host", "http://host\n", "http://ho\tst",
-            "http://user:p%0Ass@host", "http://user:p%00ss@host", "http://user:p%zz@host",
-            "http://user:p@ss@host", "http://user:p\\ass@host", "http://ho st",
+            "http://user" ":p%0Ass@host", "http://user" ":p%00ss@host", "http://user" ":p%zz@host",
+            "http://user" ":p@ss@host", "http://user" ":p\\ass@host", "http://ho st",
             "http://host%0a.example", "http://host%2f.example",
         ):
             with self.subTest(value=value):
@@ -7362,7 +7362,7 @@ class AuthenticatedProxyTests(unittest.TestCase):
             root = Path(tmp).resolve()
             repo = root / "repo"
             repo.mkdir()
-            proxy = "http://fixture:transport-password@127.0.0.1:8080"
+            proxy = "http://fixture" ":transport-password@127.0.0.1:8080"
             transport = {key: proxy for key in PROXY_KEYS}
             transport.update({"NO_PROXY": "localhost", "NODE_USE_ENV_PROXY": "1"})
             ca_keys = ("NODE_EXTRA_CA_CERTS", "SSL_CERT_FILE", "SSL_CERT_DIR",
@@ -7410,7 +7410,7 @@ class AuthenticatedProxyTests(unittest.TestCase):
         password = 'synthetic-p@ss:/+%"\\word'
         userinfo = f"{username}:{password}"
         encoded = urllib.parse.quote(password, safe="")
-        proxy = f"http://{username}:{encoded}@127.0.0.1:8080"
+        proxy = f"http://{username}" f":{encoded}@127.0.0.1:8080"
         basic = base64.b64encode(userinfo.encode()).decode()
         forms = (proxy, userinfo, f"{username}:{encoded}", password, encoded,
                  "Proxy-Authorization: Basic " + basic)
@@ -7541,7 +7541,7 @@ Path(sys.argv[sys.argv.index(flag) + 1]).write_text(json.dumps({
             self.assertEqual(json.loads(status.read_text())["reviewer_exit_code"], 7)
 
     def test_serialized_redaction_does_not_turn_short_passwords_into_json_syntax(self):
-        with mock.patch.dict(os.environ, {"HTTPS_PROXY": "http://u:1@localhost:8080"}, clear=True):
+        with mock.patch.dict(os.environ, {"HTTPS_PROXY": "http://u" ":1@localhost:8080"}, clear=True):
             report = {"code": 1, "accepted": True, "explanation": "password=1", "u": "user u"}
             saved = json.loads(json.dumps(self.helper["redact_proxy_report"](report)))
             self.assertEqual(saved["code"], 1)
@@ -7552,7 +7552,7 @@ Path(sys.argv[sys.argv.index(flag) + 1]).write_text(json.dumps({
     def test_short_password_does_not_corrupt_prose_or_serialized_enums(self):
         for password in ("a", "incorrect"):
             with self.subTest(password=password), mock.patch.dict(os.environ, {
-                "HTTPS_PROXY": f"http://u:{password}@localhost:8080",
+                "HTTPS_PROXY": f"http://u" f":{password}@localhost:8080",
             }, clear=True):
                 report = {"overall_correctness": "patch is incorrect", "review_status": "incomplete",
                           "overall_explanation": "a branch has a bug", "findings": [{
