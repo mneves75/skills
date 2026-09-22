@@ -12,9 +12,13 @@ https://github.com/Leonxlnx/taste-skill/blob/edb8d32401f5ecb444798fa630641e67462
 Copyright (c) 2026 Leonxlnx. Distributed under the MIT License included in that skill's directory.
 
 The autoreview skill is adapted from OpenClaw Agent Skills:
-https://github.com/openclaw/agent-skills/tree/3e9f33968ac732aa2fa7873e9dfc5823b5216c49/skills/autoreview
+https://github.com/openclaw/agent-skills/tree/711711b86294673feced9d1cb636b539daf3c218/skills/autoreview
 Copyright (c) 2026 openclaw. Distributed under the MIT License included in that skill's directory.
-Local modifications include model/reasoning defaults, portable packaging, and regression-tested security fixes.
+Local modifications include model/reasoning defaults, portable packaging, retained TruffleHog scanning, and regression-tested security fixes.
+
+The handoff skill is adapted from OpenClaw Agent Skills:
+https://github.com/openclaw/agent-skills/tree/711711b86294673feced9d1cb636b539daf3c218/skills/handoff
+Copyright (c) 2026 openclaw. Distributed under the MIT License included in that skill's directory.
 
 Original repository work is licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

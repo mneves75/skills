@@ -39,12 +39,35 @@ Clean main has no implicit review target, and the helper does not fetch refs.
 staged-vs-unstaged states, and diff fidelity**: see
 [references/git-targets.md](references/git-targets.md).
 
+Local selection honors `core.autocrlf` from external operator Git configuration,
+with repository-local values and attributes retaining precedence. Only its
+validated scalar value reaches diff/status; other global and system Git
+configuration stays disabled. Repository-owned or relative global-config
+overrides are not imported, and reviewed source bytes are not rewritten.
+
+Local collection disables effective Git clean/process commands and requires
+conversion to succeed. Unused drivers, unchanged filtered neighbors, staged-only
+changes, and deletions can still be reviewed without executing converters.
+If Git needs executable conversion to assemble the diff, collection fails before
+any reviewer starts. This can include an unchanged filtered file whose stat cache
+needs refreshing. Use explicit branch or commit mode for committed content in
+that case. Built-in line-ending normalization remains enabled; raw bytes never
+stand in for a required executable conversion.
+PR-base discovery uses trusted external Git and a scoped GitHub CLI environment,
+preserving external authentication/configuration and proxy settings while excluding
+inherited Git routing, `GH_REPO` redirection, and checkout-owned executables.
+A differently named `AUTOREVIEW_GIT` override that cannot also be selected as `git`
+by the child requires an explicit `--base`; rejected GitHub configuration paths
+also require one.
+
 ## Context and severity
 
 Use `--prompt` for task-specific guidance, or `--prompt-file` and `--dataset` for
 repository-relative context files. Context does not expand the selected Git target.
 The reviewer cannot read unchanged repository files from its empty sandbox; supply
 source or dependency evidence when the diff is insufficient.
+`--prompt-file` also accepts an absolute path inside the repository; the same
+sensitive-path, symlink, and mutation checks apply. `--dataset` stays repo-relative.
 
 The default threshold is **P0 only**: material blockers to normal operation or
 safety. Use `--max-priority P1`, `P2`, or `P3` for a wider review. Do not add
@@ -89,7 +112,8 @@ in-flight expectations**: see
 ## Results
 
 `--output`, `--json-output`, and `--status-output` paths must be outside the
-reviewed repository. When using `--status-output`, all output paths must differ.
+reviewed repository. When using `--status-output`, all output paths must differ;
+case-only and Unicode normalization aliases are refused on every platform.
 
 Treat `scoped-clean` as clean only for the selected target and requested priority.
 `filtered` is not clean; resolve `incomplete` before claiming completion.
@@ -104,7 +128,8 @@ ledgers, commits, pushes, or a new workstream unless requested.
 
 ## Provenance and maintenance
 
-Adapted from [OpenClaw Autoreview at revision `3e9f3396`](https://github.com/openclaw/agent-skills/tree/3e9f33968ac732aa2fa7873e9dfc5823b5216c49/skills/autoreview).
+Adapted from [OpenClaw Autoreview at revision `711711b8`](https://github.com/openclaw/agent-skills/tree/711711b86294673feced9d1cb636b539daf3c218/skills/autoreview), except the
+scanner removal (upstream #240, #244): this adaptation keeps TruffleHog scanning of every outgoing pack.
 Copyright (c) 2026 openclaw; distributed under the [MIT License](LICENSE).
 This adaptation changes the default Codex model and per-attempt reasoning, retains the
 access-only retry policy, and adds portable maintenance and release verification.

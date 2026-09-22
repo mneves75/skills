@@ -14,6 +14,11 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.23.0** (2026-09-22): reviewed OpenClaw agent-skills 0.1.0. Added `handoff` (MIT adaptation);
+  autoreview imports upstream through `711711b8` minus the TruffleHog removal (#240, #244) and
+  the Astra usage guidance; `mneves-verify` gains source-blind behavior checks and fake-work
+  probes. Skipped: readme-standard, crabbox, beam, session-viewer, agent-transcript (tied to
+  OpenClaw repos or services).
 - **1.22.0** (2026-09-22): Codex execution, orchestration and review on `gpt-6-sol` `high`;
   `gpt-6-astra` `high` only as plan advisor for the Claude (Opus) main session. autoreview Codex
   default `gpt-6-sol`, access-only retry `gpt-6-luna` `xhigh`. Probes: `gpt-6-sol` answered at `high`

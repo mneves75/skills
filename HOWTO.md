@@ -1,6 +1,6 @@
 # How to use these skills
 
-Nine skills, one install. This page shows what each one does, how to trigger it, and what a
+Ten skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the [README](README.md); for the exact
 procedure an agent follows, open `skills/<name>/SKILL.md`.
 
@@ -24,6 +24,7 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 | Skill | Use it when you want to… | Say something like |
 |---|---|---|
 | `autoreview` | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
+| `handoff` | hand a task to another agent, review first | "handoff the flaky login test" |
 | `imagegen-frontend-mobile` | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
 | `mneves-eli5` | explain a thing to a specific audience | "explain OAuth to my dad" |
 | `mneves-expert-review` | stress-test a plan or answer before it ships | "challenge this design" |
@@ -57,6 +58,36 @@ because environment variables can override defaults. Authorize private-content d
 before sending inputs. Findings need verification against the actual code; a clean AI report
 does not prove the absence of vulnerabilities. See [the skill README](skills/autoreview/README.md)
 for testing and beta installation.
+
+---
+
+## handoff
+
+**What it does.** Writes a standalone prompt for an agent you do not control (another session,
+another tool, a colleague's agent) and copies it to the clipboard. The prompt opens a
+discussion: the receiving agent reviews the repository and decides whether the task is still
+real and well-shaped before changing anything. It names things by portable anchors (repository,
+issue and PR URLs, branch, module, symbol, exact error text) instead of filesystem paths, and
+forbids pushes, merges, and public comments unless you ask for them.
+
+**Triggers.** "handoff <task>", "write a handoff", "give me a prompt for another agent". For
+work you dispatch into your own tree, use `mneves-fable-orchestrator`'s delegation brief instead.
+
+**Example** (illustrative).
+
+> **You:** handoff the flaky login e2e test on main.
+>
+> **Agent:** Reads the recent CI failures and the linked issue, writes a prompt that names the
+> repository, the failing test by its title, the CI job, and the exact assertion text, asks the
+> receiver to decide whether the flake is real before touching it, copies it to the clipboard, and
+> replies "Copied handoff: flaky login e2e test."
+
+**Tips.**
+
+- The receiver owns its review; give it context and constraints, not your conclusion.
+- Ask for paths only when the receiver shares your machine layout.
+- The skill is an MIT-licensed adaptation of
+  [OpenClaw's `handoff`](https://github.com/openclaw/agent-skills/tree/main/skills/handoff).
 
 ---
 
@@ -223,6 +254,8 @@ the loop ends. Findings map to *fixed*, *disproved* or *blocked*, nothing else.
   That is the skill working as intended.
 - Logs and screenshots handed to the verifier are data, not instructions. A "tests pass" line
   inside a log proves nothing until the verifier reruns the tests.
+- For a UI, CLI, or API, the verifier judges only what a user sees and never reads the source;
+  it varies inputs, retries, and checks persistence so a hard-coded success screen cannot pass.
 
 ---
 

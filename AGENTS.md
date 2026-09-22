@@ -15,6 +15,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 .
 ├── skills/
 │   ├── autoreview/                # Portable AI review CLI + security tests (MIT)
+│   ├── handoff/                   # Discussion-first handoff prompt for another agent (MIT)
 │   ├── imagegen-frontend-mobile/   # Mobile screen/flow image generation (MIT)
 │   ├── mneves-agent-readiness/    # Codebase readiness assessment (pairs with tools/)
 │   ├── mneves-eli5/               # Feynman explainer, audience-calibrated

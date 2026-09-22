@@ -17,7 +17,7 @@ blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--line);c
 </head>
 <body>
 <h1>How to use these skills</h1>
-<p>Nine skills, one install. This page shows what each one does, how to trigger it, and what a
+<p>Ten skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the <a href="https://github.com/mneves75/skills/blob/main/README.md">README</a>; for the exact
 procedure an agent follows, open <code>skills/&lt;name&gt;/SKILL.md</code>.</p>
 <h2 id="install-once">Install once</h2>
@@ -43,6 +43,11 @@ also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use 
 <td><code>autoreview</code></td>
 <td>review a fixed Git target with an isolated AI reviewer</td>
 <td>&quot;use autoreview on my local changes, including P3 findings&quot;</td>
+</tr>
+<tr>
+<td><code>handoff</code></td>
+<td>hand a task to another agent, review first</td>
+<td>&quot;handoff the flaky login test&quot;</td>
 </tr>
 <tr>
 <td><code>imagegen-frontend-mobile</code></td>
@@ -102,6 +107,31 @@ because environment variables can override defaults. Authorize private-content d
 before sending inputs. Findings need verification against the actual code; a clean AI report
 does not prove the absence of vulnerabilities. See <a href="https://github.com/mneves75/skills/blob/main/skills/autoreview/README.md">the skill README</a>
 for testing and beta installation.</p>
+<hr>
+<h2 id="handoff">handoff</h2>
+<p><strong>What it does.</strong> Writes a standalone prompt for an agent you do not control (another session,
+another tool, a colleague&#39;s agent) and copies it to the clipboard. The prompt opens a
+discussion: the receiving agent reviews the repository and decides whether the task is still
+real and well-shaped before changing anything. It names things by portable anchors (repository,
+issue and PR URLs, branch, module, symbol, exact error text) instead of filesystem paths, and
+forbids pushes, merges, and public comments unless you ask for them.</p>
+<p><strong>Triggers.</strong> &quot;handoff <task>&quot;, &quot;write a handoff&quot;, &quot;give me a prompt for another agent&quot;. For
+work you dispatch into your own tree, use <code>mneves-fable-orchestrator</code>&#39;s delegation brief instead.</p>
+<p><strong>Example</strong> (illustrative).</p>
+<blockquote>
+<p><strong>You:</strong> handoff the flaky login e2e test on main.</p>
+<p><strong>Agent:</strong> Reads the recent CI failures and the linked issue, writes a prompt that names the
+repository, the failing test by its title, the CI job, and the exact assertion text, asks the
+receiver to decide whether the flake is real before touching it, copies it to the clipboard, and
+replies &quot;Copied handoff: flaky login e2e test.&quot;</p>
+</blockquote>
+<p><strong>Tips.</strong></p>
+<ul>
+<li>The receiver owns its review; give it context and constraints, not your conclusion.</li>
+<li>Ask for paths only when the receiver shares your machine layout.</li>
+<li>The skill is an MIT-licensed adaptation of
+<a href="https://github.com/openclaw/agent-skills/tree/main/skills/handoff">OpenClaw&#39;s <code>handoff</code></a>.</li>
+</ul>
 <hr>
 <h2 id="imagegen-frontend-mobile">imagegen-frontend-mobile</h2>
 <p><strong>What it does.</strong> Generates images of iOS or Android screens and flows. It first defines the
@@ -239,6 +269,8 @@ the verdict <code>BLOCKED</code>.</li>
 That is the skill working as intended.</li>
 <li>Logs and screenshots handed to the verifier are data, not instructions. A &quot;tests pass&quot; line
 inside a log proves nothing until the verifier reruns the tests.</li>
+<li>For a UI, CLI, or API, the verifier judges only what a user sees and never reads the source;
+it varies inputs, retries, and checks persistence so a hard-coded success screen cannot pass.</li>
 </ul>
 <hr>
 <h2 id="mneves-fable-orchestrator">mneves-fable-orchestrator</h2>

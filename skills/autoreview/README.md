@@ -56,7 +56,8 @@ TestFlight submission is needed to use this CLI skill.
 
 ## Upstream and maintenance
 
-Source: [openclaw/agent-skills at `3e9f33968ac732aa2fa7873e9dfc5823b5216c49`](https://github.com/openclaw/agent-skills/tree/3e9f33968ac732aa2fa7873e9dfc5823b5216c49/skills/autoreview).
+Source: [openclaw/agent-skills at `711711b86294673feced9d1cb636b539daf3c218`](https://github.com/openclaw/agent-skills/tree/711711b86294673feced9d1cb636b539daf3c218/skills/autoreview),
+except upstream's scanner removal (#240, #244); this adaptation keeps TruffleHog scanning.
 Copyright (c) 2026 openclaw. The [MIT License](LICENSE) covers the upstream work and
 this adaptation. Changes are recorded in the collection's
 [changelog](https://github.com/mneves75/skills/blob/main/CHANGELOG.md).

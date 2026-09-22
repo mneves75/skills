@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.23.0] - 2026-09-22
+
+Ideas and fixes from a review of OpenClaw Agent Skills 0.1.0 (`711711b8`).
+
+### Added
+
+- **`handoff`** (MIT, adapted from OpenClaw): a clipboard-ready prompt that hands a task to an
+  agent you do not control. It opens a discussion, asks the receiver to review before changing
+  anything, and names things by portable anchors instead of filesystem paths.
+
+### Changed
+
+- **`autoreview`** imports upstream fixes through `711711b8`: Git collection no longer runs
+  checkout-controlled executables (filter drivers are disabled, a diff that needs a converter is
+  refused); Git must pass a 10-second `--version` preflight, with trusted `AUTOREVIEW_GIT` and
+  `DEVELOPER_DIR` overrides; a pass that does not confirm a finished assessment leaves the review
+  `incomplete` (exit 2); trusted global `core.autocrlf` is honored; engines accept authenticated
+  proxies with redacted diagnostics; `--prompt-file` accepts an absolute in-repository path;
+  reasoning levels are validated per model before preparation; complete Claude capability output
+  is captured. Upstream's removal of TruffleHog scanning (#240, #244) and its Astra usage guidance
+  are not taken: every outgoing pack is still scanned, and routing stays on the Defaults block.
+- **`mneves-verify`**: behavior checks for UI, CLI, API, and generated output are source-blind and
+  must probe for fake work (varied inputs, retries, persistence, opened output) before PASS.
+
 ## [1.22.0] - 2026-09-22
 
 GPT-6 Sol at `high` becomes the Codex model for execution, orchestration and review; GPT-6 Astra is

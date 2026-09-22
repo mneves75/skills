@@ -63,6 +63,17 @@ Prefer the named tool when it is available; fall back only on capability.
 BLOCKED only when an essential capability is unavailable (e.g., no independent verifier, no
 sandbox for a required run, no way to reach the real endpoint).
 
+### Behavior checks (UI, CLI, API, generated files)
+
+Judge the running thing, not the code. The verifier works only through surfaces a user or
+operator sees (pages, commands, responses, output files, logs, accessibility trees) and does not
+read source, diffs, tests, or the builder's notes; if it cannot continue without source, the
+criterion is BLOCKED. Findings cite the criterion and the observable steps, never code locations.
+
+A success message is not evidence. Before PASS, probe for fake work: vary the input data, retry
+and reload, try empty and invalid inputs, confirm state persists, and open the generated output
+to check the action really happened.
+
 ## Fix-all mapping
 
 When findings exist, the builder gets **one correction** and the verifier does **one

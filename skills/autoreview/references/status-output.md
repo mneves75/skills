@@ -9,7 +9,7 @@ Exit-code semantics and the versioned machine-readable outcome written by
 | ---- | ------------------------------------------------------------------------------- |
 | `0`  | `scoped-clean`, or a correct verdict with only filtered lower-priority findings |
 | `1`  | Accepted findings, an incorrect provider verdict, or a failed review attempt    |
-| `2`  | Incomplete scope/attribution, or a missing required finding                     |
+| `2`  | Unfinished assessment, incomplete scope/attribution, or a missing required finding |
 
 `--expect-findings` changes exit codes as before; inspect `status` independently
 of `exit_code`.

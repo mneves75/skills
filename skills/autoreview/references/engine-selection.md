@@ -10,6 +10,8 @@ Use `--engine`, `--model`, and `--thinking` to override the defaults.
 CLI options override environment settings, which override built-in defaults.
 An explicitly selected model other than the default has no automatic Codex fallback.
 Check the startup engine/model/thinking lines; shell configuration may override defaults.
+Reasoning levels are validated per model before preparation; an explicitly selected
+`gpt-6-astra` rejects `none` and `minimal`, and an explicit model never falls back.
 
 ## Defaults and fallback
 

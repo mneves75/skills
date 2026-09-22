@@ -78,11 +78,57 @@ class AutoreviewCursorTests(unittest.TestCase):
                     owner = owner["source_attribution"]
                 owner[field] = value
                 with self.subTest(field=field, value=value), mock.patch.object(
-                    AUTOREVIEW, "run_engine", return_value=json.dumps(report),
+                    AUTOREVIEW, "run_engine", return_value=json.dumps({**report, "review_completion": "complete"}),
                 ), mock.patch.object(AUTOREVIEW, "scan_outgoing_review_pack"):
                     with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as caught:
                         AUTOREVIEW.run_reviewer(args, Path.cwd(), "synthetic", {"draft.js"}, [])
                     self.assertEqual(caught.exception.reason, "invalid_report")
+
+    def test_private_completion_is_required_validated_and_stripped(self) -> None:
+        args = argparse.Namespace(engine="codex", max_priority="P2")
+        for completion in ("complete", "incomplete"):
+            provider = {**FINAL_REPORT, "review_completion": completion}
+            with self.subTest(completion=completion), mock.patch.object(
+                AUTOREVIEW, "run_engine", return_value=json.dumps(provider),
+            ):
+                result = AUTOREVIEW.run_reviewer(args, Path.cwd(), "synthetic", set(), [])
+            self.assertEqual(result.complete, completion == "complete")
+            self.assertEqual(result.report["provider_report"], FINAL_REPORT)
+            self.assertNotIn("review_completion", result.report)
+            self.assertEqual(
+                AUTOREVIEW.review_status(result.report, complete=result.complete),
+                "scoped-clean" if result.complete else "incomplete",
+            )
+        for provider in (
+            FINAL_REPORT,
+            *({**FINAL_REPORT, "review_completion": value}
+              for value in ("", "deferred", [], {}, None, 42, False)),
+        ):
+            with self.subTest(provider=provider), mock.patch.object(
+                AUTOREVIEW, "run_engine", return_value=json.dumps(provider),
+            ):
+                with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as caught:
+                    AUTOREVIEW.run_reviewer(args, Path.cwd(), "synthetic", set(), [])
+            self.assertEqual(caught.exception.reason, "invalid_report")
+            self.assertIn("missing or invalid review_completion", str(caught.exception))
+
+    def test_provider_schema_keeps_completion_out_of_public_schema(self) -> None:
+        self.assertEqual(
+            AUTOREVIEW.PROVIDER_SCHEMA["required"],
+            [*AUTOREVIEW.SCHEMA["required"], "review_completion"],
+        )
+        self.assertEqual(
+            AUTOREVIEW.PROVIDER_SCHEMA["properties"]["review_completion"],
+            {"type": "string", "enum": ["complete", "incomplete"]},
+        )
+        self.assertFalse(AUTOREVIEW.PROVIDER_SCHEMA["additionalProperties"])
+        self.assertNotIn("review_completion", AUTOREVIEW.SCHEMA["properties"])
+        prompt = AUTOREVIEW.render_review_prompt(
+            "task", "local", None, AUTOREVIEW.ReviewChunk("change"), "", "", (1, 2),
+        )
+        self.assertIn(json.dumps(AUTOREVIEW.PROVIDER_SCHEMA), prompt)
+        self.assertIn("independent, complete assignment", prompt)
+        self.assertIn("no shared conversation or future evidence batch", prompt)
 
     def test_extract_json_prefers_terminal_result_event(self) -> None:
         stream = "\n".join(
@@ -152,6 +198,19 @@ class AutoreviewPriorityTests(unittest.TestCase):
         for key in ("overall_correctness", "overall_explanation", "overall_confidence"):
             self.assertEqual(report[key], DRAFT_REPORT[key])
 
+    def test_unfinished_assessment_keeps_filtered_observations_incomplete(self) -> None:
+        args = argparse.Namespace(engine="codex", max_priority="P0")
+        with mock.patch.object(
+            AUTOREVIEW, "run_engine",
+            return_value=json.dumps({**DRAFT_REPORT, "review_completion": "incomplete"}),
+        ):
+            result = AUTOREVIEW.run_reviewer(args, Path.cwd(), "synthetic", {"draft.js"}, [])
+        self.assertFalse(result.complete)
+        self.assertEqual(result.report["provider_report"], DRAFT_REPORT)
+        self.assertEqual(result.report["findings"], [])
+        self.assertEqual(result.report["priority_filtered_findings"], DRAFT_REPORT["findings"])
+        self.assertEqual(AUTOREVIEW.review_status(result.report, complete=result.complete), "incomplete")
+
 
 class AutoreviewResultScopeTests(unittest.TestCase):
     def test_scope_rejection_preserves_provider_conclusion_and_audit(self) -> None:
@@ -162,6 +221,7 @@ class AutoreviewResultScopeTests(unittest.TestCase):
         for key in ("overall_correctness", "overall_explanation", "overall_confidence"):
             self.assertEqual(report[key], DRAFT_REPORT[key])
         self.assertEqual(report["scope_rejected_findings"], DRAFT_REPORT["findings"])
+        report["review_status"] = AUTOREVIEW.review_status(report, complete=True)
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
             AUTOREVIEW.print_report(report)
@@ -180,6 +240,7 @@ class AutoreviewResultScopeTests(unittest.TestCase):
         self.assertEqual(merged["overall_confidence"], 0.2)
         self.assertEqual(len(merged["scope_rejected_findings"]), 1)
         self.assertEqual(merged["pass_reports"][1]["report"], rejected)
+        merged["review_status"] = AUTOREVIEW.review_status(merged, complete=True)
         output = io.StringIO()
         with contextlib.redirect_stdout(output):
             AUTOREVIEW.print_report(merged)
@@ -192,10 +253,12 @@ class AutoreviewResultScopeTests(unittest.TestCase):
         for count in (1, 2):
             with self.subTest(count=count), mock.patch.object(
                 AUTOREVIEW, "scan_outgoing_review_pack"
-            ), mock.patch.object(AUTOREVIEW, "run_engine", return_value=json.dumps(DRAFT_REPORT)):
-                reports = AUTOREVIEW.run_review_passes(
+            ), mock.patch.object(AUTOREVIEW, "run_engine", return_value=json.dumps({**DRAFT_REPORT, "review_completion": "complete"})):
+                results = AUTOREVIEW.run_review_passes(
                     args, [args], Path.cwd(), ["pack"] * count, {"draft.js"}
                 )
+            self.assertTrue(all(result.complete for _, result in results))
+            reports = [(label, result.report) for label, result in results]
             report = reports[0][1] if count == 1 else AUTOREVIEW.merge_chunk_reports(reports)
             self.assertEqual(
                 AUTOREVIEW.missing_required_findings(report, args.require_finding), ["Draft finding"]
@@ -204,7 +267,7 @@ class AutoreviewResultScopeTests(unittest.TestCase):
             self.assertTrue(report["priority_filtered_findings"])
 
     def test_provider_cannot_supply_local_audit_metadata(self) -> None:
-        for key in ("scope_rejected_findings", "priority_filtered_findings", "pass_reports", "review_status"):
+        for key in ("scope_rejected_findings", "priority_filtered_findings", "pass_reports", "review_status", "review_completion"):
             report = copy.deepcopy(FINAL_REPORT)
             report[key] = []
             with self.subTest(key=key), self.assertRaisesRegex(SystemExit, "unexpected top-level"):
@@ -284,7 +347,7 @@ class AutoreviewTargetResultTests(unittest.TestCase):
                 report = self.validate([finding])
                 self.assertEqual(report["findings"], [])
                 self.assertIn(reason, report["attribution_rejected_findings"][0]["attribution_rejection_reason"])
-                self.assertEqual(AUTOREVIEW.review_status(report), "incomplete")
+                self.assertEqual(AUTOREVIEW.review_status(report, complete=True), "incomplete")
                 self.assertEqual(report["overall_correctness"], "patch is correct")
         report = self.validate([self.finding()], available=False)
         self.assertIn("not available", report["attribution_rejected_findings"][0]["attribution_rejection_reason"])
@@ -341,7 +404,7 @@ class AutoreviewTargetResultTests(unittest.TestCase):
                 for bad in invalid:
                     report = self.validate([bad])
                     self.assertEqual(report["findings"], [])
-                    self.assertEqual(AUTOREVIEW.review_status(report), "incomplete")
+                    self.assertEqual(AUTOREVIEW.review_status(report, complete=True), "incomplete")
                 self.record = original
         for target in ("index", "working_tree"):
             for side in ("present", "removed"):
@@ -372,6 +435,7 @@ class AutoreviewTargetResultTests(unittest.TestCase):
                 self.assertEqual(len(grouped["claim_variants"][0]["observations"]), 8)
                 self.assertEqual(AUTOREVIEW.missing_required_findings(result, ["Index title 7", "different fix"]), [])
                 self.assertEqual(len(result["pass_reports"]), len(selected))
+                result["review_status"] = AUTOREVIEW.review_status(result, complete=True)
                 output = io.StringIO()
                 with contextlib.redirect_stdout(output):
                     AUTOREVIEW.print_report(result)
@@ -388,22 +452,25 @@ class AutoreviewTargetResultTests(unittest.TestCase):
         provider = {**FINAL_REPORT, "findings": [valid, stale, outside],
                     "overall_correctness": "patch is incorrect", "overall_confidence": 0.43}
         for engine in AUTOREVIEW.ENGINES:
-            with self.subTest(engine=engine), mock.patch.object(AUTOREVIEW, "run_engine", return_value=json.dumps(provider)), \
+            with self.subTest(engine=engine), mock.patch.object(
+                    AUTOREVIEW, "run_engine", return_value=json.dumps({**provider, "review_completion": "complete"})), \
                     mock.patch.object(AUTOREVIEW, "scan_outgoing_review_pack"), \
                     mock.patch.object(AUTOREVIEW, "verify_mixed_sources"), contextlib.redirect_stderr(io.StringIO()):
-                report = AUTOREVIEW.run_reviewer(argparse.Namespace(engine=engine, max_priority="P0"),
+                result = AUTOREVIEW.run_reviewer(argparse.Namespace(engine=engine, max_priority="P0"),
                                                  Path.cwd(), prompt, captured, [])
+            self.assertTrue(result.complete)
+            report = result.report
             self.assertEqual(report["provider_report"], provider)
             self.assertEqual(report["overall_confidence"], 0.43)
             self.assertEqual(len(report["findings"]), 1)
             self.assertEqual(len(report["scope_rejected_findings"]), 1)
             self.assertEqual(len(report["attribution_rejected_findings"]), 1)
-            self.assertEqual(AUTOREVIEW.review_status(report), "incomplete")
+            self.assertEqual(AUTOREVIEW.review_status(report, complete=result.complete), "incomplete")
             self.assertEqual(report["available_source_records"], [self.record.identity])
         low = self.validate([self.finding(priority="P2")])
         AUTOREVIEW.filter_findings_by_priority(low, "P0")
         self.assertEqual(AUTOREVIEW.missing_required_findings(low, ["Synthetic defect"]), ["Synthetic defect"])
-        self.assertEqual(AUTOREVIEW.review_status(low), "filtered")
+        self.assertEqual(AUTOREVIEW.review_status(low, complete=True), "filtered")
         for bad in ({}, {**self.finding()["source_attribution"], "column": True}):
             with self.assertRaisesRegex(SystemExit, "source_attribution"):
                 self.validate([self.finding(source_attribution=bad)])
@@ -739,6 +806,12 @@ class AutoreviewAmpTests(unittest.TestCase):
         self.assertIn("amp.ai.generate", plugin)
         self.assertIn("amp.registerTool", plugin)
         self.assertIn("amp.createAgent", plugin)
+        schema, _ = json.JSONDecoder().raw_decode(plugin.split("schema: ", 1)[1])
+        self.assertEqual(schema, {
+            "name": "autoreview_report",
+            "description": "A security-focused code-review report for the supplied patch.",
+            "fields": AUTOREVIEW.PROVIDER_SCHEMA["properties"],
+        })
         self.assertIn('tools: ["autoreview_generate"]', plugin)
         self.assertIn("readFileSync", plugin)
         self.assertNotIn(secret_prompt, plugin)
@@ -1080,7 +1153,7 @@ class AutoreviewTruffleHogTests(unittest.TestCase):
 
                     def provider(_args, _repo, prompt):
                         events.append(("send", prompt))
-                        return json.dumps(FINAL_REPORT)
+                        return json.dumps({**FINAL_REPORT, "review_completion": "complete"})
 
                     with mock.patch.object(AUTOREVIEW, "find_command", return_value="/trusted/trufflehog") as find, \
                             mock.patch.object(AUTOREVIEW, "run", side_effect=scanner), contextlib.ExitStack() as stack:
@@ -1145,6 +1218,66 @@ class AutoreviewTruffleHogTests(unittest.TestCase):
 
 
 class AutoreviewCompatibilityTests(unittest.TestCase):
+    def test_astra_rejects_unsupported_effort_from_cli_and_environment(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="autoreview-invalid-effort.") as tempdir:
+            for effort in ("none", "minimal", "ultra"):
+                for source in ("cli", "keyed-cli", "environment", "global-environment"):
+                    with self.subTest(effort=effort, source=source):
+                        argv = [sys.executable, str(SCRIPT_PATH), "--engine", "codex",
+                                "--codex-bin", str(Path(tempdir) / "missing-codex")]
+                        env = {key: value for key, value in os.environ.items()
+                               if not key.startswith("AUTOREVIEW_")}
+                        if source in {"cli", "keyed-cli"}:
+                            prefix = "codex=" if source == "keyed-cli" else ""
+                            argv += ["--model", prefix + "gpt-6-astra", "--thinking", prefix + effort]
+                        else:
+                            prefix = "AUTOREVIEW_CODEX_" if source == "environment" else "AUTOREVIEW_"
+                            env.update({prefix + "MODEL": "gpt-6-astra", prefix + "THINKING": effort})
+                        # No Git repository or engine exists: rejection must precede preparation.
+                        result = subprocess.run(argv, cwd=tempdir, env=env, text=True,
+                                                capture_output=True, timeout=30)
+                        self.assertEqual(result.returncode, 1, result.stderr)
+                        self.assertEqual(result.stdout, "")
+                        self.assertEqual(result.stderr.strip(),
+                                         f"invalid thinking level for codex model gpt-6-astra: {effort} "
+                                         "(valid: high, low, max, medium, xhigh)")
+
+    def test_astra_validation_uses_effective_cli_overrides(self) -> None:
+        cases = (
+            ({"AUTOREVIEW_CODEX_MODEL": "gpt-6-astra", "AUTOREVIEW_CODEX_THINKING": "none"},
+             ["--thinking", "high"], "gpt-6-astra", "high"),
+            ({"AUTOREVIEW_CODEX_MODEL": "gpt-6-astra", "AUTOREVIEW_CODEX_THINKING": "minimal"},
+             ["--model", "gpt-6-luna"], "gpt-6-luna", "minimal"),
+        )
+        for env, overrides, model, effort in cases:
+            with self.subTest(overrides=overrides), mock.patch.dict(os.environ, env, clear=True), \
+                    mock.patch.object(sys, "argv", ["autoreview", "--engine", "codex", *overrides]):
+                reviewer = AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())[0]
+                self.assertEqual(reviewer.model, model)
+                self.assertEqual(reviewer.thinking, effort)
+
+    def test_astra_preserves_supported_effort_and_explicit_model(self) -> None:
+        for effort in (None, "low", "medium", "high", "xhigh", "max"):
+            with self.subTest(effort=effort):
+                argv = ["autoreview", "--engine", "codex", "--model", "gpt-6-astra"]
+                if effort:
+                    argv += ["--thinking", effort]
+                with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(sys, "argv", argv):
+                    reviewer = AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())[0]
+                self.assertEqual(reviewer.model, "gpt-6-astra")
+                self.assertEqual(reviewer.thinking, effort or "high")
+                self.assertIsNone(reviewer.fallback_model)
+
+    def test_astra_effort_restrictions_do_not_change_other_codex_models(self) -> None:
+        for effort in ("none", "minimal"):
+            with self.subTest(effort=effort), mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
+                sys, "argv", ["autoreview", "--engine", "codex", "--thinking", effort],
+            ):
+                reviewer = AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())[0]
+                self.assertEqual(reviewer.model, "gpt-6-sol")
+                self.assertEqual(reviewer.thinking, effort)
+                self.assertEqual(reviewer.fallback_model, "gpt-6-luna")
+
     @classmethod
     def setUpClass(cls) -> None:
         cls.home_dir = tempfile.TemporaryDirectory(prefix="autoreview-test-home.")
@@ -1392,7 +1525,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                             "The model `gpt-6-sol` does not exist or you do not have access to it.",
                         )
                     output_path = Path(command[command.index("--output-last-message") + 1])
-                    output_path.write_text(json.dumps(FINAL_REPORT))
+                    output_path.write_text(json.dumps({**FINAL_REPORT, "review_completion": "complete"}))
                     return subprocess.CompletedProcess(command, 0, "", "")
 
                 with mock.patch.object(AUTOREVIEW, "resolve_command", return_value="/usr/bin/codex"), \
@@ -1406,8 +1539,9 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                         with self.assertRaisesRegex(SystemExit, "refusing to send review pack"):
                             AUTOREVIEW.run_reviewer(args, Path(tmpdir), prompt, set(), [])
                     else:
-                        report = AUTOREVIEW.run_reviewer(args, Path(tmpdir), prompt, set(), [])
-                        self.assertEqual(report["findings"], [])
+                        result = AUTOREVIEW.run_reviewer(args, Path(tmpdir), prompt, set(), [])
+                        self.assertTrue(result.complete)
+                        self.assertEqual(result.report["findings"], [])
                 expected = ["filesystem", "stdin", "gpt-6-sol"]
                 if failure != "missing":
                     expected.append("filesystem")
@@ -1443,6 +1577,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             observed["command_cwd"] = Path(command[command.index("-C") + 1])
             observed["workspace_entries"] = list(cwd.iterdir())
             observed["env"] = kwargs["env"]
+            observed["schema"] = json.loads(Path(command[command.index("--output-schema") + 1]).read_text())
             output_path = Path(command[command.index("--output-last-message") + 1])
             output_path.write_text(json.dumps(FINAL_REPORT))
             return subprocess.CompletedProcess(command, 0, "", "")
@@ -1482,6 +1617,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 output = AUTOREVIEW.run_codex(args, repo, "review")
 
             self.assertEqual(json.loads(output), FINAL_REPORT)
+            self.assertEqual(observed["schema"], AUTOREVIEW.PROVIDER_SCHEMA)
             observed_cwd = observed["cwd"]
             command_cwd = observed["command_cwd"]
             self.assertIsInstance(observed_cwd, Path)
