@@ -9,7 +9,7 @@ Delegate only when the work is independent, substantial, and objectively verifia
 | Role | Who | What |
 |------|-----|------|
 | Orchestrator | Main session (Claude or Codex; model per the skill's Defaults block) | Repo understanding, architecture decisions, task decomposition, spec writing, acceptance |
-| Frontend executor | Opus subagents | UI components, styling, layout, visual polish |
+| Frontend executor | Frontend subagents (model per the Defaults block) | UI components, styling, layout, visual polish |
 | Heavy executor | Codex via `codex exec` / `codex-lane` (model per the Defaults block) | Execution, debugging, refactors, and other non-frontend work |
 | Advisor / reviewer | `autoreview` or a read-only Codex run (model per the Defaults block) | Decision advice with real downside; independent review of a fixed Git target |
 | Long-horizon driver | A lane, a checked-in plan file, or your harness's long-task mechanism | User-requested multi-phase work driven to its stopping condition |
@@ -43,6 +43,30 @@ report arrives on stdin, never as an argv-sized inline string.
 If a job you dispatched as a plain `codex exec` turns out to need a second round, wrap its
 thread instead of re-specifying it: `codex-lane adopt api-rls <thread-id> [cwd]`.
 
+### Lane mechanics
+
+- `codex-lane` needs `codex`, `bash`, `python3` (lane state is JSON), `awk`, and `mktemp` on
+  `PATH`; it refuses to run without `codex` or `python3` so a job can never lose its thread id.
+- Lane names are filenames: `[A-Za-z0-9._-]`, no leading `-` or `.`.
+- `log` and `id` print the events-file path and the thread id, not the transcript; `last` prints
+  the final message. Each `next` also keeps codex's stderr as `<lane>.<stamp>.stderr.log` beside
+  the events and relays it when the run ends.
+- One writer per lane: a `<lane>.lock` directory in `$CODEX_LANE_DIR` serializes runs. If a run
+  died holding it, the error names the directory to `rmdir`.
+- After `--`, the wrapper rejects `-C`/`--cd` (a lane is bound to its workspace) and `--json`,
+  `-o`/`--output-last-message`, `--ephemeral` (it owns the event stream and last-message file,
+  and an ephemeral thread cannot be resumed).
+- The wrapper stores launch arguments, never environment: set `CODEX_HOME` (or any other
+  environment) on every `start`, `next`, and `adopt` for that lane.
+- If the backend refuses to resume a long thread (`thread/resume failed` on stderr), `next` exits
+  non-zero, says so on stderr, and withholds the stale previous message; start a fresh lane with
+  a self-contained order. Only stderr is consulted: the event stream is the model's own output.
+- The binding is flag-level: `-C` is refused, but a `-c` override given at `start` can still
+  change policy, so choose start arguments deliberately. Stored args are re-validated on every
+  `next`, so a hand-edited state file cannot smuggle in a refused flag.
+- Artifacts are never pruned; after `drop`, delete `$CODEX_LANE_DIR/<lane>.*` yourself. A lane
+  directory that other users can write to is refused.
+
 A lane is bound to one workspace **and** one execution policy. `codex exec resume` rebuilds
 its config from the current invocation, not from the thread, so the wrapper stores what
 `start` ran under and replays it on every `next`: the lane runs in its own directory
@@ -59,12 +83,14 @@ the full model transcript for the job.
 
 ## Requirements
 
-- **Claude Code** with subagent support (`Agent` tool)
+- **Claude Code** with subagent support (`Agent` tool), or any harness that can spawn a
+  fresh-context worker
 - **[Codex CLI](https://github.com/openai/codex)** installed and authenticated, for the
-  heavy-executor path. The `/codex:rescue` command from the openai-codex plugin is an
-  equivalent front-end if you have that plugin; the routing rules apply either way.
-  Set the shared Codex default from the skill's Defaults block. Preserve deliberate per-call
-  specialist overrides. See `references/codex-dispatch.md` for launcher mechanics.
+  heavy-executor path, plus `bash` and `python3` for `codex-lane`. The `/codex:rescue` command
+  from the openai-codex plugin is an equivalent front-end if you have that plugin; the routing
+  rules apply either way. Set the shared Codex default from the skill's Defaults block. Preserve
+  deliberate per-call specialist overrides. See `references/codex-dispatch.md` for flag
+  placement, failure classes, and the optional (not shipped) `codex-auto` launcher.
 - **Goal workflow**: optional; use the goal mechanism exposed by the active agent runtime
 
 Install the lane wrapper by symlinking it onto your `PATH`:
@@ -85,6 +111,13 @@ ln -s /path/to/skills/skills/mneves-fable-orchestrator/tools/codex-lane ~/bin/co
 6. **Small direct edits stay in the active session.**
 
 ## Install
+
+```bash
+npx skills@latest add mneves75/skills --skill mneves-fable-orchestrator
+```
+
+That links the skill where Claude Code (`~/.claude/skills`) and Codex (`~/.agents/skills`,
+also `.agents/skills` inside a repository) discover skills. Or clone the collection:
 
 ```bash
 git clone https://github.com/mneves75/skills.git ~/.claude/skills/mneves-skills

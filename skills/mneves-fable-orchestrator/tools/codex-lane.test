@@ -1,0 +1,168 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# End-to-end test for tools/codex-lane against a fake `codex` on PATH, so it
+# spends no quota and needs no login. Each scenario uses its own lane directory.
+# Covers: start records the thread id; next replays stored args before `resume`
+# and updates the last message; a refused resume (thread/resume failed on
+# stderr) exits nonzero, is reported, and does not surface the stale previous
+# message; an ordinary nonzero exit is NOT reported as a refusal, nor is the
+# phrase quoted by the model on stdout (negative controls); stderr is streamed
+# and kept; a tampered state file cannot replay a refused flag.
+
+TOOL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+LANE="$TOOL_DIR/codex-lane"
+TMP="$(mktemp -d)"
+trap 'rm -r "$TMP"' EXIT
+
+fail() { echo "test FAIL: $1" >&2; exit 1; }
+
+# --- fake codex ---------------------------------------------------------------
+# Records its argv, emits a thread.started event on stdout, writes the
+# last-message file named by --output-last-message, and honours FAKE_MODE:
+#   ok      -> exit 0
+#   refuse  -> print the backend's refusal on stderr, echo the previous message
+#              on stdout AND into the last-message file, exit 1 (what a refused
+#              `codex exec resume` looks like)
+#   fail    -> exit 1 with an unrelated error (negative control)
+mkdir -p "$TMP/bin"
+cat > "$TMP/bin/codex" <<'FAKE'
+#!/usr/bin/env bash
+set -euo pipefail
+printf '%s\n' "$*" >> "$FAKE_ARGV"
+out=""
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --output-last-message) out="$2"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+cat >/dev/null   # consume the prompt on stdin
+[ -n "$out" ] || { printf 'fake codex: --output-last-message missing\n' >&2; exit 2; }
+case "${FAKE_MODE:-ok}" in
+  ok)
+    printf '{"type":"thread.started","thread_id":"t-123"}\n'
+    printf '%s' "${FAKE_MESSAGE:-hello}" > "$out"
+    ;;
+  refuse)
+    # A refused resume prints the PREVIOUS turn's final message, so the fake
+    # writes it to the last-message file too: the guard must withhold it.
+    printf 'Error: thread/resume: thread/resume failed: list_turns is not supported yet (code -32601)\n' >&2
+    printf 'hello\n'
+    printf 'hello' > "$out"
+    exit 1
+    ;;
+  fail)
+    printf 'Error: something unrelated broke\n' >&2
+    exit 1
+    ;;
+  quoted)
+    # The MODEL quotes the refusal phrase in its own output (stdout event
+    # stream) and the turn then fails for an unrelated reason. Must not be
+    # read as a backend refusal: stdout is model-controlled data.
+    printf '{"type":"item.completed","text":"docs say: thread/resume failed means start fresh"}\n'
+    printf 'Error: sandbox denied a write\n' >&2
+    exit 1
+    ;;
+esac
+FAKE
+chmod +x "$TMP/bin/codex"
+export PATH="$TMP/bin:$PATH"
+export FAKE_ARGV="$TMP/argv.log"
+export CODEX_LANE_DIR="$TMP/lanes"
+
+# run captures stdout, stderr and exit status separately, without set -e
+# aborting the test on the expected nonzero exits.
+run() {
+  set +e
+  out="$("$@" 2> "$TMP/stderr")"
+  rc=$?
+  set -e
+  err="$(cat "$TMP/stderr")"
+}
+
+mkdir -p "$TMP/ws" && cd "$TMP/ws"
+printf 'do the thing\n' > "$TMP/spec.txt"
+
+# 1. start: thread id recorded, last message printed, args stored.
+FAKE_MODE=ok FAKE_MESSAGE=hello run "$LANE" start job "$TMP/spec.txt" -- -s workspace-write
+[ "$rc" -eq 0 ] || fail "start exited $rc: $err"
+[ "$("$LANE" id job)" = "t-123" ] || fail "start did not record thread id"
+case "$out" in *hello*) ;; *) fail "start did not print the last message: $out" ;; esac
+
+# 2. next: stored args precede `resume`, last message updated.
+FAKE_MODE=ok FAKE_MESSAGE='round two' run "$LANE" next job 'continue'
+[ "$rc" -eq 0 ] || fail "next exited $rc: $err"
+case "$out" in *'round two'*) ;; *) fail "next did not print the new message: $out" ;; esac
+[ "$("$LANE" last job)" = "round two" ] || fail "last did not update after next"
+tail -n 1 "$FAKE_ARGV" | grep -q -- '-s workspace-write resume t-123 -' \
+  || fail "stored args were not replayed before resume: $(tail -n 1 "$FAKE_ARGV")"
+
+# 3. refused resume: nonzero, reported, stale previous message withheld,
+#    lane still resumable with the previous last message intact.
+FAKE_MODE=refuse run "$LANE" next job 'continue again'
+[ "$rc" -ne 0 ] || fail "refused resume exited 0"
+case "$err" in *'refused by the backend'*) ;; *) fail "refusal was not reported: $err" ;; esac
+case "$out" in *hello*) fail "stale previous message was printed on refusal: $out" ;; esac
+[ "$("$LANE" id job)" = "t-123" ] || fail "lane lost its thread id on refusal"
+[ "$("$LANE" last job)" = "round two" ] || fail "last-message pointer moved on refusal"
+
+# 4. negative control: an unrelated failure is not reported as a refusal.
+FAKE_MODE=fail run "$LANE" next job 'continue once more'
+[ "$rc" -ne 0 ] || fail "failed run exited 0"
+case "$err" in *'refused by the backend'*) fail "unrelated failure reported as refusal: $err" ;; esac
+case "$err" in *'something unrelated broke'*) ;; *) fail "codex stderr was not relayed: $err" ;; esac
+last_log="$(ls -t "$CODEX_LANE_DIR"/job.*.stderr.log | head -n 1)"
+grep -q 'something unrelated broke' "$last_log" || fail "codex stderr was not kept in $last_log"
+
+# 5. negative control: the refusal phrase inside the MODEL's stdout stream
+#    plus an unrelated failure is not a refusal (stdout is untrusted data).
+FAKE_MODE=quoted run "$LANE" next job 'quote the docs'
+[ "$rc" -ne 0 ] || fail "quoted run exited 0"
+case "$err" in *'refused by the backend'*) fail "model-quoted phrase was treated as a refusal: $err" ;; esac
+
+# 6. a stored arg that the wrapper refuses is rejected on replay, not passed on.
+python3 - "$CODEX_LANE_DIR/job.json" <<'PY'
+import json, sys
+p = sys.argv[1]
+s = json.load(open(p)); s["args"] = ["--ephemeral"]; json.dump(s, open(p, "w"))
+PY
+FAKE_MODE=ok run "$LANE" next job 'tampered'
+[ "$rc" -ne 0 ] || fail "tampered stored args were replayed"
+case "$err" in *'--ephemeral'*) ;; *) fail "tampered arg was not named in the rejection: $err" ;; esac
+python3 - "$CODEX_LANE_DIR/job.json" <<'PY'
+import json, sys
+p = sys.argv[1]
+s = json.load(open(p)); s["args"] = ["-s", "workspace-write"]; json.dump(s, open(p, "w"))
+PY
+
+# 7. a lane directory that grants group/other access is refused before anything runs.
+chmod 750 "$CODEX_LANE_DIR"
+FAKE_MODE=ok run "$LANE" next job 'should not run'
+[ "$rc" -ne 0 ] || fail "group-accessible lane dir was accepted"
+case "$err" in *'group/other access'*) ;; *) fail "lane dir permission was not the reported reason: $err" ;; esac
+chmod 700 "$CODEX_LANE_DIR"
+
+# 8. exclusive artifact creation (the script's own create_exclusive) refuses a
+#    pre-existing FIFO and a pre-existing symlink instead of following or
+#    blocking on them, and creates a fresh artifact at mode 0600.
+mkdir -p "$TMP/lanes2"
+mkfifo "$TMP/lanes2/planted.fifo"
+ln -s /dev/null "$TMP/lanes2/planted.link"
+probe() {
+  # Load only the function under test from the real script; `die` is stubbed.
+  bash -c 'set -euo pipefail; die(){ printf "codex-lane: %s\n" "$1" >&2; exit 2; }
+    eval "$(sed -n "/^create_exclusive()/,/^}/p" "$0")"; create_exclusive "$@"' "$LANE" "$@"
+}
+set +e
+probe "$TMP/lanes2/planted.fifo" 2>"$TMP/stderr"; rc=$?; set -e
+[ "$rc" -eq 2 ] || fail "create_exclusive did not refuse an existing FIFO (rc=$rc)"
+grep -q 'already exists' "$TMP/stderr" || fail "FIFO refusal not reported: $(cat "$TMP/stderr")"
+set +e
+probe "$TMP/lanes2/planted.link" 2>"$TMP/stderr"; rc=$?; set -e
+[ "$rc" -eq 2 ] || fail "create_exclusive followed an existing symlink (rc=$rc)"
+probe "$TMP/lanes2/fresh.log"
+mode="$(python3 -c 'import os,stat,sys; print(oct(stat.S_IMODE(os.stat(sys.argv[1]).st_mode)))' "$TMP/lanes2/fresh.log")"
+[ "$mode" = "0o600" ] || fail "fresh artifact mode is $mode, expected 0o600"
+
+echo "test PASS"

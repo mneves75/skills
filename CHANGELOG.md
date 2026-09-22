@@ -5,6 +5,69 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.19.0] - 2026-09-22
+
+Every skill reviewed against the 2026 Agent Skills spec, Anthropic's authoring guidance, the
+current Claude Code and Codex CLI references, and `steipete/agent-scripts codex-first`; findings
+verified by a two-axis code review and a security review of the shipped executables.
+
+### Fixed
+
+- **`mneves-fable-orchestrator`**: the Defaults block named "Opus 5.1", a model that does not exist.
+  Claude seats now read "latest release" with the `fable` / `opus` aliases; Codex seats keep the
+  1.18.1 routing (GPT-5.6 Sol `xhigh` executes, GPT-6 Astra `high` orchestrates, advises, reviews).
+  HOWTO's example calls the coordinator "the main session", not "the advisor", matching the skill.
+- **`codex-lane next`**: a refused resume (`thread/resume failed` on stderr, seen on very long
+  threads) used to look like a no-op round that echoed the previous turn's final message. It now
+  exits non-zero, says so, keeps the lane's last-message pointer on the real previous turn, and
+  withholds the stale message. Only stderr is consulted; the event stream is model output.
+- **`codex-lane`** hardening from the security review and autoreview: every artifact is created
+  with a real `O_CREAT|O_EXCL|O_NOFOLLOW` open at mode 0600 (a leftover file, planted symlink,
+  or FIFO is refused, never followed or waited on), an existing `CODEX_LANE_DIR` that grants
+  group or other users any access is refused by `start` and `next` alike, stored launch args are
+  re-validated on every `next`, and a relative `TMPDIR` no longer breaks the prompt file after `cd`.
+- Install docs: Codex reads skills from `~/.agents/skills` and `.agents/skills`, not
+  `~/.codex/skills`. `mneves-superaudit`'s example path no longer names the author's layout.
+- Landing page: `mneves-superaudit` gets its card and the copy says nine skills, not eight;
+  `MEMORY.md`'s inventory lists it too.
+
+### Added
+
+- **`compatibility:` frontmatter** on the three executable skills (`autoreview`,
+  `mneves-fable-orchestrator`, `mneves-teach-back-srs`) naming the tools they need. Frontmatter
+  stays on the Agent Skills spec: CI's `skills-ref validate` rejects any other key, so host-only
+  fields (`context: fork`, `effort`, `paths`) stay out; recorded as an `AGENTS.md` invariant.
+- **`tools/codex-lane.test`**: end-to-end test of `codex-lane` against a fake `codex` on `PATH`
+  (no quota): start, replayed args before `resume`, refused resume, two negative controls,
+  stderr streaming and capture, tampered state file. Runs in CI; the 1.18.1 script fails it.
+- **`references/codex-dispatch.md`** rewritten around the current CLI: skills location, global
+  flags precede `resume`, `codex exec fork` for branching a thread, route-failure taxonomy with
+  a one-request probe, hung-run heuristic, private overlay for provider credentials, per-worker
+  worktrees and lock etiquette, live-worker check before editing, and the optional `codex-auto`
+  launcher marked as not shipped. The orchestrator gains three rules from `codex-first`: never
+  stash or rebase someone else's dirty work to start a dispatch, a stop-report is a successful
+  run, and an uncommissioned commit message is a lead.
+- Orchestrator README "Lane mechanics": python3 requirement, lane-name charset, refused
+  pass-through flags, lock recovery, `CODEX_HOME` on every command, stderr log, artifact pruning.
+- `autoreview` README documents `scripts/test-review-harness` as the live positive/negative
+  control run (calls a provider, so not in CI). `mneves-teach-back-srs` links all three references.
+
+### Changed
+
+- `autoreview` SKILL.md: disclosure authorization comes from the active task or a trusted host
+  policy, is asked once, and never authorizes applying findings.
+- CI pins `bun-version: 1.4.2`; `build-site.sh` pins `marked@18.0.13` and runs the rendered
+  HOWTO body through `tools/scripts/check-html-active.py` (stdlib HTML parser): an element that
+  runs or embeds code, an `on*` handler, or a URL attribute whose entity-decoded value uses an
+  executable scheme fails the build, while escaped code examples pass. The pre-commit hook diffs
+  each staged file with `--literal-pathspecs`.
+
+### Known follow-ups
+
+- Re-vendor `autoreview` from upstream `openclaw/agent-skills` HEAD (six fixes since `3e9f3396`,
+  including GPT-6 Astra reasoning-level validation and a trusted-git preflight); it needs its own
+  reviewed release per the skill's maintenance policy.
+
 ## [1.18.1] - 2026-09-12
 
 ### Changed
@@ -359,6 +422,9 @@ the rest only when a task needs it.
 
 This project is inspired by [Factory.ai](https://factory.ai)'s Code Readiness framework.
 
+[1.19.0]: https://github.com/mneves75/skills/releases/tag/v1.19.0
+[1.18.1]: https://github.com/mneves75/skills/releases/tag/v1.18.1
+[1.18.0]: https://github.com/mneves75/skills/releases/tag/v1.18.0
 [1.17.0]: https://github.com/mneves75/skills/releases/tag/v1.17.0
 [1.16.0]: https://github.com/mneves75/skills/releases/tag/v1.16.0
 [1.15.0]: https://github.com/mneves75/skills/releases/tag/v1.15.0-beta1

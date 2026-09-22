@@ -2,6 +2,7 @@
 name: autoreview
 description: Independent AI code review of a Git target. Use when a code review is explicitly requested.
 license: MIT
+compatibility: Needs Python 3.11+, Git, TruffleHog, and an authenticated review engine (Codex by default; Claude, Amp, Pi, or Kimi optional) on the machine that runs `scripts/autoreview`.
 ---
 
 # Auto Review
@@ -59,8 +60,11 @@ otherwise leave the attribution unknown.
 
 Codex is the default engine; Claude, Amp, Pi, and Kimi are optional. Honor explicit
 engine/model choices; do not switch because a review is slow or rate-limited.
-Review bundles leave the machine for the selected provider. Authorize private-code
-disclosure before sending; secret scanning does not classify business confidentiality.
+Review bundles leave the machine for the selected provider. Require authorization from the
+active task or a trusted host policy before sending the selected diff, files, and context;
+the portable skill does not grant that disclosure by itself. Once authorized, do not ask
+again. Authorization to review does not authorize applying findings or any other mutation.
+Secret scanning still gates every pack; it does not classify business confidentiality.
 
 **Overrides (`--engine`, `--model`, `--thinking`), precedence, and per-engine
 prerequisites**: see [references/engine-selection.md](references/engine-selection.md).

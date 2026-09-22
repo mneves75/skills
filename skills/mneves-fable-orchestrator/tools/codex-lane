@@ -47,7 +47,12 @@
 #
 # Every run is backgrounded by the caller, not by this script: it writes to
 # stdout/stderr and exits with codex's exit code, so `codex-lane ... &` or a
-# harness background task both work.
+# harness background task both work. `next` streams codex's stderr through
+# and also keeps it as <lane>.<stamp>.stderr.log; if the backend refuses to
+# resume the thread (`thread/resume failed` on stderr, seen on very long
+# threads), `next` exits nonzero, says so on stderr, and does not print the
+# stale previous message -- start a fresh lane with a self-contained order.
+# Artifacts are never pruned; delete $CODEX_LANE_DIR/<lane>.* after `drop`.
 
 set -euo pipefail
 
@@ -105,9 +110,13 @@ lane_file() { printf '%s/%s.json' "$LANE_DIR" "$1"; }
 RESERVED_FILE=""
 LOCK_DIR=""
 PROMPT_TMP=""
+STDERR_PIPE=""
+TEE_PID=""
 cleanup() {
   if [ -n "$RESERVED_FILE" ]; then rm -f "$RESERVED_FILE"; RESERVED_FILE=""; fi
   if [ -n "$PROMPT_TMP" ];    then rm -f "$PROMPT_TMP";    PROMPT_TMP=""; fi
+  if [ -n "$TEE_PID" ];       then kill "$TEE_PID" 2>/dev/null || true; TEE_PID=""; fi
+  if [ -n "$STDERR_PIPE" ];   then rm -f "$STDERR_PIPE";   STDERR_PIPE=""; fi
   if [ -n "$LOCK_DIR" ];      then rmdir "$LOCK_DIR" 2>/dev/null || true; LOCK_DIR=""; fi
 }
 trap cleanup EXIT
@@ -251,6 +260,9 @@ prompt_to_stdin_file() {
   # script starts. So a big prompt must arrive via explicit stdin redirection:
   #   codex-lane next api-rls - < /tmp/gate3-failure.log
   PROMPT_TMP="$(mktemp "${TMPDIR:-/tmp}/codex-lane.XXXXXX")"
+  # `next` cds into the lane's workspace before reading this file, so a
+  # relative TMPDIR would point at the wrong tree.
+  case "$PROMPT_TMP" in /*) ;; *) PROMPT_TMP="$PWD/$PROMPT_TMP" ;; esac
   if [ "$1" = "-" ]; then
     cat > "$PROMPT_TMP"
   else
@@ -260,18 +272,46 @@ prompt_to_stdin_file() {
 }
 
 artifact_paths() {
-  # artifact_paths <lane> -> EVENTS, LAST. $$ disambiguates two runs that start
-  # within the same second, which would otherwise share (and truncate) files.
+  # artifact_paths <lane> -> EVENTS, LAST, STDERR. $$ disambiguates two runs
+  # that start within the same second, which would otherwise share (and
+  # truncate) files. STDERR is used by `next` only.
   local stamp; stamp="$(date -u +%Y%m%dT%H%M%SZ).$$"
   EVENTS="$LANE_DIR/$1.$stamp.jsonl"
   LAST="$LANE_DIR/$1.$stamp.last.txt"
+  STDERR="$LANE_DIR/$1.$stamp.stderr.log"
+}
+
+create_exclusive() {
+  # create_exclusive <file>... — create each artifact with a real
+  # O_CREAT|O_EXCL|O_NOFOLLOW open at mode 0600, so anything already at that
+  # path (a leftover file, a planted symlink, a FIFO that would block a plain
+  # redirect) is refused instead of being followed, truncated, or waited on.
+  # bash's `noclobber` only rejects existing REGULAR files, so it is not enough.
+  python3 - "$@" <<'PY' || die "refusing to create an artifact that already exists (see message above)"
+import os, sys
+flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+for path in sys.argv[1:]:
+    try:
+        os.close(os.open(path, flags, 0o600))
+    except OSError as exc:
+        print(f"codex-lane: {path}: {exc.strerror}", file=sys.stderr)
+        sys.exit(1)
+PY
 }
 
 init_lane_dir() {
   # Only tighten a directory we created ourselves. CODEX_LANE_DIR is user-supplied,
   # and chmod-ing an existing one would silently strip access from whatever else
-  # lives there.
-  [ -d "$LANE_DIR" ] && return 0
+  # lives there — but transcripts of whole jobs land here, so an existing
+  # directory that grants group or other users ANY access is refused rather
+  # than silently used (artifacts are 0600, but names and the tree are not).
+  if [ -d "$LANE_DIR" ]; then
+    python3 - "$LANE_DIR" <<'PY' || die "lane dir grants group/other access: $LANE_DIR (transcripts live here; chmod 700 it or point CODEX_LANE_DIR elsewhere)"
+import os, sys
+sys.exit(0 if (os.stat(sys.argv[1]).st_mode & 0o077) == 0 else 1)
+PY
+    return 0
+  fi
   mkdir -p "$LANE_DIR"
   chmod 700 "$LANE_DIR"   # transcripts of the whole job live here
 }
@@ -292,6 +332,7 @@ cmd_start() {
     || die "lane '$lane' already exists — use 'codex-lane next $lane ...' to continue it, or 'drop' it first"
 
   artifact_paths "$lane"
+  create_exclusive "$EVENTS" "$LAST"
   local rc=0
   codex exec --json --output-last-message "$LAST" \
     ${CODEX_ARGS[@]+"${CODEX_ARGS[@]}"} - < "$spec" > "$EVENTS" || rc=$?
@@ -325,21 +366,26 @@ cmd_next() {
   # drop reported success, then this turn resumed the thread anyway and
   # write_lane resurrected the state file the user thought was gone.
   [ -d "$LANE_DIR" ] || die "unknown lane '$lane' (codex-lane list)"
+  init_lane_dir   # `next` writes artifacts here too: same access check as `start`
   lock_lane "$lane"
   require_lane "$lane"
-  local f tid lane_cwd
+  local f tid lane_cwd prev_last
   f="$LANE_F"
   tid="$(json_field "$f" thread_id)"
   [ -n "$tid" ] || die "lane '$lane' has no thread_id"
   validate_tid "$tid"
+  prev_last="$(json_field "$f" last)"
 
   # Resolve the prompt against the CALLER's cwd, before we move.
   prompt_to_stdin_file "$prompt"
 
   # Always replay what `start` (or `adopt`) stored. `codex exec resume` takes
   # its sandbox/model/profile from the current invocation, not from the thread,
-  # so the stored set IS the lane's execution policy.
+  # so the stored set IS the lane's execution policy. Re-validate it: state
+  # files are data, and a hand-edited one must not smuggle in a refused flag.
   read_stored_args "$f"
+  split_args -- ${STORED_ARGS[@]+"${STORED_ARGS[@]}"}
+  STORED_ARGS=(${CODEX_ARGS[@]+"${CODEX_ARGS[@]}"})
 
   # Codex acts on its working directory. A lane is bound to one workspace, so
   # `next` must run where the lane started.
@@ -349,20 +395,53 @@ cmd_next() {
   cd "$lane_cwd" || die "cannot cd to lane cwd: $lane_cwd"
 
   artifact_paths "$lane"
+  create_exclusive "$EVENTS" "$LAST" "$STDERR"
+
+  # codex's stderr streams to the caller as before (a long lane stays
+  # observable) AND is kept in $STDERR: codex writes into a FIFO, `tee` copies
+  # it both ways, and `wait` guarantees the log is complete before it is read.
+  # mkfifo refuses an existing path, so a planted symlink cannot hijack it.
+  STDERR_PIPE="$STDERR.pipe"
+  mkfifo "$STDERR_PIPE" || die "cannot create stderr pipe: $STDERR_PIPE"
+  tee -a "$STDERR" < "$STDERR_PIPE" >&2 &
+  TEE_PID=$!
 
   # Global flags MUST precede `resume`; `codex exec resume -s read-only` is a
   # parse error ("unexpected argument '-s'"). The prompt is `-` (stdin).
   local rc=0
   codex exec --json --output-last-message "$LAST" \
     ${STORED_ARGS[@]+"${STORED_ARGS[@]}"} \
-    resume "$tid" - < "$PROMPT_TMP" > "$EVENTS" || rc=$?
+    resume "$tid" - < "$PROMPT_TMP" > "$EVENTS" 2> "$STDERR_PIPE" || rc=$?
+  wait "$TEE_PID" 2>/dev/null || true
+  TEE_PID=""
+  rm -f "$STDERR_PIPE"; STDERR_PIPE=""
 
-  # Re-persist the stored args unchanged: they are the lane's policy.
-  write_lane "$lane" "$tid" "$lane_cwd" "$EVENTS" "$LAST" ${STORED_ARGS[@]+"${STORED_ARGS[@]}"}
+  # A refused resume is a CLI error on stderr only. The event stream is never
+  # consulted: it carries the model's own output, and a transcript that merely
+  # quotes this phrase must not be able to tell the caller that nothing ran.
+  if [ "$rc" -ne 0 ] && grep -q 'thread/resume failed' "$STDERR" 2>/dev/null; then
+    # The backend could not rehydrate the thread (seen as "list_turns is not
+    # supported" on very long threads). codex exits nonzero after printing the
+    # previous turn's final message, which would look like a no-op round. Keep
+    # the lane's last-message pointer on the real previous turn and say so.
+    finish_next "$prev_last"
+    printf 'codex-lane: resume of thread %s was refused by the backend (codex exited %s); nothing ran this turn. Start a fresh lane with a self-contained order.\n' "$tid" "$rc" >&2
+    return "$rc"
+  fi
+
+  finish_next "$LAST"
   printf 'lane %s resumed thread %s\n' "$lane" "$tid" >&2
-  printf 'events: %s\n' "$EVENTS" >&2
   cat "$LAST" 2>/dev/null || true
   return $rc
+}
+
+finish_next() {
+  # finish_next <last-file> — re-persist the lane (stored args unchanged: they
+  # are the lane's policy) and name this turn's artifacts on stderr. Uses the
+  # caller's lane/tid/lane_cwd locals.
+  write_lane "$lane" "$tid" "$lane_cwd" "$EVENTS" "$1" ${STORED_ARGS[@]+"${STORED_ARGS[@]}"}
+  printf 'events: %s\n' "$EVENTS" >&2
+  printf 'stderr: %s\n' "$STDERR" >&2
 }
 
 # A plain `codex exec` that turns out to need a round 2 is the common case: the

@@ -2,6 +2,7 @@
 name: mneves-fable-orchestrator
 description: Route non-trivial work across agents. Use for delegation, parallel work, Codex dispatch, or long-running implementation.
 license: Apache-2.0
+compatibility: Codex dispatch needs the Codex CLI (`codex`) logged in, bash, and python3 on PATH; `tools/codex-lane` is symlinked onto PATH. Without Codex the routing rules still apply to your harness's own subagents.
 ---
 
 # Fable Orchestrator
@@ -32,9 +33,9 @@ before it can perform ordinary implementation.
 The only place this skill names models. Edit this block on a model release; nothing else.
 
 ```
-main session      = Fable 5.1 (Claude harness) | gpt-6-astra, reasoning high (Codex orchestrator)
-frontend subagent = Opus 5.1
-heavy executor    = gpt-5.6-sol, reasoning xhigh   (quota probes: low)
+main session      = Fable, latest release (Claude alias `fable`) | gpt-6-astra, reasoning high (Codex orchestrator)
+frontend subagent = Opus, latest release (Claude subagent alias `opus`)
+heavy executor    = gpt-5.6-sol, reasoning xhigh
 advisor, reviewer = gpt-6-astra, reasoning high    (autoreview's Codex default)
 ```
 
@@ -48,7 +49,8 @@ credentials, changes authorization, or requires a product/architecture decision.
 
 Delegate when the work is independent, substantial, objectively verifiable, and has disjoint
 file ownership. Parallelize only independent workstreams. Do not delegate a few direct reads or
-duplicate work already assigned.
+duplicate work already assigned. Never stash, switch, rebase, or reset someone else's dirty work
+merely to begin a dispatch; give parallel workers their own worktrees instead.
 
 Inside Codex, the session's model decides its seat. A session on the orchestrator model delegates
 substantial independent work to a heavy-executor worker whose model and effort are set in the
@@ -61,8 +63,8 @@ For a Codex dispatch from another harness, one round is `codex exec`, and `tools
 (shipped here) keeps a thread alive across rounds. `codex-auto` appears in the reference as a
 personal profile-selecting launcher; it is **not shipped with this skill** — substitute plain
 `codex exec` if you do not have it. Read
-[references/codex-dispatch.md](references/codex-dispatch.md) before the first launcher or lane
-command; it owns account selection, explicit overrides, continuity, and recovery.
+[references/codex-dispatch.md](references/codex-dispatch.md) before the first `codex exec` or
+lane command; it owns flag placement, continuity, failure classes, and the optional launcher.
 
 A multi-phase goal that must continue across many rounds needs a driver that survives context
 loss — a lane, a checked-in plan file, or your harness's own long-task mechanism. A long task
@@ -81,12 +83,15 @@ Every executor starts with zero private session context. Include:
 Tell the worker it is not alone in the tree, must preserve other changes, must not spawn agents,
 and must not run cross-session memory. Pair a hard prohibition with a safe stop condition: if an
 honest attempt cannot satisfy a gate, report the exact result instead of gaming the constraint.
+A cornered worker satisfies the letter of a rule (told never to raise a size budget, one
+hand-minified identifiers and passed every gate); treat a stop-report as a successful run, the
+coordinator's decision point.
 
 ## Accept delegated work
 
 Inspect the actual diff and merged surface. Run the focused proof yourself or verify captured
 output. Review guard, budget, fixture, and test-helper edits closely because they can weaken the
-check rather than fix the behavior. Check the brief's assumptions and production rules; test
+check rather than fix the behavior; a commit message you did not commission is a lead. Check the brief's assumptions and production rules; test
 existence is not a substitute for the required behavior.
 
 Use an independent fresh-context review when risk, the repository, or the user requires it; it

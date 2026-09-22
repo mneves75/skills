@@ -229,40 +229,44 @@ the loop ends. Findings map to *fixed*, *disproved* or *blocked*, nothing else.
 ## mneves-fable-orchestrator
 
 **What it does.** Routes non-trivial work across the main session, Codex, and subagents when
-delegation creates independent progress or evidence. The main session is Fable 5.1 or
-`gpt-6-astra` at `high`; frontend work goes to an Opus 5.1 subagent, other execution to
-`gpt-5.6-sol` at `xhigh`, and advice and review to `gpt-6-astra` at `high`. `codex-lane` keeps one Codex thread alive across rounds so
+delegation creates independent progress or evidence. The main session is the latest Fable or
+`gpt-6-astra` at `high`; frontend work goes to a subagent on the latest Opus, other execution to
+`gpt-5.6-sol` at `xhigh`, and advice and review to `gpt-6-astra` at `high`; the skill's Defaults
+block is authoritative when this paragraph and it disagree. `codex-lane` keeps one Codex thread alive across rounds so
 follow-ups reuse the executor's reasoning instead of restarting from a fresh spec.
 
 **Triggers.** "delegate", "orchestrate", "use codex", "heavy task", "long-running task", or
 any non-trivial task where the agent has to decide who executes.
 
-**Prerequisites.** The [Codex CLI](https://github.com/openai/codex) logged in, and
-`codex-lane` on your `PATH`:
+**Prerequisites.** The [Codex CLI](https://github.com/openai/codex) logged in, `python3` on
+`PATH` (lane state is JSON), and `codex-lane` on your `PATH`:
 
 ```bash
 ln -s ~/.agents/skills/mneves-fable-orchestrator/tools/codex-lane ~/bin/codex-lane
 ```
 
-(Adjust the source path to wherever the skill was installed.)
+(Adjust the source path to wherever the skill was installed. A lane stores launch arguments,
+not environment, so pass `CODEX_HOME` on every `start` and `next` when you use more than one
+Codex home.)
 
 **Example** (illustrative; a real run dispatches Codex). You ask for row-level security on a multi-tenant API.
 
-1. The advisor writes `/tmp/spec.md`: goal, acceptance criteria, exact files, the files it must
-   not touch (the frontend, which an Opus subagent owns), the test command that must pass.
+1. The main session writes `/tmp/spec.md`: goal, acceptance criteria, exact files, the files it
+   must not touch (the frontend, which the frontend subagent owns), the test command that must pass.
 2. It starts a lane:
    ```bash
    codex-lane start api-rls /tmp/spec.md -- -s workspace-write
    ```
-3. Codex returns; the advisor reads the diff and runs the tests itself. One gate fails.
+3. Codex returns; the main session reads the diff and runs the tests itself. One gate fails.
 4. Instead of a new spec, the failure goes to the same thread:
    ```bash
    codex-lane next api-rls - < /tmp/gate3-failure.log
    ```
-5. Green. The advisor reviews the final diff like a contributor PR, then closes out.
+5. Green. The main session reviews the final diff like a contributor PR, then closes out.
 
-Other commands: `codex-lane last <lane>` prints the final message, `log`, `id`, `list`,
-`drop`. A plain `codex exec` that unexpectedly needs a second round can be wrapped after the
+Other commands: `codex-lane last <lane>` prints the final message; `log` and `id` print the
+events-file path and the thread id; `list`, `drop`. If the backend refuses to resume a very long
+thread, `next` exits non-zero and says so instead of echoing the previous message. A plain `codex exec` that unexpectedly needs a second round can be wrapped after the
 fact with `codex-lane adopt <lane> <thread-id>`.
 
 **Tips.**
@@ -339,7 +343,7 @@ single bug fix or a one-file change.
 **Example** (illustrative). You point it at a repo and pick two items:
 
 ```
-superaudit ~/dev/myapp — items 1,2 only
+superaudit /path/to/myapp — items 1,2 only
 ```
 
 1. It fills the brief with you, then opens `agent_planning/superaudit-2026-09-10.md` and records

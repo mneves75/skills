@@ -2,6 +2,7 @@
 name: mneves-teach-back-srs
 description: Run codebase teach-back with Socratic questions and spaced repetition. Use when users teach, want a quiz, or review cards.
 license: Apache-2.0
+compatibility: Needs python3 (3.10+, standard library with sqlite3) to run `scripts/srs_db.py`; cards live in the project's `.ai-learn/srs.db`.
 ---
 
 # Teach-Back SRS
@@ -17,7 +18,7 @@ Determine which mode to enter based on user intent:
 - **"Show my stats" / "How am I doing?"** → Stats Dashboard (Mode 3)
 - **"Export cards"** → Export (Mode 4)
 
-Modes 2-4 are documented in `references/modes.md`. Read it when one of them is the active mode.
+Modes 2-4 are documented in [references/modes.md](references/modes.md). Read it when one of them is the active mode.
 
 ## Mode 1: Teach-Back Session
 
@@ -66,7 +67,7 @@ Important: reference specific files and line numbers when correcting. Vague corr
 ### Step 6: Generate Cards
 
 Generate flashcards from every gap and misconception discovered, then store each one with
-`scripts/srs_db.py add-card`. Read `references/card-quality.md` for the question, answer,
+`scripts/srs_db.py add-card`. Read [references/card-quality.md](references/card-quality.md) for the question, answer,
 difficulty, and tagging rules plus the full command invocation.
 
 ### Step 7: Record the Session
@@ -110,4 +111,4 @@ Continuity survives even though the agent has no memory of previous conversation
 
 - `modes.md`: Mode 2 (review session, SM-2 rating scale), Mode 3 (stats dashboard), Mode 4 (export). Load when the user asks to be quizzed, wants stats, or wants cards exported.
 - `card-quality.md`: Question, answer, difficulty, and tagging rules for generated cards. Load before Step 6.
-- `sm2-algorithm.md`: Detailed SM-2 formula reference, ease factor interpretation, interval progression examples. Load when explaining scheduling decisions to the user.
+- [`sm2-algorithm.md`](references/sm2-algorithm.md): Detailed SM-2 formula reference, ease factor interpretation, interval progression examples. Load when explaining scheduling decisions to the user.

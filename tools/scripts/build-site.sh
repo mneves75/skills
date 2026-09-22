@@ -7,9 +7,18 @@ set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)
 
 # Relative links point at repo files; on Pages they must go to GitHub.
-body=$(bunx --silent marked@18 --gfm -i "$root/HOWTO.md" \
+body=$(bunx --silent marked@18.0.13 --gfm -i "$root/HOWTO.md" \
   | sed -E 's#href="([^"#/][^":]*)"#href="https://github.com/mneves75/skills/blob/main/\1"#g' \
   | perl -pe 's{<h2>([^<]+)</h2>}{my $t=$1; (my $id=lc $t) =~ s/[^a-z0-9]+/-/g; $id =~ s/^-|-$//g; "<h2 id=\"$id\">$t</h2>"}e')
+
+# marked does not sanitize: raw HTML in HOWTO.md would land on the Pages origin
+# as-is. The rendered body is parsed (not grepped) and rejected if any element
+# can run or embed code, any attribute is an on* handler, or any URL attribute
+# decodes to an executable scheme; escaped code examples are text and pass.
+# The template head below is not scanned (it legitimately carries <meta>).
+printf '%s\n' "$body" | python3 "$root/tools/scripts/check-html-active.py" \
+  || { echo "HOWTO.md renders active HTML; fix HOWTO.md (details above)" >&2; exit 1; }
+
 cat > "$root/site/howto.html" <<HTML
 <!doctype html>
 <html lang="en">

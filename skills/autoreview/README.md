@@ -42,6 +42,10 @@ uses the installed Codex CLI to execute a local shell with positive and negative
 It needs ordinary OS permission to create temporary fixtures and launch a nested sandbox.
 Unsupported platform/tool checks are reported as skipped, not as passed.
 
+`scripts/test-review-harness` (`.py`; `.ps1` on Windows) is the live control run: it plants a
+malicious and a benign change and checks that a real engine flags one and clears the other. It
+calls the provider, so it is a release check, not part of `run-tests.py` or CI.
+
 ## Beta installation
 
 A beta is an immutable `vX.Y.Z-betaN` Git tag and GitHub prerelease. Download its source

@@ -14,6 +14,12 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.19.0** (2026-09-22): review against 2026 guidance. Claude seats in the orchestrator Defaults
+  read "latest release" (`fable`, `opus` aliases) because "Opus 5.1" never existed; Codex seats
+  keep 1.18.1 routing (Sol xhigh executes, Astra high orchestrates/advises/reviews). Frontmatter
+  is spec-only (`skills-ref` rejects unknown keys) and executable skills carry `compatibility`.
+  `codex-lane next` reports a refused resume; `codex-lane.test` runs against a fake `codex` in CI.
+  Codex reads skills from `.agents/skills`, not `~/.codex/skills`.
 - **1.18.1** (2026-09-12): Astra back to `high` for orchestration, advice and review (autoreview default high); Sol `xhigh` executes; a Codex session's model decides whether it orchestrates or executes.
 - **1.18.0** (2026-09-12): orchestrator routes main = Fable 5.1 | Astra xhigh, frontend = Opus 5.1, heavy executor = Sol xhigh, reviewer = Astra xhigh; autoreview Codex default rises to Astra xhigh.
 - **1.15.0 beta candidate** (2026-09-07): adds portable MIT-licensed `autoreview`, with Astra medium and access-only Sol xhigh fallback. The complete helper and tests are maintained here; installation needs no external upstream checkout.
@@ -33,7 +39,8 @@ measure whether a *target* codebase is ready for agents.
 - **1.5.0** shipped: adds `mneves-verify` (independent-verification skill) plus the
   repo's own ast-grep `as any` guard and a blocking pre-commit hook.
 - Skills: `autoreview`, `imagegen-frontend-mobile`, `mneves-agent-readiness`, `mneves-eli5`, `mneves-expert-review`,
-  `mneves-fable-orchestrator` (ships `codex-lane`), `mneves-teach-back-srs`, `mneves-verify`.
+  `mneves-fable-orchestrator` (ships `codex-lane` + `codex-lane.test`), `mneves-superaudit`,
+  `mneves-teach-back-srs`, `mneves-verify`.
 - `tools/` is a Bun + TypeScript project with no external runtime deps; dev deps only (Biome,
   TypeScript, bun-types).
 
@@ -53,7 +60,18 @@ measure whether a *target* codebase is ready for agents.
   fails closed when ast-grep is absent. `unknown` + a narrowing guard is the sanctioned
   replacement.
 
+- **Frontmatter stays on the Agent Skills spec.** CI runs `skills-ref validate`, which errors on
+  any key outside `name`/`description`/`license`/`compatibility`/`metadata`/`allowed-tools`.
+  Host-only fields (`context: fork`, `effort`, `paths`) are attractive but break the gate; the
+  independence `mneves-verify` needs is stated in prose, not frontmatter.
+- **A superseded in-flight routing change lives in `git stash` (2026-09-22)**, not in history:
+  "Sol everywhere" was tried, then rejected in favour of Sol-executes / Astra-reviews.
+
 ## Lessons paid for
+
+- **A model version in prose can be fiction.** 1.17.0–1.18.1 shipped "Opus 5.1" in the Defaults
+  block and HOWTO; no such model existed. Name Claude seats by alias ("latest release") and
+  check vendor model lists on every release.
 
 - **README badge drift.** 1.4.0 shipped with the badge still pinned at 1.2.0 while `VERSION`
   read 1.3.0. Any version bump is three places, not one.

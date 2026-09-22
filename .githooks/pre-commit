@@ -21,7 +21,7 @@ while IFS= read -r -d '' file; do
     echo "pre-commit: install it — https://ast-grep.github.io/guide/quick-start.html" >&2
     exit 1
   fi
-  if [ -n "$(git diff --name-only -- "$file")" ]; then
+  if [ -n "$(git --literal-pathspecs diff --name-only -- "$file")" ]; then
     echo "pre-commit: '$file' has unstaged changes; stage them or restore the file first." >&2
     status=1
     continue

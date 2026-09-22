@@ -14,7 +14,7 @@ This skill does not restate them and never overrides them.
 
 ## 1. Brief
 
-Invoke with a repo and the items you want, e.g. `superaudit ~/dev/myapp — items 1,2`. Fill this in
+Invoke with a repo and the items you want, e.g. `superaudit /path/to/myapp — items 1,2`. Fill this in
 before anything else.
 
 ```

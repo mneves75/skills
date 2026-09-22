@@ -19,7 +19,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── mneves-agent-readiness/    # Codebase readiness assessment (pairs with tools/)
 │   ├── mneves-eli5/               # Feynman explainer, audience-calibrated
 │   ├── mneves-expert-review/      # Expert-panel review/optimization pass (+ references/)
-│   ├── mneves-fable-orchestrator/ # Model routing; Codex reference + tools/codex-lane
+│   ├── mneves-fable-orchestrator/ # Model routing; Codex reference + tools/codex-lane (+ its test)
 │   ├── mneves-superaudit/         # Bounded audit-and-ship pass (+ references/)
 │   ├── mneves-teach-back-srs/     # Spaced-repetition teach-back (+ scripts/srs_db.py)
 │   └── mneves-verify/             # Independent verification before done/fixed/shipped
@@ -41,6 +41,7 @@ cd tools && bun install                 # dev deps only (Biome, TypeScript, bun-
 bun run typecheck && bun run lint       # from tools/
 ast-grep scan --config sgconfig.yml .   # from repo root
 bash .githooks/pre-commit.test          # hook e2e test
+bash skills/mneves-fable-orchestrator/tools/codex-lane.test   # codex-lane e2e against a fake codex (no quota)
 bun --bun tools/readiness-check.ts --format=html --output=report.html   # assess cwd
 tools/scripts/build-site.sh            # HOWTO.md -> site/howto.html + landing changelog rows (CI checks freshness)
 npx skills@latest add . --list          # what the skills CLI will discover
@@ -53,13 +54,18 @@ python3 skills/autoreview/scripts/run-tests.py  # isolated unit/integration/secu
   adapted third-party skills retain their upstream name, copyright, license, and provenance.
   `description:` is one short capability-and-trigger line; keyword inventories and
   procedures belong in the body or a routed reference.
+- Frontmatter is Agent Skills spec only: `name`, `description`, `license`, and, for a skill that
+  ships an executable, `compatibility` (≤ 500 characters naming the tools it needs). CI's
+  `skills-ref validate` rejects any other key, so host-specific fields (`context`, `effort`,
+  `paths`, `disable-model-invocation`) stay out even when a host supports them.
 - Never add a root `SKILL.md`: the skills CLI lets a shallower `SKILL.md` shadow everything
   below it.
 - Skills are Markdown-first. Shipped executables are `bash` + `set -euo pipefail`, `bash -n`
   clean when written in Bash. Python helpers use Python 3.10+ and the standard library;
   each helper states its own floor and that claim must match the syntax it actually uses.
   Executable skills are `autoreview`, `mneves-fable-orchestrator`, and `mneves-teach-back-srs`;
-  the repository copy is canonical and each ships its relevant verification procedure.
+  the repository copy is canonical and each ships its relevant verification procedure
+  (`codex-lane.test` runs against a fake `codex` on `PATH`, so it never spends quota).
 - No `any` / `as any` in `tools/`; use `unknown` + a narrowing guard. ast-grep blocks it.
 - No personal paths, machine layout, secrets or client names in shipped files; a skill must work
   for a stranger's clone. A tool's own documented default (`~/.codex/lanes`) and an install

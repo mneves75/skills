@@ -243,32 +243,36 @@ inside a log proves nothing until the verifier reruns the tests.</li>
 <hr>
 <h2 id="mneves-fable-orchestrator">mneves-fable-orchestrator</h2>
 <p><strong>What it does.</strong> Routes non-trivial work across the main session, Codex, and subagents when
-delegation creates independent progress or evidence. The main session is Fable 5.1 or
-<code>gpt-6-astra</code> at <code>high</code>; frontend work goes to an Opus 5.1 subagent, other execution to
-<code>gpt-5.6-sol</code> at <code>xhigh</code>, and advice and review to <code>gpt-6-astra</code> at <code>high</code>. <code>codex-lane</code> keeps one Codex thread alive across rounds so
+delegation creates independent progress or evidence. The main session is the latest Fable or
+<code>gpt-6-astra</code> at <code>high</code>; frontend work goes to a subagent on the latest Opus, other execution to
+<code>gpt-5.6-sol</code> at <code>xhigh</code>, and advice and review to <code>gpt-6-astra</code> at <code>high</code>; the skill&#39;s Defaults
+block is authoritative when this paragraph and it disagree. <code>codex-lane</code> keeps one Codex thread alive across rounds so
 follow-ups reuse the executor&#39;s reasoning instead of restarting from a fresh spec.</p>
 <p><strong>Triggers.</strong> &quot;delegate&quot;, &quot;orchestrate&quot;, &quot;use codex&quot;, &quot;heavy task&quot;, &quot;long-running task&quot;, or
 any non-trivial task where the agent has to decide who executes.</p>
-<p><strong>Prerequisites.</strong> The <a href="https://github.com/openai/codex">Codex CLI</a> logged in, and
-<code>codex-lane</code> on your <code>PATH</code>:</p>
+<p><strong>Prerequisites.</strong> The <a href="https://github.com/openai/codex">Codex CLI</a> logged in, <code>python3</code> on
+<code>PATH</code> (lane state is JSON), and <code>codex-lane</code> on your <code>PATH</code>:</p>
 <pre><code class="language-bash">ln -s ~/.agents/skills/mneves-fable-orchestrator/tools/codex-lane ~/bin/codex-lane
 </code></pre>
-<p>(Adjust the source path to wherever the skill was installed.)</p>
+<p>(Adjust the source path to wherever the skill was installed. A lane stores launch arguments,
+not environment, so pass <code>CODEX_HOME</code> on every <code>start</code> and <code>next</code> when you use more than one
+Codex home.)</p>
 <p><strong>Example</strong> (illustrative; a real run dispatches Codex). You ask for row-level security on a multi-tenant API.</p>
 <ol>
-<li>The advisor writes <code>/tmp/spec.md</code>: goal, acceptance criteria, exact files, the files it must
-not touch (the frontend, which an Opus subagent owns), the test command that must pass.</li>
+<li>The main session writes <code>/tmp/spec.md</code>: goal, acceptance criteria, exact files, the files it
+must not touch (the frontend, which the frontend subagent owns), the test command that must pass.</li>
 <li>It starts a lane:<pre><code class="language-bash">codex-lane start api-rls /tmp/spec.md -- -s workspace-write
 </code></pre>
 </li>
-<li>Codex returns; the advisor reads the diff and runs the tests itself. One gate fails.</li>
+<li>Codex returns; the main session reads the diff and runs the tests itself. One gate fails.</li>
 <li>Instead of a new spec, the failure goes to the same thread:<pre><code class="language-bash">codex-lane next api-rls - &lt; /tmp/gate3-failure.log
 </code></pre>
 </li>
-<li>Green. The advisor reviews the final diff like a contributor PR, then closes out.</li>
+<li>Green. The main session reviews the final diff like a contributor PR, then closes out.</li>
 </ol>
-<p>Other commands: <code>codex-lane last &lt;lane&gt;</code> prints the final message, <code>log</code>, <code>id</code>, <code>list</code>,
-<code>drop</code>. A plain <code>codex exec</code> that unexpectedly needs a second round can be wrapped after the
+<p>Other commands: <code>codex-lane last &lt;lane&gt;</code> prints the final message; <code>log</code> and <code>id</code> print the
+events-file path and the thread id; <code>list</code>, <code>drop</code>. If the backend refuses to resume a very long
+thread, <code>next</code> exits non-zero and says so instead of echoing the previous message. A plain <code>codex exec</code> that unexpectedly needs a second round can be wrapped after the
 fact with <code>codex-lane adopt &lt;lane&gt; &lt;thread-id&gt;</code>.</p>
 <p><strong>Tips.</strong></p>
 <ul>
@@ -330,7 +334,7 @@ need your explicit word for that action and target.</p>
 &quot;find slop&quot;, &quot;audit open PRs&quot;, or an end-to-end review → fix → verify → release pass. Not for a
 single bug fix or a one-file change.</p>
 <p><strong>Example</strong> (illustrative). You point it at a repo and pick two items:</p>
-<pre><code>superaudit ~/dev/myapp — items 1,2 only
+<pre><code>superaudit /path/to/myapp — items 1,2 only
 </code></pre>
 <ol>
 <li>It fills the brief with you, then opens <code>agent_planning/superaudit-2026-09-10.md</code> and records

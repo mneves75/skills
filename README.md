@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.18.1-blue)
+![Version](https://img.shields.io/badge/version-1.19.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -45,6 +45,8 @@ npx skills@latest update
 npx skills@latest remove mneves-verify
 ```
 
+User-wide installs land where each agent looks: `~/.claude/skills/` for Claude Code and
+`~/.agents/skills/` for Codex (which also reads `.agents/skills/` inside a repository).
 Project-scoped installs (omit `-g`) land in `./.claude/skills/`, `./.agents/skills/`, etc.,
 and can be committed with the project.
 
@@ -55,7 +57,7 @@ Any tool that reads `SKILL.md` folders works with a plain clone:
 | Tool | Command |
 |------|---------|
 | Claude Code | `git clone https://github.com/mneves75/skills.git ~/.claude/skills/mneves-skills` |
-| Codex | `git clone https://github.com/mneves75/skills.git ~/.codex/skills/mneves-skills` |
+| Codex | `git clone https://github.com/mneves75/skills.git ~/.agents/skills/mneves-skills` (Codex reads `~/.agents/skills` and `.agents/skills` in a repository) |
 | [pi](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) | `git clone https://github.com/mneves75/skills.git ~/.pi/agent/skills/mneves-skills` |
 | [OpenCode](https://opencode.ai/) | `git clone https://github.com/mneves75/skills.git ~/.config/opencode/skills/mneves-skills` |
 | Cursor | `git clone https://github.com/mneves75/skills.git ~/.cursor/skills/mneves-skills` |
