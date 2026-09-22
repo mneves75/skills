@@ -27,7 +27,9 @@ def main() -> int:
         for args in (
             ["scripts/autoreview_test.py"],
             ["-m", "unittest", "tests.test_autoreview_hardening",
-             "tests.test_codex_inference_route", "tests.test_codex_sandbox"],
+             "tests.test_codex_inference_route", "tests.test_codex_sandbox",
+             "tests.test_git_line_endings", "tests.test_git_boundary",
+             "tests.test_git_filter_collection"],
         ):
             result = subprocess.run([sys.executable, "-B", *args], cwd=root, env=env)
             if result.returncode:

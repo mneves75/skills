@@ -90,7 +90,7 @@ class AutoreviewCursorTests(unittest.TestCase):
             provider = {**FINAL_REPORT, "review_completion": completion}
             with self.subTest(completion=completion), mock.patch.object(
                 AUTOREVIEW, "run_engine", return_value=json.dumps(provider),
-            ):
+            ), mock.patch.object(AUTOREVIEW, "scan_outgoing_review_pack"):
                 result = AUTOREVIEW.run_reviewer(args, Path.cwd(), "synthetic", set(), [])
             self.assertEqual(result.complete, completion == "complete")
             self.assertEqual(result.report["provider_report"], FINAL_REPORT)
@@ -106,7 +106,7 @@ class AutoreviewCursorTests(unittest.TestCase):
         ):
             with self.subTest(provider=provider), mock.patch.object(
                 AUTOREVIEW, "run_engine", return_value=json.dumps(provider),
-            ):
+            ), mock.patch.object(AUTOREVIEW, "scan_outgoing_review_pack"):
                 with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as caught:
                     AUTOREVIEW.run_reviewer(args, Path.cwd(), "synthetic", set(), [])
             self.assertEqual(caught.exception.reason, "invalid_report")
@@ -203,7 +203,7 @@ class AutoreviewPriorityTests(unittest.TestCase):
         with mock.patch.object(
             AUTOREVIEW, "run_engine",
             return_value=json.dumps({**DRAFT_REPORT, "review_completion": "incomplete"}),
-        ):
+        ), mock.patch.object(AUTOREVIEW, "scan_outgoing_review_pack"):
             result = AUTOREVIEW.run_reviewer(args, Path.cwd(), "synthetic", {"draft.js"}, [])
         self.assertFalse(result.complete)
         self.assertEqual(result.report["provider_report"], DRAFT_REPORT)

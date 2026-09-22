@@ -766,6 +766,7 @@ class AutoreviewMixedTargetTests(unittest.TestCase):
                     with mock.patch.dict(self.helper["main_impl"].__globals__, {
                         "repo_root": lambda: repo,
                         "prepare_review_prompts": lambda *args: prepare(*args) * len(completions),
+                        "scan_outgoing_review_pack": lambda *_: None,
                         "run_engine": engine,
                     }), mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(text):
                         self.assertEqual(self.helper["main_impl"](), 2)
@@ -2085,6 +2086,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
                     "GIT_TERMINAL_PROMPT": "0", "GIT_OPTIONAL_LOCKS": "0",
                     "LANG": "C.UTF-8", "LC_ALL": "C.UTF-8",
                 })
+                add_fake_trufflehog(self.helper, root, env)
                 with mock.patch.dict(os.environ, env, clear=True):
                     repo = init_repo(root)
                     git(repo, "config", "core.autocrlf", "false")
@@ -2255,6 +2257,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
                                 with mock.patch.dict(self.helper["main_impl"].__globals__, {
                                     "repo_root": lambda: repo,
                                     "build_review_prompts": lambda *_: ["synthetic pack"] * len(completions),
+                                    "scan_outgoing_review_pack": lambda *_: None,
                                     "run_engine": engine, "review_status": finalized,
                                 }), mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(text), \
                                         contextlib.redirect_stderr(io.StringIO()):
@@ -7518,6 +7521,7 @@ Path(sys.argv[sys.argv.index(flag) + 1]).write_text(json.dumps({
             env = {key: value for key, value in os.environ.items() if key in {"PATH", "TMPDIR", "TEMP", "TMP"}}
             env.update({"HOME": str(home), "HTTPS_PROXY": proxy, "OPENAI_API_KEY": "opaque-provider-fixture",
                         "AUTOREVIEW_FAKE_PROXY_RECORD": str(record)})
+            add_fake_trufflehog(self.helper, root, env)
             command = [sys.executable, str(SCRIPT), "--mode", "local", "--codex-bin", str(fake),
                        "--output", str(human), "--json-output", str(report), "--status-output", str(status),
                        "--stream-engine-output"]
