@@ -1,5 +1,5 @@
 ---
-name: handoff
+name: mneves-handoff
 description: Write a clipboard-ready prompt that hands a task to another agent for review and discussion. Use for "handoff <task>" or "write a handoff".
 license: MIT
 ---
@@ -95,5 +95,6 @@ Without a clipboard tool, print the prompt and say the copy was unavailable.
 
 Adapted from [OpenClaw Agent Skills `handoff` at revision `711711b8`](https://github.com/openclaw/agent-skills/tree/711711b86294673feced9d1cb636b539daf3c218/skills/handoff).
 Copyright (c) 2026 openclaw; distributed under the [MIT License](LICENSE). Local changes: the
+`mneves-` prefix (the upstream name collides with another widely installed `handoff` skill), the
 brief-versus-handoff distinction, a private temporary file for the clipboard step, and condensed
 rules.

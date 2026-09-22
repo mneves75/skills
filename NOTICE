@@ -16,7 +16,8 @@ https://github.com/openclaw/agent-skills/tree/711711b86294673feced9d1cb636b539da
 Copyright (c) 2026 openclaw. Distributed under the MIT License included in that skill's directory.
 Local modifications include model/reasoning defaults, portable packaging, retained TruffleHog scanning, and regression-tested security fixes.
 
-The handoff skill is adapted from OpenClaw Agent Skills:
+The mneves-handoff skill is adapted from OpenClaw Agent Skills' handoff skill (renamed to avoid a
+name collision):
 https://github.com/openclaw/agent-skills/tree/711711b86294673feced9d1cb636b539daf3c218/skills/handoff
 Copyright (c) 2026 openclaw. Distributed under the MIT License included in that skill's directory.
 

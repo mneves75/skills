@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.23.1] - 2026-09-22
+
+### Changed
+
+- **`handoff` is renamed `mneves-handoff`**: another widely installed skill is also called
+  `handoff`, so installing both collections clashed. `AGENTS.md` now allows the `mneves-` prefix on
+  an adapted skill for exactly this case, with the upstream name kept in the provenance.
+
+### Fixed
+
+- `autoreview`'s test runner runs the three upstream Git suites added in 1.23.0, and the imported
+  tests no longer need TruffleHog installed (they mock the scanner or use the fake one), so CI
+  passes on runners without it. Upstream's synthetic proxy credential URLs are split so the pack
+  scanner accepts them for review. Tests only; the helper is unchanged.
+
 ## [1.23.0] - 2026-09-22
 
 Ideas and fixes from a review of OpenClaw Agent Skills 0.1.0 (`711711b8`).

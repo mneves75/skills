@@ -15,11 +15,11 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 .
 ├── skills/
 │   ├── autoreview/                # Portable AI review CLI + security tests (MIT)
-│   ├── handoff/                   # Discussion-first handoff prompt for another agent (MIT)
 │   ├── imagegen-frontend-mobile/   # Mobile screen/flow image generation (MIT)
 │   ├── mneves-agent-readiness/    # Codebase readiness assessment (pairs with tools/)
 │   ├── mneves-eli5/               # Feynman explainer, audience-calibrated
 │   ├── mneves-expert-review/      # Expert-panel review/optimization pass (+ references/)
+│   ├── mneves-handoff/            # Discussion-first handoff prompt for another agent (MIT, adapted)
 │   ├── mneves-fable-orchestrator/ # Model routing; Codex reference + tools/codex-lane (+ its test)
 │   ├── mneves-superaudit/         # Bounded audit-and-ship pass (+ references/)
 │   ├── mneves-teach-back-srs/     # Spaced-repetition teach-back (+ scripts/srs_db.py)
@@ -53,7 +53,9 @@ python3 skills/autoreview/scripts/run-tests.py  # isolated unit/integration/secu
 ## Invariants (CI enforces the checkable ones)
 
 - Directory name == frontmatter `name:`. Original skills carry the `mneves-` prefix;
-  adapted third-party skills retain their upstream name, copyright, license, and provenance.
+  adapted third-party skills retain their upstream name, copyright, license, and provenance,
+  except that an upstream name colliding with another widely installed skill takes the `mneves-`
+  prefix, and the provenance records the upstream name.
   `description:` is one short capability-and-trigger line; keyword inventories and
   procedures belong in the body or a routed reference.
 - Frontmatter is Agent Skills spec only: `name`, `description`, `license`, and, for a skill that

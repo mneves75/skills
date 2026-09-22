@@ -24,7 +24,7 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 | Skill | Use it when you want to… | Say something like |
 |---|---|---|
 | `autoreview` | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
-| `handoff` | hand a task to another agent, review first | "handoff the flaky login test" |
+| `mneves-handoff` | hand a task to another agent, review first | "handoff the flaky login test" |
 | `imagegen-frontend-mobile` | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
 | `mneves-eli5` | explain a thing to a specific audience | "explain OAuth to my dad" |
 | `mneves-expert-review` | stress-test a plan or answer before it ships | "challenge this design" |
@@ -61,7 +61,7 @@ for testing and beta installation.
 
 ---
 
-## handoff
+## mneves-handoff
 
 **What it does.** Writes a standalone prompt for an agent you do not control (another session,
 another tool, a colleague's agent) and copies it to the clipboard. The prompt opens a
@@ -87,7 +87,8 @@ work you dispatch into your own tree, use `mneves-fable-orchestrator`'s delegati
 - The receiver owns its review; give it context and constraints, not your conclusion.
 - Ask for paths only when the receiver shares your machine layout.
 - The skill is an MIT-licensed adaptation of
-  [OpenClaw's `handoff`](https://github.com/openclaw/agent-skills/tree/main/skills/handoff).
+  [OpenClaw's `handoff`](https://github.com/openclaw/agent-skills/tree/main/skills/handoff),
+  renamed because another widely installed skill is also called `handoff`.
 
 ---
 

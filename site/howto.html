@@ -45,7 +45,7 @@ also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use 
 <td>&quot;use autoreview on my local changes, including P3 findings&quot;</td>
 </tr>
 <tr>
-<td><code>handoff</code></td>
+<td><code>mneves-handoff</code></td>
 <td>hand a task to another agent, review first</td>
 <td>&quot;handoff the flaky login test&quot;</td>
 </tr>
@@ -108,7 +108,7 @@ before sending inputs. Findings need verification against the actual code; a cle
 does not prove the absence of vulnerabilities. See <a href="https://github.com/mneves75/skills/blob/main/skills/autoreview/README.md">the skill README</a>
 for testing and beta installation.</p>
 <hr>
-<h2 id="handoff">handoff</h2>
+<h2 id="mneves-handoff">mneves-handoff</h2>
 <p><strong>What it does.</strong> Writes a standalone prompt for an agent you do not control (another session,
 another tool, a colleague&#39;s agent) and copies it to the clipboard. The prompt opens a
 discussion: the receiving agent reviews the repository and decides whether the task is still
@@ -130,7 +130,8 @@ replies &quot;Copied handoff: flaky login e2e test.&quot;</p>
 <li>The receiver owns its review; give it context and constraints, not your conclusion.</li>
 <li>Ask for paths only when the receiver shares your machine layout.</li>
 <li>The skill is an MIT-licensed adaptation of
-<a href="https://github.com/openclaw/agent-skills/tree/main/skills/handoff">OpenClaw&#39;s <code>handoff</code></a>.</li>
+<a href="https://github.com/openclaw/agent-skills/tree/main/skills/handoff">OpenClaw&#39;s <code>handoff</code></a>,
+renamed because another widely installed skill is also called <code>handoff</code>.</li>
 </ul>
 <hr>
 <h2 id="imagegen-frontend-mobile">imagegen-frontend-mobile</h2>

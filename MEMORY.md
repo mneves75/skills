@@ -14,6 +14,9 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.23.1** (2026-09-22): `handoff` renamed `mneves-handoff` (clash with mattpocock/skills
+  `handoff`); AGENTS.md allows the prefix for a colliding adapted name. Autoreview test fixes that
+  made CI green (`4b5c183`); `v1.23.0` was moved from `acd437c` (CI red, test-only) to `4b5c183`.
 - **1.23.0** (2026-09-22): reviewed OpenClaw agent-skills 0.1.0. Added `handoff` (MIT adaptation);
   autoreview imports upstream through `711711b8` minus the TruffleHog removal (#240, #244) and
   the Astra usage guidance; `mneves-verify` gains source-blind behavior checks and fake-work
