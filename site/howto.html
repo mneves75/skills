@@ -271,7 +271,8 @@ must not touch (the frontend, which the frontend subagent owns), the test comman
 <li>Green. The main session reviews the final diff like a contributor PR, then closes out.</li>
 </ol>
 <p>Other commands: <code>codex-lane last &lt;lane&gt;</code> prints the final message; <code>log</code> and <code>id</code> print the
-events-file path and the thread id; <code>list</code>, <code>drop</code>. If the backend refuses to resume a very long
+events-file path and the thread id; <code>fork &lt;lane&gt; &lt;new-lane&gt; &lt;prompt&gt;</code> branches the thread into a
+second lane so two approaches can be compared from the same state; <code>list</code>, <code>drop</code>. If the backend refuses to resume a very long
 thread, <code>next</code> exits non-zero and says so instead of echoing the previous message. A plain <code>codex exec</code> that unexpectedly needs a second round can be wrapped after the
 fact with <code>codex-lane adopt &lt;lane&gt; &lt;thread-id&gt;</code>.</p>
 <p><strong>Tips.</strong></p>

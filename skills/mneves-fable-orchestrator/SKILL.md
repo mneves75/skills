@@ -39,6 +39,10 @@ heavy executor    = gpt-5.6-sol, reasoning xhigh
 advisor, reviewer = gpt-6-astra, reasoning high    (autoreview's Codex default)
 ```
 
+Verified against the vendor model lists on 2026-09-22; a release re-verifies every id above and
+updates this date (CI requires it to match the release date, and that the values named above
+appear nowhere else in this file).
+
 Reasoning-effort names are vendor enums and change; if one is rejected, read the CLI's `--help`
 rather than guessing a neighbouring value.
 

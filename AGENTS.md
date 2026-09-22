@@ -42,6 +42,7 @@ bun run typecheck && bun run lint       # from tools/
 ast-grep scan --config sgconfig.yml .   # from repo root
 bash .githooks/pre-commit.test          # hook e2e test
 bash skills/mneves-fable-orchestrator/tools/codex-lane.test   # codex-lane e2e against a fake codex (no quota)
+tools/scripts/check-defaults-block.sh   # model ids only inside the orchestrator's Defaults block, with its verified-on date
 bun --bun tools/readiness-check.ts --format=html --output=report.html   # assess cwd
 tools/scripts/build-site.sh            # HOWTO.md -> site/howto.html + landing changelog rows (CI checks freshness)
 npx skills@latest add . --list          # what the skills CLI will discover
@@ -75,6 +76,12 @@ python3 skills/autoreview/scripts/run-tests.py  # isolated unit/integration/secu
 - Model ids and reasoning tiers live in exactly one clearly marked block per skill, or in the
   user's own configuration. Prose refers to capability roles ("heavy executor"), never to a
   product name, so a model release is a one-line edit. The same applies to pinned CLI versions.
+  Every release re-verifies each id in that block against the vendors' current model lists and
+  updates the block's "Verified against the vendor model lists on" date; CI derives the protected
+  words from the block (ids, seat names, aliases, tiers), rejects them and any id-shaped token
+  elsewhere in the file, and requires that date to equal the top `CHANGELOG.md` entry's date for
+  the current `VERSION` (`tools/scripts/check-defaults-block.sh`). Keep the block's shapes: vendor
+  ids as ids, Claude seats as `<Name>, latest release (... alias \`x\`)`, tiers as `reasoning <tier>`.
 - `SKILL.md` bodies stay under 500 lines; detail sits behind `references/`, linked one level
   deep from `SKILL.md` and never reference-to-reference.
 - `VERSION`, the README badge and the top `CHANGELOG.md` entry agree.

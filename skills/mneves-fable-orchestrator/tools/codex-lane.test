@@ -29,7 +29,8 @@ mkdir -p "$TMP/bin"
 cat > "$TMP/bin/codex" <<'FAKE'
 #!/usr/bin/env bash
 set -euo pipefail
-printf '%s\n' "$*" >> "$FAKE_ARGV"
+ARGV="$*"
+printf '%s\n' "$ARGV" >> "$FAKE_ARGV"
 out=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -41,8 +42,17 @@ cat >/dev/null   # consume the prompt on stdin
 [ -n "$out" ] || { printf 'fake codex: --output-last-message missing\n' >&2; exit 2; }
 case "${FAKE_MODE:-ok}" in
   ok)
-    printf '{"type":"thread.started","thread_id":"t-123"}\n'
+    # A fork is a new session with its own id; everything else is t-123.
+    case " $ARGV " in
+      *" fork "*) printf '{"type":"thread.started","thread_id":"t-456"}\n' ;;
+      *)          printf '{"type":"thread.started","thread_id":"t-123"}\n' ;;
+    esac
     printf '%s' "${FAKE_MESSAGE:-hello}" > "$out"
+    ;;
+  fork-same)
+    # A fork that reports the SOURCE id: the wrapper must refuse to alias it.
+    printf '{"type":"thread.started","thread_id":"t-123"}\n'
+    printf 'aliased' > "$out"
     ;;
   refuse)
     # A refused resume prints the PREVIOUS turn's final message, so the fake
@@ -135,6 +145,33 @@ import json, sys
 p = sys.argv[1]
 s = json.load(open(p)); s["args"] = ["-s", "workspace-write"]; json.dump(s, open(p, "w"))
 PY
+
+# 6b. fork: a new lane with the fork's own thread id, the source's cwd and policy;
+#     the source is untouched, `next` on the fork resumes the new thread, and a
+#     second fork onto the same name is refused.
+FAKE_MODE=ok FAKE_MESSAGE='branch b' run "$LANE" fork job job-b 'try the other approach'
+[ "$rc" -eq 0 ] || fail "fork exited $rc: $err"
+[ "$("$LANE" id job-b)" = "t-456" ] || fail "fork did not record the new thread id"
+[ "$("$LANE" id job)" = "t-123" ] || fail "fork changed the source lane"
+[ "$("$LANE" last job-b)" = "branch b" ] || fail "fork did not record its last message"
+tail -n 1 "$FAKE_ARGV" | grep -q -- '-s workspace-write fork t-123 -' \
+  || fail "fork did not replay the source policy before the subcommand: $(tail -n 1 "$FAKE_ARGV")"
+FAKE_MODE=ok FAKE_MESSAGE='b round 2' run "$LANE" next job-b 'go'
+[ "$rc" -eq 0 ] || fail "next on the fork exited $rc: $err"
+tail -n 1 "$FAKE_ARGV" | grep -q -- 'resume t-456 -' || fail "next on the fork did not resume the new thread"
+FAKE_MODE=ok run "$LANE" fork job job-b 'again'
+[ "$rc" -ne 0 ] || fail "fork onto an existing lane name was accepted"
+case "$err" in *'already exists'*) ;; *) fail "existing fork name was not the reported reason: $err" ;; esac
+# 6c. a fork that reports the source thread id is refused, and the reserved
+#     lane name is released again (no half-published lane, no alias).
+FAKE_MODE=fork-same run "$LANE" fork job job-c 'alias me'
+[ "$rc" -ne 0 ] || fail "fork reporting the source id was accepted"
+case "$err" in *'refusing to alias'*) ;; *) fail "source-id fork was not refused for that reason: $err" ;; esac
+case "$out" in *aliased*) fail "aliased fork printed its message: $out" ;; esac
+[ ! -e "$CODEX_LANE_DIR/job-c.json" ] || fail "refused fork left a lane state file behind"
+[ "$("$LANE" id job)" = "t-123" ] || fail "refused fork changed the source lane"
+FAKE_MODE=ok FAKE_MESSAGE='c ok' run "$LANE" fork job job-c 'retry'
+[ "$rc" -eq 0 ] || fail "lane name was not released after the refused fork: $err"
 
 # 7. a lane directory that grants group/other access is refused before anything runs.
 chmod 750 "$CODEX_LANE_DIR"

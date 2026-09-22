@@ -11,6 +11,7 @@
 #   codex-lane start <lane> <spec-file> [-- <codex args>...]
 #   codex-lane next  <lane> <prompt|->
 #   codex-lane adopt <lane> <thread-id> [cwd] [-- <codex args>...]
+#   codex-lane fork  <lane> <new-lane> <prompt|->
 #   codex-lane id    <lane>
 #   codex-lane log   <lane>
 #   codex-lane last  <lane>
@@ -32,6 +33,11 @@
 #     restate them: `adopt api-rls <tid> [cwd] -- -s workspace-write`.
 #   * the model is whatever `~/.codex/config.toml` selects unless you pin it at
 #     `start` (e.g. `-- -c model="<id>"`); the pin then sticks.
+#   * `fork` branches a lane's thread into a NEW lane (`codex exec fork`) that
+#     inherits the source lane's cwd and policy, so two follow-ups can be tried
+#     from the same executor state and compared on the same evidence. The new
+#     lane's thread id comes from the fork's own `thread.started` event; a fork
+#     that reports the source id is refused rather than aliased.
 #
 # Prompts reach codex on stdin, never as argv. The prompt argument is ALWAYS
 # literal text; `-` reads the wrapper's stdin. An inline prompt still travels in
@@ -110,11 +116,13 @@ lane_file() { printf '%s/%s.json' "$LANE_DIR" "$1"; }
 RESERVED_FILE=""
 LOCK_DIR=""
 PROMPT_TMP=""
+SNAP_TMP=""
 STDERR_PIPE=""
 TEE_PID=""
 cleanup() {
   if [ -n "$RESERVED_FILE" ]; then rm -f "$RESERVED_FILE"; RESERVED_FILE=""; fi
   if [ -n "$PROMPT_TMP" ];    then rm -f "$PROMPT_TMP";    PROMPT_TMP=""; fi
+  if [ -n "$SNAP_TMP" ];      then rm -f "$SNAP_TMP";      SNAP_TMP=""; fi
   if [ -n "$TEE_PID" ];       then kill "$TEE_PID" 2>/dev/null || true; TEE_PID=""; fi
   if [ -n "$STDERR_PIPE" ];   then rm -f "$STDERR_PIPE";   STDERR_PIPE=""; fi
   if [ -n "$LOCK_DIR" ];      then rmdir "$LOCK_DIR" 2>/dev/null || true; LOCK_DIR=""; fi
@@ -473,6 +481,71 @@ cmd_adopt() {
   printf 'lane %s -> thread %s (cwd %s)\n' "$lane" "$tid" "$cwd" >&2
 }
 
+# Branch a lane: `codex exec fork <tid>` copies the source thread into a new
+# session; the new lane inherits cwd and stored policy so `next` on it behaves
+# exactly like `next` on the source. Only the NEW lane is locked and reserved:
+# the source's state is read once and never written.
+cmd_fork() {
+  [ $# -ge 3 ] || usage
+  local lane="$1" new="$2" prompt="$3"; shift 3
+  [ $# -eq 0 ] || die "unexpected argument '$1': fork takes only <lane> <new-lane> <prompt|-> — the new lane inherits the source lane's policy"
+  validate_lane "$lane"
+  validate_lane "$new"
+  [ "$lane" != "$new" ] || die "fork needs a new-lane name different from '$lane'"
+  require_deps
+  [ -d "$LANE_DIR" ] || die "unknown lane '$lane' (codex-lane list)"
+  init_lane_dir
+  require_lane "$lane"
+  # Snapshot the source state in ONE copy: write_lane replaces the file
+  # atomically, so a single cp is a coherent read even while another process
+  # runs `next`, `drop`, or a re-`adopt` on the source name. Reading thread id,
+  # cwd, and args from the live file in three steps could mix two generations.
+  SNAP_TMP="$(mktemp "${TMPDIR:-/tmp}/codex-lane.snap.XXXXXX")"
+  case "$SNAP_TMP" in /*) ;; *) SNAP_TMP="$PWD/$SNAP_TMP" ;; esac
+  cp "$LANE_F" "$SNAP_TMP" || die "cannot snapshot lane '$lane' state"
+  local f tid lane_cwd
+  f="$SNAP_TMP"
+  tid="$(json_field "$f" thread_id)"
+  [ -n "$tid" ] || die "lane '$lane' has no thread_id"
+  validate_tid "$tid"
+  lane_cwd="$(json_field "$f" cwd)"
+  [ -n "$lane_cwd" ] || die "lane '$lane' has no recorded cwd (re-adopt it: codex-lane adopt $lane $tid <cwd>)"
+  [ -d "$lane_cwd" ] || die "lane '$lane' cwd no longer exists: $lane_cwd"
+  read_stored_args "$f"
+  split_args -- ${STORED_ARGS[@]+"${STORED_ARGS[@]}"}
+  STORED_ARGS=(${CODEX_ARGS[@]+"${CODEX_ARGS[@]}"})
+
+  # Resolve the prompt against the CALLER's cwd, before we move.
+  prompt_to_stdin_file "$prompt"
+
+  lock_lane "$new"
+  reserve_lane "$(lane_file "$new")" \
+    || die "lane '$new' already exists — pick another name, or 'drop' it first"
+  cd "$lane_cwd" || die "cannot cd to lane cwd: $lane_cwd"
+
+  artifact_paths "$new"
+  create_exclusive "$EVENTS" "$LAST"
+  # Global flags precede `fork`, exactly as for `resume`.
+  local rc=0
+  codex exec --json --output-last-message "$LAST" \
+    ${STORED_ARGS[@]+"${STORED_ARGS[@]}"} \
+    fork "$tid" - < "$PROMPT_TMP" > "$EVENTS" || rc=$?
+
+  local new_tid
+  new_tid="$(thread_id_from_jsonl "$EVENTS")"
+  [ -n "$new_tid" ] || die "no thread_id in $EVENTS (codex exited $rc; see that file)"
+  validate_tid "$new_tid"
+  [ "$new_tid" != "$tid" ] \
+    || die "fork reported the source thread id $tid; refusing to alias lane '$lane' as '$new' (see $EVENTS)"
+  write_lane "$new" "$new_tid" "$lane_cwd" "$EVENTS" "$LAST" ${STORED_ARGS[@]+"${STORED_ARGS[@]}"}
+  RESERVED_FILE=""   # published
+
+  printf 'lane %s -> thread %s (forked from lane %s, thread %s)\n' "$new" "$new_tid" "$lane" "$tid" >&2
+  printf 'events: %s\n' "$EVENTS" >&2
+  cat "$LAST" 2>/dev/null || true
+  return $rc
+}
+
 cmd_id()   { [ $# -eq 1 ] || usage; require_lane "${1-}"; json_field "$LANE_F" thread_id; }
 cmd_log()  { [ $# -eq 1 ] || usage; require_lane "${1-}"; json_field "$LANE_F" events; }
 # Locked like start/next, and locked BEFORE the existence check: dropping a lane
@@ -513,6 +586,7 @@ case "$sub" in
   start) cmd_start "$@" ;;
   next)  cmd_next  "$@" ;;
   adopt) cmd_adopt "$@" ;;
+  fork)  cmd_fork  "$@" ;;
   id)    cmd_id    "$@" ;;
   log)   cmd_log   "$@" ;;
   last)  cmd_last  "$@" ;;

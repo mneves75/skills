@@ -34,6 +34,7 @@ follow-ups continue the executor's thinking instead of restarting it.
 codex-lane start api-rls /tmp/spec.md -- -s workspace-write
 codex-lane next  api-rls "fix the failing gate"   # literal text, or `-` to pipe stdin
 codex-lane last  api-rls          # final message | also: log / id / list / drop
+codex-lane fork  api-rls api-rls-b "try the trigger-based approach instead"   # A/B from the same state
 ```
 
 Long prompts must go in via stdin (`codex-lane next api-rls - < build.log`):
@@ -65,7 +66,10 @@ thread instead of re-specifying it: `codex-lane adopt api-rls <thread-id> [cwd]`
   change policy, so choose start arguments deliberately. Stored args are re-validated on every
   `next`, so a hand-edited state file cannot smuggle in a refused flag.
 - Artifacts are never pruned; after `drop`, delete `$CODEX_LANE_DIR/<lane>.*` yourself. A lane
-  directory that other users can write to is refused.
+  directory that grants other users any access is refused.
+- `fork <lane> <new-lane> <prompt|->` branches the thread (`codex exec fork`) into a new lane with
+  the same cwd and policy; the source lane is never written. Compare the two lanes' diffs on the
+  same evidence, keep one, `drop` the other.
 
 A lane is bound to one workspace **and** one execution policy. `codex exec resume` rebuilds
 its config from the current invocation, not from the thread, so the wrapper stores what

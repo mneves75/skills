@@ -14,6 +14,11 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.20.0** (2026-09-22): `codex-lane fork` (A/B from one executor state) and the CI guard that
+  keeps model ids inside the orchestrator's Defaults block with a verified-on date. Host config
+  (`~/bin/codex-auto`, `~/.codex/agents` review roles, `agent-runtime.md`) aligned to Astra
+  high for advice/review. Tags `v1.19.0` and `v1.20.0` pushed; `v1.10.0`–`v1.18.1` were never
+  tagged on the remote although the changelog links them.
 - **1.19.0** (2026-09-22): review against 2026 guidance. Claude seats in the orchestrator Defaults
   read "latest release" (`fable`, `opus` aliases) because "Opus 5.1" never existed; Codex seats
   keep 1.18.1 routing (Sol xhigh executes, Astra high orchestrates/advises/reviews). Frontmatter
@@ -85,6 +90,7 @@ measure whether a *target* codebase is ready for agents.
 
 ## Known gaps
 
-- 1.1–1.5 changelog links point at tags that do not exist (every release since 1.6.0 is tagged).
+- Changelog links for 1.1–1.5 and 1.10–1.18.1 point at tags that do not exist on the remote
+  (only v1.6.0–v1.9.0, v1.19.0, and v1.20.0 are tagged, checked 2026-09-22 with `git ls-remote`).
 - `mneves75.github.io` (user site) does not exist as a repo; linking this project from it needs
   that repo to be created first.

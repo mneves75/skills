@@ -265,7 +265,8 @@ Codex home.)
 5. Green. The main session reviews the final diff like a contributor PR, then closes out.
 
 Other commands: `codex-lane last <lane>` prints the final message; `log` and `id` print the
-events-file path and the thread id; `list`, `drop`. If the backend refuses to resume a very long
+events-file path and the thread id; `fork <lane> <new-lane> <prompt>` branches the thread into a
+second lane so two approaches can be compared from the same state; `list`, `drop`. If the backend refuses to resume a very long
 thread, `next` exits non-zero and says so instead of echoing the previous message. A plain `codex exec` that unexpectedly needs a second round can be wrapped after the
 fact with `codex-lane adopt <lane> <thread-id>`.
 

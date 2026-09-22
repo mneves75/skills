@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.20.0] - 2026-09-22
+
+Follow-through on the 1.19.0 self-assessment: the Codex seats get the same protection against
+model-id rot that the Claude seats got, and the lane wrapper's fork path becomes a real command.
+
+### Added
+
+- **`codex-lane fork <lane> <new-lane> <prompt|->`**: branches a lane's thread with
+  `codex exec fork` into a new lane that inherits the source's cwd and stored policy, so two
+  follow-ups can be tried from the same executor state and compared on the same evidence. The
+  new lane's id comes from the fork's own `thread.started` event; a fork that reports the source
+  id is refused instead of aliased; the source lane is never written. Covered by
+  `codex-lane.test`.
+- **Defaults-block guard** (`tools/scripts/check-defaults-block.sh`, in CI): the protected
+  vocabulary is derived from the orchestrator's Defaults block itself (vendor ids and their
+  segments, the Claude seat names and aliases, the reasoning tiers, anything backticked), so
+  every value the block names is what may not appear elsewhere in SKILL.md, compared
+  case-insensitively as whole words; any vendor-id-shaped token is flagged whether the block
+  names it or not. The block's "Verified against the vendor model lists on YYYY-MM-DD" date
+  must equal the date of the top CHANGELOG entry, whose version must equal VERSION, so a release
+  cut without re-verifying the ids fails CI. Ten planted violations, a stale date, and a version
+  mismatch each fail the check; four benign near-misses (`high-stakes`, `fabled`, `maximum`,
+  `solution`) pass. `AGENTS.md` records the release step.
+
+### Changed
+
+- The orchestrator README, HOWTO, and codex-dispatch reference describe `fork`.
+
 ## [1.19.0] - 2026-09-22
 
 Every skill reviewed against the 2026 Agent Skills spec, Anthropic's authoring guidance, the
@@ -422,6 +450,7 @@ the rest only when a task needs it.
 
 This project is inspired by [Factory.ai](https://factory.ai)'s Code Readiness framework.
 
+[1.20.0]: https://github.com/mneves75/skills/releases/tag/v1.20.0
 [1.19.0]: https://github.com/mneves75/skills/releases/tag/v1.19.0
 [1.18.1]: https://github.com/mneves75/skills/releases/tag/v1.18.1
 [1.18.0]: https://github.com/mneves75/skills/releases/tag/v1.18.0

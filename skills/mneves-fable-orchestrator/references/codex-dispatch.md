@@ -56,7 +56,8 @@ step; never recover a lock you did not create.
   replays the stored set on every `next`; `codex exec resume` takes its sandbox and model from the
   current invocation, not from the thread.
 - `codex exec fork <thread-id> [prompt]` branches a thread into a new session. Use it to try two
-  follow-ups from the same state (an A/B on one executor); adopt each fork as its own lane.
+  follow-ups from the same state (an A/B on one executor); `codex-lane fork <lane> <new-lane>
+  <prompt>` does this and records the branch as its own lane.
 - Named profiles live in `$CODEX_HOME/<name>.config.toml` and load with `--profile <name>`;
   legacy `[profiles.<name>]` tables in the base file make `--profile` fail. Homes that share the
   base config should link the same overlays when they expose the same named profiles.
