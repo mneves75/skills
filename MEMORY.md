@@ -14,6 +14,11 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.21.0** (2026-09-22, tag `v1.21.0`): Claude main seat moves from Fable to Opus (`opus`, which
+  resolves to `claude-opus-5-5` on Claude Code 2.1.280); autoreview's `claude` engine defaults to
+  `claude-opus-5-5`. The skill keeps the name `mneves-fable-orchestrator` so installs and references
+  keep working. Host `agent-runtime.md` row updated; `~/.agents/skills/autoreview` (a copy, not a
+  link, shared by the Claude and Codex skill links) re-synced from this repo.
 - **1.20.0** (2026-09-22): `codex-lane fork` (A/B from one executor state) and the CI guard that
   keeps model ids inside the orchestrator's Defaults block with a verified-on date. Host config
   (`~/bin/codex-auto`, `~/.codex/agents` review roles, `agent-runtime.md`) aligned to Astra

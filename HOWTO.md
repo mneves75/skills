@@ -229,8 +229,8 @@ the loop ends. Findings map to *fixed*, *disproved* or *blocked*, nothing else.
 ## mneves-fable-orchestrator
 
 **What it does.** Routes non-trivial work across the main session, Codex, and subagents when
-delegation creates independent progress or evidence. The main session is the latest Fable or
-`gpt-6-astra` at `high`; frontend work goes to a subagent on the latest Opus, other execution to
+delegation creates independent progress or evidence. The main session is the latest Opus or
+`gpt-6-astra` at `high`; frontend work goes to a subagent on the latest Opus as well, other execution to
 `gpt-5.6-sol` at `xhigh`, and advice and review to `gpt-6-astra` at `high`; the skill's Defaults
 block is authoritative when this paragraph and it disagree. `codex-lane` keeps one Codex thread alive across rounds so
 follow-ups reuse the executor's reasoning instead of restarting from a fresh spec.

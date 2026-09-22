@@ -375,7 +375,7 @@ PROVIDER_CREDENTIAL_PATH_ENV_KEYS = {
 DEFAULT_MODEL_BY_ENGINE = {
     "amp": "openai/gpt-5.6-sol",
     "codex": "gpt-6-astra",
-    "claude": "claude-fable-5",
+    "claude": "claude-opus-5-5",
 }
 DEFAULT_CODEX_ACCESS_FALLBACK_MODEL = "gpt-5.6-sol"
 DEFAULT_CODEX_ACCESS_FALLBACK_THINKING = "xhigh"
@@ -6320,7 +6320,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--model",
         action="append",
-        help="Model override or engine=model. Repeatable. Defaults: codex=gpt-6-astra (high reasoning) with an access-only gpt-5.6-sol retry (xhigh reasoning), claude=claude-fable-5, amp=openai/gpt-5.6-sol.",
+        help="Model override or engine=model. Repeatable. Defaults: codex=gpt-6-astra (high reasoning) with an access-only gpt-5.6-sol retry (xhigh reasoning), claude=claude-opus-5-5, amp=openai/gpt-5.6-sol.",
     )
     parser.add_argument("--thinking", action="append", help="Thinking/effort override or engine=level. Repeatable. Codex: none, minimal, low, medium, high, xhigh, max. Claude: low, medium, high, xhigh, max. Amp: none, low, medium, high, xhigh, max. Pi: off, minimal, low, medium, high, xhigh. Kimi: off, on.")
     parser.add_argument(

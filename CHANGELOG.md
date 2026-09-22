@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.21.0] - 2026-09-22
+
+The Claude main session moves from Fable to Opus 5.5.
+
+### Changed
+
+- **`mneves-fable-orchestrator`**: the Defaults block binds the main session to the latest Opus
+  (Claude alias `opus`, which resolves to `claude-opus-5-5` on Claude Code 2.1.280); the frontend
+  subagent stays on Opus. Codex seats are unchanged. The skill keeps its name so existing installs
+  and references keep working.
+- **`autoreview`**: the `claude` engine defaults to `claude-opus-5-5` instead of `claude-fable-5`.
+  An explicit `--model fable` still works and still requires Claude Code 2.1.170 or later.
+
 ## [1.20.0] - 2026-09-22
 
 Follow-through on the 1.19.0 self-assessment: the Codex seats get the same protection against
