@@ -264,7 +264,7 @@ the loop ends. Findings map to *fixed*, *disproved* or *blocked*, nothing else.
 
 **What it does.** Routes non-trivial work across the main session, Codex, and subagents when
 delegation creates independent progress or evidence. The main session is the latest Opus or
-`gpt-6-sol` at `high`; frontend work goes to a subagent on the latest Opus as well, other execution
+`gpt-6-sol` at `medium` (Codex's default); frontend work goes to a subagent on the latest Opus as well, other execution
 and review to `gpt-6-sol` at `high`, and `gpt-6-astra` at `high` only advises on the Opus main
 session's plans; the skill's Defaults
 block is authoritative when this paragraph and it disagree. `codex-lane` keeps one Codex thread alive across rounds so

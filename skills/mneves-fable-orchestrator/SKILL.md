@@ -34,7 +34,7 @@ before it can perform ordinary implementation.
 The only place this skill names models. Edit this block on a model release; nothing else.
 
 ```
-main session      = Opus, latest release (Claude alias `opus`) | gpt-6-sol, reasoning high (Codex orchestrator)
+main session      = Opus, latest release (Claude alias `opus`) | gpt-6-sol, reasoning medium (Codex orchestrator, the default)
 frontend subagent = Opus, latest release (Claude subagent alias `opus`)
 heavy executor    = gpt-6-sol, reasoning high
 reviewer          = gpt-6-sol, reasoning high    (autoreview's Codex default)

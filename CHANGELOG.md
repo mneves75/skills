@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.23.2] - 2026-09-22
+
+### Changed
+
+- **`mneves-fable-orchestrator`**: the Codex orchestrator seat runs `gpt-6-sol` at `medium`, the
+  Codex default (was `high`); the heavy executor and reviewer stay at `high`.
+
 ## [1.23.1] - 2026-09-22
 
 ### Changed

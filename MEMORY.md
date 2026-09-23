@@ -14,6 +14,8 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.23.2** (2026-09-22): Codex orchestrator seat `gpt-6-sol` `medium` (the Codex default, per the
+  user); executor and reviewer stay `high`.
 - **1.23.1** (2026-09-22): `handoff` renamed `mneves-handoff` (clash with mattpocock/skills
   `handoff`); AGENTS.md allows the prefix for a colliding adapted name. Autoreview test fixes that
   made CI green (`4b5c183`); `v1.23.0` was moved from `9dcc074` (CI red, test-only) to `4b5c183`.
