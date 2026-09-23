@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.23.2-blue)
+![Version](https://img.shields.io/badge/version-1.23.3-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -65,6 +65,18 @@ Any tool that reads `SKILL.md` folders works with a plain clone:
 | Shared catalog (any tool) | `git clone https://github.com/mneves75/skills.git ~/.agents/skills/mneves-skills` |
 
 Update a clone with `git -C <dir> pull`.
+
+### Check the install
+
+If you link skills one by one instead (one symlink per skill into each agent's directory), a
+skill added in a later release is not linked until you add it; the agent simply never lists it.
+Rerun `npx skills@latest add mneves75/skills --all -g -y`, or list what a directory is missing:
+
+```bash
+# from the repo root; set DIR to the agent's skills directory
+DIR=~/.claude/skills
+for s in skills/*/; do n=$(basename "$s"); test -e "$DIR/$n/SKILL.md" || echo "missing: $n"; done
+```
 
 ## Readiness check (tool)
 

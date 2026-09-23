@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.23.3] - 2026-09-23
+
+### Added
+
+- README "Check the install": a loop that lists which of this repo's skills an agent's skills
+  directory is missing. Per-skill symlink installs do not pick up skills added in later releases,
+  so a skill such as `mneves-verify` can exist in the clone and still never be offered to the
+  agent. HOWTO points to it.
+
 ## [1.23.2] - 2026-09-22
 
 ### Changed

@@ -25,7 +25,9 @@ procedure an agent follows, open <code>skills/&lt;name&gt;/SKILL.md</code>.</p>
 </code></pre>
 <p>That links every skill into the agents found on your machine (Claude Code, Codex, Cursor,
 OpenCode, pi and others). Check what got installed with <code>npx skills@latest list</code>. If you
-prefer git, clone the repo into your agent&#39;s skills directory; the README has the paths.</p>
+prefer git, clone the repo into your agent&#39;s skills directory; the README has the paths. If a
+skill never shows up in your agent, it was probably not linked; the README&#39;s &quot;Check the install&quot;
+lists what each agent directory is missing.</p>
 <p>The readiness tool runs locally. An image-generation skill may send prompts and authorized
 references to the image provider configured in your agent. Autoreview sends authorized review
 inputs to the selected review provider after scanning them for credentials.</p>

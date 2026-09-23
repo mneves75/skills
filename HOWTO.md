@@ -12,7 +12,9 @@ npx skills@latest add mneves75/skills --all -g -y
 
 That links every skill into the agents found on your machine (Claude Code, Codex, Cursor,
 OpenCode, pi and others). Check what got installed with `npx skills@latest list`. If you
-prefer git, clone the repo into your agent's skills directory; the README has the paths.
+prefer git, clone the repo into your agent's skills directory; the README has the paths. If a
+skill never shows up in your agent, it was probably not linked; the README's "Check the install"
+lists what each agent directory is missing.
 
 The readiness tool runs locally. An image-generation skill may send prompts and authorized
 references to the image provider configured in your agent. Autoreview sends authorized review

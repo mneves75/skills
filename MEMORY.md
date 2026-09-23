@@ -14,6 +14,9 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.23.3** (2026-09-23): README "Check the install" loop. Host fix: `mneves-verify`,
+  `mneves-handoff` and `mneves-agent-readiness` had never been linked on this Mac; now linked in
+  `~/.agents/skills` and all 13 agent skill dirs. A new skill needs this step on every agent.
 - **1.23.2** (2026-09-22): Codex orchestrator seat `gpt-6-sol` `medium` (the Codex default, per the
   user); executor and reviewer stay `high`.
 - **1.23.1** (2026-09-22): `handoff` renamed `mneves-handoff` (clash with mattpocock/skills

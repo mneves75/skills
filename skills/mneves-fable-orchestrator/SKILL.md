@@ -41,7 +41,7 @@ reviewer          = gpt-6-sol, reasoning high    (autoreview's Codex default)
 plan advisor      = gpt-6-astra, reasoning high  (reviews the Claude main session's plans only)
 ```
 
-Verified against the vendor model lists on 2026-09-22; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-09-23; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file).
 
