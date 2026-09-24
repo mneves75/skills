@@ -3,7 +3,7 @@
  * Agent Readiness Check - Factory.ai-Aligned Codebase Assessment
  *
  * SPDX-License-Identifier: Apache-2.0
- * SPDX-FileCopyrightText: 2025-2026 Marcus Neves
+ * SPDX-FileCopyrightText: 2025-2026 mneves75
  *
  * @description
  * Evaluates codebases for AI agent readiness across 9 technical pillars
