@@ -11,14 +11,14 @@ CLI options override environment settings, which override built-in defaults.
 An explicitly selected model other than the default has no automatic Codex fallback.
 Check the startup engine/model/thinking lines; shell configuration may override defaults.
 Reasoning levels are validated per model before preparation; an explicitly selected
-`gpt-6-astra` rejects `none` and `minimal`, and an explicit model never falls back.
+`gpt-6-astra` rejects `none` and `minimal`, and a model other than the default never falls back.
 
 ## Defaults and fallback
 
 Codex is the default engine. The helper owns the default model and reasoning tier and
 prints them at startup; run `--help` for the current values rather than assuming them.
-An account-access failure retries once on the configured fallback; a primary reasoning
-override leaves that fallback untouched.
+An account-access failure retries once on the configured fallback at its own reasoning tier;
+a primary reasoning override leaves that fallback untouched.
 
 ## Optional engine prerequisites
 

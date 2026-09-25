@@ -14,6 +14,9 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.24.0** (2026-09-25): review runs on `gpt-6-astra` `high`, with an access-only retry on `gpt-6-sol`
+  `xhigh` (autoreview Codex default and orchestrator reviewer seat). Host aligned: codex-auto
+  review default, reviewer/verifier/critic agent TOMLs, agent-runtime.md.
 - **1.23.3** (2026-09-23): README "Check the install" loop. Host fix: `mneves-verify`,
   `mneves-handoff` and `mneves-agent-readiness` had never been linked on this Mac; now linked in
   `~/.agents/skills` and all 13 agent skill dirs. A new skill needs this step on every agent.

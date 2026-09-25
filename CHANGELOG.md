@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.24.0] - 2026-09-25
+
+### Changed
+
+- **`autoreview`**: the `codex` engine defaults to `gpt-6-astra` at `high` (was `gpt-6-sol`). An
+  account-access failure retries once on `gpt-6-sol` at `xhigh` (was `gpt-6-luna`). Naming the
+  default model explicitly keeps that retry; any other explicit model still never falls back.
+  Because Astra rejects `none` and `minimal`, `--thinking none` or `minimal` now needs an explicit
+  non-Astra `--model`.
+- **`mneves-fable-orchestrator`**: the reviewer seat moves to `gpt-6-astra` at `high`, with a new
+  `reviewer fallback` seat, `gpt-6-sol` at `xhigh`. Execution seats are unchanged. Probes on
+  2026-09-25: `gpt-6-astra` answered at `high`, `gpt-6-sol` at `xhigh`, and a fake id was rejected.
+- **HOWTO**: the `mneves-verify` example and the orchestrator summary name the new reviewer.
+
 ## [1.23.3] - 2026-09-23
 
 ### Added

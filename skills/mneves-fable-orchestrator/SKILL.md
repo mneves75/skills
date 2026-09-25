@@ -37,11 +37,12 @@ The only place this skill names models. Edit this block on a model release; noth
 main session      = Opus, latest release (Claude alias `opus`) | gpt-6-sol, reasoning medium (Codex orchestrator, the default)
 frontend subagent = Opus, latest release (Claude subagent alias `opus`)
 heavy executor    = gpt-6-sol, reasoning high
-reviewer          = gpt-6-sol, reasoning high    (autoreview's Codex default)
+reviewer          = gpt-6-astra, reasoning high  (autoreview's Codex default)
+reviewer fallback = gpt-6-sol, reasoning xhigh    (autoreview retries once after an account access failure)
 plan advisor      = gpt-6-astra, reasoning high  (reviews the Claude main session's plans only)
 ```
 
-Verified against the vendor model lists on 2026-09-23; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-09-25; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file).
 
