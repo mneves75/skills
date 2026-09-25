@@ -254,7 +254,7 @@ checked for saying what the claim says. Security: an independent audit.</p>
 <p><strong>Example output</strong> (illustrative; a real run needs a second model and an artifact to check).</p>
 <pre><code>Verdict: FAIL
 Builder: claude-fable-5 / Edit, Bash / session 3f2a
-Verifier: gpt-6-astra / high reasoning / read-only sandbox / fresh context
+Verifier: gpt-6-astra / xhigh reasoning / read-only sandbox / fresh context
 Different model required: yes (touches billing)
 Different model used: yes
 Criterion 1 — refund endpoint rejects amounts above the original charge: PASS — 3 unit tests + curl with 101% amount returned 422
@@ -280,8 +280,8 @@ it varies inputs, retries, and checks persistence so a hard-coded success screen
 <p><strong>What it does.</strong> Routes non-trivial work across the main session, Codex, and subagents when
 delegation creates independent progress or evidence. The main session is the latest Opus or
 <code>gpt-6-sol</code> at <code>medium</code> (Codex&#39;s default); frontend work goes to a subagent on the latest Opus as well, other execution
-to <code>gpt-6-sol</code> at <code>high</code>, review to <code>gpt-6-astra</code> at <code>high</code> (retrying on <code>gpt-6-sol</code> at <code>xhigh</code> when
-the account lacks Astra access), and <code>gpt-6-astra</code> at <code>high</code> also advises on the Opus main
+to <code>gpt-6-sol</code> at <code>high</code>, review to <code>gpt-6-astra</code> at <code>xhigh</code> (retrying on <code>gpt-6-sol</code> at <code>xhigh</code> when
+the account lacks Astra access), and <code>gpt-6-astra</code> at <code>xhigh</code> also advises on the Opus main
 session&#39;s plans; the skill&#39;s Defaults
 block is authoritative when this paragraph and it disagree. <code>codex-lane</code> keeps one Codex thread alive across rounds so
 follow-ups reuse the executor&#39;s reasoning instead of restarting from a fresh spec.</p>

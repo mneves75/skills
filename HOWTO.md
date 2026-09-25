@@ -238,7 +238,7 @@ checked for saying what the claim says. Security: an independent audit.
 ```
 Verdict: FAIL
 Builder: claude-fable-5 / Edit, Bash / session 3f2a
-Verifier: gpt-6-astra / high reasoning / read-only sandbox / fresh context
+Verifier: gpt-6-astra / xhigh reasoning / read-only sandbox / fresh context
 Different model required: yes (touches billing)
 Different model used: yes
 Criterion 1 — refund endpoint rejects amounts above the original charge: PASS — 3 unit tests + curl with 101% amount returned 422
@@ -267,8 +267,8 @@ the loop ends. Findings map to *fixed*, *disproved* or *blocked*, nothing else.
 **What it does.** Routes non-trivial work across the main session, Codex, and subagents when
 delegation creates independent progress or evidence. The main session is the latest Opus or
 `gpt-6-sol` at `medium` (Codex's default); frontend work goes to a subagent on the latest Opus as well, other execution
-to `gpt-6-sol` at `high`, review to `gpt-6-astra` at `high` (retrying on `gpt-6-sol` at `xhigh` when
-the account lacks Astra access), and `gpt-6-astra` at `high` also advises on the Opus main
+to `gpt-6-sol` at `high`, review to `gpt-6-astra` at `xhigh` (retrying on `gpt-6-sol` at `xhigh` when
+the account lacks Astra access), and `gpt-6-astra` at `xhigh` also advises on the Opus main
 session's plans; the skill's Defaults
 block is authoritative when this paragraph and it disagree. `codex-lane` keeps one Codex thread alive across rounds so
 follow-ups reuse the executor's reasoning instead of restarting from a fresh spec.

@@ -14,6 +14,9 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.24.1** (2026-09-25): every review seat runs `gpt-6-astra` `xhigh` (autoreview Codex default,
+  orchestrator reviewer and plan advisor); the `gpt-6-sol` `xhigh` retry is unchanged. Host aligned:
+  `~/.zshrc` `AUTOREVIEW_CODEX_THINKING`, codex-auto review default, six Astra agent TOMLs.
 - **1.24.0** (2026-09-25): review runs on `gpt-6-astra` `high`, with an access-only retry on `gpt-6-sol`
   `xhigh` (autoreview Codex default and orchestrator reviewer seat). Host aligned: codex-auto
   review default, reviewer/verifier/critic agent TOMLs, agent-runtime.md.

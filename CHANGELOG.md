@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.24.1] - 2026-09-25
+
+### Changed
+
+- **`autoreview`**: the `codex` engine reviews on `gpt-6-astra` at `xhigh` (was `high`).
+  The access-only retry stays `gpt-6-sol` at `xhigh`; `--thinking` still overrides the primary
+  effort only. The `amp` and `claude` engines are unchanged.
+- **`mneves-fable-orchestrator`**: the `reviewer` and `plan advisor` seats move to `gpt-6-astra` at
+  `xhigh` (were `high`). Execution seats are unchanged. Probes on 2026-09-25: `gpt-6-astra` and
+  `gpt-6-sol` both answered at `xhigh`, and a fake id was rejected with a 400.
+- **HOWTO**: the `mneves-verify` example and the orchestrator summary name the `xhigh` reviewer.
+
 ## [1.24.0] - 2026-09-25
 
 ### Changed

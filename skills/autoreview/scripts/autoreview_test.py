@@ -1265,7 +1265,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(sys, "argv", argv):
                     reviewer = AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())[0]
                 self.assertEqual(reviewer.model, "gpt-6-astra")
-                self.assertEqual(reviewer.thinking, effort or "high")
+                self.assertEqual(reviewer.thinking, effort or "xhigh")
                 # Naming the default model explicitly keeps its access-only retry.
                 self.assertEqual(reviewer.fallback_model, "gpt-6-sol")
 
@@ -1475,7 +1475,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
 
     def test_codex_defaults_and_overrides(self) -> None:
         for options, model, thinking, fallback in (
-            ([], "gpt-6-astra", "high", "gpt-6-sol"),
+            ([], "gpt-6-astra", "xhigh", "gpt-6-sol"),
             (["--thinking", "medium"], "gpt-6-astra", "medium", "gpt-6-sol"),
             (["--model", "custom-model", "--thinking", "low"], "custom-model", "low", None),
         ):
