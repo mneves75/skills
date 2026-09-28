@@ -14,6 +14,11 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.25.0** (2026-09-28): the Claude main session and ordinary Claude subagents run Sonnet
+  (`claude-sonnet-5-5`) at `xhigh`, with an Opus advisor; frontend stays on Opus. Codex seats
+  are unchanged. Host aligned: `~/.claude/settings.json` (model, modelSettings, advisorModel,
+  allowlist, subagent env), `frontend-engineer` agent, `impeccable-*` agents pinned to Opus,
+  agent-runtime.md. The advisor stays inactive while `DISABLE_TELEMETRY`/`DO_NOT_TRACK` are set.
 - **1.24.1** (2026-09-25): every review seat runs `gpt-6-astra` `xhigh` (autoreview Codex default,
   orchestrator reviewer and plan advisor); the `gpt-6-sol` `xhigh` retry is unchanged. Host aligned:
   `~/.zshrc` `AUTOREVIEW_CODEX_THINKING`, codex-auto review default, six Astra agent TOMLs.

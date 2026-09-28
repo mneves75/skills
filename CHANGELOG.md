@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.25.0] - 2026-09-28
+
+### Changed
+
+- **`mneves-fable-orchestrator`**: the Claude main session runs Sonnet at `xhigh` with an Opus advisor.
+  It moves from Opus to Sonnet (`sonnet`), with Opus (`opus`) as its Claude Code advisor. The heavy-executor seat gains a Claude
+  binding, Sonnet at `xhigh`; its Codex binding (`gpt-6-sol`, `high`) is unchanged. The frontend
+  subagent stays on Opus. Review and plan-advisor seats are unchanged. Evidence on 2026-09-28
+  (Claude Code 2.1.284): `sonnet` resolves to `claude-sonnet-5-5`, and session transcripts showed
+  the main session and a `general-purpose` subagent on `claude-sonnet-5-5` at `xhigh` and an
+  Opus-pinned frontend subagent on `claude-opus-5-5`. Anthropic's launch notes give `xhigh` a
+  higher FrontierCode score than `max` on Sonnet 5.5. The advisor requires Claude Code's
+  feature-flag fetch, which `DISABLE_TELEMETRY` and `DO_NOT_TRACK` switch off.
+- **HOWTO** and the landing page describe the Claude and Codex routing separately.
+
+### Fixed
+
+- **Defaults guard**: `check-defaults-block.sh` learned only the first `reasoning` tier and seat on
+  each Defaults row, so a row binding two harnesses left its second tier unprotected. It now learns
+  every match, and the new `check-defaults-block.test` (run in CI) plants each tier and seat
+  outside the block and requires a rejection.
+
 ## [1.24.1] - 2026-09-25
 
 ### Changed

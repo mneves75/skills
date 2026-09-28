@@ -55,7 +55,9 @@ jobs:
         run: bash skills/mneves-fable-orchestrator/tools/codex-lane.test
 
       - name: Model ids live only in the orchestrator's Defaults block
-        run: bash tools/scripts/check-defaults-block.sh
+        run: |
+          bash tools/scripts/check-defaults-block.sh
+          bash tools/scripts/check-defaults-block.test
 
       - name: Python syntax
         run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py

@@ -7,7 +7,7 @@
 #   * vendor ids            gpt-6-astra, gpt-6-sol, claude-opus-5   (plus their alphabetic
 #                           segments of 3+ letters: gpt, astra, sol, claude, opus)
 #   * Claude seats          "<Name>, latest release (... alias `x`)" -> Name and x
-#   * reasoning tiers       the word after "reasoning "
+#   * reasoning tiers       the word after every "reasoning " (a row may bind two harnesses)
 #   * anything backticked   `fable`, `opus`
 # Outside the block those words may not appear as whole words, compared case-insensitively
 # (hyphenated words stay whole, so "high-stakes" is not "high"), and no token shaped like a
@@ -33,8 +33,10 @@ awk -v f="$f" '
     for (i = 1; i <= n; i++) {
       if (t[i] ~ /^[A-Za-z]+(-[A-Za-z0-9.]+)+$/) { add(t[i]); add_id_segments(t[i]) }   # vendor id
     }
-    if (match(line, /reasoning [A-Za-z]+/))          add(substr(line, RSTART + 10, RLENGTH - 10))
-    if (match(line, /[A-Za-z]+, latest release/))    add(substr(line, RSTART, RLENGTH - 16))
+    rest = line                                      # every tier on the row (a row may bind two harnesses)
+    while (match(rest, /reasoning [A-Za-z]+/))    { add(substr(rest, RSTART + 10, RLENGTH - 10)); rest = substr(rest, RSTART + RLENGTH) }
+    rest = line
+    while (match(rest, /[A-Za-z]+, latest release/)) { add(substr(rest, RSTART, RLENGTH - 16)); rest = substr(rest, RSTART + RLENGTH) }
     rest = line
     while (match(rest, /`[^`]+`/)) {                 # backticked aliases
       k = substr(rest, RSTART + 1, RLENGTH - 2); if (k ~ /^[A-Za-z0-9_.-]+$/) add(k)

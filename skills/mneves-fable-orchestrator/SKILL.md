@@ -34,15 +34,15 @@ before it can perform ordinary implementation.
 The only place this skill names models. Edit this block on a model release; nothing else.
 
 ```
-main session      = Opus, latest release (Claude alias `opus`) | gpt-6-sol, reasoning medium (Codex orchestrator, the default)
+main session      = Sonnet, latest release (Claude alias `sonnet`), reasoning xhigh, with an Opus advisor (Claude `advisorModel` alias `opus`) | gpt-6-sol, reasoning medium (Codex orchestrator, the default)
 frontend subagent = Opus, latest release (Claude subagent alias `opus`)
-heavy executor    = gpt-6-sol, reasoning high
+heavy executor    = Sonnet, latest release (Claude subagent alias `sonnet`), reasoning xhigh | gpt-6-sol, reasoning high (Codex worker)
 reviewer          = gpt-6-astra, reasoning xhigh  (autoreview's Codex default)
 reviewer fallback = gpt-6-sol, reasoning xhigh    (autoreview retries once after an account access failure)
 plan advisor      = gpt-6-astra, reasoning xhigh  (reviews the Claude main session's plans only)
 ```
 
-Verified against the vendor model lists on 2026-09-25; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-09-28; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file).
 

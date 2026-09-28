@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Negative controls for check-defaults-block.sh: every reasoning tier and Claude seat the Defaults
+# block names must be rejected in prose outside it, including the second value on a row that
+# binds two harnesses. The unmodified skill must pass, so the controls cannot pass vacuously.
+set -euo pipefail
+cd "$(dirname "$0")/../.."
+guard=tools/scripts/check-defaults-block.sh
+skill=skills/mneves-fable-orchestrator/SKILL.md
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+bash "$guard" "$skill" >/dev/null || { echo "FAIL: unmodified $skill must pass"; exit 1; }
+
+block="$(awk '/^### Defaults/{a=1;next} a&&/^```/{if(b)exit;b=1;next} b' "$skill")"
+tiers="$(printf '%s\n' "$block" | grep -Eo 'reasoning [A-Za-z]+' | awk '{print tolower($2)}' | sort -u)"
+seats="$(printf '%s\n' "$block" | grep -Eo '[A-Za-z]+, latest release' | awk -F, '{print tolower($1)}' | sort -u)"
+[ -n "$tiers" ] && [ -n "$seats" ] || { echo "FAIL: could not read tiers/seats from the block"; exit 1; }
+
+fail=0
+for word in $tiers $seats; do
+  cp "$skill" "$tmp/SKILL.md"
+  printf '\nRun this at %s.\n' "$word" >> "$tmp/SKILL.md"
+  if bash "$guard" "$tmp/SKILL.md" >/dev/null 2>&1; then
+    echo "FAIL: planted \"$word\" outside the Defaults block was accepted"; fail=1
+  else
+    echo "ok: planted \"$word\" rejected"
+  fi
+done
+exit "$fail"

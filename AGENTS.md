@@ -44,6 +44,7 @@ ast-grep scan --config sgconfig.yml .   # from repo root
 bash .githooks/pre-commit.test          # hook e2e test
 bash skills/mneves-fable-orchestrator/tools/codex-lane.test   # codex-lane e2e against a fake codex (no quota)
 tools/scripts/check-defaults-block.sh   # model ids only inside the orchestrator's Defaults block, with its verified-on date
+bash tools/scripts/check-defaults-block.test   # planted-violation controls for that guard
 bun --bun tools/readiness-check.ts --format=html --output=report.html   # assess cwd
 tools/scripts/build-site.sh            # HOWTO.md -> site/howto.html + landing changelog rows (CI checks freshness)
 npx skills@latest add . --list          # what the skills CLI will discover
