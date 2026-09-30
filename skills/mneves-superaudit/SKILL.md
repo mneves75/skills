@@ -25,7 +25,7 @@ Out of scope:
 Acceptance scenario:
 Required evidence:
 Retry / wait bounds:
-Authorization granted:     none beyond local edits  ← change only if the user said otherwise
+Authorization granted:     record the active task and trusted host policy; this skill adds none
 ```
 
 If a field is blank and its answer would change the work, ask. Otherwise state the assumption and
@@ -33,10 +33,10 @@ continue.
 
 ## 2. Authority
 
-**This skill grants nothing.** Local edits only. Commit, push, tag, release, deploy, and PR merge
-each need the user's explicit word for that action and target. Changing files locally does not imply
-commit authority; commit authority does not imply push, tag, release, or deploy authority. Phase 4
-runs only when the user types a release instruction naming the destination.
+**This skill grants nothing.** Carry forward authority already granted by the user or trusted
+host policy; confirm only an action/target still requiring approval. Local edits, commits,
+pushes, merges, tags, releases, and deploys are separate permissions. Phase 4 needs explicit
+release authority naming the destination.
 
 ## 3. Items
 
@@ -50,8 +50,9 @@ completeness.
 | 3 | Agent DX & verification loops | Named gaps and fixes for setup, worktree isolation, debug access, and end-to-end QA — concretely, what the agent needs to prove its own work |
 | 4 | PR / issue triage | Ranked easy-win list; nothing merged without per-PR authorization |
 
-Item 3 pairs well with `mneves-agent-readiness`, which scores a repository against nine agent-
-readiness pillars and gives item 3 a baseline instead of an opinion.
+For item 3, an installed `mneves-agent-readiness` can supply a nine-pillar baseline. A single-skill
+install may lack it; then assess the requested setup and verification gaps directly and label
+the manual scope.
 
 Docs — `README`, `AGENTS.md`, `CLAUDE.md`, changelog — are updated inside the item that changed the
 behavior. There is no separate documentation pass.
@@ -62,7 +63,10 @@ profiler helps item 2, and a saved end-to-end QA flow helps item 3.
 
 ## 4. Delegation
 
-Load `mneves-fable-orchestrator` before the first dispatch. The main session keeps requirements,
+Use delegation only for independent, substantial work with disjoint ownership and checkable
+results. When installed, load the separate `mneves-fable-orchestrator` before dispatch; otherwise
+use the brief and boundaries in [references/delegation.md](references/delegation.md).
+The main session keeps requirements,
 architecture, integration, and acceptance, and never takes a worker's summary in place of the diff.
 
 | Work | Send to |
@@ -83,7 +87,9 @@ brief template with explicit negative boundaries, return contract, and when dele
 4 release                               [STOP — needs an explicit release instruction from the user]
 ```
 
-A stop gate is a real stop. Report and wait. Approval of one phase is not approval of the next.
+A requested phase boundary is a real stop. If the user already authorized selected fixes and
+their verification, continue through those phases; report before any still-unauthorized action.
+Approval of one phase grants no implicit authority for later phases.
 
 Read [references/phases.md](references/phases.md) on entering phase 0 — entry/exit criteria, the
 performance measurement protocol, security and review requirements, the progress file that keeps a

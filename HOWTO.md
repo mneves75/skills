@@ -31,7 +31,7 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 | `mneves-eli5` | explain a thing to a specific audience | "explain OAuth to my dad" |
 | `mneves-expert-review` | stress-test a plan or answer before it ships | "challenge this design" |
 | `mneves-verify` | get an independent PASS/FAIL before "done" | "verify it", "prove it" |
-| `mneves-fable-orchestrator` | split heavy work across models | "delegate the backend to codex" |
+| `mneves-fable-orchestrator` | route independent work by capability | "delegate the backend to codex" |
 | `mneves-agent-readiness` | measure how agent-friendly a repo is | "why does the agent struggle here?" |
 | `mneves-teach-back-srs` | learn a codebase with spaced repetition | "let me explain the auth flow" |
 | `mneves-superaudit` | run a bounded audit-and-cleanup pass over a repo | "superaudit this repo, slop and perf only" |
@@ -131,8 +131,8 @@ Flutter, HTML, or image-to-code does not trigger it.
 ## mneves-eli5
 
 **What it does.** Explains one idea with the Feynman method: fix the audience, state the core
-in one sentence, carry one analogy through, show a concrete case before naming the jargon, say
-where the analogy breaks, end with a line the listener can repeat. It answers in the language
+in one sentence, use an analogy when it helps, show a concrete case before naming the jargon,
+say where any analogy breaks, and end with a line the listener can repeat. It answers in the language
 you wrote in.
 
 **Triggers.** "ELI5", "like I'm five", "explain to my boss / client / mom", "in plain words",
@@ -174,7 +174,7 @@ care; otherwise the agent infers it and says which it picked.
 **What it does.** Runs a six-step pass over a draft (or a request with no draft yet): clarify
 the real objective, rebuild from first principles, research only when it changes the answer,
 attack it from three angles at once (hostile panel, pre-mortem, the strongest opposing case),
-generate alternatives that differ in kind and compare them on weighted criteria, then improve,
+compare distinct alternatives using explicit criteria and justified weights, then improve,
 audit once, and deliver. It scales with the stakes: a factual one-liner gets the mental
 version, a migration plan gets the full pass.
 
@@ -266,13 +266,16 @@ the loop ends. Findings map to *fixed*, *disproved* or *blocked*, nothing else.
 
 **What it does.** Routes non-trivial work across the main session, Codex, and subagents when
 delegation creates independent progress or evidence. In Claude Code the main session is the
-latest Sonnet at `xhigh` with the latest Opus as its advisor, frontend work goes to a subagent on
-the latest Opus, and other Claude subagents run the latest Sonnet at `xhigh`. In Codex the main
-session is `gpt-6-sol` at `medium` (Codex's default) and execution goes to `gpt-6-sol` at `high`.
-Review goes to `gpt-6-astra` at `xhigh` (retrying on `gpt-6-sol` at `xhigh` when the account
-lacks Astra access), and `gpt-6-astra` at `xhigh` also advises on the Claude main session's
-plans; the skill's Defaults
-block is authoritative when this paragraph and it disagree. `codex-lane` keeps one Codex thread alive across rounds so
+latest Sonnet at `high` with the latest Opus as its advisor, frontend work goes to a subagent on
+the latest Opus, and other Claude subagents run the latest Sonnet at `high`. In Codex the main
+session and ordinary workers use `gpt-6.1-sol` at `medium`; bounded tasks use `gpt-6-luna`
+at `medium`, and difficult execution uses `gpt-6.1-sol` at `high`.
+Routine review uses `gpt-6.1-sol` at `high`, with one access-only fallback to `gpt-6-astra`
+at `high`. An explicit specialist or different-model review uses `gpt-6-astra` at `xhigh`,
+which also advises on the Claude main session's plans. Caller overrides and actual host
+configuration take precedence; the skill's Defaults block owns its portable defaults.
+See [usage-efficiency.md](docs/usage-efficiency.md) for compact prompts and measurement limits.
+`codex-lane` keeps one Codex thread alive across rounds so
 follow-ups reuse the executor's reasoning instead of restarting from a fresh spec.
 
 **Triggers.** "delegate", "orchestrate", "use codex", "heavy task", "long-running task", or
@@ -373,9 +376,10 @@ Five yes answers is L5; each no drops a level. Level 3 is the working minimum.
 
 **What it does.** Turns "audit everything and clean it up" into a bounded pass with four
 selectable items — slop removal, performance wins, agent DX and verification loops, PR/issue
-triage — each ending on a falsifiable condition, run through five phases with stop gates before
-every external write. It grants no authority: commit, push, tag, release, deploy and PR merge each
-need your explicit word for that action and target.
+triage — each ending on a falsifiable condition, run through five phases that preserve existing
+authority and requested stops. It grants no authority: commit, push, tag, release, deploy and
+PR merge require the main session's authorization for that action and target; already authorized
+steps continue without asking again.
 
 **Triggers.** "superaudit", "audit the codebase and clean it up", "hunt for performance wins",
 "find slop", "audit open PRs", or an end-to-end review → fix → verify → release pass. Not for a

@@ -616,7 +616,7 @@ class AutoreviewAmpTests(unittest.TestCase):
             args = AUTOREVIEW.parse_args()
         reviewer = AUTOREVIEW.reviewer_args(args)[0]
         self.assertEqual(reviewer.amp_bin, "/tmp/trusted-amp")
-        self.assertEqual(reviewer.model, "openai/gpt-6-sol")
+        self.assertEqual(reviewer.model, "openai/gpt-6.1-sol")
         self.assertEqual(reviewer.thinking, "high")
         self.assertFalse(reviewer.tools)
 
@@ -684,7 +684,7 @@ class AutoreviewAmpTests(unittest.TestCase):
         args = argparse.Namespace(
             amp_bin="amp",
             max_output_chars=2_000_000,
-            model="openai/gpt-6-sol",
+            model="openai/gpt-6.1-sol",
             stream_engine_output=False,
             thinking="high",
         )
@@ -886,7 +886,7 @@ class AutoreviewAmpTests(unittest.TestCase):
             amp_bin="amp",
             engine_timeout_seconds=0.01,
             max_output_chars=2_000_000,
-            model="openai/gpt-6-sol",
+            model="openai/gpt-6.1-sol",
             stream_engine_output=False,
             thinking="high",
         )
@@ -1000,7 +1000,7 @@ class AutoreviewAmpTests(unittest.TestCase):
         args = argparse.Namespace(
             amp_bin="amp",
             max_output_chars=2_000_000,
-            model="openai/gpt-6-sol",
+            model="openai/gpt-6.1-sol",
             stream_engine_output=False,
             thinking="high",
         )
@@ -1265,14 +1265,14 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(sys, "argv", argv):
                     reviewer = AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())[0]
                 self.assertEqual(reviewer.model, "gpt-6-astra")
-                self.assertEqual(reviewer.thinking, effort or "xhigh")
-                # Naming the default model explicitly keeps its access-only retry.
-                self.assertEqual(reviewer.fallback_model, "gpt-6-sol")
+                self.assertEqual(reviewer.thinking, effort or "high")
+                # An explicit specialist route must not silently change models.
+                self.assertIsNone(reviewer.fallback_model)
 
-    def test_default_astra_rejects_unsupported_effort(self) -> None:
+    def test_explicit_astra_rejects_unsupported_effort(self) -> None:
         for effort in ("none", "minimal"):
             with self.subTest(effort=effort), mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
-                sys, "argv", ["autoreview", "--engine", "codex", "--thinking", effort],
+                sys, "argv", ["autoreview", "--engine", "codex", "--model", "gpt-6-astra", "--thinking", effort],
             ):
                 with self.assertRaisesRegex(SystemExit, f"invalid thinking level for codex model gpt-6-astra: {effort}"):
                     AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())
@@ -1280,12 +1280,12 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
     def test_astra_effort_restrictions_do_not_change_other_codex_models(self) -> None:
         for effort in ("none", "minimal"):
             with self.subTest(effort=effort), mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
-                sys, "argv", ["autoreview", "--engine", "codex", "--model", "gpt-6-sol", "--thinking", effort],
+                sys, "argv", ["autoreview", "--engine", "codex", "--model", "gpt-6.1-sol", "--thinking", effort],
             ):
                 reviewer = AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())[0]
-                self.assertEqual(reviewer.model, "gpt-6-sol")
+                self.assertEqual(reviewer.model, "gpt-6.1-sol")
                 self.assertEqual(reviewer.thinking, effort)
-                self.assertIsNone(reviewer.fallback_model)
+                self.assertEqual(reviewer.fallback_model, "gpt-6-astra")
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -1475,8 +1475,8 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
 
     def test_codex_defaults_and_overrides(self) -> None:
         for options, model, thinking, fallback in (
-            ([], "gpt-6-astra", "xhigh", "gpt-6-sol"),
-            (["--thinking", "medium"], "gpt-6-astra", "medium", "gpt-6-sol"),
+            ([], "gpt-6.1-sol", "high", "gpt-6-astra"),
+            (["--thinking", "medium"], "gpt-6.1-sol", "medium", "gpt-6-astra"),
             (["--model", "custom-model", "--thinking", "low"], "custom-model", "low", None),
         ):
             with self.subTest(options=options), mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
@@ -1493,10 +1493,10 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             codex_bin="codex",
             codex_config=None,
             codex_speed=None,
-            fallback_model="gpt-6-sol",
+            fallback_model="gpt-6.1-sol",
             model="gpt-6-astra",
             stream_engine_output=False,
-            thinking="high",
+            thinking="xhigh",
             tools=True,
             web_search=False,
         )
@@ -1524,7 +1524,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                     self.assertEqual(kwargs["input_text"], prompt)
                     model = command[command.index("--model") + 1]
                     events.append(model)
-                    effort = "high" if model == "gpt-6-astra" else "xhigh"
+                    effort = "xhigh" if model == "gpt-6-astra" else "high"
                     self.assertIn(f'model_reasoning_effort="{effort}"', command)
                     if model == "gpt-6-astra":
                         if failure == "missing":
@@ -1557,7 +1557,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                     if failed_source != "filesystem":
                         expected.append("stdin")
                 if not failure:
-                    expected.append("gpt-6-sol")
+                    expected.append("gpt-6.1-sol")
                 self.assertEqual(events, expected)
                 self.assertTrue(all(not pack.parent.exists() for pack in packs))
 
@@ -1654,7 +1654,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             codex_bin="codex",
             codex_config=None,
             codex_speed=None,
-            fallback_model="gpt-6-sol",
+            fallback_model="gpt-6.1-sol",
             model="gpt-6-astra",
             stream_engine_output=False,
             thinking="high",
@@ -1694,7 +1694,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             codex_bin="codex",
             codex_config=None,
             codex_speed=None,
-            fallback_model="gpt-6-sol",
+            fallback_model="gpt-6.1-sol",
             model="gpt-6-astra",
             stream_engine_output=False,
             thinking="high",
@@ -1738,24 +1738,24 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
         result = subprocess.CompletedProcess(
             ["codex"],
             1,
-            '{"type":"agent_message","text":"gpt-6-sol does not exist or you do not have access"}',
-            '{"type":"agent_message","message":"gpt-6-sol does not exist or you do not have access"}',
+            '{"type":"agent_message","text":"gpt-6.1-sol does not exist or you do not have access"}',
+            '{"type":"agent_message","message":"gpt-6.1-sol does not exist or you do not have access"}',
         )
 
         self.assertFalse(
-            AUTOREVIEW.codex_model_access_failure(result, "gpt-6-sol")
+            AUTOREVIEW.codex_model_access_failure(result, "gpt-6.1-sol")
         )
 
     def test_codex_access_fallback_accepts_terminal_error_event(self) -> None:
         result = subprocess.CompletedProcess(
             ["codex"],
             1,
-            '{"type":"error","message":"gpt-6-sol does not exist or you do not have access"}',
+            '{"type":"error","message":"gpt-6.1-sol does not exist or you do not have access"}',
             "",
         )
 
         self.assertTrue(
-            AUTOREVIEW.codex_model_access_failure(result, "gpt-6-sol")
+            AUTOREVIEW.codex_model_access_failure(result, "gpt-6.1-sol")
         )
 
     def test_codex_access_fallback_accepts_account_model_list_error(self) -> None:
@@ -1764,25 +1764,25 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             1,
             "",
             (
-                "The model gpt-6-sol does not appear in the list of models "
+                "The model gpt-6.1-sol does not appear in the list of models "
                 "available to your account"
             ),
         )
 
         self.assertTrue(
-            AUTOREVIEW.codex_model_access_failure(result, "gpt-6-sol")
+            AUTOREVIEW.codex_model_access_failure(result, "gpt-6.1-sol")
         )
 
     def test_codex_access_fallback_ignores_plain_stdout(self) -> None:
-        message = "gpt-6-sol does not exist or you do not have access"
+        message = "gpt-6.1-sol does not exist or you do not have access"
         stdout_result = subprocess.CompletedProcess(["codex"], 1, message, "")
         stderr_result = subprocess.CompletedProcess(["codex"], 1, "", message)
 
         self.assertFalse(
-            AUTOREVIEW.codex_model_access_failure(stdout_result, "gpt-6-sol")
+            AUTOREVIEW.codex_model_access_failure(stdout_result, "gpt-6.1-sol")
         )
         self.assertTrue(
-            AUTOREVIEW.codex_model_access_failure(stderr_result, "gpt-6-sol")
+            AUTOREVIEW.codex_model_access_failure(stderr_result, "gpt-6.1-sol")
         )
 
     def test_extract_json_accepts_dict_result_payload(self) -> None:

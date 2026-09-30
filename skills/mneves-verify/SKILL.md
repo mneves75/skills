@@ -70,9 +70,10 @@ operator sees (pages, commands, responses, output files, logs, accessibility tre
 read source, diffs, tests, or the builder's notes; if it cannot continue without source, the
 criterion is BLOCKED. Findings cite the criterion and the observable steps, never code locations.
 
-A success message is not evidence. Before PASS, probe for fake work: vary the input data, retry
-and reload, try empty and invalid inputs, confirm state persists, and open the generated output
-to check the action really happened.
+A success message is not evidence. Before PASS, probe for fake work using checks relevant to
+the frozen criterion: vary inputs, exercise specified failure behavior, verify claimed
+persistence, and inspect actual generated output. Reload/retry only when it tests the claim.
+These are criterion-driven probes, not a mandatory matrix for every artifact.
 
 ## Fix-all mapping
 

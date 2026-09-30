@@ -5,6 +5,53 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.27.0] - 2026-09-30
+
+### Changed
+
+- **Skill workflows**: less repeated context and bounded work across all ten entrypoints.
+  Shorter discovery descriptions, branch-specific references and reuse of checked context
+  bound generation, retries and reviews.
+  Required proof, privacy, consent, credential scanning, isolation and upstream provenance stay
+  binding. The new [usage guide](docs/usage-efficiency.md) supplies a compact task contract and
+  explains how to measure usage without treating byte reductions as credit savings.
+- **`mneves-fable-orchestrator`**: ordinary Codex sessions/workers use `gpt-6.1-sol` at `medium`,
+  bounded workers use `gpt-6-luna` at `medium`, and difficult execution keeps Sol at `high`.
+  Routine review uses Sol at `high`; explicit specialist/different-model review and the Claude
+  plan advisor keep Astra at `xhigh`. Claude main/worker and frontend bindings are preserved.
+- **`autoreview`**: the Codex default is Sol at `high`, with a single Astra at `high` retry only
+  for confirmed account-access failure. Explicit model overrides retain their existing no-retry
+  boundary. Regression tests cover default dispatch, effort overrides and access-only fallback.
+
+### Fixed
+
+- **`mneves-teach-back-srs`**: resolve the installed helper rather than assuming a working
+  directory; substitute its absolute path or assign it inside each fresh shell invocation.
+- **Readiness tools**: sort one export to satisfy the existing lint gate without behavior changes.
+
+## [1.26.0] - 2026-09-29
+
+### Changed
+
+- **`mneves-fable-orchestrator`**: every Codex `gpt-6-sol` seat is now `gpt-6.1-sol` at `high`.
+  The Codex main-session seat moves from `medium` to `high` and no longer claims to be Codex's
+  default; the heavy-executor seat keeps `high`; the reviewer fallback moves from `xhigh` to
+  `high`. Review and plan-advisor seats stay on `gpt-6-astra` at `xhigh`.
+- **`mneves-fable-orchestrator`**: the Claude main-session and heavy-executor seats move from
+  `xhigh` to `high`. Guidance for the current Sonnet reserves `xhigh` for measured gains. On one
+  real migration task, with a failing test suite as the oracle, `medium`, `high` and `xhigh` all
+  passed; `xhigh` took about four times the tokens and cost of `high` for the same diff size.
+  One task is a small sample, so `high` is a default to revisit, not a finding. Frontend stays on
+  Opus in these defaults.
+- **`autoreview`**: the access-only retry runs `gpt-6.1-sol` at `high` (was `gpt-6-sol` at
+  `xhigh`), and the `amp` engine defaults to `openai/gpt-6.1-sol`. The retry's effort override
+  now has a test that tells it apart from the primary's effort (primary `xhigh`, retry `high`).
+- **HOWTO** and the landing page name the new Codex seats.
+- Probes on 2026-09-29: `gpt-6.1-sol` answered at `high` and `gpt-6-astra` at `xhigh`, a fake id
+  (`gpt-6.1-solx`) exited 1, and the Claude aliases `sonnet` and `opus` resolved to
+  `claude-sonnet-5-5` and `claude-opus-5-5`. The `amp` id is unverified: it follows the Codex id
+  and no Amp binary was probed.
+
 ## [1.25.0] - 2026-09-28
 
 ### Changed

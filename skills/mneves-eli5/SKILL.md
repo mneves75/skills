@@ -6,32 +6,20 @@ license: Apache-2.0
 
 # Explain Like I'm 5 (Feynman technique)
 
-Feynman's test: if it cannot be explained simply, it is not understood yet. Simplicity here
-means the listener could repeat the idea back to someone else. It never means lying,
-skipping the part that matters, or padding with cute words.
+Explain the mechanism accurately enough for the audience to repeat it. Simplicity preserves
+the facts and consequential limitations.
 
 ## Procedure
 
-1. **Fix the audience before writing.** Pick one level from the table below. If the user did
-   not name one, infer it from their message and state the assumption in one line
-   ("Explaining for a non-technical manager"). Ask only when two levels would produce
-   materially different answers and nothing in the request settles it.
-2. **Find the core.** Write the idea in one sentence a listener at that level would accept.
-   If the sentence needs a term the listener does not know, that term is the real subject;
-   explain it first.
-3. **Anchor with one analogy from the listener's world.** Choose something they already
-   handle (kitchen, traffic, money, school, their own job). One analogy, carried through;
-   two competing analogies confuse more than none.
-4. **Show, then name.** Walk through a concrete case (a real example, small numbers, a
-   mini-story) before introducing the proper term. Introduce jargon only once it names
-   something the listener has already seen, and put it in parentheses after the plain phrase.
-5. **Say where the analogy breaks.** Every analogy is wrong somewhere. Name the gap in one
-   sentence so the simple model does not become a false one.
-6. **Check the gap-finding step.** Reread the explanation as the listener: is there a
-   "because…" that is actually a hand-wave? Fill it or admit "this part is
-   complicated; the short version is…". Never fake precision.
-7. **Close with the takeaway.** One line the listener can repeat. Offer the next level up
-   ("Want the version with the actual mechanism?") only when it is real, not as a ritual.
+1. Choose the audience from the request or table. State a consequential assumption; ask only
+   when unresolved audience choices would materially change the answer.
+2. State the core idea in one audience-appropriate sentence. Explain an unfamiliar term before
+   relying on it.
+3. Show a concrete case before naming the technical term. Use one familiar analogy only when
+   it clarifies the mechanism; name where it breaks. Experts often need no analogy.
+4. Check the causal explanation for unsupported leaps. Explain the missing step or state the
+   uncertainty; preserve complexity when simplification would mislead a decision.
+5. End with a repeatable takeaway when useful. Offer more depth only if it helps the user.
 
 ## Audience levels
 
@@ -48,18 +36,14 @@ engineers" block underneath. Do not average the levels into something that serve
 
 ## Rules
 
-- **Answer in the user's language**, with correct accents. Keep code identifiers, commands, and
-  product names in the original, but gloss them the first time.
-- Simple ≠ wrong. If a simplification would leave the listener believing something false
-  that matters for their decision, keep the complexity and explain it instead.
-- No condescension. Never "it's easy" / "obviously" / "simply". Being 5 is about vocabulary,
-  not intelligence.
-- Concrete beats abstract: a specific number, a named thing, a single scenario. Replace
-  every "some", "various", "etc." with the actual case.
-- Put the listener in the sentence as the subject ("you send…", "your phone asks…").
-- Re-explain on request without re-deriving: when the user says "now for my CTO" or "more
-  technical", keep the same core sentence and analogy, change the level only.
+- Use the user's language and correct accents; retain identifiers, commands and product names,
+  explaining unfamiliar names once.
+- Respect the listener's intelligence. Use concrete actors, numbers and scenarios, with the
+  listener as subject where natural.
+- For a new audience, retain checked core facts and change depth. Reread or research only
+  claims the new depth makes uncertain. Finish when the mechanism and consequential limitation
+  are clear at the requested level.
 
 ## Examples
 
-Worked examples per level: [references/examples.md](references/examples.md).
+Read [references/examples.md](references/examples.md) only when a worked audience example helps.

@@ -28,7 +28,8 @@ is wrong, the proposed change, the risk, and the check that would prove the chan
 Search the web only when correctness depends on current, version-specific, or external facts. Cite
 primary sources. Stop when the evidence is sufficient, not when it is exhausted.
 
-**STOP.** Present the report. The user selects what to cut. Do not begin implementing.
+Present the findings. Stop for selection unless the active task already authorizes the named
+fixes; then implement those selections without requesting the same approval again.
 
 ## 2 — Implement
 
@@ -66,17 +67,18 @@ hypotheses — verify each against the real artifact before fixing it. If a seco
 hole in the same design, simplify the ownership or invariant and report what remains. Do not add
 guards indefinitely.
 
-**STOP.** Present the diff and the evidence. The user reads it.
+Present the diff and evidence. Continue already-authorized delivery; stop before a remaining
+action or target that requires approval.
 
 ## 4 — Release
 
 Runs only on an explicit release instruction from the user that names the destination. Nothing in
 this skill authorizes it.
 
-Sequence: version bump → changelog and affected docs → commit task-owned paths only → push the
-authorized branch → tag (use a prerelease suffix such as `beta<N>` for staging) → deploy → verify the
-destination and artifact directly, not the deploy tool's exit code. Never move a pushed tag. Return
-to the expected branch and check `git status -sb`.
+Use the destination's documented release sequence. Update required metadata/docs, commit
+task-owned paths, and perform only explicitly authorized push/tag/deploy steps. A staging task
+does not automatically require a tag or deployment. Verify the actual destination and artifact,
+not only a tool's exit code. Never move a pushed tag. Check the expected branch and final status.
 
 A tag identifies deployed bytes, not an assumed source diff. If the exact immutable build is already
 live at the requested destination, verify it rather than redeploying.

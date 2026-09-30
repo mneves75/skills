@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.25.0-blue)
+![Version](https://img.shields.io/badge/version-1.27.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -11,16 +11,19 @@ Skills for AI coding agents. Each installs into any tool that reads `SKILL.md` f
 
 ## Available Skills
 
+For compact task prompts, bounded retries and model routing, see
+[Using skills with less repeated work](docs/usage-efficiency.md).
+
 | Skill | Description |
 |-------|-------------|
 | [autoreview](skills/autoreview/) | Structured, isolated code review of a fixed Git target; ships its helper, security tests, and its own engine defaults |
 | [imagegen-frontend-mobile](skills/imagegen-frontend-mobile/) | Generate coherent iOS or Android screen and flow images, with platform conventions, visual QA, and no code |
 | [mneves-eli5](skills/mneves-eli5/) | Feynman-technique explainer calibrated to the listener (child, layperson, executive, junior, expert), answered in the user's language |
 | [mneves-agent-readiness](skills/mneves-agent-readiness/) | Evaluate codebase readiness for AI agents: 9 pillars, maturity levels L1–L5, local-only |
-| [mneves-expert-review](skills/mneves-expert-review/) | Six-step stress test before finalizing: objective, first principles, research that changes the answer, one combined attack (panel + pre-mortem + opposing case), alternatives compared on weighted criteria, improved deliverable |
+| [mneves-expert-review](skills/mneves-expert-review/) | Scoped stress test: objective, first principles, relevant research, one combined challenge, distinct alternatives, improved deliverable |
 | [mneves-handoff](skills/mneves-handoff/) | Clipboard-ready, path-free prompt that hands a task to another agent for independent review and discussion first |
-| [mneves-fable-orchestrator](skills/mneves-fable-orchestrator/) | Route non-trivial work across the main session, a heavy executor, and subagents; models live in one Defaults block; ships [`codex-lane`](skills/mneves-fable-orchestrator/tools/codex-lane) |
-| [mneves-superaudit](skills/mneves-superaudit/) | Bounded, delegated audit-and-ship pass: slop, performance, agent DX, PR triage — falsifiable done-conditions and stop gates before every external write |
+| [mneves-fable-orchestrator](skills/mneves-fable-orchestrator/) | Route ordinary, bounded and difficult work by capability; models live in one Defaults block; ships [`codex-lane`](skills/mneves-fable-orchestrator/tools/codex-lane) |
+| [mneves-superaudit](skills/mneves-superaudit/) | Bounded audit-and-ship pass: slop, performance, agent DX, PR triage — falsifiable completion criteria, existing authority and requested stops |
 | [mneves-teach-back-srs](skills/mneves-teach-back-srs/) | Spaced-repetition learning through codebase teach-back sessions (SM-2 + SQLite) |
 | [mneves-verify](skills/mneves-verify/) | Independent verification before done/fixed/shipped: fresh context checks the artifact against criteria, PASS/FAIL/BLOCKED |
 

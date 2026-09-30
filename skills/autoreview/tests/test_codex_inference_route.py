@@ -198,6 +198,10 @@ class CodexInferenceRouteTests(unittest.TestCase):
             "env_defaults_for": lambda _: (None, {}),
         }):
             self.args = self.helper["reviewer_args"](args)[0]
+        catalogue = json.loads(self.catalogue_bytes)
+        catalogue["models"][0]["slug"] = self.args.model
+        self.catalogue_bytes = json.dumps(catalogue).encode()
+        self.catalogue.write_bytes(self.catalogue_bytes)
 
     def test_primary_only_catalogue_keeps_normal_fallback_and_frozen_route(self):
         self.use_default_models()
@@ -214,16 +218,16 @@ class CodexInferenceRouteTests(unittest.TestCase):
             self.assertEqual(observed["catalogue"], original)
             self.assert_auth_command(observed, self.runtime_helper)
             launchers.append(observed["auth_command"])
-            if selected == "gpt-6-astra":
+            if selected == "gpt-6.1-sol":
                 # A retry keeps the prepared route even if operator files change.
                 self.catalogue.write_bytes(b"changed after primary send")
                 (self.home / "config.toml").write_text('model_provider = "another-route"')
                 return subprocess.CompletedProcess(
-                    command, 1, "", "The model gpt-6-astra does not exist or you do not have access to it.",
+                    command, 1, "", "The model gpt-6.1-sol does not exist or you do not have access to it.",
                 )
 
         self.run_review(during_run=respond, scan=lambda *_: events.append("scan"))
-        self.assertEqual(events, ["gpt-6-astra", "scan", "gpt-6-sol"])
+        self.assertEqual(events, ["gpt-6.1-sol", "scan", "gpt-6-astra"])
         self.assertEqual(launchers[0], launchers[1])
 
     def test_primary_only_catalogue_does_not_block_successful_primary(self):
@@ -232,7 +236,7 @@ class CodexInferenceRouteTests(unittest.TestCase):
         attempts = []
         self.run_review(during_run=lambda observed: attempts.append(observed["command"]))
         self.assertEqual(len(attempts), 1)
-        self.assertEqual(attempts[0][attempts[0].index("--model") + 1], "gpt-6-astra")
+        self.assertEqual(attempts[0][attempts[0].index("--model") + 1], "gpt-6.1-sol")
         self.assertEqual(self.available(), (True, None))
 
     def test_default_keeps_legacy_auth_only_behavior_with_unrelated_routes(self):

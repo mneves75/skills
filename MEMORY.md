@@ -14,6 +14,21 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.27.0** (2026-09-30): ten skill entrypoints use conditional detail and bounded work.
+  Portable Codex routing separates ordinary Sol/medium, bounded Luna/medium, difficult Sol/high,
+  routine Sol/high review and explicit Astra/xhigh specialists. Autoreview's access-only retry
+  is Astra/high; caller overrides and security controls survive. Fresh-shell SRS commands use
+  the discovered absolute helper path. Documentation byte reductions are not measured usage savings.
+
+- **1.26.0** (2026-09-29): every Codex `gpt-6-sol` seat is `gpt-6.1-sol` `high` (orchestrator main
+  session, heavy executor, reviewer fallback, autoreview access-only retry, `amp` default).
+  Review and plan-advisor seats stay `gpt-6-astra` `xhigh`. Host aligned: `~/.zshrc` `codex-advise`,
+  `codex-auto` `exec_model` default (and `codex-auto-test`), `default_subagent_model` in
+  `~/.codex/config.toml`, and the 20 `~/.codex/agents/*.toml` roles (id only; all already `high`).
+  Not aligned: the `[notice.model_migrations]` record, which is Codex's own acknowledgment log.
+  The Claude main-session and heavy-executor seats also move from `xhigh` to `high` (a trial;
+  frontend stays on Opus in the skill defaults). Host aligned: `~/.claude/settings.json`
+  `modelSettings`, agent-runtime.md and its routing probe.
 - **1.25.0** (2026-09-28): the Claude main session and ordinary Claude subagents run Sonnet
   (`claude-sonnet-5-5`) at `xhigh`, with an Opus advisor; frontend stays on Opus. Codex seats
   are unchanged. Host aligned: `~/.claude/settings.json` (model, modelSettings, advisorModel,

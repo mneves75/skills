@@ -1,8 +1,7 @@
 # Review, Stats, and Export Modes
 
-Modes 2-4 of the teach-back SRS skill. Mode 1 (the teach-back session itself) stays in
-SKILL.md. All commands run `scripts/srs_db.py` from the skill's own directory, with the
-user's project as the working directory.
+Modes 2-4 of the teach-back SRS skill. Read only the selected mode. All commands use the
+absolute `SRS_SCRIPT` path resolved by SKILL.md, with the user's project as working directory.
 
 ## Contents
 
@@ -17,7 +16,7 @@ When the user wants to review due cards.
 ### Step 1: Check Due Cards
 
 ```bash
-python3 scripts/srs_db.py due
+python3 "$SRS_SCRIPT" due
 ```
 
 If no cards are due, report the next scheduled review date and suggest a teach-back session
@@ -48,7 +47,7 @@ SM-2 quality scale (present to user as options):
 Record each review:
 
 ```bash
-python3 scripts/srs_db.py review --card-id ID --quality Q
+python3 "$SRS_SCRIPT" review --card-id ID --quality Q
 ```
 
 ### Step 4: Review Summary
@@ -63,7 +62,7 @@ After all due cards are reviewed, show:
 ## Mode 3: Stats Dashboard
 
 ```bash
-python3 scripts/srs_db.py stats
+python3 "$SRS_SCRIPT" stats
 ```
 
 Present the JSON output in a readable format:
@@ -78,8 +77,8 @@ Present the JSON output in a readable format:
 ## Mode 4: Export
 
 ```bash
-python3 scripts/srs_db.py export --format md
-python3 scripts/srs_db.py export --format csv
+python3 "$SRS_SCRIPT" export --format md
+python3 "$SRS_SCRIPT" export --format csv
 ```
 
 CSV format is compatible with Anki import (question, answer columns).

@@ -10,7 +10,9 @@ Delegate only when the work is independent, substantial, and objectively verifia
 |------|-----|------|
 | Orchestrator | Main session (Claude or Codex; model per the skill's Defaults block) | Repo understanding, architecture decisions, task decomposition, spec writing, acceptance |
 | Frontend executor | Frontend subagents (model per the Defaults block) | UI components, styling, layout, visual polish |
-| Heavy executor | Codex via `codex exec` / `codex-lane` (model per the Defaults block) | Execution, debugging, refactors, and other non-frontend work |
+| Ordinary worker | A scoped worker (model per the Defaults block) | Routine implementation with checkable acceptance |
+| Bounded worker | A scoped worker (model per the Defaults block) | Search, writing, and mechanical changes with a narrow result |
+| Heavy executor | Codex via `codex exec` / `codex-lane` (model per the Defaults block) | Difficult debugging, architecture, and refactors |
 | Plan advisor | A read-only Codex run (model per the Defaults block) | Review of the Claude main session's plan before a decision with real downside |
 | Reviewer | `autoreview` or a read-only Codex run (model per the Defaults block) | Independent review of a fixed Git target |
 | Long-horizon driver | A lane, a checked-in plan file, or your harness's long-task mechanism | User-requested multi-phase work driven to its stopping condition |
@@ -112,7 +114,8 @@ ln -s /path/to/skills/skills/mneves-fable-orchestrator/tools/codex-lane ~/bin/co
 3. **Multi-round work runs in a lane.** Fix-ups and review findings go to
    `codex-lane next`, never a fresh spec that restates solved reasoning.
 4. **File ownership is carved out per executor** so parallel diffs never collide.
-5. **Independent review is risk-based.** Use it when the task or repository requires it.
+5. **Independent review is risk-based.** Use it when the task or repository requires it;
+   select the specialist explicitly when a different model is required.
 6. **Small direct edits stay in the active session.**
 
 ## Install

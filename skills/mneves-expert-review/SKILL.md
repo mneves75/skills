@@ -6,12 +6,9 @@ license: Apache-2.0
 
 # Expert review and optimization pass
 
-Purpose: never deliver the first plausible answer. Deliver the strongest one found, with the
-reasoning that survived an attempt to disprove it.
-
-Scale the pass to the stakes. A one-line factual question gets steps 1 and 4 in the head, no
-visible ceremony. A plan, design, recommendation, or document that others will act on gets the
-full pass. Effort here means depth of challenge, not word count.
+Improve the requested high-stakes draft or decision through one evidence-backed challenge.
+Use ordinary direct answers for simple questions; this skill does not add a review to every
+response. Scale detail to the decision's stakes, not to a fixed report length.
 
 Read the draft — or the request, if no draft exists yet — fully before starting.
 
@@ -34,48 +31,32 @@ Read the draft — or the request, if no draft exists yet — fully before start
    inference / own judgment. Do not search when the answer is already fully supported; tool
    calls are not rigor.
 
-4. **Attack it.** One combined assault, from every angle that applies:
+4. **Challenge it once.** Combine the relevant expert, implementer, user, and risk perspectives.
+   Test factual accuracy, assumptions, missing behavior, complexity, usability, failure paths,
+   maintainability, and misleading wording. Use a pre-mortem to identify the weakest dependency;
+   state the strongest credible opposing case and the evidence that would change the decision.
+   These are perspectives in one pass, not automatic separate agents or repeated reviews.
 
-   - **As a panel** — subject-matter expert, senior practitioner, skeptical reviewer, end user,
-     implementer, risk analyst, editor or design critic. Hunt factual errors, weak assumptions,
-     missing information, unnecessary complexity, logical gaps, usability problems,
-     implementation risk, edge cases, maintainability debt, misleading wording, and anything
-     that is merely conventional.
-   - **As a pre-mortem** — assume it failed badly. What was underestimated, which assumption
-     broke, which edge case bit, which part is most fragile, what unintended consequence
-     appeared, what would have aged badly given a few more years of hindsight?
-   - **As the opposition** — find the credible expert case *against* the chosen approach. Where
-     do practitioners disagree, what would a skeptical senior advisor say, what evidence would
-     flip the recommendation? State the strongest opposing case before rejecting it.
+   Test the draft's weakest claim. Use independent verification when requested, required by
+   the owning workflow, or warranted by risk. `mneves-verify` is a separately installed sibling;
+   when absent, use an equivalent fresh read-only verifier. Report missing required capability
+   as blocked. Fold verified findings back into the solution.
 
-   Try to disprove the draft; do not defend it. For checkable outcomes — code, UI, data,
-   citations — the attack is not enough: hand the artifact to an independent verifier
-   (`mneves-verify`). Fold every surviving finding back into the solution.
-
-5. **Generate alternatives that differ in kind, then compare.** Keep generating until new
-   options stop differing in kind rather than in detail; variations of one idea do not count.
-   Always include one conservative, one minimal, and one that challenges the premise of the
-   request. Then name the 3-6 criteria that actually matter, weight them, and score the
-   alternatives. Reject any option whose extra complexity buys less than proportional benefit.
+5. **Compare meaningful alternatives.** Start with a conservative option, a minimal option,
+   and one that challenges the premise. Merge equivalent options. Add another only if evidence
+   exposes a materially different trade-off. Compare against the decision criteria; use a
+   weighted score only when the weights and scores can be justified. Reject extra complexity
+   whose benefit is not proportional.
    Pick the strongest or synthesize the best elements, and state the decisive trade-offs in
    plain sentences.
 
 6. **Improve, then audit once, then deliver.** Rewrite the deliverable with the findings
-   applied — return a better solution, never a review of the old one. Then audit the rewrite
-   against these nine dimensions, and send it back for another rewrite only on a material
-   failure:
+   applied. Check accuracy, material completeness, relevance, simplicity, failure behavior,
+   clarity, actionability, evidence, and explicit trade-offs. Correct material failures and
+   recheck those claims without restarting an unchanged full review.
 
-   accuracy (facts, numbers, dates, citations, terminology) · completeness (material
-   requirements, key edge cases) · relevance (every element serves the objective) · simplicity
-   (nothing removable without loss) · robustness (works outside the happy path) · clarity (an
-   intelligent non-specialist follows it) · actionability (what to do is unambiguous) ·
-   evidence (important claims supported) · trade-offs (downsides and uncertainty explicit).
-
-   Deliver the final version only — no intermediate drafts. Where it helps the reader,
-   structure as: final recommendation · key reasoning · important trade-offs · risks and
-   mitigations · evidence or sources · what improved from the initial approach · remaining
-   uncertainty. Drop any section that would be padding. A requested output format always wins
-   over this structure.
+   Deliver the improved version with the decisive reasoning, sources, trade-offs, and remaining
+   uncertainty. Omit intermediate drafts and empty report sections; the user's format wins.
 
 ## Boundaries
 

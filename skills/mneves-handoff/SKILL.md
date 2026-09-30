@@ -1,6 +1,6 @@
 ---
 name: mneves-handoff
-description: Write a clipboard-ready prompt that hands a task to another agent for review and discussion. Use for "handoff <task>" or "write a handoff".
+description: Write a clipboard-ready discussion or continuation prompt for another agent. Use when asked for a handoff.
 license: MIT
 ---
 
@@ -10,18 +10,18 @@ Write a standalone prompt that lets a fresh agent investigate, discuss, or conti
 receiving agent owns its own review; the handoff gives it starting context and known constraints,
 not a finished decision.
 
-This is not a delegation brief. A brief sends a worker into your own tree with exact paths and
-proof commands; a handoff goes to an agent you do not control, in a directory you do not know,
-that should first decide whether the task is worth doing.
+A handoff starts with independent assessment; a worker brief assigns implementation with exact
+paths and proof commands. Preserve the user's chosen mode and already-granted authority.
 
 ## Workflow
 
 1. Identify the task. From a short label, infer the rest from the current repository, recent
    discussion, branch name, linked issue or PR, and nearby docs.
 2. Gather enough to orient a stranger: repository and product identity, relevant issue, PR, and
-   branch names, likely modules, constraints, and known symptoms. Do not do the receiving
-   agent's review or settle the technical direction for it.
-3. Write the prompt with the template below.
+   branch names, likely modules, constraints, and known symptoms. Use checked summaries and
+   portable evidence anchors instead of pasting transcripts or redoing the receiving review.
+3. Write Task, Acceptance, Constraints, Delivery, and Target. For the discussion-first template,
+   read [references/discussion-template.md](references/discussion-template.md).
 4. Copy it to the clipboard (see Clipboard).
 5. Reply with a one-line confirmation naming the task. Do not paste the prompt unless asked.
 
@@ -41,42 +41,6 @@ that should first decide whether the task is worth doing.
 - Tell the agent not to push, merge, close or label issues and PRs, or post public comments
   unless the handoff explicitly asks for it.
 - No invented facts; state as checked only what you checked. No brain dump: enough to orient.
-
-## Template
-
-```text
-I want to discuss and possibly work on: <short task title>
-
-Context:
-- <portable repository/product context>
-- <what triggered this task>
-- <known current state: branch, issue, or PR names or URLs>
-- <important constraints and ownership boundaries>
-
-Before any implementation:
-- Find the right repository from the current directory, a parent, or the usual workspace.
-- Read the repository's agent instructions.
-- Inspect the relevant code, docs, tests, recent commits, and linked issue/PR state.
-- Decide whether this task is still real, whether the proposed direction is a good idea, and
-  whether a smaller or better fix exists.
-- Call out stale assumptions, hidden risks, and anything that should stop the work.
-
-Task:
-- <what to investigate or implement if the review supports it>
-- <expected behavior or decision criteria>
-- <non-goals>
-
-Validation:
-- <focused tests, checks, or live proof expected>
-- <what evidence to include>
-- <what is explicitly not required>
-
-Output:
-- Start with your review findings and recommendation.
-- Then give the proposed plan or patch summary.
-- If you edit code, keep changes scoped and report the exact proof you ran.
-- Do not push, merge, close issues/PRs, label, or post public comments unless told to.
-```
 
 ## Clipboard
 

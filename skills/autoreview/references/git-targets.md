@@ -44,3 +44,29 @@ the report labels it `INDEX-only`.
 Git display settings cannot suppress context markers or add patch colors;
 repository configuration is not changed. Source paths and text retain literal
 whitespace. Source identity remains mandatory.
+
+## Line endings and executable filters
+
+Local selection honors `core.autocrlf` from external operator Git configuration,
+with repository-local values and attributes retaining precedence. Only its
+validated scalar value reaches diff/status; other global and system Git
+configuration stays disabled. Repository-owned or relative global-config
+overrides are not imported, and reviewed source bytes are not rewritten.
+
+Local collection disables effective Git clean/process commands and requires
+conversion to succeed. Unused drivers, unchanged filtered neighbors, staged-only
+changes, and deletions can still be reviewed without executing converters.
+If Git needs executable conversion to assemble the diff, collection fails before
+any reviewer starts. This can include an unchanged filtered file whose stat cache
+needs refreshing. Use explicit branch or commit mode for committed content in
+that case. Built-in line-ending normalization remains enabled; raw bytes never
+stand in for a required executable conversion.
+
+## PR-base discovery
+
+PR-base discovery uses trusted external Git and a scoped GitHub CLI environment,
+preserving external authentication/configuration and proxy settings while excluding
+inherited Git routing, `GH_REPO` redirection, and checkout-owned executables.
+A differently named `AUTOREVIEW_GIT` override that cannot also be selected as `git`
+by the child requires an explicit `--base`; rejected GitHub configuration paths
+also require one.

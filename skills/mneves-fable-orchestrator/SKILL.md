@@ -20,7 +20,9 @@ whole skill.
 |---|---|
 | Main session | Orchestration: framing, design decisions, decomposition, acceptance |
 | Frontend subagent | Bounded UI work: components, styling, layout, visual polish |
-| Heavy executor | Execution, debugging, refactors, other non-frontend work, and ordinary inherited agents |
+| Ordinary worker | Scoped implementation and routine inherited agents |
+| Bounded worker | Search, summaries, writing, and mechanically checkable tasks |
+| Heavy executor | Difficult debugging, architecture, or refactors needing stronger execution |
 | Plan advisor | Read-only review of the Claude main session's plan before a decision with real downside; nothing else |
 | Reviewer | Independent review of a fixed Git target (`autoreview` when installed) |
 | Specialist | Deliberate comparison or capability-specific work |
@@ -34,15 +36,18 @@ before it can perform ordinary implementation.
 The only place this skill names models. Edit this block on a model release; nothing else.
 
 ```
-main session      = Sonnet, latest release (Claude alias `sonnet`), reasoning xhigh, with an Opus advisor (Claude `advisorModel` alias `opus`) | gpt-6-sol, reasoning medium (Codex orchestrator, the default)
+main session      = Sonnet, latest release (Claude alias `sonnet`), reasoning high, with an Opus advisor (Claude `advisorModel` alias `opus`) | gpt-6.1-sol, reasoning medium (Codex orchestrator)
 frontend subagent = Opus, latest release (Claude subagent alias `opus`)
-heavy executor    = Sonnet, latest release (Claude subagent alias `sonnet`), reasoning xhigh | gpt-6-sol, reasoning high (Codex worker)
-reviewer          = gpt-6-astra, reasoning xhigh  (autoreview's Codex default)
-reviewer fallback = gpt-6-sol, reasoning xhigh    (autoreview retries once after an account access failure)
+ordinary worker   = Sonnet, latest release (Claude subagent alias `sonnet`), reasoning high | gpt-6.1-sol, reasoning medium (Codex worker)
+bounded worker    = gpt-6-luna, reasoning medium (bounded Codex task)
+heavy executor    = Sonnet, latest release (Claude subagent alias `sonnet`), reasoning high | gpt-6.1-sol, reasoning high (Codex worker)
+reviewer          = gpt-6.1-sol, reasoning high  (autoreview's routine Codex default)
+reviewer fallback = gpt-6-astra, reasoning high  (autoreview retries once after an account access failure)
 plan advisor      = gpt-6-astra, reasoning xhigh  (reviews the Claude main session's plans only)
+specialist        = gpt-6-astra, reasoning xhigh  (explicit difficult or independent specialist review)
 ```
 
-Verified against the vendor model lists on 2026-09-28; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-09-30; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file).
 
@@ -59,13 +64,16 @@ file ownership. Parallelize only independent workstreams. Do not delegate a few 
 duplicate work already assigned. Never stash, switch, rebase, or reset someone else's dirty work
 merely to begin a dispatch; give parallel workers their own worktrees instead.
 
-Inside Codex, the orchestrator and the heavy executor may share a model, so the session's task
-decides its seat, not its model. A session asked to orchestrate delegates substantial independent
-work to a heavy-executor worker whose model and effort are set in the spawned agent's
-configuration (a model requested in prose is a wish), with a fresh context and a self-contained
-brief. Any other session is an executor: it implements and verifies directly, and spawns the
-reviewer for an independent review. The plan advisor serves only the Claude main session's plans;
-no Codex session hands implementation or review to it.
+Select the cheapest configured role that can satisfy the task and its proof; escalate on
+requirements or demonstrated difficulty. Host routing and explicit caller choices override
+these portable defaults. Configure the spawned model/effort in the actual dispatch, not prose.
+Use fresh context and a self-contained brief for an independent worker; continue the same
+worker for corrections to its task. Routine direct work stays in the main session.
+
+Use the reviewer only when the user, repository, or risk requires independent review. A
+different-model requirement needs an explicitly selected specialist; ordinary review defaults
+do not satisfy it automatically. The plan advisor serves only the Claude main session's plans;
+it does not execute implementations or Codex reviews.
 
 For a Codex dispatch from another harness, one round is `codex exec`, and `tools/codex-lane`
 (shipped here) keeps a thread alive across rounds. `codex-auto` appears in the reference as a

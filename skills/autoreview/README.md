@@ -23,7 +23,7 @@ The helper owns the default model and reasoning tier and prints them at startup;
 reports the current values. A confirmed account-access failure retries once on the fallback. Rate limits, capacity failures, scanner refusals,
 and invalid reports do not trigger that fallback. A custom primary model disables it.
 `--model` and `--thinking` override environment settings; environment settings override
-the defaults. The fallback effort remains `xhigh` when primary effort is overridden.
+the defaults. The fallback effort remains `high` when primary effort is overridden.
 The built-in severity threshold remains P0; pass P3 for a review including lower priorities.
 
 Inputs are sent to the selected provider. Scanning credentials does not make private business

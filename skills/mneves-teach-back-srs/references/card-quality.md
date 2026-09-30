@@ -30,11 +30,11 @@ Tag with the module name plus the concept category, comma-separated
 
 ## Storing a card
 
-Run the script once per card, from the skill's own directory, with the user's project as the
-working directory:
+Run once per card using the absolute `SRS_SCRIPT` path resolved by SKILL.md, with the user's
+project as working directory:
 
 ```bash
-python3 scripts/srs_db.py add-card \
+python3 "$SRS_SCRIPT" add-card \
   --question "Why does the safety pipeline check intent before sanitizing input?" \
   --answer "Intent gate (safety/intent.rs) runs first because it can reject catastrophic intents without any model call, saving latency and cost. Sanitization (ai/sanitize.rs) runs after because it only matters if the query will reach the model." \
   --context "safety/intent.rs, ai/sanitize.rs" \

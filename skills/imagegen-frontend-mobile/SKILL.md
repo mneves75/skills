@@ -7,7 +7,7 @@ license: MIT
 # Mobile app image generation
 
 Generate polished images of mobile app screens and flows with the environment's image-generation
-tool. Produce images, not implementation code or a text-only design brief. If image generation is
+tool. Produce the requested images. If image generation is
 unavailable, state that limitation instead of pretending an image was created.
 
 ## Define the artifact
@@ -19,9 +19,11 @@ Before generating, establish from the request and supplied references:
 - whether the output is a raw screen, a device mockup, or a multi-screen presentation;
 - any brand assets, content, accessibility constraints, or dimensions that must be preserved.
 
-Infer low-risk omissions. Ask only when a missing choice would materially change the result. Honor
+Reuse the user's supplied screen list, assets, and approved style; avoid repeating discovery for
+an unchanged set. Infer low-risk omissions. Ask only when a missing choice would materially change the result. Honor
 an explicit screen count exactly; otherwise create the smallest set that communicates the requested
-flow.
+flow. Generate that set once; additional variants require a requested comparison or a material
+defect found during inspection.
 
 ## Lock one mobile design system
 

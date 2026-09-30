@@ -29,7 +29,7 @@ import { getScriptNames, hasScript, parsePackageJson } from "./package-json.js";
 import { parsePyProject, parseRequirementsTxt } from "./pyproject.js";
 
 // Re-export helpers
-export { hasScript, getScriptNames, moduleMatches };
+export { getScriptNames, hasScript, moduleMatches };
 
 // ============================================================================
 // Library Mappings

@@ -73,7 +73,7 @@ also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use 
 </tr>
 <tr>
 <td><code>mneves-fable-orchestrator</code></td>
-<td>split heavy work across models</td>
+<td>route independent work by capability</td>
 <td>&quot;delegate the backend to codex&quot;</td>
 </tr>
 <tr>
@@ -167,8 +167,8 @@ VoiceOver, Dynamic Type, keyboard behavior, or working interactions.</li>
 <hr>
 <h2 id="mneves-eli5">mneves-eli5</h2>
 <p><strong>What it does.</strong> Explains one idea with the Feynman method: fix the audience, state the core
-in one sentence, carry one analogy through, show a concrete case before naming the jargon, say
-where the analogy breaks, end with a line the listener can repeat. It answers in the language
+in one sentence, use an analogy when it helps, show a concrete case before naming the jargon,
+say where any analogy breaks, and end with a line the listener can repeat. It answers in the language
 you wrote in.</p>
 <p><strong>Triggers.</strong> &quot;ELI5&quot;, &quot;like I&#39;m five&quot;, &quot;explain to my boss / client / mom&quot;, &quot;in plain words&quot;,
 &quot;explique de forma simples&quot;, or any request to re-explain something for a different audience.</p>
@@ -201,7 +201,7 @@ block.</li>
 <p><strong>What it does.</strong> Runs a six-step pass over a draft (or a request with no draft yet): clarify
 the real objective, rebuild from first principles, research only when it changes the answer,
 attack it from three angles at once (hostile panel, pre-mortem, the strongest opposing case),
-generate alternatives that differ in kind and compare them on weighted criteria, then improve,
+compare distinct alternatives using explicit criteria and justified weights, then improve,
 audit once, and deliver. It scales with the stakes: a factual one-liner gets the mental
 version, a migration plan gets the full pass.</p>
 <p><strong>Triggers.</strong> &quot;expert review&quot;, &quot;rigorous pass&quot;, &quot;best possible answer&quot;, &quot;challenge this&quot;,
@@ -279,13 +279,16 @@ it varies inputs, retries, and checks persistence so a hard-coded success screen
 <h2 id="mneves-fable-orchestrator">mneves-fable-orchestrator</h2>
 <p><strong>What it does.</strong> Routes non-trivial work across the main session, Codex, and subagents when
 delegation creates independent progress or evidence. In Claude Code the main session is the
-latest Sonnet at <code>xhigh</code> with the latest Opus as its advisor, frontend work goes to a subagent on
-the latest Opus, and other Claude subagents run the latest Sonnet at <code>xhigh</code>. In Codex the main
-session is <code>gpt-6-sol</code> at <code>medium</code> (Codex&#39;s default) and execution goes to <code>gpt-6-sol</code> at <code>high</code>.
-Review goes to <code>gpt-6-astra</code> at <code>xhigh</code> (retrying on <code>gpt-6-sol</code> at <code>xhigh</code> when the account
-lacks Astra access), and <code>gpt-6-astra</code> at <code>xhigh</code> also advises on the Claude main session&#39;s
-plans; the skill&#39;s Defaults
-block is authoritative when this paragraph and it disagree. <code>codex-lane</code> keeps one Codex thread alive across rounds so
+latest Sonnet at <code>high</code> with the latest Opus as its advisor, frontend work goes to a subagent on
+the latest Opus, and other Claude subagents run the latest Sonnet at <code>high</code>. In Codex the main
+session and ordinary workers use <code>gpt-6.1-sol</code> at <code>medium</code>; bounded tasks use <code>gpt-6-luna</code>
+at <code>medium</code>, and difficult execution uses <code>gpt-6.1-sol</code> at <code>high</code>.
+Routine review uses <code>gpt-6.1-sol</code> at <code>high</code>, with one access-only fallback to <code>gpt-6-astra</code>
+at <code>high</code>. An explicit specialist or different-model review uses <code>gpt-6-astra</code> at <code>xhigh</code>,
+which also advises on the Claude main session&#39;s plans. Caller overrides and actual host
+configuration take precedence; the skill&#39;s Defaults block owns its portable defaults.
+See <a href="https://github.com/mneves75/skills/blob/main/docs/usage-efficiency.md">usage-efficiency.md</a> for compact prompts and measurement limits.
+<code>codex-lane</code> keeps one Codex thread alive across rounds so
 follow-ups reuse the executor&#39;s reasoning instead of restarting from a fresh spec.</p>
 <p><strong>Triggers.</strong> &quot;delegate&quot;, &quot;orchestrate&quot;, &quot;use codex&quot;, &quot;heavy task&quot;, &quot;long-running task&quot;, or
 any non-trivial task where the agent has to decide who executes.</p>
@@ -367,9 +370,10 @@ whose pillar structure inspired them.</li>
 <h2 id="mneves-superaudit">mneves-superaudit</h2>
 <p><strong>What it does.</strong> Turns &quot;audit everything and clean it up&quot; into a bounded pass with four
 selectable items — slop removal, performance wins, agent DX and verification loops, PR/issue
-triage — each ending on a falsifiable condition, run through five phases with stop gates before
-every external write. It grants no authority: commit, push, tag, release, deploy and PR merge each
-need your explicit word for that action and target.</p>
+triage — each ending on a falsifiable condition, run through five phases that preserve existing
+authority and requested stops. It grants no authority: commit, push, tag, release, deploy and
+PR merge require the main session&#39;s authorization for that action and target; already authorized
+steps continue without asking again.</p>
 <p><strong>Triggers.</strong> &quot;superaudit&quot;, &quot;audit the codebase and clean it up&quot;, &quot;hunt for performance wins&quot;,
 &quot;find slop&quot;, &quot;audit open PRs&quot;, or an end-to-end review → fix → verify → release pass. Not for a
 single bug fix or a one-file change.</p>
