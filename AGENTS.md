@@ -17,11 +17,13 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── autoreview/                # Portable AI review CLI + security tests (MIT)
 │   ├── imagegen-frontend-mobile/   # Mobile screen/flow image generation (MIT)
 │   ├── mneves-agent-readiness/    # Codebase readiness assessment (pairs with tools/)
+│   ├── mneves-chatgpt-search/     # ChatGPT discovery, crawler access, citations and referral attribution
 │   ├── mneves-eli5/               # Feynman explainer, audience-calibrated
 │   ├── mneves-expert-review/      # Expert-panel review/optimization pass (+ references/)
 │   ├── mneves-handoff/            # Discussion-first handoff prompt for another agent (MIT, adapted)
 │   ├── mneves-fable-orchestrator/ # Model routing; Codex reference + tools/codex-lane (+ its test)
 │   ├── mneves-superaudit/         # Bounded audit-and-ship pass (+ references/)
+│   ├── mneves-ship-deploy/         # Verified staging; explicit candidate approval before production
 │   ├── mneves-teach-back-srs/     # Spaced-repetition teach-back (+ scripts/srs_db.py)
 │   └── mneves-verify/             # Independent verification before done/fixed/shipped
 ├── tools/                    # Readiness assessor (Bun + TypeScript): readiness-check.ts + lib/
@@ -47,6 +49,7 @@ tools/scripts/check-defaults-block.sh   # model ids only inside the orchestrator
 bash tools/scripts/check-defaults-block.test   # planted-violation controls for that guard
 bun --bun tools/readiness-check.ts --format=html --output=report.html   # assess cwd
 tools/scripts/build-site.sh            # HOWTO.md -> site/howto.html + landing changelog rows (CI checks freshness)
+bash tools/scripts/build-site.test     # real catalog build: completeness and repeatability
 npx skills@latest add . --list          # what the skills CLI will discover
 python3 skills/autoreview/scripts/run-tests.py  # isolated unit/integration/security suite
 ```

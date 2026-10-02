@@ -1,0 +1,6 @@
+interface:
+  display_name: "ChatGPT Search"
+  short_description: "Improve ChatGPT search access, citations and referrals"
+  default_prompt: "Use $mneves-chatgpt-search to audit this site's ChatGPT Search visibility, fix verified local gaps, and report evidence and deployment limits."
+policy:
+  allow_implicit_invocation: true

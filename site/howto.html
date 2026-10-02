@@ -17,7 +17,7 @@ blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--line);c
 </head>
 <body>
 <h1>How to use these skills</h1>
-<p>Ten skills, one install. This page shows what each one does, how to trigger it, and what a
+<p>Twelve skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the <a href="https://github.com/mneves75/skills/blob/main/README.md">README</a>; for the exact
 procedure an agent follows, open <code>skills/&lt;name&gt;/SKILL.md</code>.</p>
 <h2 id="install-once">Install once</h2>
@@ -57,6 +57,11 @@ also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use 
 <td>&quot;design a 4-screen iOS onboarding flow&quot;</td>
 </tr>
 <tr>
+<td><code>mneves-chatgpt-search</code></td>
+<td>improve ChatGPT Search discovery and measure citations/referrals</td>
+<td>&quot;improve this site&#39;s ChatGPT Search visibility&quot;</td>
+</tr>
+<tr>
 <td><code>mneves-eli5</code></td>
 <td>explain a thing to a specific audience</td>
 <td>&quot;explain OAuth to my dad&quot;</td>
@@ -90,6 +95,11 @@ also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use 
 <td><code>mneves-superaudit</code></td>
 <td>run a bounded audit-and-cleanup pass over a repo</td>
 <td>&quot;superaudit this repo, slop and perf only&quot;</td>
+</tr>
+<tr>
+<td><code>mneves-ship-deploy</code></td>
+<td>prepare verified staging, then approve the exact candidate before production</td>
+<td>&quot;ship-staging&quot; or &quot;ship-prod&quot;</td>
 </tr>
 </tbody></table>
 <hr>
@@ -493,6 +503,46 @@ $ python3 scripts/srs_db.py stats
 <li>The database is the memory. A new conversation starts by reading it, so nothing is lost
 between sessions.</li>
 </ul>
+<hr>
+<h2 id="mneves-ship-deploy">mneves-ship-deploy</h2>
+<p><strong>What it does.</strong> Runs the release review gates, prepares version and documentation,
+deploys to the established staging target, and verifies the result. Staging needs no
+separate confirmation within the requested workflow. Production always waits for your
+explicit OK for the exact repository, commit, version, and production target; that boundary
+includes production tags and pushes.</p>
+<p><strong>Example (illustrative).</strong> Ask &quot;ship-prod for this repository&quot;. The agent completes
+the authorized reviews and staging verification, presents the candidate, evidence, risks,
+and rollback plan, and waits for your OK before production. &quot;ship-staging&quot; stops after
+verified staging; plain &quot;ship&quot; does not select an environment or authorize deployment.</p>
+<p>Review and deployment integrations are optional. If a named skill is unavailable, the agent
+uses the repository&#39;s documented equivalent with the same gates, or reports the missing
+capability. Missing staging and failed gates remain blockers.</p>
+<hr>
+<h2 id="mneves-chatgpt-search">mneves-chatgpt-search</h2>
+<p><strong>What it does.</strong> Audits a public site&#39;s deployed discovery surface and improves verified
+local gaps using current OpenAI documentation. Search access, training preferences, actual
+crawler traffic, answer citations and reader referrals stay separate. It preserves privacy,
+authorship and deliberate indexing exclusions; no placement is guaranteed.</p>
+<p><strong>Install only this skill:</strong></p>
+<pre><code class="language-bash">npx skills@latest add mneves75/skills --skill mneves-chatgpt-search -g -y
+</code></pre>
+<p><strong>Illustrative request (Codex):</strong></p>
+<pre><code class="language-text">Use $mneves-chatgpt-search on https://example.com in this repository.
+Audit the deployed site, fix verified local gaps and run its documented gates.
+Preserve existing training and privacy preferences. Do not deploy.
+</code></pre>
+<p>Claude Code users can invoke <code>/mneves-chatgpt-search</code>; other agents can name the skill.
+Add &quot;audit only; make no changes&quot; for a read-only assessment. Use the same request in each
+site&#39;s own repository, replacing the domain and adding its actual constraints.</p>
+<p><strong>Evidence.</strong> Expect separate PASS/FAIL/BLOCKED/NOT MEASURED results for implementation,
+deployed eligibility, genuine crawler access, citations and referral attribution. The
+<a href="https://github.com/mneves75/skills/blob/main/skills/mneves-chatgpt-search/references/application.md">application reference</a> gives the
+repeated-query measurement protocol. A successful synthetic bot request is not evidence of
+an OpenAI crawl; a <code>chatgpt.com</code> UTM counts attributed clicks rather than all citations.</p>
+<p><strong>Limits.</strong> <code>OAI-SearchBot</code> is for search, <code>GPTBot</code> is for potential model training, and
+<code>ChatGPT-User</code> is for user-initiated visits. <code>llms.txt</code> is optional documentation, not a
+documented ranking requirement. Valid schema does not guarantee citations. Live security
+writes and deployments retain the host&#39;s authorization rules.</p>
 <hr>
 <h2 id="combining-them">Combining them</h2>
 <p>A typical shipping flow: <code>mneves-fable-orchestrator</code> splits the work and dispatches it;

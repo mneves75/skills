@@ -23,9 +23,12 @@ description: Clear description of what this skill does and when to use it.
 ---
 ```
 
-4. Add `README.md` with the longer documentation
-5. Run `npx skills@latest add . --list` and confirm your skill appears
-6. Submit a pull request
+4. Add longer documentation or linked references when they help; keep all examples portable.
+5. Update the README catalog, HOWTO, AGENTS tree, VERSION, changelog and README badge;
+   regenerate the site with `tools/scripts/build-site.sh`.
+6. Run `npx skills@latest add . --list`, the Agent Skills validator and the repository gates.
+7. Submit a pull request. The `mneves-chatgpt-search` entry illustrates a Markdown-only
+   skill with optional reference branches and explicit evidence limits.
 
 ### Improving Existing Skills
 
