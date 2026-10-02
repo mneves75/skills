@@ -49,7 +49,7 @@ jobs:
           for d in skills/*/; do npx -y skills-ref@0.1.5 validate "$d"; done
 
       - name: Shell syntax
-        run: bash -n skills/mneves-fable-orchestrator/tools/codex-lane skills/mneves-fable-orchestrator/tools/codex-lane.test .githooks/pre-commit .githooks/pre-commit.test tools/scripts/build-site.sh tools/scripts/check-defaults-block.sh
+        run: bash -n skills/mneves-fable-orchestrator/tools/codex-lane skills/mneves-fable-orchestrator/tools/codex-lane.test .githooks/pre-commit .githooks/pre-commit.test tools/scripts/build-site.sh tools/scripts/build-site.test tools/scripts/check-defaults-block.sh
 
       - name: codex-lane e2e (fake codex, no provider calls)
         run: bash skills/mneves-fable-orchestrator/tools/codex-lane.test
@@ -70,6 +70,7 @@ jobs:
 
       - name: Generated site files are current
         run: |
+          bash tools/scripts/build-site.test
           tools/scripts/build-site.sh
           git diff --exit-code -- site/ || { echo "run tools/scripts/build-site.sh and commit"; exit 1; }
 

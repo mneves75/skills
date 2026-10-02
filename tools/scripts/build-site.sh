@@ -6,9 +6,13 @@
 set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)
 
+# Write to a file first: the CLI's piped stdout can close before the full HTML flushes.
+rendered=$(mktemp /tmp/skills-howto.XXXXXX)
+trap 'rm -f -- "$rendered"' EXIT
+bunx --silent marked@18.0.13 --gfm -i "$root/HOWTO.md" --output "$rendered"
+
 # Relative links point at repo files; on Pages they must go to GitHub.
-body=$(bunx --silent marked@18.0.13 --gfm -i "$root/HOWTO.md" \
-  | sed -E 's#href="([^"#/][^":]*)"#href="https://github.com/mneves75/skills/blob/main/\1"#g' \
+body=$(sed -E 's#href="([^"#/][^":]*)"#href="https://github.com/mneves75/skills/blob/main/\1"#g' "$rendered" \
   | perl -pe 's{<h2>([^<]+)</h2>}{my $t=$1; (my $id=lc $t) =~ s/[^a-z0-9]+/-/g; $id =~ s/^-|-$//g; "<h2 id=\"$id\">$t</h2>"}e')
 
 # marked does not sanitize: raw HTML in HOWTO.md would land on the Pages origin

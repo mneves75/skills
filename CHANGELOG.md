@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.29.0] - 2026-10-02
+
+### Added
+
+- **`mneves-chatgpt-search`**: portable ChatGPT Search audit, improvement and measurement workflow grounded in official OpenAI guidance. Separates search crawling from model training, preserves privacy and provenance, and distinguishes eligibility, genuine crawler access, citations and reader referrals. Includes application examples, a repeated-query baseline and source references; it ships no executables or required integrations.
+
+### Changed
+
+- Updated the skill catalogs, usage guide and generated site for twelve skills.
+- Reverified the unchanged orchestrator model IDs and Claude aliases against the official [OpenAI model catalog](https://developers.openai.com/api/docs/models) and [Claude Code model configuration](https://code.claude.com/docs/en/model-config) for this version.
+
+### Fixed
+
+- Generate the usage guide through the Markdown CLI's awaited file output so piped stdout cannot silently truncate it. A real-build regression verifies the final section and unchanged rebuilds in an isolated copy; CI runs it before checking generated files.
+
 ## [1.28.0] - 2026-10-01
 
 ### Added

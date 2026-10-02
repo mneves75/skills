@@ -1,6 +1,6 @@
 # How to use these skills
 
-Eleven skills, one install. This page shows what each one does, how to trigger it, and what a
+Twelve skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the [README](README.md); for the exact
 procedure an agent follows, open `skills/<name>/SKILL.md`.
 
@@ -28,6 +28,7 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 | `autoreview` | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
 | `mneves-handoff` | hand a task to another agent, review first | "handoff the flaky login test" |
 | `imagegen-frontend-mobile` | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
+| `mneves-chatgpt-search` | improve ChatGPT Search discovery and measure citations/referrals | "improve this site's ChatGPT Search visibility" |
 | `mneves-eli5` | explain a thing to a specific audience | "explain OAuth to my dad" |
 | `mneves-expert-review` | stress-test a plan or answer before it ships | "challenge this design" |
 | `mneves-verify` | get an independent PASS/FAIL before "done" | "verify it", "prove it" |
@@ -507,6 +508,44 @@ verified staging; plain "ship" does not select an environment or authorize deplo
 Review and deployment integrations are optional. If a named skill is unavailable, the agent
 uses the repository's documented equivalent with the same gates, or reports the missing
 capability. Missing staging and failed gates remain blockers.
+
+---
+
+## mneves-chatgpt-search
+
+**What it does.** Audits a public site's deployed discovery surface and improves verified
+local gaps using current OpenAI documentation. Search access, training preferences, actual
+crawler traffic, answer citations and reader referrals stay separate. It preserves privacy,
+authorship and deliberate indexing exclusions; no placement is guaranteed.
+
+**Install only this skill:**
+
+```bash
+npx skills@latest add mneves75/skills --skill mneves-chatgpt-search -g -y
+```
+
+**Illustrative request (Codex):**
+
+```text
+Use $mneves-chatgpt-search on https://example.com in this repository.
+Audit the deployed site, fix verified local gaps and run its documented gates.
+Preserve existing training and privacy preferences. Do not deploy.
+```
+
+Claude Code users can invoke `/mneves-chatgpt-search`; other agents can name the skill.
+Add "audit only; make no changes" for a read-only assessment. Use the same request in each
+site's own repository, replacing the domain and adding its actual constraints.
+
+**Evidence.** Expect separate PASS/FAIL/BLOCKED/NOT MEASURED results for implementation,
+deployed eligibility, genuine crawler access, citations and referral attribution. The
+[application reference](skills/mneves-chatgpt-search/references/application.md) gives the
+repeated-query measurement protocol. A successful synthetic bot request is not evidence of
+an OpenAI crawl; a `chatgpt.com` UTM counts attributed clicks rather than all citations.
+
+**Limits.** `OAI-SearchBot` is for search, `GPTBot` is for potential model training, and
+`ChatGPT-User` is for user-initiated visits. `llms.txt` is optional documentation, not a
+documented ranking requirement. Valid schema does not guarantee citations. Live security
+writes and deployments retain the host's authorization rules.
 
 ---
 

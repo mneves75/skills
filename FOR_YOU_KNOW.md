@@ -42,6 +42,13 @@ is a procedure (independent context, evidence routes, one correction + one rever
 PASS/FAIL/BLOCKED). The rule "no scripts/dependencies/scaffolding" is part of its contract, not
 an accident of laziness.
 
+**`mneves-chatgpt-search` separates access from outcomes.** OpenAI's search crawler is
+independent of its training crawler. A site can allow search while retaining its training
+restrictions. Readable HTML and truthful attribution make a site useful; neither a discovery
+file nor a successful synthetic request proves that ChatGPT cites it. The skill therefore
+reports actual crawling, citations and reader referrals separately, and reuses existing
+site infrastructure instead of adding a special content or analytics system.
+
 ## The repo's own guard: ast-grep
 
 The repository itself is guarded by two ast-grep rules: reject `as any` in TypeScript

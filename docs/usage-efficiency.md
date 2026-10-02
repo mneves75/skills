@@ -22,6 +22,7 @@ an approved implementation continues without repeated permission for the same ac
 |---|---|
 | autoreview | Git filter/line-ending details load on the relevant collection branch; reuse the current frozen review instead of launching copies |
 | imagegen-frontend-mobile | Reuse supplied screens/assets/style and generate only the requested set plus justified corrections |
+| mneves-chatgpt-search | Preserve working discovery infrastructure; route audit, local fixes and measurement separately, refreshing only relevant official guidance |
 | mneves-agent-readiness | Choose one requested assessment/output mode; static/manual triage does not masquerade as a runtime maturity score |
 | mneves-eli5 | Retain checked facts across audience changes; use an analogy only when it helps |
 | mneves-expert-review | Combine challenge perspectives in one pass; compare distinct options without open-ended generation |
