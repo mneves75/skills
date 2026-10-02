@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.28.0] - 2026-10-01
+
+### Added
+
+- **`mneves-ship-deploy`**: portable release workflow with staging authorized within the requested scope, automatic authorized review gates, and explicit approval of the exact candidate before production tags, pushes, deployments, or promotion. Optional integrations have documented-command fallbacks; plain `ship` grants no deployment authority.
+
+### Changed
+
+- Reverified the unchanged orchestrator model IDs and Claude aliases against the official OpenAI and Claude Code catalogs for this version.
+
 ## [1.27.0] - 2026-09-30
 
 ### Changed

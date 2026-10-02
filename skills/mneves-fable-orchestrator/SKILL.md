@@ -47,7 +47,7 @@ plan advisor      = gpt-6-astra, reasoning xhigh  (reviews the Claude main sessi
 specialist        = gpt-6-astra, reasoning xhigh  (explicit difficult or independent specialist review)
 ```
 
-Verified against the vendor model lists on 2026-09-30; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-10-01; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file).
 

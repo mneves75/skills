@@ -17,7 +17,7 @@ blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--line);c
 </head>
 <body>
 <h1>How to use these skills</h1>
-<p>Ten skills, one install. This page shows what each one does, how to trigger it, and what a
+<p>Eleven skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the <a href="https://github.com/mneves75/skills/blob/main/README.md">README</a>; for the exact
 procedure an agent follows, open <code>skills/&lt;name&gt;/SKILL.md</code>.</p>
 <h2 id="install-once">Install once</h2>
@@ -90,6 +90,11 @@ also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use 
 <td><code>mneves-superaudit</code></td>
 <td>run a bounded audit-and-cleanup pass over a repo</td>
 <td>&quot;superaudit this repo, slop and perf only&quot;</td>
+</tr>
+<tr>
+<td><code>mneves-ship-deploy</code></td>
+<td>prepare verified staging, then approve the exact candidate before production</td>
+<td>&quot;ship-staging&quot; or &quot;ship-prod&quot;</td>
 </tr>
 </tbody></table>
 <hr>
@@ -493,6 +498,20 @@ $ python3 scripts/srs_db.py stats
 <li>The database is the memory. A new conversation starts by reading it, so nothing is lost
 between sessions.</li>
 </ul>
+<hr>
+<h2 id="mneves-ship-deploy">mneves-ship-deploy</h2>
+<p><strong>What it does.</strong> Runs the release review gates, prepares version and documentation,
+deploys to the established staging target, and verifies the result. Staging needs no
+separate confirmation within the requested workflow. Production always waits for your
+explicit OK for the exact repository, commit, version, and production target; that boundary
+includes production tags and pushes.</p>
+<p><strong>Example (illustrative).</strong> Ask &quot;ship-prod for this repository&quot;. The agent completes
+the authorized reviews and staging verification, presents the candidate, evidence, risks,
+and rollback plan, and waits for your OK before production. &quot;ship-staging&quot; stops after
+verified staging; plain &quot;ship&quot; does not select an environment or authorize deployment.</p>
+<p>Review and deployment integrations are optional. If a named skill is unavailable, the agent
+uses the repository&#39;s documented equivalent with the same gates, or reports the missing
+capability. Missing staging and failed gates remain blockers.</p>
 <hr>
 <h2 id="combining-them">Combining them</h2>
 <p>A typical shipping flow: <code>mneves-fable-orchestrator</code> splits the work and dispatches it;
