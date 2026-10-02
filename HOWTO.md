@@ -1,6 +1,6 @@
 # How to use these skills
 
-Ten skills, one install. This page shows what each one does, how to trigger it, and what a
+Eleven skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the [README](README.md); for the exact
 procedure an agent follows, open `skills/<name>/SKILL.md`.
 
@@ -35,6 +35,7 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 | `mneves-agent-readiness` | measure how agent-friendly a repo is | "why does the agent struggle here?" |
 | `mneves-teach-back-srs` | learn a codebase with spaced repetition | "let me explain the auth flow" |
 | `mneves-superaudit` | run a bounded audit-and-cleanup pass over a repo | "superaudit this repo, slop and perf only" |
+| `mneves-ship-deploy` | prepare verified staging, then approve the exact candidate before production | "ship-staging" or "ship-prod" |
 
 ---
 
@@ -487,6 +488,25 @@ $ python3 scripts/srs_db.py stats
 - Good cards ask *why* and point at a file. The agent is told to refuse cards that don't.
 - The database is the memory. A new conversation starts by reading it, so nothing is lost
   between sessions.
+
+---
+
+## mneves-ship-deploy
+
+**What it does.** Runs the release review gates, prepares version and documentation,
+deploys to the established staging target, and verifies the result. Staging needs no
+separate confirmation within the requested workflow. Production always waits for your
+explicit OK for the exact repository, commit, version, and production target; that boundary
+includes production tags and pushes.
+
+**Example (illustrative).** Ask "ship-prod for this repository". The agent completes
+the authorized reviews and staging verification, presents the candidate, evidence, risks,
+and rollback plan, and waits for your OK before production. "ship-staging" stops after
+verified staging; plain "ship" does not select an environment or authorize deployment.
+
+Review and deployment integrations are optional. If a named skill is unavailable, the agent
+uses the repository's documented equivalent with the same gates, or reports the missing
+capability. Missing staging and failed gates remain blockers.
 
 ---
 

@@ -22,6 +22,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── mneves-handoff/            # Discussion-first handoff prompt for another agent (MIT, adapted)
 │   ├── mneves-fable-orchestrator/ # Model routing; Codex reference + tools/codex-lane (+ its test)
 │   ├── mneves-superaudit/         # Bounded audit-and-ship pass (+ references/)
+│   ├── mneves-ship-deploy/         # Verified staging; explicit candidate approval before production
 │   ├── mneves-teach-back-srs/     # Spaced-repetition teach-back (+ scripts/srs_db.py)
 │   └── mneves-verify/             # Independent verification before done/fixed/shipped
 ├── tools/                    # Readiness assessor (Bun + TypeScript): readiness-check.ts + lib/
