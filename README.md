@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.28.0-blue)
+![Version](https://img.shields.io/badge/version-1.29.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -18,6 +18,7 @@ For compact task prompts, bounded retries and model routing, see
 |-------|-------------|
 | [autoreview](skills/autoreview/) | Structured, isolated code review of a fixed Git target; ships its helper, security tests, and its own engine defaults |
 | [imagegen-frontend-mobile](skills/imagegen-frontend-mobile/) | Generate coherent iOS or Android screen and flow images, with platform conventions, visual QA, and no code |
+| [mneves-chatgpt-search](skills/mneves-chatgpt-search/) | Improve ChatGPT Search discovery, citations and referral attribution using official guidance, separate search/training policies and verifiable evidence |
 | [mneves-eli5](skills/mneves-eli5/) | Feynman-technique explainer calibrated to the listener (child, layperson, executive, junior, expert), answered in the user's language |
 | [mneves-agent-readiness](skills/mneves-agent-readiness/) | Evaluate codebase readiness for AI agents: 9 pillars, maturity levels L1–L5, local-only |
 | [mneves-expert-review](skills/mneves-expert-review/) | Scoped stress test: objective, first principles, relevant research, one combined challenge, distinct alternatives, improved deliverable |
