@@ -90,31 +90,33 @@ older installs still carry.
 
 | Name | pstack | Matt Pocock |
 |---|---|---|
-| `tdd` | "Use only when the user explicitly asks for TDD, a failing test, or a regression test", or when the bug has an obvious cheap test target; skip it otherwise | Red-green-refactor for any feature or bug fix done test-first |
+| `tdd` | "Use only when the user explicitly asks for TDD, a failing test, or a regression test", or when the bug has an obvious cheap test target; skip it otherwise | "Use when the user wants to build features or fix bugs test-first", red-green-refactor |
 | `teach` | Explains a body of work by running `how` and `why` | Teaches the user a new skill or concept inside the workspace |
 
 The two `tdd` skills have opposite defaults. Installing pstack's in place of Matt Pocock's
 removes the skill that writes tests first by default: if your own rules say tests come first,
 state that rule in your agent instructions, because pstack's `tdd` will not apply it unasked.
 
-**Trigger overlaps: both load, and the agent may pick either.** Make the descriptions disjoint,
-or uninstall one side, where the overlap matters to you.
+**Purpose overlaps.** Two skills cover the same job. Where both are model-invocable, the agent
+may pick either for the same request; skills marked † set `disable-model-invocation: true`, so
+they run only when called by name and the overlap is a choice of which to call. Make the
+descriptions disjoint, or uninstall one side, where the overlap matters to you.
 
 | pstack | Matt Pocock | Overlap |
 |---|---|---|
-| `bro` | `wait-what` | Both restate the last message in plain words. Near-duplicates. |
+| `bro` | `wait-what`† | Both restate the last message in plain words. Near-duplicates. |
 | `fix-merge-conflicts` | `resolving-merge-conflicts` | Same job. Matt Pocock removed his upstream. |
 | `make-pr-easy-to-review`, `technical-writing` | `pr` | Writing the PR description. |
 | `interrogate`, `thermo-nuclear-code-quality-review`, `make-pr-easy-to-review` | `code-review` | Reviewing a change. `interrogate` uses several models; `code-review` splits standards from spec. |
-| `interrogate` | `grilling`, `grill-me` | "Stress test". `interrogate` attacks an artifact; `grilling` interviews the user. |
+| `interrogate` | `grilling`, `grill-me`† | "Stress test". `interrogate` attacks an artifact; `grilling` interviews the user. |
 | `why` | `diagnosing-bugs` | Regressions. `why` explains a cause from history; `diagnosing-bugs` runs a fix loop. |
-| `reflect`, `correct` | `retro` | Lessons from a session. `correct` also encodes each lesson as a check. |
-| `recall` | `handoff`, `claude-handoff` | Session context. `recall` rebuilds your own; the handoffs write it for another agent. |
-| `architect`, `figure-it-out` | `to-spec`, `wayfinder`, `codebase-design`, `improve-codebase-architecture`, `prototype` | Planning and design before code. |
-| `poteto-mode`, `swarm`, `arena` | `implement`, `implement-spec` | Carrying out a planned change. |
-| `technical-writing` | `writing-shape`, `writing-beats`, `writing-for-agents` | Writing standards. |
-| `setup-pstack` | `setup-matt-pocock-skills` | Per-repo setup; pstack configures models, Matt Pocock configures the tracker. Different jobs, similar trigger. |
-| `poteto-mode` | `ask-matt` | Each routes to its own family of skills. |
+| `reflect`, `correct` | `retro`† | Lessons from a session. `correct` also encodes each lesson as a check. |
+| `recall` | `handoff`†, `claude-handoff`† | Session context. `recall` rebuilds your own; the handoffs write it for another agent. |
+| `architect`, `figure-it-out` | `to-spec`†, `wayfinder`†, `codebase-design`, `improve-codebase-architecture`†, `prototype` | Planning and design before code. |
+| `poteto-mode`, `swarm`, `arena` | `implement`†, `implement-spec`† | Carrying out a planned change. |
+| `technical-writing` | `writing-shape`†, `writing-beats`†, `writing-for-agents` | Writing standards. |
+| `setup-pstack` | `setup-matt-pocock-skills`† | Per-repo setup; pstack configures models, Matt Pocock configures the tracker. Different jobs, similar trigger. |
+| `poteto-mode` | `ask-matt`† | Each routes to its own family of skills. |
 
 No other names collide.
 
