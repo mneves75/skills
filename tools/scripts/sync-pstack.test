@@ -135,6 +135,9 @@ check "a single-quoted value is unquoted before re-quoting" 'grep -qx "  mode: \
 r=$(case_repo four-space-meta $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmetadata:\n    author: someone\nicon: star\n---\nbody\n')
 bash "$sync" "$r" HEAD "$work/out-4sp" >/dev/null
 check "a moved key matches the existing metadata indentation" 'grep -qx "    icon: \"star\"" "$work/out-4sp/skills/gamma/SKILL.md"'
+r=$(case_repo commented-meta $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmetadata:\n    # provenance\n  author: someone\nicon: star\n---\nbody\n')
+bash "$sync" "$r" HEAD "$work/out-cmt" >/dev/null
+check "a leading comment does not set the metadata indentation" 'grep -qx "  icon: \"star\"" "$work/out-cmt/skills/gamma/SKILL.md"'
 r=$(case_repo yaml-escapes $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmode: \'don\'\'t stop\'\nhint: "say \\"hi\\""\n---\nbody\n')
 bash "$sync" "$r" HEAD "$work/out-esc" >/dev/null
 check "a doubled single quote decodes to one apostrophe" 'grep -qxF "  mode: \"don'"'"'t stop\"" "$work/out-esc/skills/gamma/SKILL.md"'

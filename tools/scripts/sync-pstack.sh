@@ -87,7 +87,7 @@ for name in sorted(os.listdir(root)):
     elif meta[1][0].strip() != "metadata:":
         errors.append(f"{name}: flow-style metadata cannot take moved keys")
         continue
-    children = [l for l in meta[1][1:] if l.strip()]
+    children = [l for l in meta[1][1:] if l.strip() and not l.lstrip().startswith("#")]
     indent = children[0][: len(children[0]) - len(children[0].lstrip())] if children else "  "
     meta[1].extend(f"{indent}{key}: {json.dumps(value)}" for key, value in moved)
     head = "\n".join(line for _, lines in kept for line in lines)
