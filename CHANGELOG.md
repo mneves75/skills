@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.31.0] - 2026-10-04
+
+### Changed
+
+- **pstack `tdd`**: writes the failing test first for every bug fix or feature by default.
+  Prototypes, spikes and pure config are excluded, and when no cheap test exists it names the
+  check it used instead. Upstream ran it only when asked; this is the fork's fourth local
+  commit, so `UPSTREAM` now reports `local-commits: 4` and the patch still rebuilds the
+  collection from the public `c1123fe`.
+
+### Fixed
+
+- **pstack links**: seven anchors and eleven sentences in `poteto-mode` playbooks, `arena`,
+  `figure-it-out` and the Codex/Pi tool maps pointed at sections the fork had retired
+  (Non-negotiables, Principles, Laziness Protocol). They now point at `poteto-mode`'s Task
+  routing and its engineering references.
+
 ## [1.30.0] - 2026-10-04
 
 ### Added

@@ -1,6 +1,6 @@
 ### Refactoring
 
-Resolve the driver skill through [poteto-mode's Non-negotiables](../SKILL.md#non-negotiables).
+Resolve the driver skill through poteto-mode's [Task routing](../SKILL.md#task-routing).
 
 **You own the contract. The structure changes. The behavior does not.** Distinct from Feature, which adds behavior, and Bug fix, which corrects it.
 

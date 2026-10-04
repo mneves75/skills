@@ -14,6 +14,9 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.31.0** (2026-10-04): pstack `tdd` is test-first by default (fourth local commit in the
+  pstack-claude fork; `LOCAL-OVERRIDES.md` §6 there), and links to the fork's retired
+  sections were repaired. The fork guards both with `tests/local-overrides.test.mjs`.
 - **1.30.0** (2026-10-04): `collections/pstack` vendors 32 pstack skills from a local
   pstack-claude fork (`UPSTREAM` pins it; `tools/scripts/sync-pstack.sh` regenerates it). The
   default install still covers `skills/` only. pstack's `tdd` and `teach` keep their names by

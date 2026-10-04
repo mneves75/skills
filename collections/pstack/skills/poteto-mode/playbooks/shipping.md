@@ -1,6 +1,6 @@
 ### Shipping
 
-Resolve the driver skill through [poteto-mode's Non-negotiables](../SKILL.md#non-negotiables).
+Resolve the driver skill through poteto-mode's [Task routing](../SKILL.md#task-routing).
 
 You own what lands. Land one verified PR at a time, then confirm its outcome before advancing. This is the half after `playbooks/babysit.md`; it requires the user's landing authority.
 

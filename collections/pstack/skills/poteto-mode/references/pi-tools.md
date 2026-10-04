@@ -68,7 +68,7 @@ Without the extension nothing is injected. Request `poteto-mode` explicitly with
 
 ## Driver and bundled skills pstack references
 
-The [driver policy](../SKILL.md#non-negotiables) selects the app driver. For skills and drivers named by these workflows, use these Pi equivalents:
+The [driver policy](../SKILL.md#task-routing) selects the app driver. For skills and drivers named by these workflows, use these Pi equivalents:
 
 | Skill or driver named in pstack | On Pi |
 |---------------------------------|-------|

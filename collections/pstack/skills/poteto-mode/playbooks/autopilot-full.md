@@ -1,6 +1,6 @@
 ### Autopilot-full
 
-Resolve the driver skill through [poteto-mode's Non-negotiables](../SKILL.md#non-negotiables).
+Resolve the driver skill through poteto-mode's [Task routing](../SKILL.md#task-routing).
 
 **You own the verdicts, never the PRs. One owner runs each PR from build to merge-ready, and nothing merges without both your clean swarm verdict and the operator's explicit merge click.** For "autopilot this queue", "full autopilot", and one-owner-per-PR programs. Orchestrate runs a standing program whose coordinator lands verified work itself and whose workers never merge. Here each PR's owner carries the whole lifecycle up to merge-ready, the operator clicks the merge, and the root keeps only verification, countersigns, and audits.
 

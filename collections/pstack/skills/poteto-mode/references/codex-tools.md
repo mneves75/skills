@@ -58,7 +58,7 @@ A skills-only installation does not include plugin hooks. Request `poteto-mode` 
 
 ## Driver and bundled skills pstack references
 
-The [driver policy](../SKILL.md#non-negotiables) selects the app driver. For skills and drivers named by these workflows, use these Codex equivalents:
+The [driver policy](../SKILL.md#task-routing) selects the app driver. For skills and drivers named by these workflows, use these Codex equivalents:
 
 | Skill or driver named in pstack | On Codex |
 |---------------------------------|----------|

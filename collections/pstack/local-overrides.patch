@@ -70,7 +70,7 @@ index 580ec47..a53edbe 100644
  
  You are one of several runners, each on a different model. Produce the best design your model can make. Don't hedge against the others. Differences between candidates are the signal used to pick a base and graft. Converging on a safe-looking middle defeats the exploration.
 diff --git a/plugins/pstack/skills/arena/SKILL.md b/plugins/pstack/skills/arena/SKILL.md
-index 11f5dcd..3565d3d 100644
+index 11f5dcd..d599d71 100644
 --- a/plugins/pstack/skills/arena/SKILL.md
 +++ b/plugins/pstack/skills/arena/SKILL.md
 @@ -26,8 +26,8 @@ The N candidates will receive the same prompt, so the prompt is the contract.
@@ -83,6 +83,15 @@ index 11f5dcd..3565d3d 100644
 +4. Assign output paths. Each candidate writes to its own location (a git worktree where possible, otherwise `/tmp/arena-<slug>/candidate-<n>/`), per [coordination guidance](../poteto-mode/references/engineering-coordination.md).
  
  ## Phase B: Fan out
+ 
+@@ -47,7 +47,7 @@ Read every candidate end to end before picking.
+ 
+ Score each candidate against the rubric criterion by criterion, not on holistic feel. Compare against the cross-judge. Agreement on the base confirms the pick. Disagreement means one of you is biased or the rubric was ambiguous. Read both rationales before deciding.
+ 
+-Pick the base on which candidate a future maintainer can extend most easily without breaking invariants. Prefer the cleaner boundary or smaller API when two feel tied, per the Laziness Protocol.
++Pick the base on which candidate a future maintainer can extend most easily without breaking invariants. Prefer the cleaner boundary or smaller API when two feel tied, per poteto-mode's [evolution guidance](../poteto-mode/references/engineering-evolution.md).
+ 
+ Record the pick and the reason in a short synthesis note alongside the base artifact, including the cross-judge's verdict.
  
 @@ -55,7 +55,7 @@ Record the pick and the reason in a short synthesis note alongside the base arti
  
@@ -182,10 +191,17 @@ index b44b5e8..9ec72da 100644
  
  **Reply:** the writeup above, with the one safety fact either proven or marked unproven.
 diff --git a/plugins/pstack/skills/figure-it-out/SKILL.md b/plugins/pstack/skills/figure-it-out/SKILL.md
-index 30cc95c..d96a9ae 100644
+index 30cc95c..08e6740 100644
 --- a/plugins/pstack/skills/figure-it-out/SKILL.md
 +++ b/plugins/pstack/skills/figure-it-out/SKILL.md
-@@ -15,19 +15,19 @@ Open a todolist whose first item is to read the Principles section of the **pote
+@@ -9,25 +9,25 @@ When the task matches no playbook, design one. The deliverable before any code i
+ 
+ ## Start
+ 
+-Open a todolist whose first item is to read the Principles section of the **poteto-mode** skill. Then add the phases below as todos.
++Open a todolist whose first item is to read the Conditional engineering guidance section of the **poteto-mode** skill and the reference it names for this work. Then add the phases below as todos.
+ 
+ ## Phase A: Frame
  
  Ground first, then commit. Don't start the run until you can state:
  
@@ -449,10 +465,15 @@ index 3bd1fef..394017d 100644
  5. Checkpoint every iteration via the **show-me-your-work** skill, a row for what changed and whether the predicate moved.
  6. Stop when the predicate is met. A plateau is not a stop, so keep going and pivot your approach to push past it. Surface a genuine dead end rather than spinning, and never relax the predicate to declare victory.
 diff --git a/plugins/pstack/skills/poteto-mode/playbooks/autopilot-full.md b/plugins/pstack/skills/poteto-mode/playbooks/autopilot-full.md
-index 4c581d6..d50f3e5 100644
+index 4c581d6..8587f1a 100644
 --- a/plugins/pstack/skills/poteto-mode/playbooks/autopilot-full.md
 +++ b/plugins/pstack/skills/poteto-mode/playbooks/autopilot-full.md
-@@ -5,7 +5,7 @@ Resolve the driver skill through [poteto-mode's Non-negotiables](../SKILL.md#non
+@@ -1,11 +1,11 @@
+ ### Autopilot-full
+ 
+-Resolve the driver skill through [poteto-mode's Non-negotiables](../SKILL.md#non-negotiables).
++Resolve the driver skill through poteto-mode's [Task routing](../SKILL.md#task-routing).
+ 
  **You own the verdicts, never the PRs. One owner runs each PR from build to merge-ready, and nothing merges without both your clean swarm verdict and the operator's explicit merge click.** For "autopilot this queue", "full autopilot", and one-owner-per-PR programs. Orchestrate runs a standing program whose coordinator lands verified work itself and whose workers never merge. Here each PR's owner carries the whole lifecycle up to merge-ready, the operator clicks the merge, and the root keeps only verification, countersigns, and audits.
  
  1. **Mark the operator's items and honor state-then-wait.** Items the operator names stay with the operator. The operator reviews and clicks, and no owner merges one. When the operator asks for the protocol or the plan to be stated, deliver the statement and stop. Execution starts only on the operator's explicit go. On that go, write the full program objective into the standing orders and restate it in your todolist. That objective stands across turns until the queue is done.
@@ -462,10 +483,16 @@ index 4c581d6..d50f3e5 100644
  4. **Swarm-verify every round before its merge.** A round starts at the owner's code-ready head SHA and at each later push that changes the PR's patch. At that SHA, fan out parallel independent verifiers per the **swarm** skill and aggregate to one verdict. The merge needs a clean verdict from the round whose patch matches the merge-ready head. Audit the receipts in the merge-ready report before the verdict. The lanes: re-run the gates at that SHA. Prove the load-bearing behavior live on the real surface the change touches through the driver skill. Audit the diff, distrusting the PR body. Run the audit as two or more review lanes with the full brief. Give each lane one main focus, such as consumer parity with trunk, lifetimes and races, or data and config safety. **Regression lane against trunk.** Run the same load-bearing scenario on current trunk. If trunk does not have the feature, record that fact and gate the behavior the diff adds plus the end state the user waits for instead of pretending trunk can produce it. The live lane is the floor, and a verdict without it is not clean. No merge without the root's clean verdict. When the lanes return, send every proven finding against the PR to the owner in one fix-forward. A defect that a lane filed as a note is a finding. For each behavior finding, ask for a red test that covers every site with the same defect. Where no test can show the defect, ask for a repro receipt instead. Add that defect to the next round's review brief. The new head gets a fresh swarm and a fresh verdict, except for lane results that stay valid under the patch-id rule in `playbooks/shipping.md`.
  5. **On a clean verdict the owner hands off, and a fresh owner takes the next item.** The merge-ready head must be freshly rebased onto trunk. Merge prep never comes before a round's lanes start, and it ends with a rebase onto current trunk right before the hand-off. After the merge-prep rebase, the owner reports the new head SHA. CI must pass on that head before the hand-off, and the patch-id rule decides whether the round's verdict still holds. If trunk moves again before the operator merges, the patch-id rule in `playbooks/shipping.md` governs re-verification. A new head invalidates readiness. An unchanged patch-id may preserve substantive review only after checking its applicability to the new base and context. Rerun checks and mergeability. The owner presents the verified merge-ready PR to the operator, with its swarm verdict and pinned SHA, then returns. A fresh owner picks up the next self-contained item from the queue, per poteto-mode's Subagents section. The operator reviews and squash-merges. No owner runs the merge itself. Every item waits for the operator's click, the gate operator-named items always had. The root's clean verdict is a precondition for that click, never a substitute for it.
 diff --git a/plugins/pstack/skills/poteto-mode/playbooks/bug-fix.md b/plugins/pstack/skills/poteto-mode/playbooks/bug-fix.md
-index a243286..6dc9112 100644
+index a243286..43a6025 100644
 --- a/plugins/pstack/skills/poteto-mode/playbooks/bug-fix.md
 +++ b/plugins/pstack/skills/poteto-mode/playbooks/bug-fix.md
-@@ -9,7 +9,7 @@ Be scientific. Every shipped line traces to runtime evidence. Belt-and-suspender
+@@ -4,12 +4,12 @@
+ 
+ Be scientific. Every shipped line traces to runtime evidence. Belt-and-suspenders that "might help" is a hypothesis, not a fix. It does not ship. When evidence refutes a hypothesis, revert what it motivated. The smallest change the evidence justifies ships, nothing more.
+ 
+-1. Reproduce it yourself on the matching surface via the driver skill (Non-negotiables), even when a debug or instrumentation protocol says to ask the user to reproduce. Ask the user only with a stated, specific reason the control surface cannot reach the target, and only after driving it as far as it goes. If it won't reproduce directly, synthesize the trigger, tighten conditions, or instrument until it fires.
++1. Reproduce it yourself on the matching surface via the driver skill ([Task routing](../SKILL.md#task-routing)), even when a debug or instrumentation protocol says to ask the user to reproduce. Ask the user only with a stated, specific reason the control surface cannot reach the target, and only after driving it as far as it goes. If it won't reproduce directly, synthesize the trigger, tighten conditions, or instrument until it fires.
+ 2. Binary-search the cause. Form the candidate hypotheses, then rule them out until one survives. Seed them with `how` over the affected subsystem and the **why** skill for regression history. Each pass, take the split that cuts the most remaining problem space, get runtime evidence, eliminate. When program state is unclear, add instrumentation or logging and read it as the code runs. Don't guess. Drive a long or stubborn hunt with Claude Code's `loop` skill. Confirm the surviving *mechanism* with runtime evidence before the step-3 architect/interrogate fan-out.
  3. Plan the fix. If it crosses a function boundary, `architect` first. Delegate implementation to a subagent using your configured bug-fix model (default in poteto-mode's Models section) with a specific scope.
  4. Verify on the same surface. The original repro now passes. "Inconclusive" or wrong-surface is not a pass. Flag it. Unit tests show branch behavior, not bug absence.
  5. Stage the commits so the failing repro lands before the fix in git history. See the **tdd** skill for the failing-test-first cadence when the bug has a cheap local test path. Skip it when the test would be expensive, integration-heavy, or unclear.
@@ -475,7 +502,7 @@ index a243286..6dc9112 100644
  
  **Reply:** what was broken, root cause, fix, how you verified. Quote the decisive failing and passing output, trimmed to the assertion and the counts.
 diff --git a/plugins/pstack/skills/poteto-mode/playbooks/feature.md b/plugins/pstack/skills/poteto-mode/playbooks/feature.md
-index dcb0ef4..6d25862 100644
+index dcb0ef4..e1579c5 100644
 --- a/plugins/pstack/skills/poteto-mode/playbooks/feature.md
 +++ b/plugins/pstack/skills/poteto-mode/playbooks/feature.md
 @@ -7,12 +7,12 @@
@@ -486,7 +513,7 @@ index dcb0ef4..6d25862 100644
 +   - **Shared mutable state.** Default to splitting the target ([coordination guidance](../references/engineering-coordination.md)). Serialize only for real invariants.
     - **Smallest safe decomposition.** If one worker is best, name why.
 -4. Delegate code-writing to a subagent using your configured feature model (default in poteto-mode's Models section) with a specific scope (file paths, named data shape and its organizing structure per **principle-model-the-domain**, a state machine over scattered booleans, a table/registry over branching, a typed model over repeated shape assumptions, chosen before the delegate writes logic, and success criteria). When the implementation admits multiple valid shapes (error handling, abstraction layer, test structure), delegate via the **arena** skill instead so the runners surface the alternatives and the cross-judge guards the pick. Mandatory: no skip-with-reason escape, and Laziness Protocol does not override it (the gain is review separation, not lines saved). A subagent forbidden to spawn satisfies this by owning the diff directly with the same review separation. No "standing by" reply that waits on a nested agent. **Give every file-writing delegate its own worktree** (spawn it with `isolation: "worktree"`, or hand it an exclusive branch), and do not write files or run a suite in a worktree a delegate still holds. Fencing a file in the brief's prose is not a lock (**principle-separate-before-serializing-shared-state**). Comments per **Comments**. Surgical edits, re-ground against the source for upstream-derived files. Port shared-primitive improvements to all consumers and verify each. Commit liberally.
-+4. Delegate code-writing to a subagent using your configured feature model (default in poteto-mode's Models section) with a specific scope (file paths, named data shape and its organizing structure per [design guidance](../references/engineering-design.md), a state machine over scattered booleans, a table/registry over branching, a typed model over repeated shape assumptions, chosen before the delegate writes logic, and success criteria). When the implementation admits multiple valid shapes (error handling, abstraction layer, test structure), delegate via the **arena** skill instead so the runners surface the alternatives and the cross-judge guards the pick. Mandatory: no skip-with-reason escape, and Laziness Protocol does not override it (the gain is review separation, not lines saved). A subagent forbidden to spawn satisfies this by owning the diff directly with the same review separation. No "standing by" reply that waits on a nested agent. **Give every file-writing delegate its own worktree** (spawn it with `isolation: "worktree"`, or hand it an exclusive branch), and do not write files or run a suite in a worktree a delegate still holds. Fencing a file in the brief's prose is not a lock ([coordination guidance](../references/engineering-coordination.md)). Comments per **Comments**. Surgical edits, re-ground against the source for upstream-derived files. Port shared-primitive improvements to all consumers and verify each. Commit liberally.
++4. Delegate code-writing to a subagent using your configured feature model (default in poteto-mode's Models section) with a specific scope (file paths, named data shape and its organizing structure per [design guidance](../references/engineering-design.md), a state machine over scattered booleans, a table/registry over branching, a typed model over repeated shape assumptions, chosen before the delegate writes logic, and success criteria). When the implementation admits multiple valid shapes (error handling, abstraction layer, test structure), delegate via the **arena** skill instead so the runners surface the alternatives and the cross-judge guards the pick. Mandatory: no skip-with-reason escape, and the smallest-change rule in [evolution guidance](../references/engineering-evolution.md) does not override it (the gain is review separation, not lines saved). A subagent forbidden to spawn satisfies this by owning the diff directly with the same review separation. No "standing by" reply that waits on a nested agent. **Give every file-writing delegate its own worktree** (spawn it with `isolation: "worktree"`, or hand it an exclusive branch), and do not write files or run a suite in a worktree a delegate still holds. Fencing a file in the brief's prose is not a lock ([coordination guidance](../references/engineering-coordination.md)). Comments per **Comments**. Surgical edits, re-ground against the source for upstream-derived files. Port shared-primitive improvements to all consumers and verify each. Commit liberally.
  5. Verify on the matching surface. "Inconclusive" or wrong-surface is not a pass. Flag it.
  6. Rebase into small, ordered commits. Stack follow-ups.
 -   Use the **sequence-verifiable-units** principle skill, building, verifying, and committing each small unit before the next.
@@ -537,10 +564,15 @@ index cd119f0..2d05db4 100644
  No PR, no babysit, no `architect` unless the investigation precedes a code change. If it does, hand back to the user and re-route to Bug fix or Feature.
  
 diff --git a/plugins/pstack/skills/poteto-mode/playbooks/multi-phase-plan.md b/plugins/pstack/skills/poteto-mode/playbooks/multi-phase-plan.md
-index 45359e5..3d07a87 100644
+index 45359e5..2025242 100644
 --- a/plugins/pstack/skills/poteto-mode/playbooks/multi-phase-plan.md
 +++ b/plugins/pstack/skills/poteto-mode/playbooks/multi-phase-plan.md
-@@ -5,14 +5,14 @@ Resolve the driver skill through [poteto-mode's Non-negotiables](../SKILL.md#non
+@@ -1,20 +1,20 @@
+ ### Multi-phase or multi-PR plan
+ 
+-Resolve the driver skill through [poteto-mode's Non-negotiables](../SKILL.md#non-negotiables).
++Resolve the driver skill through poteto-mode's [Task routing](../SKILL.md#task-routing).
+ 
  **You own the plan, not the code. The plan is a checklist an owner runs box by box and the operator audits from the evidence.** The plan is the deliverable. Do not implement.
  
  1. When the change is one or two files with an obvious approach, skip the plan. Say so and stop.
@@ -559,8 +591,11 @@ index 45359e5..3d07a87 100644
 -**Verification.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked (the **prove-it-works** principle skill). That sentence is the verification rule. Every verification block opens with it. The live block is mandatory. Ten lanes on the configured `swarm workers` model at the PR head drive the real surface through its driver skill, per the **swarm** skill. Each lane is one box with a concrete scenario, the screenshot it saves, and its pass predicate. One lane is the **Regression lane against trunk.** It runs the same load-bearing scenario on trunk and head. If trunk does not have the feature, the lane records that fact and gates the behavior the diff adds plus the end state the user waits for instead of inventing a trunk result. The perf gate is dual-sided. Trunk and head must both produce the named metric. If trunk lacks the feature, also isolate the work the diff adds and set an absolute budget for that work plus the end-to-end state the user waits for. Do not claim a ratio between unlike scenarios. The perf block names the metric, the interleaved probe, the trunk baseline measured first, and the rule with the number that fails. A PR that changes an interaction is review-gated. The operator reviews it in chat with screenshots and a video before merge. A PR that changes no interaction writes `**Review gate.** None. <PR id> is not review-gated.` and no boxes under it.
 +**Verification.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked ([verification guidance](../references/engineering-verification.md)). That sentence is the verification rule. Every verification block opens with it. The live block is mandatory. Ten lanes on the configured `swarm workers` model at the PR head drive the real surface through its driver skill, per the **swarm** skill. Each lane is one box with a concrete scenario, the screenshot it saves, and its pass predicate. One lane is the **Regression lane against trunk.** It runs the same load-bearing scenario on trunk and head. If trunk does not have the feature, the lane records that fact and gates the behavior the diff adds plus the end state the user waits for instead of inventing a trunk result. The perf gate is dual-sided. Trunk and head must both produce the named metric. If trunk lacks the feature, also isolate the work the diff adds and set an absolute budget for that work plus the end-to-end state the user waits for. Do not claim a ratio between unlike scenarios. The perf block names the metric, the interleaved probe, the trunk baseline measured first, and the rule with the number that fails. A PR that changes an interaction is review-gated. The operator reviews it in chat with screenshots and a video before merge. A PR that changes no interaction writes `**Review gate.** None. <PR id> is not review-gated.` and no boxes under it.
  
- **Driver skill.** Select it through the Non-negotiables and put the resolved skill path or exact commands in each live lane's boot recipe. Native mobile uses whatever simulator-driving skill the repo has. A PR that touches two surfaces gets lanes on both. A surface with no driver skill is a risk in Appendix C, and its live block still names how each lane drives it.
+-**Driver skill.** Select it through the Non-negotiables and put the resolved skill path or exact commands in each live lane's boot recipe. Native mobile uses whatever simulator-driving skill the repo has. A PR that touches two surfaces gets lanes on both. A surface with no driver skill is a risk in Appendix C, and its live block still names how each lane drives it.
++**Driver skill.** Select it through poteto-mode's [Task routing](../SKILL.md#task-routing) and put the resolved skill path or exact commands in each live lane's boot recipe. Native mobile uses whatever simulator-driving skill the repo has. A PR that touches two surfaces gets lanes on both. A surface with no driver skill is a risk in Appendix C, and its live block still names how each lane drives it.
  
+ ````markdown
+ # <Program> plan
 diff --git a/plugins/pstack/skills/poteto-mode/playbooks/opening-a-pr.md b/plugins/pstack/skills/poteto-mode/playbooks/opening-a-pr.md
 index 34ca78e..8b4839f 100644
 --- a/plugins/pstack/skills/poteto-mode/playbooks/opening-a-pr.md
@@ -575,9 +610,17 @@ index 34ca78e..8b4839f 100644
  **Titles.** Use Conventional Commits in the form `type(scope): subject`. Use `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, or `perf` as the type. Use the changed area, such as `pstack` or `poteto-mode`, as the scope. Keep the subject short and imperative. Name a real symbol when one carries the change. For example, `fix(pstack): retarget opening-a-pr babysit trigger`. Do not add a trailing period.
  
 diff --git a/plugins/pstack/skills/poteto-mode/playbooks/orchestrate.md b/plugins/pstack/skills/poteto-mode/playbooks/orchestrate.md
-index 2f7c269..5afa95b 100644
+index 2f7c269..cf72dba 100644
 --- a/plugins/pstack/skills/poteto-mode/playbooks/orchestrate.md
 +++ b/plugins/pstack/skills/poteto-mode/playbooks/orchestrate.md
+@@ -1,6 +1,6 @@
+ ### Orchestrate
+ 
+-Resolve the driver skill through [poteto-mode's Non-negotiables](../SKILL.md#non-negotiables).
++Resolve the driver skill through poteto-mode's [Task routing](../SKILL.md#task-routing).
+ 
+ **You own the program, never the code. Author briefs, drain the queue, keep the frontier green, decide.** For a whole project handed to one standing coordinator chat: multi-day, many stacked PRs, dozens to hundreds of subagents, the human checking in twice a day instead of every five minutes. One task driven to a predicate is Autonomous run. One ambitious run needing a bespoke workflow is figure-it-out. Route here when the work outlives any single agent. Work one agent could finish inside the session's budget is not a program.
+ 
 @@ -16,7 +16,7 @@ Three rules carry the rest.
  
  - **Coordinator (this chat).** Frames, authors briefs, drains the inbox, owns the human report, makes judgment calls. It never authors or edits code. Conflicted merges, restacks, and code changes are always tasks. Mechanically landing a verified unit (fast-forward or clean cherry-pick of a worker's commit, then push) is bookkeeping the coordinator may do itself on repos where local git is cheap. Queueing finished work behind an idle stacker is how a deadline harvests nothing. The loop is agentic end to end. Agents are spawned, resumed, and drained only through the `Agent` tool. State reads and writes go through the `orch` CLI at drain points, one command in and one line out. The CLI never spawns, waits, or wakes anything.
@@ -610,10 +653,16 @@ index dba3fce..f770be7 100644
  5. Cite the measurement in the PR.
  6. Run **Opening a PR**.
 diff --git a/plugins/pstack/skills/poteto-mode/playbooks/prototype.md b/plugins/pstack/skills/poteto-mode/playbooks/prototype.md
-index 91c6e68..1616374 100644
+index 91c6e68..a59f1d4 100644
 --- a/plugins/pstack/skills/poteto-mode/playbooks/prototype.md
 +++ b/plugins/pstack/skills/poteto-mode/playbooks/prototype.md
-@@ -7,7 +7,7 @@ The one playbook where the Laziness Protocol's "smallest change" and the verific
+@@ -2,12 +2,12 @@
+ 
+ **You own the design decision, not the code. The prototype is a throwaway instrument. The real build follows Feature.**
+ 
+-The one playbook where the Laziness Protocol's "smallest change" and the verification bar invert. Speed over polish, code quality does not matter, no planning. The rigor is in picking the right design cheaply. Propose variations the user didn't ask for, throw an approach away and try another.
++The one playbook where the [evolution guidance](../references/engineering-evolution.md)'s "smallest complete change" and the verification bar invert. Speed over polish, code quality does not matter, no planning. The rigor is in picking the right design cheaply. Propose variations the user didn't ask for, throw an approach away and try another.
+ 
  1. Scope the decision the prototype exists to make: which layout, which interaction, which density, or for an empirical fork which behavior, timing, or approach. No decision means no prototype. Route to Feature.
  2. Gather references when the design space is open. Search for prior art, summarize a moodboard of themes, palettes, and layouts, let the user pick directions before building. Skip when the direction is set.
  3. Build throwaway in an isolated scratch dir, separate from production source. For a visual decision, vanilla HTML/CSS/JS or the lightest stack that renders the idea, CDN deps, a dev server with hot reload. For a behavioral or timing decision, the smallest script that exercises the question. No production framework, no tests, no abstractions.
@@ -623,10 +672,17 @@ index 91c6e68..1616374 100644
  6. Present alternatives, tradeoffs, and a recommendation. The output is the decision plus the throwaway artifact, not shippable code. Hand the chosen direction to **Feature** (or `architect` for the shape) for the real build.
  
 diff --git a/plugins/pstack/skills/poteto-mode/playbooks/refactoring.md b/plugins/pstack/skills/poteto-mode/playbooks/refactoring.md
-index 9700d58..5ccf0ec 100644
+index 9700d58..ed1a1b0 100644
 --- a/plugins/pstack/skills/poteto-mode/playbooks/refactoring.md
 +++ b/plugins/pstack/skills/poteto-mode/playbooks/refactoring.md
-@@ -7,12 +7,12 @@ Resolve the driver skill through [poteto-mode's Non-negotiables](../SKILL.md#non
+@@ -1,18 +1,18 @@
+ ### Refactoring
+ 
+-Resolve the driver skill through [poteto-mode's Non-negotiables](../SKILL.md#non-negotiables).
++Resolve the driver skill through poteto-mode's [Task routing](../SKILL.md#task-routing).
+ 
+ **You own the contract. The structure changes. The behavior does not.** Distinct from Feature, which adds behavior, and Bug fix, which corrects it.
+ 
  If the cleanup reveals a missing feature or a real bug, split it out and ship the structural change first against the pinned contract. A redesign is allowed, but name it and route to Feature. Large or cross-cutting structural work belongs to the **figure-it-out** skill. This playbook is the focused-to-medium change.
  
  1. Pin the behavior contract first. Run the **how** skill over the affected subsystem to learn the contract, then write a characterization test, snapshot, or equivalence harness that captures current behavior before any structure moves. If the area has no coverage, write the pin before touching structure. Type check and lint are not a pin.
@@ -676,6 +732,18 @@ index 9ac2af7..d551e13 100644
 +5. Verify the inherited claims against the original goal on the real artifact ([verification guidance](../references/engineering-verification.md)). A passing prior self-report is not the proof.
  
  **Reply:** where the prior agent stopped, what you inherited vs redid (ideally nothing redone), the resume point, and the outcome.
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/shipping.md b/plugins/pstack/skills/poteto-mode/playbooks/shipping.md
+index 3c73735..69d65a1 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/shipping.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/shipping.md
+@@ -1,6 +1,6 @@
+ ### Shipping
+ 
+-Resolve the driver skill through [poteto-mode's Non-negotiables](../SKILL.md#non-negotiables).
++Resolve the driver skill through poteto-mode's [Task routing](../SKILL.md#task-routing).
+ 
+ You own what lands. Land one verified PR at a time, then confirm its outcome before advancing. This is the half after `playbooks/babysit.md`; it requires the user's landing authority.
+ 
 diff --git a/plugins/pstack/skills/poteto-mode/playbooks/trace-forensics.md b/plugins/pstack/skills/poteto-mode/playbooks/trace-forensics.md
 index 48ed6b2..308ec73 100644
 --- a/plugins/pstack/skills/poteto-mode/playbooks/trace-forensics.md
@@ -719,6 +787,19 @@ index 09745bf..5956f7e 100644
  4. Pause on irreversible loss. `wip:N` is N tracked uncommitted edits. Show the diff and get a decision first, since removing a clean worktree is recoverable from its branch but uncommitted work is gone. `scratch:N` is untracked throwaway, safe to drop, but name the files. Per Autonomy, clean and merged and not-in-use proceeds. `wip` and in-use pause.
  5. Prune the confirmed set. Per path, `git worktree remove --force <path>`. If the dir survives on ignored build artifacts, `rm -rf` it, then `git worktree prune`. Branch refs survive, so no commits are lost. Confirm with `df -h /` and re-list.
  6. Simulators and other reclaimers. Simulators are usually the next-biggest win. `xcrun simctl --set testing delete all` (XCTestDevices clones), `xcrun simctl delete unavailable`, and `xcrun simctl runtime list` then `runtime delete <id>` for old runtimes. More when needed: Xcode `DerivedData` and `iOS DeviceSupport`, your editor's application-support caches, `~/.claude/shell-snapshots/` and old `~/.claude/projects/` transcripts (keep the recent ones the **recall** skill and Session pickup read), package caches (pnpm, uv, brew, yarn). Clear only caches the user has not said to keep.
+diff --git a/plugins/pstack/skills/poteto-mode/references/codex-tools.md b/plugins/pstack/skills/poteto-mode/references/codex-tools.md
+index 96d1778..494d2c9 100644
+--- a/plugins/pstack/skills/poteto-mode/references/codex-tools.md
++++ b/plugins/pstack/skills/poteto-mode/references/codex-tools.md
+@@ -58,7 +58,7 @@ A skills-only installation does not include plugin hooks. Request `poteto-mode`
+ 
+ ## Driver and bundled skills pstack references
+ 
+-The [driver policy](../SKILL.md#non-negotiables) selects the app driver. For skills and drivers named by these workflows, use these Codex equivalents:
++The [driver policy](../SKILL.md#task-routing) selects the app driver. For skills and drivers named by these workflows, use these Codex equivalents:
+ 
+ | Skill or driver named in pstack | On Codex |
+ |---------------------------------|----------|
 diff --git a/plugins/pstack/skills/poteto-mode/references/engineering-coordination.md b/plugins/pstack/skills/poteto-mode/references/engineering-coordination.md
 new file mode 100644
 index 0000000..303cce2
@@ -884,7 +965,7 @@ index 0000000..1df7b26
 +prevents it reliably. Demonstrate the gate catches the actual violation before
 +adding it. Otherwise retain a short conditional explanation at the owning code.
 diff --git a/plugins/pstack/skills/poteto-mode/references/pi-tools.md b/plugins/pstack/skills/poteto-mode/references/pi-tools.md
-index c969468..021f212 100644
+index c969468..9039d59 100644
 --- a/plugins/pstack/skills/poteto-mode/references/pi-tools.md
 +++ b/plugins/pstack/skills/poteto-mode/references/pi-tools.md
 @@ -53,12 +53,10 @@ Skills name models by the Claude aliases in their Models sections. On Pi, pass t
@@ -901,6 +982,15 @@ index c969468..021f212 100644
  
  `/setup-pstack` writes the configured model list. On Pi, keep the aliases and remap them with `pi models:`.
  
+@@ -70,7 +68,7 @@ Without the extension nothing is injected. Request `poteto-mode` explicitly with
+ 
+ ## Driver and bundled skills pstack references
+ 
+-The [driver policy](../SKILL.md#non-negotiables) selects the app driver. For skills and drivers named by these workflows, use these Pi equivalents:
++The [driver policy](../SKILL.md#task-routing) selects the app driver. For skills and drivers named by these workflows, use these Pi equivalents:
+ 
+ | Skill or driver named in pstack | On Pi |
+ |---------------------------------|-------|
 diff --git a/plugins/pstack/skills/principle-attack-the-premise/SKILL.md b/plugins/pstack/skills/principle-attack-the-premise/SKILL.md
 deleted file mode 100644
 index adb2776..0000000
@@ -1656,6 +1746,52 @@ index 1b05c51..19689f5 100644
 +- Prefer evidence produced by committed scripts over hand-made one-offs ([verification guidance](../poteto-mode/references/engineering-verification.md)).
  
  ## Audit the log against the transcript
+ 
+diff --git a/plugins/pstack/skills/tdd/SKILL.md b/plugins/pstack/skills/tdd/SKILL.md
+index 67d9189..b285cd9 100644
+--- a/plugins/pstack/skills/tdd/SKILL.md
++++ b/plugins/pstack/skills/tdd/SKILL.md
+@@ -1,22 +1,22 @@
+ ---
+ name: tdd
+-description: "Use only when the user explicitly asks for TDD, a failing test, or a regression test, OR when the bug has an obvious cheap local test target. Skip when the test path is unclear, expensive, integration-heavy, or not requested."
++description: "Use when changing behavior: a bug fix or a feature. Write the failing test first, watch it fail for the intended reason, then make it pass. Skip for prototypes, spikes, and pure config or wiring; when no cheap test path exists, say why and use the closest executable check."
+ ---
+ 
+-# TDD Bug Fix
++# TDD
+ 
+-When fixing a bug with a clear, cheap test path, make the broken behavior executable before changing production code. The goal is a focused regression test that fails before the fix and passes after it.
++Before changing production code, make the intended behavior executable. For a bug, that is a focused regression test that fails before the fix and passes after it. For a feature, it is one test per agreed behavior, written and seen failing before the code that satisfies it.
+ 
+-Do not force a test when it would be impractical. If the available test would require broad harness setup, brittle mocks, slow end-to-end infrastructure, production-only state, vague reproduction steps, or large unrelated fixture churn, skip adding a new test and use the closest useful verification instead.
++Test-first is the default for behavior changes. It is not a ritual for work whose point is speed or that has no behavior of its own: prototypes and spikes (the Prototype playbook inverts the verification bar), pure config, wiring, and glue. Do not force a test when it would be impractical. If the available test would require broad harness setup, brittle mocks, slow end-to-end infrastructure, production-only state, vague reproduction steps, or large unrelated fixture churn, use the closest useful verification instead and say why.
+ 
+ ## Workflow
+ 
+-1. **Understand the bug.** Identify the intended behavior, current behavior, affected path, and smallest observable reproduction.
+-2. **Choose the narrowest executable check.** Prefer the closest unit, component, integration, or regression test already used for that codepath. If no practical test path is obvious, do not create one from scratch just to satisfy the workflow.
+-3. **Write the failing test first.** Add the smallest focused test that would have caught the bug. The test should encode intended behavior, not mirror the current implementation.
+-4. **Run the new test before fixing.** Confirm it fails for the intended reason. Quote the failure content, not the assertion line: an exception, an empty result against a literal, and the predicted mismatch all print red, and only the last one proves the test measures the bug. If it passes or fails for an unrelated reason, correct the test or reproduction before editing the implementation.
+-5. **Fix the bug.** Make the smallest production change that satisfies the intended behavior while preserving nearby contracts.
+-6. **Rerun the regression test.** Confirm the test now passes.
++1. **Understand the change.** Identify the intended behavior, the current behavior, the affected path, and the smallest observable reproduction (for a bug) or the first observable slice (for a feature).
++2. **Choose the narrowest executable check.** Prefer the closest unit, component, integration, or regression test already used for that codepath. If no practical test path is obvious, do not create one from scratch just to satisfy the workflow: name why, and pick the closest executable check.
++3. **Write the failing test first.** Add the smallest focused test that would catch the bug or prove the slice. The test should encode intended behavior, not mirror the current implementation.
++4. **Run the new test before changing code.** Confirm it fails for the intended reason. Quote the failure content, not the assertion line: an exception, an empty result against a literal, and the predicted mismatch all print red, and only the last one proves the test measures the behavior. If it passes or fails for an unrelated reason, correct the test or reproduction before editing the implementation.
++5. **Make it pass.** Make the smallest production change that satisfies the intended behavior while preserving nearby contracts.
++6. **Rerun the test.** Confirm it now passes. For a feature, repeat steps 3–6 for the next slice.
+ 
+ ## If a Failing Test Is Impractical
+ 
+@@ -28,7 +28,7 @@ Prefer no new test over a bad test. A bad test is one that mostly tests mocks, e
+ 
+ - Do not change tests merely to match a wrong implementation.
+ - Do not weaken existing assertions unless the expected behavior has genuinely changed and the reason is clear.
+-- Keep the regression test focused on the bug. Avoid broad fixture churn or unrelated coverage expansion.
++- Keep each test focused on one behavior. Avoid broad fixture churn or unrelated coverage expansion.
+ - If the bug is flaky, make the test deterministic where possible and document the signal being locked down.
+ - If the bug exposes a broader class of failures, first land the focused regression path, then consider additional sibling coverage.
  
 diff --git a/plugins/pstack/skills/teach/SKILL.md b/plugins/pstack/skills/teach/SKILL.md
 index 7c82be6..1bdee39 100644
