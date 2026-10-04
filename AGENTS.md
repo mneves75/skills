@@ -96,8 +96,8 @@ bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no net
   `npx skills add mneves75/skills` install does not include it (install it with `--full-depth`
   or its tree URL). The invariants above govern `skills/`
   only. A collection keeps its upstream names (the owner chose pstack's `tdd` and `teach` over
-  the `mneves-` prefix rule), its license, and an `UPSTREAM` pin. Its `skills/`, `UPSTREAM` and
-  `LICENSE` come from a sync script and are never hand-edited; CI requires the Agent Skills spec
+  the `mneves-` prefix rule), its license, and an `UPSTREAM` pin. Its `skills/`, `UPSTREAM`, `LICENSE` and
+  `local-overrides.patch` come from a sync script and are never hand-edited; CI requires the Agent Skills spec
   (`skills-ref validate`) and name == directory for every collection skill.
 
 ## Adding a Skill
