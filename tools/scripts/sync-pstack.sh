@@ -69,19 +69,27 @@ for name in sorted(os.listdir(root)):
             errors.append(f"{name}: non-spec key {key!r} spans several lines")
             continue
         value = lines[0].split(":", 1)[1].strip()
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
-            value = value[1:-1]
-        moved.append(f"  {key}: {json.dumps(value)}")
+        if len(value) >= 2 and value[0] == value[-1] == "'":
+            value = value[1:-1].replace("''", "'")
+        elif len(value) >= 2 and value[0] == value[-1] == '"':
+            try:
+                value = json.loads(value)  # YAML's common double-quoted escapes are JSON's
+            except ValueError:
+                errors.append(f"{name}: cannot decode the quoted value of {key!r}")
+                continue
+        moved.append((key, value))
     if not moved:
         continue
     meta = next((e for e in kept if e[0] == "metadata"), None)
     if meta is None:
-        kept.append(["metadata", ["metadata:"] + moved])
+        meta = ["metadata", ["metadata:"]]
+        kept.append(meta)
     elif meta[1][0].strip() != "metadata:":
         errors.append(f"{name}: flow-style metadata cannot take moved keys")
         continue
-    else:
-        meta[1].extend(moved)
+    children = [l for l in meta[1][1:] if l.strip()]
+    indent = children[0][: len(children[0]) - len(children[0].lstrip())] if children else "  "
+    meta[1].extend(f"{indent}{key}: {json.dumps(value)}" for key, value in moved)
     head = "\n".join(line for _, lines in kept for line in lines)
     open(path, "w", encoding="utf-8").write(f"---\n{head}\n---\n" + text[m.end():])
 if errors:

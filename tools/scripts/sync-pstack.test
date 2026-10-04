@@ -132,6 +132,13 @@ check "a moved key joins an existing metadata block" '[ "$(sed -n "4,6p" "$work/
 r=$(case_repo single-quoted $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmode: \'fast\'\n---\nbody\n')
 bash "$sync" "$r" HEAD "$work/out-sq" >/dev/null
 check "a single-quoted value is unquoted before re-quoting" 'grep -qx "  mode: \"fast\"" "$work/out-sq/skills/gamma/SKILL.md"'
+r=$(case_repo four-space-meta $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmetadata:\n    author: someone\nicon: star\n---\nbody\n')
+bash "$sync" "$r" HEAD "$work/out-4sp" >/dev/null
+check "a moved key matches the existing metadata indentation" 'grep -qx "    icon: \"star\"" "$work/out-4sp/skills/gamma/SKILL.md"'
+r=$(case_repo yaml-escapes $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmode: \'don\'\'t stop\'\nhint: "say \\"hi\\""\n---\nbody\n')
+bash "$sync" "$r" HEAD "$work/out-esc" >/dev/null
+check "a doubled single quote decodes to one apostrophe" 'grep -qxF "  mode: \"don'"'"'t stop\"" "$work/out-esc/skills/gamma/SKILL.md"'
+check "a double-quoted escape survives unchanged" 'grep -qxF "  hint: \"say \\\"hi\\\"\"" "$work/out-esc/skills/gamma/SKILL.md"'
 r=$(case_repo flow-meta $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmetadata: {author: someone}\nicon: star\n---\nbody\n')
 check "a flow-style metadata block is refused" 'refuses flow "$r"'
 r=$(case_repo multiline $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nicons:\n  - star\n---\nbody\n')
