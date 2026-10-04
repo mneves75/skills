@@ -1,0 +1,1808 @@
+diff --git a/plugins/pstack/skills/architect/SKILL.md b/plugins/pstack/skills/architect/SKILL.md
+index cefc03c..650c116 100644
+--- a/plugins/pstack/skills/architect/SKILL.md
++++ b/plugins/pstack/skills/architect/SKILL.md
+@@ -33,7 +33,7 @@ Run the **arena** skill with the design-sketch task and the Phase A grounding ar
+ 
+ Take the runners from the `architect runners` line in `pstack-models.md`, in place of the `arena runners` line. If the sheet or that line is missing, use the defaults in [Models](#models). Alias and rejected entries follow the runner rules in the **arena** skill's Phase A.
+ 
+-Design it twice. Require at least two structurally distinct candidates before synthesis, even when the first looks sufficient. This is the **exhaust-the-design-space** principle skill made concrete. Whole-shape alternatives, not point fixes inside one shape.
++Design it twice. Require at least two structurally distinct candidates before synthesis, even when the first looks sufficient. This is [design guidance](../poteto-mode/references/engineering-design.md) made concrete. Whole-shape alternatives, not point fixes inside one shape.
+ 
+ Screen every candidate against [`references/design-red-flags.md`](references/design-red-flags.md) before synthesis. Assume the next contributor is an agent that sees only the files it opened, copies the nearest example, and takes the shortest path that compiles. Prefer the design where a change that looks right from one file is right for the whole repo.
+ 
+@@ -47,7 +47,7 @@ Default: proceed directly to implementation with the synthesized design. No huma
+ 
+ Opt in to a checkpoint when the invoker explicitly asks: "/architect with checkpoint," "stop and show me before implementing," or similar. Then surface the synthesized design and pause for sign-off.
+ 
+-The synthesis can ship as its own commit either way, as the "scaffold first" mode of the **foundational-thinking** principle skill. Planned and scoped breakage during fill-in is fine, per the **outcome-oriented-execution** principle skill. For adversarial pressure on the design before implementing, run the **interrogate** skill on the synthesized sketch.
++The synthesis can ship as its own commit either way, as the "scaffold first" mode of [design guidance](../poteto-mode/references/engineering-design.md). Planned and scoped breakage during fill-in is fine, per [evolution guidance](../poteto-mode/references/engineering-evolution.md). For adversarial pressure on the design before implementing, run the **interrogate** skill on the synthesized sketch.
+ 
+ If the human pushes back on the shape (in a checkpoint or after the fact), treat that as Phase A evidence. Re-ground and re-run Phase B before writing more code.
+ 
+@@ -63,7 +63,7 @@ For a local deviation that leaves the shared contract intact, record the decisio
+ 
+ ## Phase E: Scrap when the architecture is wrong
+ 
+-If implementation keeps producing friction the sketch can't absorb, throw the sketch out. Don't bolt fixes onto a wrong design, per the **redesign-from-first-principles** and **fix-root-causes** principle skills.
++If implementation keeps producing friction the sketch can't absorb, throw the sketch out. Don't bolt fixes onto a wrong design, per [evolution guidance](../poteto-mode/references/engineering-evolution.md) and [verification guidance](../poteto-mode/references/engineering-verification.md).
+ 
+ The signal is a *pattern*, not single instances. Tells:
+ 
+@@ -80,7 +80,7 @@ When you scrap:
+ 
+ 1. Re-run the **how** skill over what's been built.
+ 2. Redesign as if the new constraints had been day-one assumptions, per redesign-from-first-principles.
+-3. Subtract before adding, per the **subtract-before-you-add** principle skill. The new sketch should be smaller than the old one before it grows.
++3. Subtract before adding, per [evolution guidance](../poteto-mode/references/engineering-evolution.md). The new sketch should be smaller than the old one before it grows.
+ 4. Return to Phase B and re-run arena.
+ 
+ ## Outputs
+@@ -91,7 +91,7 @@ The caller's usage is written first and the type sketch derived from it. One fil
+ 
+ Role defaults, stamped from `plugins/pstack/models.json` (edit there, rerun `tools/generate.mjs`). A matching role line in the `pstack-models.md` override sheet overrides each at runtime; `/setup-pstack` writes it and lists its path per runtime.
+ 
+-- architect runners: `opus`, `fable`, `sonnet`
++- architect runners: `opus`, `fable`
+ 
+ ## Reasoning effort
+ 
+diff --git a/plugins/pstack/skills/architect/references/runner-prompt.md b/plugins/pstack/skills/architect/references/runner-prompt.md
+index 580ec47..a53edbe 100644
+--- a/plugins/pstack/skills/architect/references/runner-prompt.md
++++ b/plugins/pstack/skills/architect/references/runner-prompt.md
+@@ -9,12 +9,12 @@ Apply the following discipline. The orchestrator compares candidates on these ax
+ - Caller's usage first. Write the README-style usage and two or three real call sites before the types, then derive the type sketch from them. The usage is the spec. The two must agree, so reconcile the sketch to the usage, not the reverse.
+ - Data structures first. Get the core types right and the code becomes obvious. Trace each dominant access pattern through the proposed structure. If the answer is "we'll add a map / index / cache later," the structure is wrong.
+ - Interface depth. Compare the capability hidden behind the public surface relative to the size of that surface. Prefer a simple interface that pulls complexity into the callee, even when the implementation becomes less simple. Do not put transport or wire types on the public API. Parse into domain types behind the interface.
+-- Shared state: if two actors might both write, ask "what happens?" If the answer isn't "nothing," default to per-actor state with a merge at the read boundary, per the **separate-before-serializing-shared-state** principle skill.
++- Shared state: if two actors might both write, ask "what happens?" If the answer isn't "nothing," default to per-actor state with a merge at the read boundary, per [coordination guidance](../../poteto-mode/references/engineering-coordination.md).
+ - Make boundaries visible. `not implemented` errors for bodies, `// TODO` pseudocode for tricky logic, doc comments stating intent and invariants. A reader should trace data from input to output by reading types and signatures alone.
+-- Encode invariants in types: hard-to-misuse types > runtime checks > prose comments, per the **encode-lessons-in-structure** principle skill.
+-- Validate at boundaries, trust types inside, per the **boundary-discipline** principle skill. Business logic as pure functions. The shell stays thin.
++- Encode invariants in types: hard-to-misuse types > runtime checks > prose comments, per [verification guidance](../../poteto-mode/references/engineering-verification.md).
++- Validate at boundaries, trust types inside, per [design guidance](../../poteto-mode/references/engineering-design.md). Business logic as pure functions. The shell stays thin.
+ - Single source of truth per invariant. Derive instead of sync.
+-- Idempotent state transitions where applicable, per the **make-operations-idempotent** principle skill. Ask what happens if the operation runs twice or crashes halfway.
+-- Short call chains. If tracing the flow needs more than three files, flatten the hierarchy, per the **laziness-protocol** and **minimize-reader-load** principle skills.
++- Idempotent state transitions where applicable, per [coordination guidance](../../poteto-mode/references/engineering-coordination.md). Ask what happens if the operation runs twice or crashes halfway.
++- Short call chains. If tracing the flow needs more than three files, flatten the hierarchy, per [evolution guidance](../../poteto-mode/references/engineering-evolution.md).
+ 
+ You are one of several runners, each on a different model. Produce the best design your model can make. Don't hedge against the others. Differences between candidates are the signal used to pick a base and graft. Converging on a safe-looking middle defeats the exploration.
+diff --git a/plugins/pstack/skills/arena/SKILL.md b/plugins/pstack/skills/arena/SKILL.md
+index 11f5dcd..3565d3d 100644
+--- a/plugins/pstack/skills/arena/SKILL.md
++++ b/plugins/pstack/skills/arena/SKILL.md
+@@ -26,8 +26,8 @@ The N candidates will receive the same prompt, so the prompt is the contract.
+ 
+ 1. State the artifact each candidate is producing.
+ 2. Derive the rubric. State what success looks like for *this* task, then turn it into 3-6 concrete gradeable criteria. The rubric is the picker's tool in Phase D. Candidates only see the task.
+-3. Pick the runners. Use the `arena runners` line in `pstack-models.md`. If the sheet or that line is missing, run one each on the defaults in [Models](#models). An `auto` or `inherit-parent` entry in this line or the cross-judge line means the parent model, so omit `model` for it. If the `Agent` tool rejects a configured entry, run that seat on its family's default and say so. Families go by model name, such as Opus, Fable, or Sonnet. With no family match, use the single-role default in [Models](#models). If it rejects a default, use the closest valid slug of the same family from its error message. Spawn more when the arena covers multiple design directions. Same model N times when the work is generation-bound rather than judgment-sensitive.
+-4. Assign output paths. Each candidate writes to its own location (a git worktree where possible, otherwise `/tmp/arena-<slug>/candidate-<n>/`), per the **separate-before-serializing-shared-state** principle skill.
++3. Pick the runners. Use the `arena runners` line in `pstack-models.md`. If the sheet or that line is missing, run one each on the defaults in [Models](#models). An `auto` or `inherit-parent` entry in this line or the cross-judge line means the parent model, so omit `model` for it. If the `Agent` tool rejects a configured entry, run that seat on its family's default and say so. Families go by model name, such as Opus or Fable. With no family match, use the single-role default in [Models](#models). If it rejects a default, use the closest valid slug of the same family from its error message. Spawn more when the arena covers multiple design directions. Same model N times when the work is generation-bound rather than judgment-sensitive.
++4. Assign output paths. Each candidate writes to its own location (a git worktree where possible, otherwise `/tmp/arena-<slug>/candidate-<n>/`), per [coordination guidance](../poteto-mode/references/engineering-coordination.md).
+ 
+ ## Phase B: Fan out
+ 
+@@ -55,7 +55,7 @@ Record the pick and the reason in a short synthesis note alongside the base arti
+ 
+ Walk each losing candidate once more and identify what is worth porting into the base. The signal is usually one or two things per candidate, not most of it.
+ 
+-Fold each graft in by hand, per the **redesign-from-first-principles** principle skill. Don't paste mechanically. The result has to remain coherent under one mental model.
++Fold each graft in by hand, per [evolution guidance](../poteto-mode/references/engineering-evolution.md). Don't paste mechanically. The result has to remain coherent under one mental model.
+ 
+ Record what was grafted, from which candidate, and what was rejected and why.
+ 
+@@ -63,7 +63,7 @@ When N candidates converge on the same shape, that is a strong agreement signal.
+ 
+ ## Phase F: Verify
+ 
+-The synthesized artifact has to hold up under the same scrutiny as any other output, per the **prove-it-works** principle skill.
++The synthesized artifact has to hold up under the same scrutiny as any other output, per [verification guidance](../poteto-mode/references/engineering-verification.md).
+ 
+ If verification surfaces a problem the arena did not catch, either Phase A was wrong (re-frame and re-run) or one candidate caught it and you missed the graft (go back to Phase E). Don't paper over.
+ 
+@@ -75,8 +75,8 @@ One synthesized artifact. One short synthesis note alongside, naming the base, t
+ 
+ Role defaults, stamped from `plugins/pstack/models.json` (edit there, rerun `tools/generate.mjs`). A matching role line in the `pstack-models.md` override sheet overrides each at runtime; `/setup-pstack` writes it and lists its path per runtime.
+ 
+-- arena runners: `opus`, `fable`, `sonnet`
+-- arena cross-judge pool: `opus`, `fable`, `sonnet`
++- arena runners: `opus`, `fable`
++- arena cross-judge pool: `opus`, `fable`
+ 
+ ## Reasoning effort
+ 
+diff --git a/plugins/pstack/skills/automate-me/SKILL.md b/plugins/pstack/skills/automate-me/SKILL.md
+index 481a7b5..a3589bd 100644
+--- a/plugins/pstack/skills/automate-me/SKILL.md
++++ b/plugins/pstack/skills/automate-me/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: automate-me
+-description: "Use for \"automate me\", \"create/update/refresh my -mode skill\", \"turn/capture my preferences or working style into a skill\", or wanting agents to follow how the user works. Drafts or revises a personal -mode skill via plugin-dev:skill-development + unslop, optionally pulling fresh evidence from recent transcripts."
++description: "Use for \"automate me\", \"create/update/refresh my -mode skill\", \"turn/capture my preferences or working style into a skill\", or wanting agents to follow how the user works. Drafts or revises a personal -mode skill via plugin-dev:skill-development + writing guidance, optionally pulling fresh evidence from recent transcripts."
+ ---
+ 
+ # Automate me
+@@ -9,7 +9,7 @@ On Codex, read the [platform mapping](../poteto-mode/references/codex-tools.md),
+ 
+ A guided flow for turning the user's working conventions into a skill agents will follow. The output is one `-mode` skill tailored to them (e.g. `jay-mode`, `priya-mode`).
+ 
+-This skill orchestrates three others: an inline mining pass (see step 1), the **plugin-dev:skill-development** skill (authoring), and the **unslop** skill (prose discipline). It sequences them. It doesn't replace them.
++This workflow combines the inline mining pass (step 1), available skill-authoring guidance, and the active writing preferences.
+ 
+ ## Flow
+ 
+@@ -75,7 +75,7 @@ Use the **plugin-dev:skill-development** skill to author the skill. Placement:
+ 
+ ### 5. Iterate on prose
+ 
+-Apply the **unslop** skill and `plugin-dev:skill-development`'s writing guidelines to every line.
++Apply the active writing preferences and `plugin-dev:skill-development`'s writing guidelines to every line.
+ 
+ Show the draft to the user and take feedback. Expect multiple iterations. Cut ruthlessly. A mode skill is not a manual.
+ 
+diff --git a/plugins/pstack/skills/babysit/SKILL.md b/plugins/pstack/skills/babysit/SKILL.md
+index 92854bb..44d7799 100644
+--- a/plugins/pstack/skills/babysit/SKILL.md
++++ b/plugins/pstack/skills/babysit/SKILL.md
+@@ -55,7 +55,7 @@ Inside poteto-mode, the **Babysit** playbook ([`../poteto-mode/playbooks/babysit
+ 
+ - Opening a PR does not start a babysit; inside poteto-mode the Babysit playbook owns the request and starts only when asked.
+ - Use `interrogate` before opening if the diff is contested; once open, babysit takes over.
+-- Use `unslop` on any prose you write here (PR comments, commit messages, status reports).
++- Use the active writing preferences on any prose you write here (PR comments, commit messages, status reports).
+ 
+ ## Provenance
+ 
+diff --git a/plugins/pstack/skills/benchmark-checklist/SKILL.md b/plugins/pstack/skills/benchmark-checklist/SKILL.md
+index d92d20e..deb0e62 100644
+--- a/plugins/pstack/skills/benchmark-checklist/SKILL.md
++++ b/plugins/pstack/skills/benchmark-checklist/SKILL.md
+@@ -5,7 +5,7 @@ description: "Vet a perf measurement (limiter, tuning, limits, errors, repeatabi
+ 
+ # Benchmark checklist
+ 
+-Use this when you produce a performance number: a PR's before and after, a regression claim, a hillclimb harness, or a library or config choice. [Explain the Number](../principle-explain-the-number/SKILL.md) says why. Answer each question below with evidence from a run, not from a guess about the code.
++Use this when you produce a performance number: a PR's before and after, a regression claim, a hillclimb harness, or a library or config choice. The "Evidence and completion" section of [engineering-verification](../poteto-mode/references/engineering-verification.md) says why. Answer each question below with evidence from a run, not from a guess about the code.
+ 
+ For a quick ballpark the user asked for, one run is enough. Still check questions 4 and 7, and say that it is one run. Skip the rest unless that run looks wrong. A choice between options is never a ballpark.
+ 
+diff --git a/plugins/pstack/skills/blast-radius/SKILL.md b/plugins/pstack/skills/blast-radius/SKILL.md
+index b44b5e8..9ec72da 100644
+--- a/plugins/pstack/skills/blast-radius/SKILL.md
++++ b/plugins/pstack/skills/blast-radius/SKILL.md
+@@ -44,6 +44,6 @@ Step 4 is usually one small script that imports the same library the app ships a
+ - **Cleared.** What you checked and why it's fine.
+ - **Before you merge.** The cheapest test or repro that catches the real bug, including the script you wrote.
+ 
+-Write it through `unslop`, cite real code, and strip anything private before it goes anywhere public.
++Write it through the active writing preferences, cite real code, and strip anything private before it goes anywhere public.
+ 
+ **Reply:** the writeup above, with the one safety fact either proven or marked unproven.
+diff --git a/plugins/pstack/skills/figure-it-out/SKILL.md b/plugins/pstack/skills/figure-it-out/SKILL.md
+index 30cc95c..d96a9ae 100644
+--- a/plugins/pstack/skills/figure-it-out/SKILL.md
++++ b/plugins/pstack/skills/figure-it-out/SKILL.md
+@@ -15,19 +15,19 @@ Open a todolist whose first item is to read the Principles section of the **pote
+ 
+ Ground first, then commit. Don't start the run until you can state:
+ 
+-- The definition of done as a falsifiable predicate (the **prove-it-works** principle skill).
++- The definition of done as a falsifiable predicate ([verification guidance](../poteto-mode/references/engineering-verification.md)).
+ - Scope, quantified: rough units and effort, plus the blockers grounding surfaced.
+ - The rigor level, biased high. One-way doors and high blast radius get more. Reversible low-stakes steps get less. Rigor is gates and artifacts, not "try harder".
+ 
+-Present the framing and tradeoffs before committing to a long run. Reversible work proceeds (the **never-block-on-the-human** principle skill), but a multi-hour run earns one checkpoint.
++Present the framing and tradeoffs before committing to a long run. Reversible work proceeds ([coordination guidance](../poteto-mode/references/engineering-coordination.md)), but a multi-hour run earns one checkpoint.
+ 
+ ## Phase B: Design the workflow
+ 
+-Decompose into atomic, independently-landable units. Sequence riskiest-unknown-first. Scaffold and verification come before features (the **foundational-thinking** principle skill).
++Decompose into atomic, independently-landable units. Sequence riskiest-unknown-first. Scaffold and verification come before features ([design guidance](../poteto-mode/references/engineering-design.md)).
+ 
+ - Build the verification harness before the work, with the baseline captured from the pre-change state, so the check reads as "old value vs new value".
+-- For one-way-door design decisions, run the **architect** skill (it runs **arena**). Skip it for mechanical work whose shape is already concrete. A second arena over a settled design is over-engineering (the **laziness-protocol** principle skill).
+-- Decide what fans out. Parallelize only across seams, and give each worker its own worktree or branch (the **separate-before-serializing-shared-state** principle skill). Don't over-fan.
++- For one-way-door design decisions, run the **architect** skill (it runs **arena**). Skip it for mechanical work whose shape is already concrete. A second arena over a settled design is over-engineering ([evolution guidance](../poteto-mode/references/engineering-evolution.md)).
++- Decide what fans out. Parallelize only across seams, and give each worker its own worktree or branch ([coordination guidance](../poteto-mode/references/engineering-coordination.md)). Don't over-fan.
+ - Write the designed phase list down. That list is what the human reviews.
+ 
+ Then execute the design. Add its steps to the todolist as concrete items, after the Phase C entry and before Phase D. Run each under the Phase C loop discipline, and weave the Phase D log through them, a row as each step lands, rather than saving the whole trail for the end.
+@@ -35,7 +35,7 @@ Then execute the design. Add its steps to the todolist as concrete items, after
+ ## Phase C: Run the loop
+ 
+ Each unit is an experiment. State the hypothesis, make the smallest change, measure against the predicate on the real artifact, keep it if it advanced, revert it if it didn't.
+-Apply the **sequence-verifiable-units** principle skill, verifying each unit before starting the next instead of batching checks at the end.
++Apply [evolution guidance](../poteto-mode/references/engineering-evolution.md), verifying each unit before starting the next instead of batching checks at the end.
+ 
+ - Verify by inspecting the artifact, never a self-report. When something passes too easily, suspect the observation method before the system.
+ - Pair delegated work with a judge. If a worker games the gate, reset and harden the contract. If the gate itself is wrong, fix the gate in its own change rather than routing around it.
+@@ -47,6 +47,6 @@ Log the run via the **show-me-your-work** skill. figure-it-out's work is usually
+ 
+ ## Phase E: Verify and hand back
+ 
+-Check the whole against the Phase A predicate on the real product, not just the harness. Encode any recurring correction as a gate, a lint rule, a check, or a script (the **encode-lessons-in-structure** principle skill).
++Check the whole against the Phase A predicate on the real product, not just the harness. Encode any recurring correction as a gate, a lint rule, a check, or a script ([verification guidance](../poteto-mode/references/engineering-verification.md)).
+ 
+ **Reply:** the playbook you designed, the rigor level and why, the decision-trail path, what's verified against the predicate, and what's still open.
+diff --git a/plugins/pstack/skills/interrogate/SKILL.md b/plugins/pstack/skills/interrogate/SKILL.md
+index 808d21f..af49932 100644
+--- a/plugins/pstack/skills/interrogate/SKILL.md
++++ b/plugins/pstack/skills/interrogate/SKILL.md
+@@ -40,14 +40,13 @@ Launch all reviewers in a single message using the `Agent` tool. Use the `interr
+ |----------|---------------|
+ | Reviewer A | `opus` |
+ | Reviewer B | `fable` |
+-| Reviewer C | `sonnet` |
+ 
+ For each reviewer:
+ - `subagent_type`: `general-purpose`
+ - `model`: the configured `interrogate reviewers` entry, or the table default with no configured line. For an `auto` or `inherit-parent` entry, omit `model` so that reviewer runs on the parent model.
+ - `readonly`: `true`
+ 
+-If the `Agent` tool rejects a configured entry, run that reviewer on the table default of its family and say so. Families go by model name, such as Opus, Fable, or Sonnet. With no family match, use Reviewer A's default. If it rejects a table default, check the valid slugs in the `Agent` tool's error message, pick the closest equivalent (prefer the highest-reasoning tier of the same family), spawn with it, and open a separate PR to update the default table. Do not block the review on the slug issue. Never treat an alias entry as a rejected slug or apply either fallback to it.
++If the `Agent` tool rejects a configured entry, run that reviewer on the table default of its family and say so. Families go by model name, such as Opus or Fable. With no family match, use Reviewer A's default. If it rejects a table default, check the valid slugs in the `Agent` tool's error message, pick the closest equivalent (prefer the highest-reasoning tier of the same family), spawn with it, and open a separate PR to update the default table. Do not block the review on the slug issue. Never treat an alias entry as a rejected slug or apply either fallback to it.
+ 
+ Read `references/reviewer-prompt.md` and fill in the template with:
+ 1. The stated intent
+diff --git a/plugins/pstack/skills/no-comments/SKILL.md b/plugins/pstack/skills/no-comments/SKILL.md
+index bc94d6d..5eb3450 100644
+--- a/plugins/pstack/skills/no-comments/SKILL.md
++++ b/plugins/pstack/skills/no-comments/SKILL.md
+@@ -20,6 +20,6 @@ Use the caller's files or diff. Otherwise use the current diff against the base
+ 1. Spawn an `Agent` with `subagent_type: "pstack:comment-sicko"`. Pass the scope. Do not restate its rules.
+ 2. Inspect its report and diff. Reject application-code edits, scope escapes, exception-protected deletions, misstated `MUST KILL` reasons, and flags that treat kept intentional code as guilty. Reshape flags on our-code surprises stay actionable. Do not restore those comments. A keep survives only with proof it is about something we cannot change. Audit missed scoped lint and TypeScript suppressions. Correctness or safety suppressions stay actionable `MUST KILL`s. Restore deletions only with exact exceptions and scoped proof. Before accepting thin `IMPORTANT` or `do not remove` kills or keeps, run `/how` or `/why` on their symbol. If a kill is ambiguous, do not restore. If a keep is refuted or still ambiguous, delete it. Revert and rerun one rejected report with the failure named. Reject a second, report it open, and fail `/no-comments`.
+ 3. Fix trivial accepted flags directly by deleting a dead path, dropping a parameter, or using the real API. If any fix needs a shape, run `/architect` once for the accepted set and surrounding code. Stop at the sketch. Architect shapes. Step 4 implements.
+-4. Implement the smallest root-cause fix in scope. Remove every named workaround. If the root cause is out of scope, land the smallest in-scope fix and report the rest open. The **principle-fix-root-causes** and **principle-redesign-from-first-principles** skills guide intent only. Neither authorizes widening the fence nor fixing instances outside it. Never bolt on symptom guards.
+-5. Constraint comments say `do not remove`, `do not change wording`, or `talk to X before changing`. Leave keeps about things we cannot change. Offer the cheapest in-scope type, runtime, test, or CI lint. Wait for interactive approval. Unattended and eval require caller pre-approval. If approved, encode then delete. Otherwise delete, report the constraint open, and sketch out-of-scope work.
++4. Implement the smallest root-cause fix in scope. Remove every named workaround. If the root cause is out of scope, land the smallest in-scope fix and report the rest open. The [verification guidance](../poteto-mode/references/engineering-verification.md) and [evolution guidance](../poteto-mode/references/engineering-evolution.md) guide intent only. Neither authorizes widening the fence nor fixing instances outside it. Never bolt on symptom guards.
++5. For a comment asserting a constraint, verify its purpose and owner. If an authorized in-scope type, runtime check, test, or lint can enforce the same constraint, implement and verify that replacement before deleting the comment. If the replacement needs a new decision or exceeds scope, preserve the comment and report the open constraint. Prior authorization for that exact change remains valid.
+ 6. Report the deletion count, restored comments, reruns, architect sketch, fixes, encoding offers, encodings, unenforced constraints, and other open work.
+diff --git a/plugins/pstack/skills/poteto-mode/SKILL.md b/plugins/pstack/skills/poteto-mode/SKILL.md
+index 3cd6a92..f16b182 100644
+--- a/plugins/pstack/skills/poteto-mode/SKILL.md
++++ b/plugins/pstack/skills/poteto-mode/SKILL.md
+@@ -1,6 +1,7 @@
+ ---
+ name: poteto-mode
+-description: poteto's agent style for concise, detailed responses, deliberate subagents, unslopped prose, simple code, and verified work. Use for poteto, /poteto-mode, or requests to work in this style.
++description: "Use the Pstack playbooks when the user requests poteto mode or its engineering workflow style."
++menu-description: apply the Pstack engineering playbooks when requested
+ ---
+ 
+ # Poteto mode
+@@ -11,81 +12,44 @@ These skills use Claude Code tool names (the `Skill` tool, the `Agent` tool, `As
+ 
+ Use the session's task-tracking tools for the todolist. On Claude Code these are `TaskCreate` and `TaskUpdate`, or `TodoWrite` when configured. Availability depends on the model; `CLAUDE_CODE_ENABLE_TODO_TOOLS=1` enables them through the environment or a project's `.claude/settings.local.json` `env` block. See the [task-tool documentation](https://code.claude.com/docs/en/tools-reference#task-tool-availability). If no task-tracking tool is available, keep an uncommitted `todo.md` Markdown checklist in the work dir, next to the decision trail, with the playbook steps verbatim and each `skip: <reason>` line.
+ 
+-## Non-negotiables
+-
+-The Principles section below grounds every trigger. In your reply, name each principle that shaped a decision and the specific choice it changed. Cite only principles whose leaf SKILL.md you read this session.
+-
+-Remaining triggers:
+-
+-- Nontrivial change, architecture decision, or "are we sure?" → the **how** skill.
+-- About to `AskUserQuestion` on a "which approach", "how should I", or "what should this do" fork → classify it before you ask. If the answer is a fact you could observe by running something (behavior, timing, layout, output, perf, even whether an eval separates), it is not the human's to answer. Sketch it via the Prototype playbook (`playbooks/prototype.md`) and let the result decide. If the task is a read-only Investigation whose deliverable is a cited answer, stay in it and answer from the evidence rather than building a sketch. Reserve the question for a genuine product or preference call no experiment can settle. Under a full-autonomy grant, decide a call that the grant covers, act on it, and report it, with no reply word and no offer. Under the grant, apply a default for a call that only the operator can make. Report the default with a full explanation, and say in plain words what the operator could tell you to do instead. The operator answers in their own words. Never give a shorthand token to type back. Gates that the operator named and the Always-pause list in Autonomy still need the operator.
+-- Any code → name the data shape first, and choose its organizing structure per **principle-model-the-domain**.
+-- Code crossing a function boundary → the **architect** skill, parallel design exploration before implementing.
+-- Parallel fan-out → the **swarm** skill for coverage matrices, races, gauntlets, and exploration partitions. Use **arena** for design or code bakeoffs with base selection and grafting.
+-- Contested design → the **interrogate** skill (multi-model adversarial) before shipping.
+-- Nontrivial multi-step → write the throughput checkpoint (Feature step 3).
+-- Any prose surface → the **unslop** skill. Your reply is a prose surface. Write it per **Writing the reply**. Agent-facing prose also follows the **plugin-dev:skill-development** skill (Claude Code's authoring guidance for SKILL.md files).
+-- Docs, RFCs, readmes, PR descriptions, commit messages → the **technical-writing** skill (`/technical-writing`) for structure and sentence discipline, on top of **unslop**.
+-- Before commit → the **deslop** skill (`/deslop`).
+-- Before review → the **no-comments** skill (`/no-comments`).
+-- Running a benchmark, measuring perf yourself, or reporting a speedup or regression you measured → the **benchmark-checklist** skill before you report or act on the number.
+-- Shipping UI / IDE / CLI → the driver skill. `run` ships with Claude Code and the model can invoke it for CLIs, TUIs, servers, and browser or Electron apps. The bundled `verify` runs only when the user types `/verify`, so for UIs use the project `verify` skill at `.claude/skills/verify/` (generate it with `/create-verification-skill`) and fall back to `run` when the repo has none. For bug fixes, reproduce first on the same surface yourself. Hand to the user only under the narrow Bug fix step 1 exception.
+-- Any PR-status request → the **Babysit** playbook (`playbooks/babysit.md`), not the bundled **babysit** skill, whose description matches the same words. That includes "babysit this", "get it green", "address the review-bot comments", and the commonest phrasing, "check on PR X" / "anything outstanding on X". Never triggered by merely opening a PR. Declare its mode before polling. The playbook's step 1 owns the request-to-mode mapping. Reaching for `drive` inside a phase agent stops that agent finishing its turn.
+-- Asked to land or ship a green stack → the **Shipping** playbook (`playbooks/shipping.md`). Green is not safe. Nothing gets armed before an independent per-PR verdict, and only the contiguous verified run from the root lands.
+-- An automated PR-review bot or the agentic security review commented → skeptical posture. They catch real bugs and also file non-issues and nitpicks, so assess each on its merits and dismiss noise with a concrete reason instead of churning code. Triage fix / dismiss / ask per `references/bugbot-triage.md`.
+-- Deploying to a managed platform (Railway, Fly, Vercel, Heroku, and the like) → load that platform's skill, project-local or installed, before running its CLI, the same way Shipping step 1 resolves the forge before the first PR operation.
+-- A defect found mid-task → severity decides its artifact, not where it turned up. A correctness or data gap gets a tracked issue even when it surfaces while writing a closure doc; a cosmetic margin can stay in the doc.
+-- Broken skill mid-task → fix it in its own PR. Don't block. Don't silently work around it.
+-- Long, autonomous, or multi-phase work, or any task the user steps away from to review later ("going to bed", "trust it when i'm back", "/loop until X") → a decision trail via the **show-me-your-work** skill. Commit it when stakes need an auditable record. Keep it local otherwise.
+-
+-## Principles
+-
+-Read the leaf skill in full for any principle you apply. Each entry names when it applies.
+-
+-**Core**
+-
+-- **Laziness Protocol** (**principle-laziness-protocol**). Refactoring, sizing a diff, or tempted to add abstractions, layers, or signal threading. Bias to deletion and the smallest change that solves the problem.
+-- **Foundational Thinking** (**principle-foundational-thinking**). Before writing logic: core types and data structures, scaffold-vs-feature sequencing, what concurrent actors share.
+-- **Redesign from First Principles** (**principle-redesign-from-first-principles**). Integrating a new requirement into an existing design. Redesign as if it had been foundational from day one.
+-- **Attack the Premise** (**principle-attack-the-premise**). Repeated fixes share an assumption and fail. State that assumption and choose an observation that can challenge it before another fix depends on it. Count work per actor when the hypothesis concerns uneven assignment.
+-- **Subtract Before You Add** (**principle-subtract-before-you-add**). Sequencing an addition, refactor, or rewrite. Remove dead weight first, then build on the simpler base.
+-- **Minimize Reader Load** (**principle-minimize-reader-load**). Reviewing or shaping code that's hard to trace. Count layers and hidden state, collapse one-caller wrappers, shrink mutable scope.
+-- **Outcome-Oriented Execution** (**principle-outcome-oriented-execution**). Planned rewrites and migrations with explicit phase boundaries. Converge on the target architecture, don't preserve throwaway compatibility states.
+-- **Experience First** (**principle-experience-first**). Product, UX, or feature-scope tradeoffs. Choose user delight over implementation convenience.
+-- **Exhaust the Design Space** (**principle-exhaust-the-design-space**). A novel interaction or architectural decision with no precedent. Build 2-3 competing prototypes and compare before committing.
+-- **Build the Lever** (**principle-build-the-lever**). Any non-trivial work. Build the tool that does or proves it (codemod, script, generator), not by hand. The tool is the artifact a reviewer reruns.
+-
+-**Architecture**
+-
+-- **Model the Domain** (**principle-model-the-domain**). Writing stateful logic, or code that branches a lot or repeats a shape assumption across files. Encode the domain in a structure (state machine, typed model, table or registry, reducer, boundary, the right collection) instead of scattered conditionals.
+-- **Boundary Discipline** (**principle-boundary-discipline**). Wiring validation, error handling, or framework adapters. Guards at system boundaries, trust internal types, keep business logic pure.
+-- **Type System Discipline** (**principle-type-system-discipline**). Designing types or a signature in any typed language. Make illegal states unrepresentable, brand primitives, parse external data at boundaries.
+-- **Make Operations Idempotent** (**principle-make-operations-idempotent**). Designing commands, lifecycle steps, or loops that run amid crashes and retries. Converge to the same end state.
+-- **Migrate Callers Then Delete Legacy APIs** (**principle-migrate-callers-then-delete-legacy-apis**). Introducing a new internal API while old callers exist. Migrate and delete in one wave.
+-- **Separate Before Serializing Shared State** (**principle-separate-before-serializing-shared-state**). Concurrent actors might write the same file, branch, key, or object. Eliminate the sharing first.
+-
+-**Verification**
+-
+-- **Prove It Works** (**principle-prove-it-works**). After a task, before declaring done. Verify against the real artifact, not a proxy or "it compiles".
+-- **Fix Root Causes** (**principle-fix-root-causes**). Debugging. Trace each symptom to its root cause, reproduce first, ask why until you reach it.
+-- **Sequence Work into Verifiable Units** (**principle-sequence-verifiable-units**). Multi-step work (sweeps, migrations, runs of similar edits) and how you stack commits and PRs. Break work into small units that each end in a check, verify each before the next, and order delivery so the sequence proves itself.
+-- **Test Behavior, Not Implementation** (**principle-test-behavior-not-implementation**). Writing, changing, or keeping a test. Identify a relevant defect and check that the complete test arrangement detects it. Assert the required result or effect, including absence and fixed values when the contract requires them.
+-- **Explain the Number** (**principle-explain-the-number**). Before you trust, report, or act on a number you measured (a speedup, a regression, a throughput, a latency, or an eval result). Find what limits it, and rule out that it measured something other than the work you think.
+-
+-**Delegation**
+-
+-- **Guard the Context Window** (**principle-guard-the-context-window**). Context fills up: large outputs, long files, repeated reads, fan-out planning. Route bulk to subagents, keep summaries in the main thread.
+-- **Never Block on the Human** (**principle-never-block-on-the-human**). Tempted to ask "should I do X?" on reversible work. Proceed, present the result, let the human course-correct.
+-
+-**Meta**
+-
+-- **Encode Lessons in Structure** (**principle-encode-lessons-in-structure**). You catch yourself writing the same instruction a second time. Encode it as a lint, metadata flag, runtime check, or script instead of more text.
++## Task routing
++
++Use the playbook that matches the requested outcome. Apply its relevant steps;
++do not expand an ordinary change into an architecture panel, a comment-removal
++pass, or a separate review workflow unless the task or demonstrated risk calls
++for it. Existing authorization and the user's output format take precedence.
++
++- For a consequential unresolved design choice, use `architect` or `how`; use
++  `interrogate` when independent challenge will materially improve the decision.
++- For explicitly requested parallel alternatives, use `arena`; for independent
++  coverage partitions, use `swarm`.
++- For PR-status or repair requests, use the Babysit playbook in its matching mode.
++- For authoring documentation, use `technical-writing` when document structure
++  needs guidance. Ordinary replies follow the active writing preferences.
++- For explicit prose editing, use `no-ai-slop` if installed; otherwise preserve
++  the author's facts and voice and make the minimum effective edit directly.
++- For UI, IDE, or CLI verification, use the project `verify` skill at `.claude/skills/verify/` for UIs (generate it with `/create-verification-skill`) and fall back to `run` when the repo has none.
++- Before deploying to a managed platform (Railway, Fly, Vercel, Heroku, and the like), load that platform's skill, project-local or installed, before running its CLI.
++- For running a benchmark, measuring performance yourself, or reporting a speedup or regression you measured, use the `benchmark-checklist` skill before you report or act on the number.
++- For a defect found mid-task, severity decides its artifact, not where it turned up: a correctness or data gap gets a tracked issue; a cosmetic margin can stay in the doc.
++
++## Conditional engineering guidance
++
++Read only the reference relevant to a material decision; these are not four
++mandatory preflight reads.
++
++- State, interfaces, or product behavior: [design](references/engineering-design.md).
++- Refactors and migrations: [evolution](references/engineering-evolution.md).
++- Reproduction, checks, and completion proof: [verification](references/engineering-verification.md).
++- Delegation, shared state, and retries: [coordination](references/engineering-coordination.md).
+ 
+ ## Autonomy
+ 
+-**Just do it.** Use any MCP tool. Reversible work and external actions (team chat, ticket updates, kicking off evals) proceed without asking.
++**Just do it, locally.** Use any MCP tool. Reversible work on this machine proceeds without asking: write code, edit notes, run builds, tests, typechecks and linters, split tasks, spin up local sketches.
++
++**Always pause** before anything that leaves the machine or cannot be undone: push, deploy, publish, send, any external write (team chat, ticket updates, customer messages), force-push to shared branches, data deletion, credentials or private data, and any expansion past the stated scope. Kicking off an eval that only runs locally is local work; one that posts or spends is not. This overrides the upstream "external actions proceed without asking" line, and it is the operator's own Autonomy & permissions rule.
+ 
+-**Always pause** for irreversible writes: force-push to shared branches, deploys, data deletion, customer messages.
++**Session overrides do not cross that line.** "Run until done" authorizes continuing without check-ins; it does not authorize an external write that was not already sanctioned.
+ 
+ **Session overrides:** "Don't stop" / "going to bed" / "run until done" / "be fully autonomous" → keep going.
+ 
+@@ -103,17 +67,13 @@ You own every subagent's work. Review the diff and write your own summary, don't
+ 
+ ## Writing the reply
+ 
+-Write the reply clean as you draft it. A cleanup pass after drafting does not remove these patterns.
+-
+-- **Short declarative sentences.** One thought per sentence, ended with a period.
+-- **No long-dash character anywhere.** Write a file-list bullet as a sentence ("`main.js` owns persistence and the IPC handlers") and a bold section header as its own sentence ("**Verification.** End to end via CDP").
+-- **A colon as a mid-sentence connector is also out** (unslop rule 14). A colon before a list is fine.
+-- **Terse is not an excuse to drop content.** Every item the playbook's reply names stays. Render each as prose, usually a sentence or two, longer when the content needs it. No section headers, and no item expanded into its own block.
+-- **Frame impact for the consumer and the maintainer.** Name who the work is for (an end user, a colleague importing the library) and what changes for them before any implementation detail. Then what the next engineer who owns this code inherits. If you can't say what either would notice, the work or the explanation is off.
+-- **Never fabricate a link, citation, or transcript reference.** Link only artifacts you produced or read this session.
+-- **Every claim carries its evidence or its label in the same sentence.** Measured, inferred, or guess. A prediction or an unseen cause is a guess. Never hand the human a check you could run.
+-
+-Every playbook ends with a reply written this way, PR link as `https://github.com/<owner>/<repo>/pull/<number>`. The per-playbook lines below name only the content unique to that playbook.
++Lead with the outcome and include the evidence, limitations, and next action the
++reader needs. Follow the user's language and requested format. A specialized
++workflow may specify necessary contents, but it does not impose punctuation bans,
++an unnecessary rewrite loop, or a fixed length on every reply.
++Label each claim as measured, inferred, or a guess in the same sentence;
++a prediction or an unseen cause is a guess. Do not hand the reader a check
++you could run.
+ 
+ ## Comments
+ 
+@@ -121,7 +81,7 @@ Comments follow the same rule as the reply. Write them clean as you go. Keep a c
+ 
+ ## Playbooks
+ 
+-Open a todolist whose first items are the matched playbook's steps, copied in verbatim, before any task-specific todos. A step you choose not to do stays in the list with a one-line `skip: <reason>`. Match the task to a playbook below, open its file, and copy its steps in verbatim.
++Match the task to the playbook below and read its relevant procedure. Use a task plan when it helps track independent outcomes; adapt procedural steps to the request and available tools while preserving required evidence and authorization boundaries.
+ 
+ A large or cross-cutting effort (a migration across many call sites, an ambitious multi-part change), or work the user steps away from to trust later, routes to the **figure-it-out** skill even when a narrower playbook like Feature fits. Use **figure-it-out** whenever no bundled playbook fits. It designs a bespoke, rigorous playbook for the task. A standing project-scale program (multi-day, many stacked PRs, a fleet of subagents under one coordinator) routes to **Orchestrate** instead. figure-it-out designs one bespoke run, orchestrate runs the program.
+ 
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/authoring-a-skill.md b/plugins/pstack/skills/poteto-mode/playbooks/authoring-a-skill.md
+index f4ea028..075480b 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/authoring-a-skill.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/authoring-a-skill.md
+@@ -7,6 +7,6 @@
+ 3. Test cases if structural. Skip if subjective.
+ 4. Run **Opening a PR**.
+ 
+-When in doubt, delete. Keep only prose that changes a decision. Tell it to do the thing and skip the reason. Explain only when the rule is confusing without one. Match tone to scope. Point at structural sources (types, READMEs, config) per the **encode-lessons-in-structure** principle skill. Delegate to other skills by path. Don't restate. A workflow you keep hitting but isn't captured → propose a new skill.
++When in doubt, delete. Keep only prose that changes a decision. Tell it to do the thing and skip the reason. Explain only when the rule is confusing without one. Match tone to scope. Point at structural sources (types, READMEs, config) per [verification guidance](../references/engineering-verification.md). Delegate to other skills by path. Don't restate. A workflow you keep hitting but isn't captured → propose a new skill.
+ 
+ **Reply:** summary of the skill, key design decisions, validation notes.
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/autonomous-run.md b/plugins/pstack/skills/poteto-mode/playbooks/autonomous-run.md
+index 3bd1fef..394017d 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/autonomous-run.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/autonomous-run.md
+@@ -5,7 +5,7 @@
+ 1. State the exit condition as a checkable predicate before the first iteration (tests green, repro fixed, all N PRs merged, pixel-diff zero).
+ 2. Pick the wake mechanism using Claude Code's `loop` skill (a built-in, not a pstack skill). An event to watch (CI, a merge, a ref advancing) gets a watcher subagent that wakes you on the event, with a long time-based heartbeat as fallback. No event gets a fixed-interval heartbeat sized to when the result is worth re-checking.
+ 3. Each iteration makes the smallest change the evidence justifies, verifies it against the predicate, commits if it advanced, discards changes that didn't help. Belt-and-suspenders that "might help" gets reverted, not left to ride.
+-   Sequence the work via the **sequence-verifiable-units** principle skill, verifying each unit before the next instead of batching checks at the end.
++   Sequence the work via [evolution guidance](../references/engineering-evolution.md), verifying each unit before the next instead of batching checks at the end.
+ 4. Mid-run discoveries are yours. Address broken skills, related bugs, flaky verifiers, review noise, tooling failures, orphaned follow-ups, and fixable drift yourself via poteto-mode. Put out-of-band fixes in their own PR. Do not park reversible work for the human or use `AskUserQuestion`. Surface only irreversible actions, genuine product or preference calls no experiment can settle, or a real dead end. Keep the predicate as the main drive, and return to it after each side fix.
+ 5. Checkpoint every iteration via the **show-me-your-work** skill, a row for what changed and whether the predicate moved.
+ 6. Stop when the predicate is met. A plateau is not a stop, so keep going and pivot your approach to push past it. Surface a genuine dead end rather than spinning, and never relax the predicate to declare victory.
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/autopilot-full.md b/plugins/pstack/skills/poteto-mode/playbooks/autopilot-full.md
+index 4c581d6..d50f3e5 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/autopilot-full.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/autopilot-full.md
+@@ -5,7 +5,7 @@ Resolve the driver skill through [poteto-mode's Non-negotiables](../SKILL.md#non
+ **You own the verdicts, never the PRs. One owner runs each PR from build to merge-ready, and nothing merges without both your clean swarm verdict and the operator's explicit merge click.** For "autopilot this queue", "full autopilot", and one-owner-per-PR programs. Orchestrate runs a standing program whose coordinator lands verified work itself and whose workers never merge. Here each PR's owner carries the whole lifecycle up to merge-ready, the operator clicks the merge, and the root keeps only verification, countersigns, and audits.
+ 
+ 1. **Mark the operator's items and honor state-then-wait.** Items the operator names stay with the operator. The operator reviews and clicks, and no owner merges one. When the operator asks for the protocol or the plan to be stated, deliver the statement and stop. Execution starts only on the operator's explicit go. On that go, write the full program objective into the standing orders and restate it in your todolist. That objective stands across turns until the queue is done.
+-2. **Spawn one owner per PR with the full lifecycle and an early trail.** Resolve the forge once for the program. GitHub CLI (`gh`) is the default. If `command -v origin` succeeds and Origin can resolve the repository, use `origin pr ...` for PR create, edit, view, watch, and merge operations. Otherwise stay on `gh` and record the fallback. Never require Graphite (`gt`). One background subagent per PR, in its own worktree, owns build, the first push, a ready PR, self-proof on the real artifact (the **prove-it-works** principle skill), skeptical review-bot triage per `../references/bugbot-triage.md`, a slop-strip (the **deslop** skill, `/deslop`), `/no-comments` (the **no-comments** skill), a rebase onto current trunk, and the babysit loop to green (`playbooks/babysit.md`). Within about 15 minutes, every owner starts a `decisions.tsv` trail per the **show-me-your-work** skill, pushes its first branch snapshot, and opens the PR ready, never draft. After that, the owner pushes its branch again after every verifiable unit (hooks on, a WIP commit is fine). Open the PR before self-proof so the URL, decisions, and checks form a durable trail. Keep `decisions.tsv` uncommitted and return it with the reports. As soon as a subagent starts, the owner adds its ID, expected runtime (at least the longest past run of that kind), and state to a `children.tsv` kept the same way. The owner does the first rebase before the code-ready report and babysit, whether or not trunk has drifted. In fix rounds, the owner keeps that merge base. The owner rebases again only at merge prep (step 5), on a `git merge-tree` conflict with trunk, or on a CI failure that comes from a change on trunk. When the shipped code is final, after the slop-strip and `/no-comments`, it reports the code-ready head SHA. It also reports the SHA of each later push that changes the patch. Self-proof, CI, and babysit then run in parallel with the swarm. The owner reports merge-ready with the head SHA when self-proof, CI, and babysit finish. Before a push that starts a round, run the pre-review checks that the repo's CLAUDE.md files and rules name for the touched paths. Run them on the committed head. A hook pass is not proof. To publish each rebase, push the owner's own branch with `git push --force-with-lease` after an `ls-remote` check. Never force-push a shared branch. The owner drives to merge-ready and stops there. No owner runs the merge. Step 4 gates the verdict and step 5 hands the merge to the operator.
++2. **Spawn one owner per PR with the full lifecycle and an early trail.** Resolve the forge once for the program. GitHub CLI (`gh`) is the default. If `command -v origin` succeeds and Origin can resolve the repository, use `origin pr ...` for PR create, edit, view, watch, and merge operations. Otherwise stay on `gh` and record the fallback. Never require Graphite (`gt`). One background subagent per PR, in its own worktree, owns build, the first push, a ready PR, self-proof on the real artifact ([verification guidance](../references/engineering-verification.md)), skeptical review-bot triage per `../references/bugbot-triage.md`, a slop-strip (the **deslop** skill, `/deslop`), `/no-comments` (the **no-comments** skill), a rebase onto current trunk, and the babysit loop to green (`playbooks/babysit.md`). Within about 15 minutes, every owner starts a `decisions.tsv` trail per the **show-me-your-work** skill, pushes its first branch snapshot, and opens the PR ready, never draft. After that, the owner pushes its branch again after every verifiable unit (hooks on, a WIP commit is fine). Open the PR before self-proof so the URL, decisions, and checks form a durable trail. Keep `decisions.tsv` uncommitted and return it with the reports. As soon as a subagent starts, the owner adds its ID, expected runtime (at least the longest past run of that kind), and state to a `children.tsv` kept the same way. The owner does the first rebase before the code-ready report and babysit, whether or not trunk has drifted. In fix rounds, the owner keeps that merge base. The owner rebases again only at merge prep (step 5), on a `git merge-tree` conflict with trunk, or on a CI failure that comes from a change on trunk. When the shipped code is final, after the slop-strip and `/no-comments`, it reports the code-ready head SHA. It also reports the SHA of each later push that changes the patch. Self-proof, CI, and babysit then run in parallel with the swarm. The owner reports merge-ready with the head SHA when self-proof, CI, and babysit finish. Before a push that starts a round, run the pre-review checks that the repo's CLAUDE.md files and rules name for the touched paths. Run them on the committed head. A hook pass is not proof. To publish each rebase, push the owner's own branch with `git push --force-with-lease` after an `ls-remote` check. Never force-push a shared branch. The owner drives to merge-ready and stops there. No owner runs the merge. Step 4 gates the verdict and step 5 hands the merge to the operator.
+ 3. **Run owners in true parallel and never stack.** Many owners at once when PRs are self-contained: one writer per branch, disjoint files, cross-PR drift absorbed by rebase. Only genuinely overlapping work serializes. Self-contained PRs branch straight off main, and sequenced work is merge-then-branch. One exception: an owner that must split a genuinely dependent change may hold a short private base-branch stack.
+ 4. **Swarm-verify every round before its merge.** A round starts at the owner's code-ready head SHA and at each later push that changes the PR's patch. At that SHA, fan out parallel independent verifiers per the **swarm** skill and aggregate to one verdict. The merge needs a clean verdict from the round whose patch matches the merge-ready head. Audit the receipts in the merge-ready report before the verdict. The lanes: re-run the gates at that SHA. Prove the load-bearing behavior live on the real surface the change touches through the driver skill. Audit the diff, distrusting the PR body. Run the audit as two or more review lanes with the full brief. Give each lane one main focus, such as consumer parity with trunk, lifetimes and races, or data and config safety. **Regression lane against trunk.** Run the same load-bearing scenario on current trunk. If trunk does not have the feature, record that fact and gate the behavior the diff adds plus the end state the user waits for instead of pretending trunk can produce it. The live lane is the floor, and a verdict without it is not clean. No merge without the root's clean verdict. When the lanes return, send every proven finding against the PR to the owner in one fix-forward. A defect that a lane filed as a note is a finding. For each behavior finding, ask for a red test that covers every site with the same defect. Where no test can show the defect, ask for a repro receipt instead. Add that defect to the next round's review brief. The new head gets a fresh swarm and a fresh verdict, except for lane results that stay valid under the patch-id rule in `playbooks/shipping.md`.
+ 5. **On a clean verdict the owner hands off, and a fresh owner takes the next item.** The merge-ready head must be freshly rebased onto trunk. Merge prep never comes before a round's lanes start, and it ends with a rebase onto current trunk right before the hand-off. After the merge-prep rebase, the owner reports the new head SHA. CI must pass on that head before the hand-off, and the patch-id rule decides whether the round's verdict still holds. If trunk moves again before the operator merges, the patch-id rule in `playbooks/shipping.md` governs re-verification. A new head invalidates readiness. An unchanged patch-id may preserve substantive review only after checking its applicability to the new base and context. Rerun checks and mergeability. The owner presents the verified merge-ready PR to the operator, with its swarm verdict and pinned SHA, then returns. A fresh owner picks up the next self-contained item from the queue, per poteto-mode's Subagents section. The operator reviews and squash-merges. No owner runs the merge itself. Every item waits for the operator's click, the gate operator-named items always had. The root's clean verdict is a precondition for that click, never a substitute for it.
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/bug-fix.md b/plugins/pstack/skills/poteto-mode/playbooks/bug-fix.md
+index a243286..6dc9112 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/bug-fix.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/bug-fix.md
+@@ -9,7 +9,7 @@ Be scientific. Every shipped line traces to runtime evidence. Belt-and-suspender
+ 3. Plan the fix. If it crosses a function boundary, `architect` first. Delegate implementation to a subagent using your configured bug-fix model (default in poteto-mode's Models section) with a specific scope.
+ 4. Verify on the same surface. The original repro now passes. "Inconclusive" or wrong-surface is not a pass. Flag it. Unit tests show branch behavior, not bug absence.
+ 5. Stage the commits so the failing repro lands before the fix in git history. See the **tdd** skill for the failing-test-first cadence when the bug has a cheap local test path. Skip it when the test would be expensive, integration-heavy, or unclear.
+-   This is the canonical **sequence-verifiable-units** principle skill, the failing test first and the fix on top.
++   This is the canonical verifiable-units sequence ([evolution guidance](../references/engineering-evolution.md)): the failing test first and the fix on top.
+ 6. Run **Opening a PR**.
+ 
+ **Reply:** what was broken, root cause, fix, how you verified. Quote the decisive failing and passing output, trimmed to the assertion and the counts.
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/feature.md b/plugins/pstack/skills/poteto-mode/playbooks/feature.md
+index dcb0ef4..6d25862 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/feature.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/feature.md
+@@ -7,12 +7,12 @@
+ 3. Write the throughput checkpoint as four todo items. A dimension that genuinely does not apply (single file, no fan-out) keeps its item with `n/a: <reason>` rather than being dropped:
+    - **Blocking first steps.** Gates run before fan-out.
+    - **Independent workstreams.** Disjoint files, services, or layers parallelize. Shared writes serialize.
+-   - **Shared mutable state.** Default to splitting the target (the **separate-before-serializing-shared-state** principle skill). Serialize only for real invariants.
++   - **Shared mutable state.** Default to splitting the target ([coordination guidance](../references/engineering-coordination.md)). Serialize only for real invariants.
+    - **Smallest safe decomposition.** If one worker is best, name why.
+-4. Delegate code-writing to a subagent using your configured feature model (default in poteto-mode's Models section) with a specific scope (file paths, named data shape and its organizing structure per **principle-model-the-domain**, a state machine over scattered booleans, a table/registry over branching, a typed model over repeated shape assumptions, chosen before the delegate writes logic, and success criteria). When the implementation admits multiple valid shapes (error handling, abstraction layer, test structure), delegate via the **arena** skill instead so the runners surface the alternatives and the cross-judge guards the pick. Mandatory: no skip-with-reason escape, and Laziness Protocol does not override it (the gain is review separation, not lines saved). A subagent forbidden to spawn satisfies this by owning the diff directly with the same review separation. No "standing by" reply that waits on a nested agent. **Give every file-writing delegate its own worktree** (spawn it with `isolation: "worktree"`, or hand it an exclusive branch), and do not write files or run a suite in a worktree a delegate still holds. Fencing a file in the brief's prose is not a lock (**principle-separate-before-serializing-shared-state**). Comments per **Comments**. Surgical edits, re-ground against the source for upstream-derived files. Port shared-primitive improvements to all consumers and verify each. Commit liberally.
++4. Delegate code-writing to a subagent using your configured feature model (default in poteto-mode's Models section) with a specific scope (file paths, named data shape and its organizing structure per [design guidance](../references/engineering-design.md), a state machine over scattered booleans, a table/registry over branching, a typed model over repeated shape assumptions, chosen before the delegate writes logic, and success criteria). When the implementation admits multiple valid shapes (error handling, abstraction layer, test structure), delegate via the **arena** skill instead so the runners surface the alternatives and the cross-judge guards the pick. Mandatory: no skip-with-reason escape, and Laziness Protocol does not override it (the gain is review separation, not lines saved). A subagent forbidden to spawn satisfies this by owning the diff directly with the same review separation. No "standing by" reply that waits on a nested agent. **Give every file-writing delegate its own worktree** (spawn it with `isolation: "worktree"`, or hand it an exclusive branch), and do not write files or run a suite in a worktree a delegate still holds. Fencing a file in the brief's prose is not a lock ([coordination guidance](../references/engineering-coordination.md)). Comments per **Comments**. Surgical edits, re-ground against the source for upstream-derived files. Port shared-primitive improvements to all consumers and verify each. Commit liberally.
+ 5. Verify on the matching surface. "Inconclusive" or wrong-surface is not a pass. Flag it.
+ 6. Rebase into small, ordered commits. Stack follow-ups.
+-   Use the **sequence-verifiable-units** principle skill, building, verifying, and committing each small unit before the next.
++   Use [evolution guidance](../references/engineering-evolution.md), building, verifying, and committing each small unit before the next.
+ 7. If the design is contested, `interrogate` before shipping.
+ 8. Run **Opening a PR**.
+ 
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/hillclimb.md b/plugins/pstack/skills/poteto-mode/playbooks/hillclimb.md
+index 9abaaa9..8d7edcc 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/hillclimb.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/hillclimb.md
+@@ -2,19 +2,19 @@
+ 
+ **You own the metric and the experiment's integrity. Supervise and review. Delegate the attempts.** For sustained, iterative improvement of one measurable thing against a target. A one-off fix is Bug fix or Perf issue. This is the loop.
+ 
+-Core discipline: one change, one measurement, keep or revert. Never stack untested changes, and never claim a win from code inspection (the **prove-it-works** principle skill).
++Core discipline: one change, one measurement, keep or revert. Never stack untested changes, and never claim a win from code inspection ([verification guidance](../references/engineering-verification.md)).
+ 
+ 1. Ground the workload and architecture before choosing the metric. Run the **how** skill over the target, name the realistic workload dimensions that can move the result (data size, history, state, concurrency), and select a case that reproduces the user's complaint. If no case reproduces it, fix the repro instead of hillclimbing. Then fix one metric, the direction that counts as better, and a checkable stop predicate that pairs a target with a floor on attempts so a lucky early win can't end the run (the example "at least 50% better than baseline and at least 10 iterations" is this shape). Use the user's numbers when given, otherwise agree them.
+-2. Build the measurement harness, prove its sensitivity, then freeze it (the **build-the-lever** principle skill). Run contrasting realistic workloads and confirm the target case reproduces the symptom while easier cases separate as expected. If the harness cannot distinguish them, revise the workload or metric. Vet the harness with the **benchmark-checklist** skill before you freeze it, and make it print its error count and a count of the work done. Once frozen, one repeatable command emits the metric, sampled enough to clear the noise (median of N, not a single run). Record the baseline metric and a green run of the regression gate (the tests that must keep passing) before any change.
++2. Build the measurement harness, prove its sensitivity, then freeze it ([verification guidance](../references/engineering-verification.md)). Run contrasting realistic workloads and confirm the target case reproduces the symptom while easier cases separate as expected. If the harness cannot distinguish them, revise the workload or metric. Vet the harness with the **benchmark-checklist** skill before you freeze it, and make it print its error count and a count of the work done. Once frozen, one repeatable command emits the metric, sampled enough to clear the noise (median of N, not a single run). Record the baseline metric and a green run of the regression gate (the tests that must keep passing) before any change.
+ 3. Open the decision log via the **show-me-your-work** skill. A `decision.tsv`, one row per attempt: id, hypothesis, change, before, after, delta, tests, verdict (kept or reverted), note. Read it before each attempt. Keep it out of the tree (gitignored).
+ 4. Ground each hypothesis in the architecture model from step 1, so it names a specific mechanism ("defer X off the boot path because it blocks first paint"), not "try memoizing something". For a perf metric, order hypotheses by the performance mantras in step 2 of the Perf issue playbook (`playbooks/perf-issue.md`). Borrow only their order, not that step's stop rule.
+ 5. Loop, one hypothesis per iteration:
+-   - Hand the change to a subagent using your configured hillclimb model (default in poteto-mode's Models section) with a tight scope. Supervise and review the diff rather than typing it (the **guard-the-context-window** principle skill). When several independent hypotheses are live, fan them to parallel subagents, each in its own worktree (the **separate-before-serializing-shared-state** principle skill).
++   - Hand the change to a subagent using your configured hillclimb model (default in poteto-mode's Models section) with a tight scope. Supervise and review the diff rather than typing it ([coordination guidance](../references/engineering-coordination.md)). When several independent hypotheses are live, fan them to parallel subagents, each in its own worktree ([coordination guidance](../references/engineering-coordination.md)).
+    - Measure before and after with the frozen harness, and run the regression gate.
+    - Accept only when the metric moves past noise and the gate stays green. Otherwise revert the change in full. A tweak that "might help" is not kept.
+    - One commit per accepted fix, staging only the files you changed (`git add <files>`, never `-A`). Log the row either way, kept or reverted.
+-   Each iteration ends in a check before the next begins (the **sequence-verifiable-units** principle skill). If the run is unattended, borrow only the wake mechanism from the Autonomous run playbook (`playbooks/autonomous-run.md`), not its stop rule.
+-6. Push past the first plateau. On a stall, several rejects in a row, pivot category, combine near-misses, re-read the source, or try something more radical before concluding the hill is climbed. Correctness and simplicity outrank the number. Revert a win that breaks behavior, and keep a simplification that holds the number (the **laziness-protocol** principle skill).
++   Each iteration ends in a check before the next begins ([evolution guidance](../references/engineering-evolution.md)). If the run is unattended, borrow only the wake mechanism from the Autonomous run playbook (`playbooks/autonomous-run.md`), not its stop rule.
++6. Push past the first plateau. On a stall, several rejects in a row, pivot category, combine near-misses, re-read the source, or try something more radical before concluding the hill is climbed. Correctness and simplicity outrank the number. Revert a win that breaks behavior, and keep a simplification that holds the number ([evolution guidance](../references/engineering-evolution.md)).
+ 7. Stop when the predicate is met, or when the remaining ideas are marginal and not worth their cost. Don't relax the predicate to meet it, and don't quit while cheap untried hypotheses remain. If you are stuck, surface it instead of spinning.
+ 8. Run **Opening a PR** with the accepted commits stacked in the order they landed.
+ 
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/investigation.md b/plugins/pstack/skills/poteto-mode/playbooks/investigation.md
+index cd119f0..2d05db4 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/investigation.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/investigation.md
+@@ -7,7 +7,7 @@ Investigation requests are read-only. They produce a cited explanation or a reco
+ 1. Route through the **how** skill. For motivation questions, also route through the **why** skill.
+ 2. Throughput checkpoint stays one line: `throughput checkpoint: n/a, read-only investigation`.
+ 3. Produce the `how`-shaped output (Overview / Key Concepts / How It Works / Where Things Live / Gotchas), or a recommendation with a tradeoffs table if the request is a decision between alternatives.
+-4. Apply the **unslop** skill to the reply.
++4. Apply the active writing preferences to the reply.
+ 
+ No PR, no babysit, no `architect` unless the investigation precedes a code change. If it does, hand back to the user and re-route to Bug fix or Feature.
+ 
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/multi-phase-plan.md b/plugins/pstack/skills/poteto-mode/playbooks/multi-phase-plan.md
+index 45359e5..3d07a87 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/multi-phase-plan.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/multi-phase-plan.md
+@@ -5,14 +5,14 @@ Resolve the driver skill through [poteto-mode's Non-negotiables](../SKILL.md#non
+ **You own the plan, not the code. The plan is a checklist an owner runs box by box and the operator audits from the evidence.** The plan is the deliverable. Do not implement.
+ 
+ 1. When the change is one or two files with an obvious approach, skip the plan. Say so and stop.
+-2. Settle open questions by prototype before you write. Run `playbooks/prototype.md` for each. Keep the branch, the SHA, and the screenshots for Appendix A. Ask the operator only about a product or preference call that no run can settle. Give options (the **never-block-on-the-human** principle skill).
+-3. Explore in subagents with `subagent_type: "pstack:poteto-agent"` and an explicit model per the Subagents section (the **guard-the-context-window** principle skill). Each returns file pointers, conventions, test commands, and entry points. No inlined dumps.
+-4. Copy the skeleton below into the plan file and fill every placeholder. Unless the operator names a path, write the file under the agent store (`~/.claude/orchestrate/<slug>/docs/`). Keep every heading and every sub-block in the order shown. One section per PR. One PR is one change with its own evidence (the **sequence-verifiable-units** principle skill). Name the execution playbook in **How to read this**. Pick between `playbooks/autopilot-full.md` and `playbooks/autopilot-stack.md` per the rule at the end of `playbooks/autopilot-stack.md`. A standing program takes `playbooks/orchestrate.md`. The execution playbook owns base selection, topology changes, and merge authority. Do not copy its rebase steps into the plan.
+-5. Write under `/technical-writing` in full, then `/unslop`. The body is one Diátaxis mode, how-to. Appendices hold explanation and reference. Each heading states the task or the finding. No long dashes. No mid-sentence colons.
+-6. Run `node skills/poteto-mode/scripts/check-plan.mjs <plan.md>` from the installed plugin and fix every line it prints (the **encode-lessons-in-structure** principle skill).
++2. Settle open questions by prototype before you write. Run `playbooks/prototype.md` for each. Keep the branch, the SHA, and the screenshots for Appendix A. Ask the operator only about a product or preference call that no run can settle. Give options ([coordination guidance](../references/engineering-coordination.md)).
++3. Explore in subagents with `subagent_type: "pstack:poteto-agent"` and an explicit model per the Subagents section ([coordination guidance](../references/engineering-coordination.md)). Each returns file pointers, conventions, test commands, and entry points. No inlined dumps.
++4. Copy the skeleton below into the plan file and fill every placeholder. Unless the operator names a path, write the file under the agent store (`~/.claude/orchestrate/<slug>/docs/`). Keep every heading and every sub-block in the order shown. One section per PR. One PR is one change with its own evidence ([evolution guidance](../references/engineering-evolution.md)). Name the execution playbook in **How to read this**. Pick between `playbooks/autopilot-full.md` and `playbooks/autopilot-stack.md` per the rule at the end of `playbooks/autopilot-stack.md`. A standing program takes `playbooks/orchestrate.md`. The execution playbook owns base selection, topology changes, and merge authority. Do not copy its rebase steps into the plan.
++5. Write under `/technical-writing` in full, then apply the active writing preferences. The body is one Diátaxis mode, how-to. Appendices hold explanation and reference. Each heading states the task or the finding. No long dashes. No mid-sentence colons.
++6. Run `node skills/poteto-mode/scripts/check-plan.mjs <plan.md>` from the installed plugin and fix every line it prints ([verification guidance](../references/engineering-verification.md)).
+ 7. Hand back. Post the plan path and the script's output, then stop. Execution starts on the operator's explicit go, under the execution playbook the plan names.
+ 
+-**Verification.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked (the **prove-it-works** principle skill). That sentence is the verification rule. Every verification block opens with it. The live block is mandatory. Ten lanes on the configured `swarm workers` model at the PR head drive the real surface through its driver skill, per the **swarm** skill. Each lane is one box with a concrete scenario, the screenshot it saves, and its pass predicate. One lane is the **Regression lane against trunk.** It runs the same load-bearing scenario on trunk and head. If trunk does not have the feature, the lane records that fact and gates the behavior the diff adds plus the end state the user waits for instead of inventing a trunk result. The perf gate is dual-sided. Trunk and head must both produce the named metric. If trunk lacks the feature, also isolate the work the diff adds and set an absolute budget for that work plus the end-to-end state the user waits for. Do not claim a ratio between unlike scenarios. The perf block names the metric, the interleaved probe, the trunk baseline measured first, and the rule with the number that fails. A PR that changes an interaction is review-gated. The operator reviews it in chat with screenshots and a video before merge. A PR that changes no interaction writes `**Review gate.** None. <PR id> is not review-gated.` and no boxes under it.
++**Verification.** Tests alone are not sufficient verification. A PR is verified only when its unit, live, and perf boxes are all checked ([verification guidance](../references/engineering-verification.md)). That sentence is the verification rule. Every verification block opens with it. The live block is mandatory. Ten lanes on the configured `swarm workers` model at the PR head drive the real surface through its driver skill, per the **swarm** skill. Each lane is one box with a concrete scenario, the screenshot it saves, and its pass predicate. One lane is the **Regression lane against trunk.** It runs the same load-bearing scenario on trunk and head. If trunk does not have the feature, the lane records that fact and gates the behavior the diff adds plus the end state the user waits for instead of inventing a trunk result. The perf gate is dual-sided. Trunk and head must both produce the named metric. If trunk lacks the feature, also isolate the work the diff adds and set an absolute budget for that work plus the end-to-end state the user waits for. Do not claim a ratio between unlike scenarios. The perf block names the metric, the interleaved probe, the trunk baseline measured first, and the rule with the number that fails. A PR that changes an interaction is review-gated. The operator reviews it in chat with screenshots and a video before merge. A PR that changes no interaction writes `**Review gate.** None. <PR id> is not review-gated.` and no boxes under it.
+ 
+ **Driver skill.** Select it through the Non-negotiables and put the resolved skill path or exact commands in each live lane's boot recipe. Native mobile uses whatever simulator-driving skill the repo has. A PR that touches two surfaces gets lanes on both. A surface with no driver skill is a risk in Appendix C, and its live block still names how each lane drives it.
+ 
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/opening-a-pr.md b/plugins/pstack/skills/poteto-mode/playbooks/opening-a-pr.md
+index 34ca78e..8b4839f 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/opening-a-pr.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/opening-a-pr.md
+@@ -6,7 +6,7 @@ Invoked at the end of every other playbook.
+ 
+ **Commits.** Commit liberally. Rebase into small, ordered commits before opening PRs. Each commit is a future PR: landable, ordered to tell the story. Amend when the fix belongs in a just-made commit. New commit when separable.
+ 
+-**PRs.** Run `/deslop` over the diff before commit. Run `/no-comments` before review. Write every PR title, PR description, and commit body with `/technical-writing`, then apply `/unslop`. Apply every technical-writing layer except Diátaxis. Use one word for each action, keep articles, and avoid `-ing` when a plain verb works.
++**PRs.** Run `/deslop` over the diff before commit. Run `/no-comments` before review. Write every PR title, PR description, and commit body with `/technical-writing`, then apply the active writing preferences. Apply every technical-writing layer except Diátaxis. Use one word for each action, keep articles, and avoid `-ing` when a plain verb works.
+ 
+ **Titles.** Use Conventional Commits in the form `type(scope): subject`. Use `feat`, `fix`, `docs`, `refactor`, `test`, `chore`, or `perf` as the type. Use the changed area, such as `pstack` or `poteto-mode`, as the scope. Keep the subject short and imperative. Name a real symbol when one carries the change. For example, `fix(pstack): retarget opening-a-pr babysit trigger`. Do not add a trailing period.
+ 
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/orchestrate.md b/plugins/pstack/skills/poteto-mode/playbooks/orchestrate.md
+index 2f7c269..5afa95b 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/orchestrate.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/orchestrate.md
+@@ -16,7 +16,7 @@ Three rules carry the rest.
+ 
+ - **Coordinator (this chat).** Frames, authors briefs, drains the inbox, owns the human report, makes judgment calls. It never authors or edits code. Conflicted merges, restacks, and code changes are always tasks. Mechanically landing a verified unit (fast-forward or clean cherry-pick of a worker's commit, then push) is bookkeeping the coordinator may do itself on repos where local git is cheap. Queueing finished work behind an idle stacker is how a deadline harvests nothing. The loop is agentic end to end. Agents are spawned, resumed, and drained only through the `Agent` tool. State reads and writes go through the `orch` CLI at drain points, one command in and one line out. The CLI never spawns, waits, or wakes anything.
+ - **Sub-coordinator.** Durable, one per track, and only when the program exceeds what one coordinator's drains can manage. A track the coordinator can drain itself needs no middle layer. Each nested layer re-pays a full orientation preamble, and a blocking sub-coordinator hides its children while the parent idles. Owns its track's units and boards, authors its workers' briefs, spawns its own workers and verifiers where the runtime lets a subagent spawn one. Where it does not, it owns its track's units directly with the same review separation. Rolls up aggregates at wave boundaries. Never forwards raw child reports. Cap in-flight children at what one drain can process, roughly ten, as a rolling window. Never as blocking batches, which cost the slowest child of every batch.
+-- **Worker / verifier.** Background subagents (`run_in_background: true`). Claude Code has no remote worker environment, so isolation is a worktree or branch per writer, not a separate machine. Runtime verification goes through the driver skill. The brief names its resolved skill path or exact commands. A subagent never sees this chat, so its brief inlines what it needs or points at repo and store paths. Prefer fewer, broader workers. One writer per worktree or branch (principle-separate-before-serializing-shared-state). Run a unit's verifier on a different model family from its worker.
++- **Worker / verifier.** Background subagents (`run_in_background: true`). Claude Code has no remote worker environment, so isolation is a worktree or branch per writer, not a separate machine. Runtime verification goes through the driver skill. The brief names its resolved skill path or exact commands. A subagent never sees this chat, so its brief inlines what it needs or points at repo and store paths. Prefer fewer, broader workers. One writer per worktree or branch ([coordination guidance](../references/engineering-coordination.md)). Run a unit's verifier on a different model family from its worker.
+ 
+ Depth stays at coordinator, track, worker. Author the track decomposition per project (build, landing, and verification are common cuts, not a required shape). Hard-coded swarm trees were tried and parked as too rigid.
+ 
+@@ -24,7 +24,7 @@ Depth stays at coordinator, track, worker. Author the track decomposition per pr
+ 
+ Create `~/.claude/orchestrate/<project-slug>/`, outside the repo and outside the session. The store has to outlive this chat: the program runs for days, a session restart is expected (see Liveness and failure), and the store is the postmortem. The session scratchpad is not a candidate, however convenient. It is session-scoped and temporary, so a restart takes the program's only state with it. Every file has exactly one writer. Owners publish facts, readers aggregate at read time. Use `bun skills/poteto-mode/scripts/orch/orch.ts` under the installed plugin for bookkeeping, written below as `orch`, while its canonical plain TSV and JSON stay readable without the CLI.
+ 
+-- `preferences.md` is the standing-orders register: numbered lines, one constraint each (model policy, stack shape and count, verification bar, forbidden paths, escalation policy). For human rulings, retain original wording and attribution per [Claims about human decisions](../../why/references/epistemics.md#claims-about-human-decisions). Label agent interpretations and missing originals. Copies are not new decisions. Paste it verbatim into every spawn and every resume. Directives decay across resumes, and each dropped one costs a human turn. When you catch yourself restating an instruction, append the line before you act (principle-encode-lessons-in-structure).
++- `preferences.md` is the standing-orders register: numbered lines, one constraint each (model policy, stack shape and count, verification bar, forbidden paths, escalation policy). For human rulings, retain original wording and attribution per [Claims about human decisions](../../why/references/epistemics.md#claims-about-human-decisions). Label agent interpretations and missing originals. Copies are not new decisions. Paste it verbatim into every spawn and every resume. Directives decay across resumes, and each dropped one costs a human turn. When you catch yourself restating an instruction, append the line before you act ([verification guidance](../references/engineering-verification.md)).
+ - `overview.md` is the durable PR and issue DB. Append. Never rewrite wholesale per event.
+ - `units.tsv` has one row per unit: id, track, state, branch, PR, head SHA, brief path. Update rows in place.
+ - `frontier.json` is the computed merge frontier, per Stack safety.
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/perf-issue.md b/plugins/pstack/skills/poteto-mode/playbooks/perf-issue.md
+index dba3fce..f770be7 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/perf-issue.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/perf-issue.md
+@@ -15,7 +15,7 @@
+ 
+    When an earlier mantra meets the target, stop.
+ 3. Plan the fix from the trace. If it crosses a function boundary, `architect` first. Delegate implementation to a subagent using your configured perf-issue model (default in poteto-mode's Models section). Review the diff. Capture a post-fix trace.
+-   Apply the **sequence-verifiable-units** principle skill, verifying each attempt before trying the next.
++   Apply [evolution guidance](../references/engineering-evolution.md), verifying each attempt before trying the next.
+ 4. Parse and compare the artifacts (JSON to sqlite, diff). "Inconclusive" or wrong-surface is not a pass. Flag it.
+ 5. Cite the measurement in the PR.
+ 6. Run **Opening a PR**.
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/prototype.md b/plugins/pstack/skills/poteto-mode/playbooks/prototype.md
+index 91c6e68..1616374 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/prototype.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/prototype.md
+@@ -7,7 +7,7 @@ The one playbook where the Laziness Protocol's "smallest change" and the verific
+ 1. Scope the decision the prototype exists to make: which layout, which interaction, which density, or for an empirical fork which behavior, timing, or approach. No decision means no prototype. Route to Feature.
+ 2. Gather references when the design space is open. Search for prior art, summarize a moodboard of themes, palettes, and layouts, let the user pick directions before building. Skip when the direction is set.
+ 3. Build throwaway in an isolated scratch dir, separate from production source. For a visual decision, vanilla HTML/CSS/JS or the lightest stack that renders the idea, CDN deps, a dev server with hot reload. For a behavioral or timing decision, the smallest script that exercises the question. No production framework, no tests, no abstractions.
+-4. When comparing alternatives, build them behind one switcher (buttons or a keypress), each variant labeled. This is the **exhaust-the-design-space** principle skill made cheap.
++4. When comparing alternatives, build them behind one switcher (buttons or a keypress), each variant labeled. This is [design guidance](../references/engineering-design.md) made cheap.
+ 5. Verify on the matching surface. For a visual decision, screenshot each variant via the driver skill and drive the interaction. For a behavioral or timing decision, observe the thing you are deciding by logging the timing, printing the output, or watching the render. The observation is the test here, not an assertion.
+ 6. Present alternatives, tradeoffs, and a recommendation. The output is the decision plus the throwaway artifact, not shippable code. Hand the chosen direction to **Feature** (or `architect` for the shape) for the real build.
+ 
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/refactoring.md b/plugins/pstack/skills/poteto-mode/playbooks/refactoring.md
+index 9700d58..5ccf0ec 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/refactoring.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/refactoring.md
+@@ -7,12 +7,12 @@ Resolve the driver skill through [poteto-mode's Non-negotiables](../SKILL.md#non
+ If the cleanup reveals a missing feature or a real bug, split it out and ship the structural change first against the pinned contract. A redesign is allowed, but name it and route to Feature. Large or cross-cutting structural work belongs to the **figure-it-out** skill. This playbook is the focused-to-medium change.
+ 
+ 1. Pin the behavior contract first. Run the **how** skill over the affected subsystem to learn the contract, then write a characterization test, snapshot, or equivalence harness that captures current behavior before any structure moves. If the area has no coverage, write the pin before touching structure. Type check and lint are not a pin.
+-2. Name the structure the code is missing per **principle-model-the-domain**. Boring code stays when the shape is already clear and local. The reshape must delete branches or invalid states, not add indirection.
+-3. Name the target shape. State what the module layout, types, and call graph should be if built today (**principle-foundational-thinking**, **principle-redesign-from-first-principles**). If the target crosses a function boundary, run the **architect** skill for parallel design exploration of the shape before the move.
+-4. Subtract before you add. Delete dead code, collapse one-caller wrappers, drop redundant validators, and remove orphan references before introducing the new shape (**principle-subtract-before-you-add**). The smallest change that reaches the target shape ships (**principle-laziness-protocol**). A speculative cleanup that "might help" gets reverted.
+-5. Move in small behavior-preserving steps, each keeping the pin green. For API reshapes, migrate every caller and delete the old API in the same wave (**principle-migrate-callers-then-delete-legacy-apis**). No compatibility shims, no parallel old-and-new paths. Spot-check every rename against the actual files. Renames silently miss usages in strings, prose, and back-references. Delegate the mechanical edits to a subagent using your configured refactoring model (default in poteto-mode's Models section) with a specific scope (file paths, the names being moved, the behavior to hold).
+-6. Prove behavior is unchanged on the real artifact, not "it compiles" (**principle-prove-it-works**). For larger reshapes, run an equivalence check: a script that diffs old-vs-new outputs, a recorded baseline replayed against the new code, or a smoke run on the matching surface via the relevant driver skill.
+-7. Confirm the change is worth keeping. The success measure is reduced reader load (**principle-minimize-reader-load**). If the diff does not lower reader load somewhere, revert it.
+-8. Rebase into small ordered commits. A subtraction commit, then the reshape, then any follow-on cleanup. Shape them with the **sequence-verifiable-units** principle skill, so each behavior-preserving slice stays green before the next. Run **Opening a PR**.
++2. Name the structure the code is missing per [design guidance](../references/engineering-design.md). Boring code stays when the shape is already clear and local. The reshape must delete branches or invalid states, not add indirection.
++3. Name the target shape. State what the module layout, types, and call graph should be if built today ([design guidance](../references/engineering-design.md), [evolution guidance](../references/engineering-evolution.md)). If the target crosses a function boundary, run the **architect** skill for parallel design exploration of the shape before the move.
++4. Subtract before you add. Delete dead code, collapse one-caller wrappers, drop redundant validators, and remove orphan references before introducing the new shape ([evolution guidance](../references/engineering-evolution.md)). The smallest change that reaches the target shape ships ([evolution guidance](../references/engineering-evolution.md)). A speculative cleanup that "might help" gets reverted.
++5. Move in small behavior-preserving steps, each keeping the pin green. For API reshapes, migrate every caller and delete the old API in the same wave ([evolution guidance](../references/engineering-evolution.md)). No compatibility shims, no parallel old-and-new paths. Spot-check every rename against the actual files. Renames silently miss usages in strings, prose, and back-references. Delegate the mechanical edits to a subagent using your configured refactoring model (default in poteto-mode's Models section) with a specific scope (file paths, the names being moved, the behavior to hold).
++6. Prove behavior is unchanged on the real artifact, not "it compiles" ([verification guidance](../references/engineering-verification.md)). For larger reshapes, run an equivalence check: a script that diffs old-vs-new outputs, a recorded baseline replayed against the new code, or a smoke run on the matching surface via the relevant driver skill.
++7. Confirm the change is worth keeping. The success measure is reduced reader load ([evolution guidance](../references/engineering-evolution.md)). If the diff does not lower reader load somewhere, revert it.
++8. Rebase into small ordered commits. A subtraction commit, then the reshape, then any follow-on cleanup. Shape them with [evolution guidance](../references/engineering-evolution.md), so each behavior-preserving slice stays green before the next. Run **Opening a PR**.
+ 
+ **Reply:** the structure that changed, the pin you held it against, the equivalence proof, the reader-load delta, what shipped and what got reverted. No new behavior.
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/runtime-forensics.md b/plugins/pstack/skills/poteto-mode/playbooks/runtime-forensics.md
+index 46efa97..102904b 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/runtime-forensics.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/runtime-forensics.md
+@@ -3,7 +3,7 @@
+ **You own the diagnosis. Instrument the live process, don't theorize from source.** The deliverable is a cited diagnosis, not a fix.
+ 
+ 1. Capture the live signal on the matching surface via the driver skill: a CPU profile for a spinning process, a heap snapshot for a leak, a CDP trace for a visual glitch. A real artifact, not a guess.
+-2. Reduce the artifact to the smoking gun: the function on the hot path, the retainer chain from the leaked object to a GC root, the loop firing without input. Parse large artifacts in a subagent (the **guard-the-context-window** principle skill), keep the reduced finding in the main thread.
++2. Reduce the artifact to the smoking gun: the function on the hot path, the retainer chain from the leaked object to a GC root, the loop firing without input. Parse large artifacts in a subagent ([coordination guidance](../references/engineering-coordination.md)), keep the reduced finding in the main thread.
+ 3. Prove the mechanism before believing it. Inject instrumentation via CDP eval on the running process, or hotfix the live code without reloading, to confirm the hypothesis cheaply.
+ 4. Map the finding back to source: file, symbol, the line that allocates or schedules.
+ 5. Throughput checkpoint stays one line: `throughput checkpoint: n/a, read-only forensics`.
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/session-pickup.md b/plugins/pstack/skills/poteto-mode/playbooks/session-pickup.md
+index 9ac2af7..d551e13 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/session-pickup.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/session-pickup.md
+@@ -2,10 +2,10 @@
+ 
+ **You own the resume point. Read the prior trail, don't redo it.**
+ 
+-1. Read the project checkpoint first using [Resume storage](../references/resume-storage.md). A successful read gives the note and artifacts without requiring a path from the previous session. If the pointer is missing, locate the prior trail through a local transcript under Claude Code's per-project transcripts directory at `~/.claude/projects/<encoded-cwd>/*.jsonl` (where `<encoded-cwd>` is the workspace cwd with `/` → `-`. Do not glob across other directories under `~/.claude/projects/`, that crosses workspace boundaries and reads private chats from unrelated projects), a cloud-agent URL, or a pushed branch. An unavailable or incomplete checkpoint needs diagnosis rather than a silent fallback. For transcript fallback, read the metadata overview and last messages first, then scan back for the decision points. Parse a long transcript in a subagent and keep the reduced timeline in the main thread (the **principle-guard-the-context-window** skill).
++1. Read the project checkpoint first using [Resume storage](../references/resume-storage.md). A successful read gives the note and artifacts without requiring a path from the previous session. If the pointer is missing, locate the prior trail through a local transcript under Claude Code's per-project transcripts directory at `~/.claude/projects/<encoded-cwd>/*.jsonl` (where `<encoded-cwd>` is the workspace cwd with `/` → `-`. Do not glob across other directories under `~/.claude/projects/`, that crosses workspace boundaries and reads private chats from unrelated projects), a cloud-agent URL, or a pushed branch. An unavailable or incomplete checkpoint needs diagnosis rather than a silent fallback. For transcript fallback, read the metadata overview and last messages first, then scan back for the decision points. Parse a long transcript in a subagent and keep the reduced timeline in the main thread ([coordination guidance](../references/engineering-coordination.md)).
+ 2. Reconstruct operational state. The branch and worktree, what already landed (`git log`, `git diff` against the base), the open todos, the decisions made. Use the prior trail to recover progress. For claims about human rulings, follow [Claims about human decisions](../../why/references/epistemics.md#claims-about-human-decisions). An agent summary is not the original ruling.
+ 3. Diff done vs pending. Compare what shipped against what was planned, name the resume point, do not re-run the prior repro or redo completed work. Recheck claims that affect the remaining work without repeating completed investigations. Read artifacts linked by the resume note, including requested questions or checklists.
+ 4. Route the remaining work to the matching playbook and pick the verdict: continue the execution, ship a finished recommendation, ratify or override a prior conclusion, or postmortem a failed run. The pickup playbook ends here. The routed playbook owns the rest.
+-5. Verify the inherited claims against the original goal on the real artifact (the **principle-prove-it-works** skill). A passing prior self-report is not the proof.
++5. Verify the inherited claims against the original goal on the real artifact ([verification guidance](../references/engineering-verification.md)). A passing prior self-report is not the proof.
+ 
+ **Reply:** where the prior agent stopped, what you inherited vs redid (ideally nothing redone), the resume point, and the outcome.
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/trace-forensics.md b/plugins/pstack/skills/poteto-mode/playbooks/trace-forensics.md
+index 48ed6b2..308ec73 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/trace-forensics.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/trace-forensics.md
+@@ -4,7 +4,7 @@
+ 
+ Distinct from **Runtime forensics**, which instruments the live process. Here the capture already exists. The artifact is a fixed dataset, read it, don't re-run it. Keep tooling generic so the playbook stays portable: a DevTools or trace parser for cpuprofile and `.json.gz`, a text editor for a spindump, your heap tooling for a heapsnapshot.
+ 
+-1. Identify the format and load it with the right tool. Parse large artifacts in a subagent (the **principle-guard-the-context-window** skill) and keep the reduced finding in the main thread.
++1. Identify the format and load it with the right tool. Parse large artifacts in a subagent (the [coordination guidance](../references/engineering-coordination.md) skill) and keep the reduced finding in the main thread.
+ 2. Transform the raw artifact into a form you can query. Dump the trace or heap snapshot into sqlite, one row per sample, frame, or node. Reach the queryable shape before you read.
+ 3. Narrow to the cause. Query for the frames that hold the most time and walk the call tree to the hot path. For a leak, follow the retainer chain from the leaked object to a GC root. For a spindump, find the thread stuck on-CPU or blocked and its wait reason.
+ 4. Attribute to source. Map the hot frame to file, symbol, and line via the artifact's own symbols. A frame with no source mapping is not yet a diagnosis. Resolve the symbols, or say plainly the artifact does not carry them.
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/visual-parity.md b/plugins/pstack/skills/poteto-mode/playbooks/visual-parity.md
+index 0d356e4..1ea9a21 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/visual-parity.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/visual-parity.md
+@@ -4,7 +4,7 @@
+ 
+ 1. Establish the baseline first, before any migration: a visual regression harness that screenshots the current component across its states, plus the target when matching two implementations. No baseline, no parity claim. A blocking prerequisite, not a follow-up.
+ 2. Anti-shortcut clauses, stated and held: no harness modifications, no baseline tampering, no component restructuring to make a diff pass. If the baseline looks wrong, stop and ask, don't edit it.
+-3. Migrate one component at a time. Parallelize across worktrees, one owner per component (the **separate-before-serializing-shared-state** principle skill). Shared primitives migrate first as a blocking phase.
++3. Migrate one component at a time. Parallelize across worktrees, one owner per component ([coordination guidance](../references/engineering-coordination.md)). Shared primitives migrate first as a blocking phase.
+ 4. Verify each component against its baseline via image diff on the matching surface via the driver skill. A nonzero diff is a fail. Investigate the pixel delta. `/loop` per component until the diff is zero.
+ 5. Run **Opening a PR** per component or per safe batch.
+ 
+diff --git a/plugins/pstack/skills/poteto-mode/playbooks/worktree-cleanup.md b/plugins/pstack/skills/poteto-mode/playbooks/worktree-cleanup.md
+index 09745bf..5956f7e 100644
+--- a/plugins/pstack/skills/poteto-mode/playbooks/worktree-cleanup.md
++++ b/plugins/pstack/skills/poteto-mode/playbooks/worktree-cleanup.md
+@@ -2,9 +2,9 @@
+ 
+ **You own the disk and the safety gate.** Prune merged or abandoned git worktrees and stale iOS simulators to reclaim space. Deletion is irreversible, so every step guards against deleting something in use or holding uncommitted work.
+ 
+-1. Snapshot and audit. Record `df -h /`, then run `skills/poteto-mode/scripts/worktree-audit.mjs` under the installed plugin (principle-build-the-lever). It reads paths from `git worktree list`, never hand-typed, since a hand-typed `myrepo-worktrees/x` misses one that lives at `.worktrees/myrepo/x` (principle-encode-lessons-in-structure). It classifies each worktree by size, age, merge state, uncommitted work, PR state, and the newest chat that touched it, then suggests a bucket. The transcript scan is slow, so background it.
+-2. The bucket is advice, not permission. The pinned and active chats are the real artifact (principle-prove-it-works). Get that set from the user or your own session list and cross-check every candidate. The lever has marked `safe` a worktree the user had pinned, so the pinned set wins.
+-3. Verify usage before deleting. For every `verify-recent-chat` row, or anything you doubt, fan subagents out to read the transcripts and report whether the chat is pinned or ongoing and which worktrees it touches (principle-guard-the-context-window, transcripts are bulk). A pinned chat spawns arena and repro trees into sibling worktrees via background subagents, and those are in use even when their names never hit the session list.
++1. Snapshot and audit. Record `df -h /`, then run `skills/poteto-mode/scripts/worktree-audit.mjs` under the installed plugin ([verification guidance](../references/engineering-verification.md)). It reads paths from `git worktree list`, never hand-typed, since a hand-typed `myrepo-worktrees/x` misses one that lives at `.worktrees/myrepo/x` ([verification guidance](../references/engineering-verification.md)). It classifies each worktree by size, age, merge state, uncommitted work, PR state, and the newest chat that touched it, then suggests a bucket. The transcript scan is slow, so background it.
++2. The bucket is advice, not permission. The pinned and active chats are the real artifact ([verification guidance](../references/engineering-verification.md)). Get that set from the user or your own session list and cross-check every candidate. The lever has marked `safe` a worktree the user had pinned, so the pinned set wins.
++3. Verify usage before deleting. For every `verify-recent-chat` row, or anything you doubt, fan subagents out to read the transcripts and report whether the chat is pinned or ongoing and which worktrees it touches ([coordination guidance](../references/engineering-coordination.md), transcripts are bulk). A pinned chat spawns arena and repro trees into sibling worktrees via background subagents, and those are in use even when their names never hit the session list.
+ 4. Pause on irreversible loss. `wip:N` is N tracked uncommitted edits. Show the diff and get a decision first, since removing a clean worktree is recoverable from its branch but uncommitted work is gone. `scratch:N` is untracked throwaway, safe to drop, but name the files. Per Autonomy, clean and merged and not-in-use proceeds. `wip` and in-use pause.
+ 5. Prune the confirmed set. Per path, `git worktree remove --force <path>`. If the dir survives on ignored build artifacts, `rm -rf` it, then `git worktree prune`. Branch refs survive, so no commits are lost. Confirm with `df -h /` and re-list.
+ 6. Simulators and other reclaimers. Simulators are usually the next-biggest win. `xcrun simctl --set testing delete all` (XCTestDevices clones), `xcrun simctl delete unavailable`, and `xcrun simctl runtime list` then `runtime delete <id>` for old runtimes. More when needed: Xcode `DerivedData` and `iOS DeviceSupport`, your editor's application-support caches, `~/.claude/shell-snapshots/` and old `~/.claude/projects/` transcripts (keep the recent ones the **recall** skill and Session pickup read), package caches (pnpm, uv, brew, yarn). Clear only caches the user has not said to keep.
+diff --git a/plugins/pstack/skills/poteto-mode/references/engineering-coordination.md b/plugins/pstack/skills/poteto-mode/references/engineering-coordination.md
+new file mode 100644
+index 0000000..303cce2
+--- /dev/null
++++ b/plugins/pstack/skills/poteto-mode/references/engineering-coordination.md
+@@ -0,0 +1,31 @@
++# Coordination and task boundaries
++
++Read this for concurrent actors, delegation, retries, or long-running work.
++
++Separate ownership before serializing access: independent files, directories,
++branches, or state keys avoid races more simply than a global lock. When actors
++must share state, define the owner, atomic transition, and recovery behavior.
++Use idempotent operations where retries or restarts are expected; do not assume
++an interrupted worker left its owned files untouched.
++
++Delegate only concrete independent work with disjoint ownership and observable
++acceptance criteria when delegation is available and authorized. Give workers the
++needed artifacts, constraints, and expected result. Inspect their actual changes
++and evidence before accepting them. Keep the parent responsible for requirements,
++integration, and the final claim.
++
++Keep context focused on decisions and current evidence. Search before reading
++large files, pass paths rather than copies when the worker can read them, and
++return concise findings with locations. Avoid delegation merely to offload a
++small lookup that the main session can finish directly.
++
++Continue authorized reversible work without redundant permission checks. Ask
++for missing input only when it materially changes the result or blocks safe
++progress. Prior authorization persists for its named action, target, and scope.
++Under an explicit full-autonomy grant, decide a call the grant covers, act on it,
++and report it. For a call only the operator can make, apply a default and report
++it with a full explanation, and say in plain words what the operator could tell you
++to do instead. The operator answers in their own words; never give a shorthand
++token to type back. Gates the operator named still need the operator. Publication, external messages, credential access, destructive actions, and scope
++expansion follow the user's active authorization policy; a request to continue
++working does not independently authorize any of them.
+diff --git a/plugins/pstack/skills/poteto-mode/references/engineering-design.md b/plugins/pstack/skills/poteto-mode/references/engineering-design.md
+new file mode 100644
+index 0000000..9661a3a
+--- /dev/null
++++ b/plugins/pstack/skills/poteto-mode/references/engineering-design.md
+@@ -0,0 +1,28 @@
++# Domain and interface design
++
++Read this for a material decision about state, interfaces, or product behavior.
++
++Start with the states the product permits, the transitions between them, and how
++callers read and update the data. Choose a structure that makes the important
++invariant explicit: a sum type for mutually exclusive states, a table for a closed
++mapping, or a state machine when transition order matters. Avoid a framework or a
++new layer when an existing domain type expresses the requirement.
++
++Validate untrusted input once at the system boundary. Inside that boundary, rely
++on the established types and framework guarantees. Keep adapter concerns out of
++domain logic. Prefer exhaustive matching to a default branch that silently
++accepts a newly added state; distinguish values with different meanings when
++mixing them would produce a real bug.
++
++Before introducing shared state, identify the owner and lifetime. Derive a value
++from its source when practical instead of maintaining a second synchronized copy.
++Keep changeable state as close as possible to the behavior that owns it.
++
++Judge a proposed feature by what the user can accomplish and understand. Reuse
++the product's existing interaction and visual conventions when they fit. For a
++novel, consequential choice, compare a small number of meaningfully different
++designs or test a focused prototype. An ordinary function boundary does not
++require parallel architecture exploration.
++
++Use the user's constraints to choose between viable options. Ask only when a
++material product preference remains unresolved by the request and evidence.
+diff --git a/plugins/pstack/skills/poteto-mode/references/engineering-evolution.md b/plugins/pstack/skills/poteto-mode/references/engineering-evolution.md
+new file mode 100644
+index 0000000..5e10afb
+--- /dev/null
++++ b/plugins/pstack/skills/poteto-mode/references/engineering-evolution.md
+@@ -0,0 +1,24 @@
++# Evolving an existing system
++
++Read this for a refactor, migration, or change to an established design.
++
++Understand the current callers and behavior before minimizing the diff. Prefer
++the smallest complete change to the correct owner. Remove dead paths and redundant
++adapters when doing so is part of the requested change, rather than building
++another layer around them. Preserve unrelated changes and behavior.
++
++Measure complexity by the decisions a reader must trace and the mutable state
++they must remember. A module earns its boundary by hiding a meaningful decision;
++a pass-through wrapper with one caller often does not. There is no fixed allowed
++number of files or layers: collapse only indirection that adds no useful contract.
++
++When adding a requirement, reconsider the affected model as though that requirement
++had existed originally. Prefer a direct representation over permanent flags for
++temporary migration stages. Keep compatibility only when required by the task or
++production-data safety. Migrate in-scope callers, verify them, and delete the old
++internal API in the same completed unit when safe.
++
++Sequence a larger migration as independently verifiable behavior changes. Keep
++the destination explicit so intermediate scaffolding does not become the final
++design. A forward data migration may be necessary even when obsolete code can be
++removed. Do not broaden scope merely to improve neighboring code.
+diff --git a/plugins/pstack/skills/poteto-mode/references/engineering-verification.md b/plugins/pstack/skills/poteto-mode/references/engineering-verification.md
+new file mode 100644
+index 0000000..1df7b26
+--- /dev/null
++++ b/plugins/pstack/skills/poteto-mode/references/engineering-verification.md
+@@ -0,0 +1,57 @@
++# Evidence and completion
++
++Read this when choosing proof for a bug fix, multi-step change, or generated check.
++
++Start with the smallest check that could falsify the claimed outcome. For a bug,
++prefer a failing reproduction and a regression test at an existing test seam.
++Minimize the reproduction when that materially separates causes. When the runtime
++is unavailable, continue useful static analysis, label hypotheses, and state the
++missing runtime evidence instead of fabricating a pass or abandoning all work.
++
++Choose checks for user-observable behavior or important invariants, not a mirror
++of the implementation. A build proves compilation; it does not alone prove the
++feature. A negative assertion needs a positive control when an empty scan could
++pass. Put the control inside the same path and selector scope as the gate.
++
++Before keeping a test, name a relevant defect and confirm the whole arrangement,
++setup included, detects it; introduce the defect temporarily where practical.
++Assert the required result or effect through the public interface, including
++absence and fixed values when the contract requires them. An expectation computed
++through the same faulty path confirms itself.
++
++Verify the process as well as the outcome. For each fact you relied on, name the
++record it came from and confirm it is the one the project's rules point at; a
++correct result can rest on a paste or a file never read.
++
++Red is a colour, not a measurement. A failing check proves the instrument only
++when the failure content is the disagreement you predicted, so quote the
++assertion's diff, never the assertion.
++
++When two fixes sharing an assumption fail the same gate, write the assumption
++down and choose an observation that can challenge it before a third fix depends
++on it. For uneven allocation, count the work per actor before recommending a
++reassignment.
++
++Before you trust, report, or act on a number you measured (a speedup, a
++regression, a throughput, a latency, or an eval result), ask why it is not twice
++as good. Name the limiter from a profile or system counters taken during a run,
++not from reading the code. Rule out each other thing the number could be
++measuring: failed requests, skipped or cached work, code that never ran, an
++untuned side, noise, and a changed piece too small to matter end to end. Keep the
++run count, the spread, and the limiter with the number. For a performance number,
++run the `benchmark-checklist` skill. For an eval result, ask whether every trial
++did the task and whether the gap holds across trials and models.
++
++For repetitive edits or checks, build a small reusable script when it is cheaper,
++more reliable, or easier to review than manual repetition. Do not create tooling
++for a one-off task already handled clearly by an existing command.
++
++Split large work at boundaries that can be verified independently. Verify each
++required unit and its integration before claiming completion. Run documented
++repository gates without masking their exit status. Re-run only after a relevant
++change, failure, or unresolved concern; stop polishing once the acceptance criteria
++and required checks pass.
++
++Encode a recurring, concrete failure in a type, test, or lint rule when that
++prevents it reliably. Demonstrate the gate catches the actual violation before
++adding it. Otherwise retain a short conditional explanation at the owning code.
+diff --git a/plugins/pstack/skills/poteto-mode/references/pi-tools.md b/plugins/pstack/skills/poteto-mode/references/pi-tools.md
+index c969468..021f212 100644
+--- a/plugins/pstack/skills/poteto-mode/references/pi-tools.md
++++ b/plugins/pstack/skills/poteto-mode/references/pi-tools.md
+@@ -53,12 +53,10 @@ Skills name models by the Claude aliases in their Models sections. On Pi, pass t
+ | --- | --- | --- | --- |
+ | `opus` | `anthropic/claude-opus-5-5` | `openai/gpt-6.1-sol` | `openai-codex/gpt-6.1-sol` |
+ | `fable` | `anthropic/claude-fable-5-1` | `openai/gpt-6-astra` | `openai-codex/gpt-6-astra` |
+-| `sonnet` | `anthropic/claude-sonnet-5-5` | `openai/gpt-6-sol` | `openai-codex/gpt-6-sol` |
+-| `haiku` | `anthropic/claude-haiku-4-5` | `openai/gpt-6-luna` | `openai-codex/gpt-6-luna` |
+ 
+ Pi warns that Anthropic bills Claude used through Pi per token, as extra usage, even on a Claude subscription. Pi shows that warning only in interactive mode, never for the `pi --mode rpc` children the `agent` tool runs.
+ 
+-A `pi models: opus=<provider/id>, sonnet=<provider/id>` line in the Pi override sheet points each alias it names at another Pi model, whatever the session's provider. The `agent` tool also takes a full `provider/id`, passed through unchanged, and `inherit-parent`, `auto`, or no `model` runs the child on the parent's current model. Diverse-model panels (`arena`, `architect`, `interrogate`, `how` critics, `reflect`) stay diverse only while their aliases resolve to distinct models. If one model family is all you can reach, vary the reasoning effort and note in the verdict that diversity was reduced.
++A `pi models: opus=<provider/id>, fable=<provider/id>` line in the Pi override sheet points each alias it names at another Pi model, whatever the session's provider. The `agent` tool also takes a full `provider/id`, passed through unchanged, and `inherit-parent`, `auto`, or no `model` runs the child on the parent's current model. Diverse-model panels (`arena`, `architect`, `interrogate`, `how` critics, `reflect`) stay diverse only while their aliases resolve to distinct models. If one model family is all you can reach, vary the reasoning effort and note in the verdict that diversity was reduced.
+ 
+ `/setup-pstack` writes the configured model list. On Pi, keep the aliases and remap them with `pi models:`.
+ 
+diff --git a/plugins/pstack/skills/principle-attack-the-premise/SKILL.md b/plugins/pstack/skills/principle-attack-the-premise/SKILL.md
+deleted file mode 100644
+index adb2776..0000000
+--- a/plugins/pstack/skills/principle-attack-the-premise/SKILL.md
++++ /dev/null
+@@ -1,17 +0,0 @@
+----
+-name: principle-attack-the-premise
+-description: "Apply when repeated fixes sharing an assumption fail. State the assumption and choose an observation that can challenge it before trying another fix that depends on it."
+-user-invocable: false
+----
+-
+-# Attack the premise
+-
+-When two or more fixes sharing an assumption fail the same gate, write down what they assumed. Before another fix depends on it, choose an observation or experiment that can challenge it.
+-
+-Match the experiment to the hypothesis. Two timeout increases may assume requests reach the intended destination. Check the actual destination before increasing the timeout again.
+-
+-When the hypothesis concerns uneven allocation, ownership, or assignment, count resources or work per actor. Measure the distribution and trace the assignment per [Fix Root Causes](../principle-fix-root-causes/SKILL.md). Recommend redistribution, rotation, or reassignment only when evidence connects that assignment to the failure. An even distribution weakens the imbalance hypothesis; it does not rule out a shared defect. Every worker can leak at the same rate.
+-
+-Keep a rerunnable experiment when useful, per [Build the Lever](../principle-build-the-lever/SKILL.md). Do not turn this into a mandatory census for unrelated bugs.
+-
+-This principle questions an assumption about the existing system. [Redesign from First Principles](../principle-redesign-from-first-principles/SKILL.md) rebuilds a design around a new requirement.
+diff --git a/plugins/pstack/skills/principle-boundary-discipline/SKILL.md b/plugins/pstack/skills/principle-boundary-discipline/SKILL.md
+deleted file mode 100644
+index de0c0f4..0000000
+--- a/plugins/pstack/skills/principle-boundary-discipline/SKILL.md
++++ /dev/null
+@@ -1,34 +0,0 @@
+----
+-name: principle-boundary-discipline
+-description: "Apply when wiring validation, error handling, or framework adapters. Concentrate guards at system boundaries (CLI, config, network, external APIs); trust internal types and keep business logic in pure functions."
+-user-invocable: false
+----
+-
+-# Boundary Discipline
+-
+-Place validation, type narrowing, and error handling at system boundaries. Trust internal code unconditionally. Business logic lives in pure functions. The shell is thin and mechanical.
+-
+-**Why:** Scattered validation is noisy, redundant, and gives a false sense of safety. Keep logic out of framework wiring so it can be tested without the framework.
+-
+-**The pattern:**
+-- **At boundaries** (CLI args, config files, external APIs, network protocols): validate, return errors, handle defensively.
+-- **Inside the system:** typed data, error propagation, no re-validation. Trust the types.
+-- **Across the boundary.** Expose domain concepts, not the boundary's private representation. Keep general-purpose mechanism inside and special-purpose policy at the edge.
+-
+-**Applications:**
+-
+-Validation and error handling:
+-- Validate config at parse time (the boundary), not inside business logic
+-- Parse raw data into domain types at the boundary
+-- Do not re-export transport, storage, framework, or wire types through the public surface
+-- No redundant nil checks deep in call chains if the boundary already validated
+-
+-Code organization:
+-- Business logic in pure functions with no framework dependencies
+-- Parse functions: pure transforms from raw bytes to typed state
+-- Prompt construction: structured state in, string out
+-- Scoring and assessment: pure transforms from state to results
+-
+-**The tests:**
+-- "Is this data crossing a system boundary right now?" If not, validation is redundant.
+-- "Can this be a pure function that the shell just calls?" If yes, extract it.
+diff --git a/plugins/pstack/skills/principle-build-the-lever/SKILL.md b/plugins/pstack/skills/principle-build-the-lever/SKILL.md
+deleted file mode 100644
+index d1a28c6..0000000
+--- a/plugins/pstack/skills/principle-build-the-lever/SKILL.md
++++ /dev/null
+@@ -1,23 +0,0 @@
+----
+-name: principle-build-the-lever
+-description: "Apply to any non-trivial work, not just bulk work: edits, migrations, analyses, checks. Build the tool that does it or proves it (codemod, script, generator, or a skill your subagents follow) instead of working by hand. The tool is the artifact a reviewer can rerun."
+-user-invocable: false
+----
+-# Build the Lever
+-
+-When the work isn't trivial, build the tool that does it instead of doing it by hand.
+-
+-**Why:** Two payoffs. Throughput: a codemod, generator, or script does the work the same way every time and reruns for free. Confidence: the tool is one artifact a reviewer can read and rerun to check the work. Hand-done changes can only be re-verified by redoing them. A deterministic script turns "trust me" into "run this".
+-
+-**Pattern:** Default to building the lever. Skip it only when the task is trivial, a couple of obvious edits you can see at a glance.
+-
+-- Do the first unit by hand to learn the recipe, then build the tool. Prove it by rerunning it on that unit and diffing against your hand-done version. Make the lever safe to rerun.
+-- Codemod or script for edits, generator for repetitive files, a dump-to-sqlite query for analysis, a rerunnable check for verification.
+-- A deterministic lever beats fan-out. If the tool can process every unit in one pass, run it yourself. Don't fan out delegates to hand-apply what a script can do.
+-- When you fan work out to subagents, write the lever as a skill they all read: the recipe, the verification contract, and the do-not-touch fences in one artifact. Keep it outside the delegates' write scope so they can't quietly edit the contract.
+-- Applying this principle produces a file. If you cited it and there is no codemod, script, generator, or delegate skill in the diff, you didn't apply it.
+-- Commit the lever when the work outlives the session.
+-
+-**Balance:** The bar is triviality, not repetition. A one-off still earns a lever when the lever is what makes the work checkable. Per the [Laziness Protocol](../principle-laziness-protocol/SKILL.md), build the smallest script that does or proves the job, never a framework.
+-
+-Distinct from [Encode Lessons in Structure](../principle-encode-lessons-in-structure/SKILL.md), which makes a recurring instruction a durable guardrail. This is throughput and reviewability on the work in front of you. For scripting the verification itself, see [Prove It Works](../principle-prove-it-works/SKILL.md).
+diff --git a/plugins/pstack/skills/principle-encode-lessons-in-structure/SKILL.md b/plugins/pstack/skills/principle-encode-lessons-in-structure/SKILL.md
+deleted file mode 100644
+index d92de93..0000000
+--- a/plugins/pstack/skills/principle-encode-lessons-in-structure/SKILL.md
++++ /dev/null
+@@ -1,31 +0,0 @@
+----
+-name: principle-encode-lessons-in-structure
+-description: "Apply when you catch yourself writing the same instruction a second time, or notice a recurring correction. Encode the rule as a lint, metadata flag, runtime check, or script instead of more text."
+-user-invocable: false
+----
+-
+-# Encode Lessons in Structure
+-
+-Encode recurring fixes in mechanisms (tools, code, metadata, automation) instead of textual instructions. Every error, human correction, and unexpected outcome is a learning signal. Capture it, route it, and close the loop.
+-
+-**Why:** Textual instructions are easy to miss. They require the reader to notice, remember, and comply. Structural mechanisms (lint rules, metadata flags, runtime checks, automation scripts) enforce the rule without cooperation.
+-
+-**Pattern:**
+-When you catch yourself writing the same instruction a second time:
+-1. Ask: can this be a lint rule, a metadata flag, a runtime check, or a script?
+-2. If yes, encode it. Delete the instruction
+-3. If no (requires judgment), make the instruction more prominent and add an example of the failure mode
+-
+-**Pick the strongest mechanism.** When more than one mechanism would work, choose the strongest the situation allows (an unrepresentable state that cannot compile, then a lint or banned API that fails CI, then a canonical helper, then a runtime check), because agents copy whatever the surrounding code already does and a weaker guard becomes the next template.
+-
+-**Corollary:** If the fix is structural, only use the structural fix. The instruction is the symptom.
+-
+-**Feedback loop:**
+-- **Capture every correction.** When the human intervenes or tests fail, decide if it's a one-off or a pattern.
+-- **Route to the right layer.** One-off -> brain note. Recurring fix -> skill or lint rule. Systemic issue -> principle.
+-- **Close the loop.** Don't just record. Apply now or create a concrete todo.
+-
+-**Anti-patterns:**
+-- Acknowledging without recording ("I'll keep that in mind" does not persist)
+-- Recording without routing (a brain note about a lint rule that should exist is wasted unless the lint rule gets implemented)
+-- Fixing without generalizing (fixing one instance while leaving the recurring pattern intact)
+diff --git a/plugins/pstack/skills/principle-exhaust-the-design-space/SKILL.md b/plugins/pstack/skills/principle-exhaust-the-design-space/SKILL.md
+deleted file mode 100644
+index 5e581cd..0000000
+--- a/plugins/pstack/skills/principle-exhaust-the-design-space/SKILL.md
++++ /dev/null
+@@ -1,21 +0,0 @@
+----
+-name: principle-exhaust-the-design-space
+-description: "Apply when facing a novel UI interaction or architectural decision with no precedent in the codebase. Build 2-3 competing prototypes and compare side by side before committing."
+-user-invocable: false
+----
+-
+-# Exhaust the Design Space
+-
+-When a novel interaction or architectural decision has no established precedent, explore several concrete alternatives before implementation. Building the wrong thing costs more than exploring three options.
+-
+-**The rule.** When the right answer is not obvious, build 2-3 competing prototypes or sketches. Compare them side by side. Only then commit. Design it twice is this rule by another name. A second flavor of the first shape does not count.
+-
+-**When it applies:**
+-- Novel UI interactions (no prior art in the codebase)
+-- Architectural choices with multiple viable approaches
+-- Product design decisions where user experience depends on feel, not logic
+-
+-**When it doesn't:**
+-- Mechanical implementation where the pattern is established
+-- Bug fixes or refactors with a clear target state
+-- Changes where constraints dictate a single viable approach
+diff --git a/plugins/pstack/skills/principle-experience-first/SKILL.md b/plugins/pstack/skills/principle-experience-first/SKILL.md
+deleted file mode 100644
+index ff4bf14..0000000
+--- a/plugins/pstack/skills/principle-experience-first/SKILL.md
++++ /dev/null
+@@ -1,19 +0,0 @@
+----
+-name: principle-experience-first
+-description: "Apply when product, UX, or feature-scope tradeoffs come up. Choose user delight over implementation convenience; ship fewer polished features over more rough ones."
+-user-invocable: false
+----
+-
+-# Experience First
+-
+-When implementation convenience conflicts with user delight, choose delight.
+-
+-- Every feature, control, and option must be justified
+-- Ship less, ship better (polished experience with three features beats rough one with ten)
+-- Prototype before committing (design decisions are cheaper in throwaway HTML than production code)
+-- Get the details right (transitions, alignment, spacing, feedback, error states)
+-- Tighten the core loop (every feature should serve the central workflow or get out of the way)
+-
+-The user is whoever consumes the work. For a UI that is the end user. For a library or an internal API it is the colleague who imports it. The engineer who maintains the code next is a user too. Weigh their experience the same way, and explain impact from their perspective.
+-
+-Foundations should serve the experience. Foundational thinking governs the *sequence* of work. This principle governs the *target*.
+diff --git a/plugins/pstack/skills/principle-explain-the-number/SKILL.md b/plugins/pstack/skills/principle-explain-the-number/SKILL.md
+deleted file mode 100644
+index 4b28a7d..0000000
+--- a/plugins/pstack/skills/principle-explain-the-number/SKILL.md
++++ /dev/null
+@@ -1,23 +0,0 @@
+----
+-name: principle-explain-the-number
+-description: "Apply before you trust, report, or act on a number you measured: a speedup, a regression, a throughput, a latency, or an eval result. Find what limits it, and rule out that it measured something other than the work you think."
+-user-invocable: false
+----
+-
+-# Explain the Number
+-
+-A measured number is a claim about a system. Before you trust it, report it, or act on it, find what limits it and rule out that it measured something else.
+-
+-**Why:** A run that went wrong still prints a plausible number. Requests that failed, a cache that skipped the work, code that never ran, a side left on default settings, and run-to-run noise all produce results that look fine. If you cannot say why the number is not twice as good, you do not know what you measured.
+-
+-**Pattern:**
+-
+-- **Ask "why not double?"** Name the resource or code path that bounds the result, such as a core, a lock, the disk, the network, or the load generator itself. Get it from a profile or from system counters taken during a run, then map it to source. A guess from reading the code is not a limiter.
+-- **List what else the number could be measuring, and rule out each one with evidence.** The usual suspects are errors, skipped or cached work, an untuned side, noise, and a piece too small to matter end to end.
+-- **Keep the evidence with the number.** Put the run count, the spread, and the limiter in the notes or a linked artifact, so a reader can check the claim.
+-
+-For a performance number, run the full procedure with the [benchmark-checklist](../benchmark-checklist/SKILL.md) skill. For an eval result, ask the same of the trials: did every run do the task, does the gap hold across trials and models, and does the scenario matter.
+-
+-You skipped this when the evidence behind a number has no run count, no spread, or no named limiter, or when the time saved is larger than the time the changed piece took.
+-
+-Distinct from [Prove It Works](../principle-prove-it-works/SKILL.md), which checks that an output is real. This checks that a measured number means what you say it means.
+diff --git a/plugins/pstack/skills/principle-fix-root-causes/SKILL.md b/plugins/pstack/skills/principle-fix-root-causes/SKILL.md
+deleted file mode 100644
+index 0597b15..0000000
+--- a/plugins/pstack/skills/principle-fix-root-causes/SKILL.md
++++ /dev/null
+@@ -1,23 +0,0 @@
+----
+-name: principle-fix-root-causes
+-description: "Apply when debugging. Trace each symptom to its root cause and fix it there; reproduce first, ask why until you reach it, resist nil-check guards that silence crashes."
+-user-invocable: false
+----
+-
+-# Fix Root Causes
+-
+-When debugging, do not fix symptoms. Trace every problem to its root cause and fix it there.
+-
+-**Why:** Symptom fixes accumulate. Each workaround makes the system harder to reason about, and the real bug remains. Root-cause fixes are slower upfront but reduce total debugging time.
+-
+-**Pattern:**
+-- Reproduce first
+-- Ask "why" until you hit the root cause
+-- Do not add guards (adding a nil check to silence a crash is a symptom fix)
+-- If a workaround needs a paragraph-long comment to justify it, the code is wrong (fix the code, not the comment)
+-- Check for the pattern, not just the instance (grep for the same pattern, fix all instances)
+-- When stuck, instrument. Don't guess (add logging, read the actual error)
+-
+-**Restart bugs: suspect state before code**
+-
+-When something "fails after restart," suspect stale persistent state first: config files, caches, lock files, serialized state. If clearing a state file restores behavior, prioritize state validation as the fix.
+diff --git a/plugins/pstack/skills/principle-foundational-thinking/SKILL.md b/plugins/pstack/skills/principle-foundational-thinking/SKILL.md
+deleted file mode 100644
+index a6829c7..0000000
+--- a/plugins/pstack/skills/principle-foundational-thinking/SKILL.md
++++ /dev/null
+@@ -1,21 +0,0 @@
+----
+-name: principle-foundational-thinking
+-description: "Apply before writing logic: choosing core types and data structures, sequencing scaffold-vs-feature work, asking what concurrent actors share. Get the data structures right so downstream code becomes obvious."
+-user-invocable: false
+----
+-
+-# Foundational Thinking
+-
+-**Structural decisions** protect option value. **Code-level decisions** protect simplicity.
+-
+-**Data structures first.** Get the data shape right before writing logic. Define core types early, trace every access pattern, and choose structures that match the dominant paths.
+-
+-At code level, DRY the structure, not every line. Types and data models should converge. Three similar statements still beat a premature abstraction. Prefer explicit over clever. Test behavior and edge cases, not line counts.
+-
+-**Concurrency corollary.** Before sharing state between actors, ask "what happens if another actor modifies this concurrently?" If not "nothing", isolate.
+-
+-**Scaffold first.** If something helps every later phase, do it first. Ask "does every subsequent phase benefit from this existing?" CI, linting, test infrastructure, and shared types are scaffold. Sequence for option value: setup before features, tests before fixes. Keep commits small and single-purpose.
+-
+-Each increment should land a coherent abstraction or deepen one that exists. Do not spread a new capability across callers as special-case coordination.
+-
+-Subtraction comes before scaffolding. Remove dead code first, then lay foundations.
+diff --git a/plugins/pstack/skills/principle-guard-the-context-window/SKILL.md b/plugins/pstack/skills/principle-guard-the-context-window/SKILL.md
+deleted file mode 100644
+index ab9e950..0000000
+--- a/plugins/pstack/skills/principle-guard-the-context-window/SKILL.md
++++ /dev/null
+@@ -1,16 +0,0 @@
+----
+-name: principle-guard-the-context-window
+-description: "Apply when context is filling up: large outputs, long files, repeated reads, fan-out planning. Route bulk to subagents; keep summaries in the main thread, not raw payloads."
+-user-invocable: false
+----
+-
+-# Guard the Context Window
+-
+-The context window is finite and non-renewable within a session. Every token should be worth its cost.
+-
+-**Why:** Context overflow degrades reasoning quality, creates compression artifacts, and halts progress.
+-
+-**Pattern:**
+-- **Isolate large payloads.** Route verbose outputs, screenshots, and large documents to subagents. The main context gets summaries, not raw data.
+-- **Keep frequently used content inline.** Templates and references used on every invocation belong in the skill file, not in separate files that cost a read each time.
+-- **Size phases and cap scope.** Limit files per phase, set turn budgets, account for mechanism costs.
+diff --git a/plugins/pstack/skills/principle-laziness-protocol/SKILL.md b/plugins/pstack/skills/principle-laziness-protocol/SKILL.md
+deleted file mode 100644
+index c9c65ff..0000000
+--- a/plugins/pstack/skills/principle-laziness-protocol/SKILL.md
++++ /dev/null
+@@ -1,18 +0,0 @@
+----
+-name: principle-laziness-protocol
+-description: "Apply when refactoring, evaluating diff size, or tempted to add abstractions, layers, or signal threading. Bias toward deletion and the smallest change that solves the problem."
+-user-invocable: false
+----
+-
+-# Laziness Protocol
+-
+-Aim for the most result with the least code and complexity.
+-
+-- **Prefer deletion.** When asked to refactor or improve, look for removals before additions.
+-- **Maintain a flat call hierarchy.** Avoid deep call chains. A rich interface that hides substantial work is not a deep call chain. If answering a question requires tracing through more than 3 files or layers, flatten it.
+-- **Consolidate decisions.** Do not repeat the same choice in several places. Put it behind one source of truth and pass the result as a simple flag.
+-- **Minimize the diff.** Make the smallest change that solves the problem. Fewer lines beat "elegant" boilerplate.
+-- **Question the threading.** If a task asks you to pass a new signal through types, schemas, pipelines, or similar layers, stop and look for a more direct path.
+-- **Sweat the small leaks.** Remove tiny pass-throughs, representation leaks, and duplicated choices before they spread. Small leaks compound into permanent coordination costs.
+-
+-**The test:** If a human developer would find the code exhausting to maintain, it is a bad solution.
+diff --git a/plugins/pstack/skills/principle-make-operations-idempotent/SKILL.md b/plugins/pstack/skills/principle-make-operations-idempotent/SKILL.md
+deleted file mode 100644
+index 3caa918..0000000
+--- a/plugins/pstack/skills/principle-make-operations-idempotent/SKILL.md
++++ /dev/null
+@@ -1,24 +0,0 @@
+----
+-name: principle-make-operations-idempotent
+-description: "Apply when designing commands, lifecycle steps, or processing loops that run amid crashes, restarts, and retries. Converge to the same end state regardless of partial prior runs."
+-user-invocable: false
+----
+-
+-# Make Operations Idempotent
+-
+-Design operations so they converge to the correct state regardless of how many times they run or where they start from. Every state-mutating operation should answer: "What happens if this runs twice? What happens if the previous run crashed halfway?"
+-
+-**Why:** Commands, lifecycle operations, and processing loops run where crashes, restarts, and retries are normal. If partial state changes the next run's outcome, every restart becomes a debugging session.
+-
+-**The pattern:**
+-- Convergent startup: scan for existing state, clean stale artifacts, adopt live sessions
+-- Content-based cleanup: compare by content equivalence, not creation order
+-- Self-healing locks: use PID-based stale lock detection
+-- Idempotent scheduling: failed work respawns cleanly, fresh input regenerated after each cycle
+-
+-**The test:**
+-1. What happens if this runs twice in a row?
+-2. What happens if the previous run crashed at every possible point?
+-3. Does re-execution converge to the same end state?
+-
+-If any answer is "it depends on what state was left behind," the operation needs a reconciliation step.
+diff --git a/plugins/pstack/skills/principle-migrate-callers-then-delete-legacy-apis/SKILL.md b/plugins/pstack/skills/principle-migrate-callers-then-delete-legacy-apis/SKILL.md
+deleted file mode 100644
+index ca19666..0000000
+--- a/plugins/pstack/skills/principle-migrate-callers-then-delete-legacy-apis/SKILL.md
++++ /dev/null
+@@ -1,22 +0,0 @@
+----
+-name: principle-migrate-callers-then-delete-legacy-apis
+-description: "Apply when introducing a new internal API while old callers still exist. Migrate callers and delete the old API in the same wave instead of preserving compatibility layers."
+-user-invocable: false
+----
+-
+-# Migrate Callers Then Delete Legacy APIs
+-
+-When we decide a new API is the right design, migrate callers and remove the old API in the same refactor wave instead of preserving compatibility layers.
+-
+-**Rule:**
+-- Do not keep legacy API paths only because internal callers still exist
+-- Inventory callers, migrate them, and delete the old API immediately
+-- Treat temporary adapters as exceptional and time-boxed, not default architecture
+-- Update tests to assert the new contract, and delete tests that only protect pre-refactor implementation details
+-
+-**When this applies:**
+-- No external users depend on backward compatibility
+-- The project can absorb coordinated breaking changes
+-- The new API is part of a simplification or refactor initiative
+-
+-Keeping both old and new APIs creates dual-path complexity, slows cleanup, and makes the codebase feel append-only.
+diff --git a/plugins/pstack/skills/principle-minimize-reader-load/SKILL.md b/plugins/pstack/skills/principle-minimize-reader-load/SKILL.md
+deleted file mode 100644
+index ea8b298..0000000
+--- a/plugins/pstack/skills/principle-minimize-reader-load/SKILL.md
++++ /dev/null
+@@ -1,23 +0,0 @@
+----
+-name: principle-minimize-reader-load
+-description: "Apply when reviewing or shaping code that's hard to trace. Count layers between question and answer, and hidden state in the reader's head; collapse one-caller wrappers and shrink mutable scope."
+-user-invocable: false
+----
+-
+-# Minimize Reader Load
+-
+-Maintainability is the work a reader must do to understand code. Track two axes:
+-1. **Layers to trace.** How many indirections sit between the question and the answer.
+-2. **State to hold.** How much hidden or mutable context the reader must keep in their head.
+-
+-**Why:** Code is read far more than it is written. LOC, cyclomatic complexity, and "clean architecture" are proxies. Reader load is the thing that matters. The two axes are independent. A flat file with 50 globals can be as hard to reason about as a 6-layer adapter stack. Guard both. This is the human analog of [Guard the Context Window](../principle-guard-the-context-window/SKILL.md). Working memory is finite for readers too.
+-
+-**The pattern:**
+-- **Collapse layers** that cost more than they save: wrappers with one caller, adapters with no second implementation, speculative indirection that was never needed. Inline them.
+-- **Make adjacent layers change the abstraction.** A layer that repeats the same methods and arguments adds reader load without compression. Collapse pass-through layers.
+-- **Demand interface compression.** A broad interface that hides little complexity makes readers learn both the surface and the implementation. Prefer boundaries that hide meaningful decisions.
+-- **Shrink state scope:** prefer pure functions (returns over mutations), locals over fields, fields over module state, and module state over globals. Derive instead of sync.
+-- **Name the invariant at the boundary,** not in every consumer, so the reader learns it once.
+-- Before adding a layer or a piece of state, ask: does this reduce reader load somewhere else by at least as much?
+-
+-**The test:** Can a new reader answer "where does X come from?" and "what can change X?" in under 30 seconds? If not, cut layers or cut state.
+diff --git a/plugins/pstack/skills/principle-model-the-domain/SKILL.md b/plugins/pstack/skills/principle-model-the-domain/SKILL.md
+deleted file mode 100644
+index 047e493..0000000
+--- a/plugins/pstack/skills/principle-model-the-domain/SKILL.md
++++ /dev/null
+@@ -1,26 +0,0 @@
+----
+-name: principle-model-the-domain
+-description: "Apply when writing stateful logic, or when code branches a lot or repeats a shape assumption across files. Encode the domain in a structure instead of scattered conditionals."
+-user-invocable: false
+----
+-
+-# Model the Domain
+-
+-Encode the real domain in a data structure instead of scattering it across conditionals.
+-
+-**Why:** Scattered booleans, repeated shape assumptions, and branching spread across files are accidental complexity. A structure that matches the domain makes invalid states unrepresentable and deletes branches. Choosing it at write time is cheap. Recovering it later reads as a refactor and gets deferred.
+-
+-**Reach for structures like these:**
+-
+-- A state machine instead of scattered booleans, phases, or lifecycle checks.
+-- A typed object/model instead of loose parameters or repeated shape assumptions.
+-- A map, registry, lookup table, or discriminated union instead of branching spread across files.
+-- A reducer or command/event model instead of ad hoc state mutations.
+-- A module organized around one body of domain knowledge instead of a sequence such as load, validate, transform, and save. Execution order is not ownership.
+-- A small module boundary that gathers repeated behavior, ownership, or invariants.
+-- A queue, cache, index, graph/tree, or normalized collection where the data access pattern calls for it.
+-- Any other structure that fits. When none fits, work out what the code must never allow and how the data gets read, then find the structure that encodes exactly that.
+-
+-Do not force an abstraction. Prefer boring code if the current shape is already clear, local, and unlikely to grow. Be skeptical of an abstraction that adds indirection without removing branches, duplicated rules, invalid states, or lifecycle risk.
+-
+-The sign that you skipped this is a new feature that grows an existing if/else chain by one more branch, or a second boolean that must stay in sync with the first. Temporal decomposition is another sign. Phase-named modules repeat the same domain rules across steps.
+diff --git a/plugins/pstack/skills/principle-never-block-on-the-human/SKILL.md b/plugins/pstack/skills/principle-never-block-on-the-human/SKILL.md
+deleted file mode 100644
+index b9edb2c..0000000
+--- a/plugins/pstack/skills/principle-never-block-on-the-human/SKILL.md
++++ /dev/null
+@@ -1,20 +0,0 @@
+----
+-name: principle-never-block-on-the-human
+-description: "Apply when tempted to ask 'should I do X?' on reversible work. Proceed, present the result, let the human course-correct after the fact; reserve confirmation for irreversible actions."
+-user-invocable: false
+----
+-
+-# Never Block on the Human
+-
+-The human supervises asynchronously. Agents must stay unblocked. Make reasonable decisions, proceed, and let the human course-correct after the fact.
+-
+-**Why:** Every permission pause stalls the pipeline and makes the human the bottleneck. Since code changes are reversible and reviewable, a wrong decision usually costs less than blocking.
+-
+-**Pattern:**
+-- **Proceed, then present.** Do the work, show the result. Don't ask "should I do X?" Do X, explain why.
+-- **Make the system self-healing.** When you notice a problem, log it and fix it in the next round.
+-
+-**Boundaries:**
+-- **Irreversible actions** (force-push, delete production data, send external messages) still require confirmation.
+-- **Reversible actions** (write code, edit notes, split tasks) should proceed without blocking.
+-- **Product direction** comes from the human. *Execution* should not block.
+diff --git a/plugins/pstack/skills/principle-outcome-oriented-execution/SKILL.md b/plugins/pstack/skills/principle-outcome-oriented-execution/SKILL.md
+deleted file mode 100644
+index 935bc52..0000000
+--- a/plugins/pstack/skills/principle-outcome-oriented-execution/SKILL.md
++++ /dev/null
+@@ -1,21 +0,0 @@
+----
+-name: principle-outcome-oriented-execution
+-description: "Apply during planned rewrites and migrations with explicit phase boundaries. Converge on the target architecture; don't preserve smooth intermediate states with throwaway compatibility code."
+-user-invocable: false
+----
+-
+-# Outcome-Oriented Execution
+-
+-Optimize for the intended, verifiable end state rather than preserving smooth intermediate states.
+-
+-**Why:** Keeping every intermediate step fully stable often creates temporary compatibility code that becomes long-lived debt. Converge on the target architecture and prove correctness at explicit verification boundaries.
+-
+-**Core rule:**
+-- Prioritize end-state integrity over transitional stability
+-- Intermediate breakage is acceptable when it is planned, scoped, and reversible
+-
+-**Guardrails:**
+-- Use this for planned rewrites and migrations with explicit phase boundaries
+-- Declare where temporary breakage is acceptable
+-- Keep high-signal checks for actively touched areas while migrating
+-- Require full static and runtime verification at plan completion
+diff --git a/plugins/pstack/skills/principle-prove-it-works/SKILL.md b/plugins/pstack/skills/principle-prove-it-works/SKILL.md
+deleted file mode 100644
+index 3ba2195..0000000
+--- a/plugins/pstack/skills/principle-prove-it-works/SKILL.md
++++ /dev/null
+@@ -1,26 +0,0 @@
+----
+-name: principle-prove-it-works
+-description: "Apply after completing a task, before declaring done. Verify against the real artifact (run the feature, read the actual value, inspect the diff), not a proxy, self-report, or 'it compiles.'"
+-user-invocable: false
+----
+-
+-# Prove It Works
+-
+-Verify every task output by checking the real thing directly. Do not infer from proxies, self-reports, or "it compiles."
+-
+-**Why:** Unverified work has unknown correctness. Indirect verification (file mtimes, output freshness, agent self-reports, cached screenshots) feels cheaper than direct observation. Acting on a wrong inference costs far more than checking the source.
+-
+-Check the real thing, not a proxy:
+-- Check process liveness directly, not indirectly through derived state
+-- Read the actual value, not a cached or derived representation
+-- When verification fails, suspect the observation method before suspecting the system
+-
+-Verify the process as well as the outcome. A correct result can rest on a broken process, and a review that checks results passes it: a clause reconstructed from the user's paste instead of the durable record, a constraint honored by chance from a file never read. For each fact you relied on, name the record it came from and confirm that record is the one the project's rules point at.
+-
+-Red is a colour, not a measurement. A failing check proves the instrument only when the failure content is the disagreement you predicted. An exception, an empty collection against a non-empty literal, and a real mismatch all print red, so quote the assertion's diff (`Extra items in the right set`), never the assertion (`assert {...} == {...}`). A convergence probe keys on behavior only the new artifact can produce, never an identity field the old one also emits. A same-SHA restart lets old code report the new commit SHA.
+-
+-## Script the check when you can
+-
+-The strongest proof is a deterministic script that re-runs the same comparison, not a one-time eyeball. Write the script, run it, and keep its output as an artifact a reviewer can re-run instead of trusting your word.
+-
+-Keep the artifact visible for the human. Commit it only for large or complex work where the trail has to be auditable later, like a big port or migration (the **show-me-your-work** skill).
+diff --git a/plugins/pstack/skills/principle-redesign-from-first-principles/SKILL.md b/plugins/pstack/skills/principle-redesign-from-first-principles/SKILL.md
+deleted file mode 100644
+index c3c55e9..0000000
+--- a/plugins/pstack/skills/principle-redesign-from-first-principles/SKILL.md
++++ /dev/null
+@@ -1,16 +0,0 @@
+----
+-name: principle-redesign-from-first-principles
+-description: "Apply when integrating a new requirement into an existing design. Redesign as if the requirement had been a foundational assumption from day one, instead of bolting it on."
+-user-invocable: false
+----
+-
+-# Redesign From First Principles
+-
+-When integrating a change, don't bolt it onto the existing design. Redesign as if the requirement had been there from the start.
+-
+-- Read all affected files and understand the current design
+-- Ask: "if we were writing this from scratch with this new requirement, what would we build?"
+-- Propagate the change through every reference: types, docs, examples, rationale sections
+-- Think about the whole redesign, then deliver it incrementally
+-
+-This is the method for preserving option value when integrating changes into an existing design.
+diff --git a/plugins/pstack/skills/principle-separate-before-serializing-shared-state/SKILL.md b/plugins/pstack/skills/principle-separate-before-serializing-shared-state/SKILL.md
+deleted file mode 100644
+index dd88c08..0000000
+--- a/plugins/pstack/skills/principle-separate-before-serializing-shared-state/SKILL.md
++++ /dev/null
+@@ -1,16 +0,0 @@
+----
+-name: principle-separate-before-serializing-shared-state
+-description: "Apply when concurrent actors might write to the same file, branch, key, or state object. Eliminate the sharing first; serialize structurally only when one shared writer is a real invariant."
+-user-invocable: false
+----
+-
+-# Separate Before Serializing Shared State
+-
+-When concurrent actors might share mutable state, first ask whether they need the same mutable object. If not, eliminate the sharing. When sharing is real, enforce serialization structurally: lockfiles, sequential phases, exclusive ownership. Instructions and conventions are not concurrency control.
+-
+-**Why:** Concurrent writes to shared state create race conditions that are intermittent, hard to reproduce, and expensive to debug.
+-
+-**Pattern:**
+-1. **Identify shared mutable state** (files both read and write, branches both push to, APIs both define and consume).
+-2. **Default: eliminate the shared write target.** Ask: do these actors need one canonical object, or are they publishing independent facts? Give each actor its own owned file, key, branch, or state directory, and merge only at the read/reporting boundary. Two workers writing their own `lastX` field into one `state.json` is still shared mutation. `indexer-state.json` + `metrics-state.json` is not.
+-3. **Only when one shared write target is a real invariant, serialize access structurally** (lockfiles, sequential phases, single-writer actor, or atomic compare-and-swap). Treat "we need a lock" as a design smell to check, not as the default answer.
+diff --git a/plugins/pstack/skills/principle-sequence-verifiable-units/SKILL.md b/plugins/pstack/skills/principle-sequence-verifiable-units/SKILL.md
+deleted file mode 100644
+index 583be96..0000000
+--- a/plugins/pstack/skills/principle-sequence-verifiable-units/SKILL.md
++++ /dev/null
+@@ -1,17 +0,0 @@
+----
+-name: principle-sequence-verifiable-units
+-description: "Apply to multi-step work (sweeps, migrations, runs of similar edits) and to how you stack commits and PRs. Break work into small units that each end in a verifiable state, check each before the next, and order delivery so the sequence proves itself to a reviewer."
+-user-invocable: false
+----
+-
+-# Sequence work into verifiable units
+-
+-Order work as a sequence of small units, each ending in a state you can check, and don't advance until the current one is green.
+-
+-**Why:** A break caught at the unit that caused it is cheap to localize. A break caught after a batch is buried, and you have already built further on a broken base. Sequencing those same units into a delivery a reviewer can replay turns "trust me" into "watch it go red, then green."
+-
+-**Execution.** In a sweep, migration, or any run of similar edits, verify each change before starting the next. Each unit is a before/after bracket: known-good state, one change, run the check, then proceed. Rebase onto clean trunk first so every check measures against the real baseline. When a lever does the edits, the per-unit check is nearly free. Run it anyway.
+-
+-**Delivery.** Stack commits and PRs in the order that proves the work. The canonical shape is the failing test first, then the fix on top. Other story orders are a subtraction before the reshape, a baseline capture before the treatment, the scaffold before the feature. Each commit lands on its own and the sequence reads as an argument.
+-
+-The sequencing complement to the **prove-it-works** principle skill, which keeps each check real, and the **build-the-lever** principle skill, which makes the per-unit check cheap.
+diff --git a/plugins/pstack/skills/principle-subtract-before-you-add/SKILL.md b/plugins/pstack/skills/principle-subtract-before-you-add/SKILL.md
+deleted file mode 100644
+index 1342ddd..0000000
+--- a/plugins/pstack/skills/principle-subtract-before-you-add/SKILL.md
++++ /dev/null
+@@ -1,21 +0,0 @@
+----
+-name: principle-subtract-before-you-add
+-description: "Apply when sequencing an addition, refactor, or rewrite. Remove dead code, redundant validators, and stub references first, then build on the simpler base."
+-user-invocable: false
+----
+-
+-# Subtract Before You Add
+-
+-When evolving a system, remove complexity first, then build.
+-
+-**Why:** Adding to a complex system compounds complexity. Removing first leaves less code, reveals the essential structure, and usually makes the next design obvious. Default to subtraction.
+-
+-Make simplification a continual investment. Leave the design slightly simpler and more capable behind the same or smaller surface than you found it.
+-
+-**The pattern:**
+-- Sequence removal before construction
+-- Cut before you polish (get to the minimum before investing in quality)
+-- Design for observed usage, not speculative edge cases
+-- No speculative validators, parsers, or guards beyond what the spec demands
+-- Simplify prompts (remove redundant instructions, excessive templates)
+-- When a reference has no novel content, delete it rather than leaving a stub
+diff --git a/plugins/pstack/skills/principle-test-behavior-not-implementation/SKILL.md b/plugins/pstack/skills/principle-test-behavior-not-implementation/SKILL.md
+deleted file mode 100644
+index 9296ac0..0000000
+--- a/plugins/pstack/skills/principle-test-behavior-not-implementation/SKILL.md
++++ /dev/null
+@@ -1,17 +0,0 @@
+----
+-name: principle-test-behavior-not-implementation
+-description: "Apply when you write, change, or keep a test. Identify a relevant defect and check that the test detects it. Assert the required result or observable effect, including absence when the contract requires it."
+-user-invocable: false
+----
+-
+-# Test behavior, not implementation
+-
+-Before keeping a test, name a relevant defect and determine whether the complete test arrangement detects it. Where practical, introduce that defect temporarily and observe the failure. Exercise the subject through its public interface and check the required result or effect.
+-
+-- A missing-result experiment helps when the contract requires a result. `toBeDefined` detects a missing result, but accepts the wrong one. Strengthen it to check the particular result when correctness requires one.
+-- Keep absence assertions when absence is required. For a denied operation that must send no email, exercise the denial and check the outbox is empty. Temporarily make the denied path send an email and confirm the test fails. An assertion on absence does not require a positive case in the same test.
+-- Keep fixed-value checks when the value is an explicit user-facing contract, such as a promised default or instruction. Name that contract and the defect a changed value would cause. Avoid freezing incidental constants or prompt wording with no such contract.
+-- Keep comparisons between results when disagreement exposes a real defect. An expected result computed through the same faulty path as the actual result can confirm itself. Use an independent expectation or a relation that the identified defect actually violates.
+-- Assess shared setup and the test body together. Calling the subject in `beforeEach` is valid; asserting only untouched fixture data is not.
+-
+-Reject tests that exercise nothing relevant, assert nothing meaningful, or only show that a substitute was called without checking the required effect. Check its payload or resulting state when that establishes the contract. An assertion's syntax alone cannot tell you whether it detects a defect.
+diff --git a/plugins/pstack/skills/principle-type-system-discipline/SKILL.md b/plugins/pstack/skills/principle-type-system-discipline/SKILL.md
+deleted file mode 100644
+index b66c78d..0000000
+--- a/plugins/pstack/skills/principle-type-system-discipline/SKILL.md
++++ /dev/null
+@@ -1,31 +0,0 @@
+----
+-name: principle-type-system-discipline
+-description: "Apply when designing types, reviewing a function signature, or writing code in any statically-typed language. Make illegal states unrepresentable, brand semantic primitives, parse external data at boundaries, refuse to lie to the compiler, exhaust variants, derive from authoritative schemas."
+-user-invocable: false
+----
+-
+-# Type System Discipline
+-
+-The type checker is a proof assistant. Use it to eliminate impossible states, mismatched primitives, and unhandled variants at compile time. A case the types let you ignore becomes a runtime failure the compiler could have stopped. Prefer defining errors and special cases out of existence over proliferating handlers. Unrepresentable states, total functions, and interface redesign (the patterns below) are the tools.
+-
+-Applies to any typed language. Skills like `typescript-best-practices` ground it in specific syntax.
+-
+-**The patterns:**
+-
+-- **Make illegal states unrepresentable.** Model variants as sum types: discriminated unions in TypeScript, enums with payloads in Rust/Swift/Kotlin, sealed classes in Scala, ADTs in Haskell/OCaml. Don't model state as a bag of optional fields where contradictory combinations compile. A subtle anti-pattern: `{ completed: boolean; completedAt?: Date }` admits `completed: true; completedAt: undefined`, which is meaningless. Derive the boolean from a single source like `completedAt !== null`, or model the variants explicitly as `{ kind: 'open' } | { kind: 'done'; at: Date }`. If a bug forces the question "wait, can this combination actually happen?", the type is too loose.
+-- **Types are constructions, not restrictions.** Build the type up from the values you want instead of carving them out of a looser type with checks. The invariant that seems to need a refinement type is usually a construction away. A non-empty list is a head plus a rest, not a list with a length check. A valid time range is a start plus a duration, not two timestamps you must keep ordered. No representation is privileged. A list of pairs is an even-length list if you interpret it that way, so choose the shape that cannot build the illegal value and expose the interface callers need on top.
+-- **Brand semantic primitives.** `UserId` and `OrderId` are strings underneath but should not be interchangeable. Newtypes in Rust, opaque types in Swift, value classes in Kotlin, phantom types in Haskell, branded intersections in TypeScript. Validate once at creation, trust the type downstream.
+-- **External data is untyped until parsed.** RPC payloads, JSON, IPC messages, CLI args, config files, environment variables, database rows. Have a parse function at every boundary that turns unstructured input into the typed model. See the **boundary-discipline** principle skill for where to put validation.
+-- **Don't lie to the type system.** Casts, unsafe coercions, and assertion functions that bypass the compiler are latent runtime crashes. If the compiler can't prove a fact, prove it (validate, narrow, refine the model) or accept that the cast is a hazard.
+-- **Exhaustive matching is the compiler's job.** When you match on a sum type, the compiler must fail compilation if a new variant is added without handling. Use the idiom your language provides: `never`-typed binding in TypeScript, unannotated `match` in Rust, `-Wincomplete-patterns` in Haskell, sealed-class match exhaustiveness in Kotlin.
+-- **Derive types from authoritative schemas.** When a protocol buffer, OpenAPI spec, GraphQL schema, database migration, or design-system token file defines a shape, derive from it instead of hand-rolling a parallel type. See the **encode-lessons-in-structure** principle skill.
+-- **Strengthen a type only where partiality appears.** A runtime assertion, null check, or "this should never happen" throw marks the place a type is too weak. Push that check up into the type. Then stop. The type system's job is to track the cases each use site must handle, not to describe the data as precisely as possible. Prefer total functions. `sum` of an empty list is 0, so it takes the plain list. `head` of an empty list has no answer, so it demands the non-empty one.
+-
+-**The tests:**
+-
+-- "Can I write a comment explaining when this combination of fields is valid?" If yes, the type is too loose. Split it into a sum type.
+-- "Do two of my function arguments share a primitive type but mean different things?" Brand them.
+-- "Where did this `any`, this `as`, this `assertNotNull` come from?" Trace it to the boundary and validate there instead.
+-- "If a new variant is added next month, will the compiler tell the next agent where to add a case?" If no, the match isn't exhaustive.
+-- "Is this type duplicating a shape another file owns?" Derive instead.
+-- "Am I strengthening this type to keep an operation total, or just to be more precise?" If nothing would otherwise panic, keep the plain type.
+diff --git a/plugins/pstack/skills/recall/SKILL.md b/plugins/pstack/skills/recall/SKILL.md
+index 42bba7f..b79cdcf 100644
+--- a/plugins/pstack/skills/recall/SKILL.md
++++ b/plugins/pstack/skills/recall/SKILL.md
+@@ -30,6 +30,6 @@ Lead with the capsule, then the thread status, then the problems, then the next
+ - **Problems.** At most 5, the recurring ones. Include the symptoms users keep reporting and any fix that shipped and was reverted, so the next attempt starts where the last one failed.
+ - **Next move.** The single most useful next action, concrete.
+ 
+-An adjacent feature or ticket stays out unless it blocks this one. When the capsule and thread lines outgrow a screen, cut detail before you cut threads. Write the brief through the **unslop** skill, cite chat findings by UUID and shared-record findings by their source (PR #, ticket ID, chat permalink, error-tracker issue), and sanitize private context before any public output.
++An adjacent feature or ticket stays out unless it blocks this one. When the capsule and thread lines outgrow a screen, cut detail before you cut threads. Write the brief through the active writing preferences, cite chat findings by UUID and shared-record findings by their source (PR #, ticket ID, chat permalink, error-tracker issue), and sanitize private context before any public output.
+ 
+ **Reply:** the brief, to the contract above.
+diff --git a/plugins/pstack/skills/reflect/SKILL.md b/plugins/pstack/skills/reflect/SKILL.md
+index d858f21..19d5ad5 100644
+--- a/plugins/pstack/skills/reflect/SKILL.md
++++ b/plugins/pstack/skills/reflect/SKILL.md
+@@ -47,13 +47,13 @@ One `Agent` call, `subagent_type: "general-purpose"`, with `model` from the `ref
+ 
+ ### 4. Structural enforcement check
+ 
+-Sanity-check the synthesizer's Accepted list. For any item that would be enforced more reliably by a lint rule, script, metadata flag, or runtime check, move it from Accepted to Backlog. See the **encode-lessons-in-structure** principle skill.
++Sanity-check the synthesizer's Accepted list. For any item that would be enforced more reliably by a lint rule, script, metadata flag, or runtime check, move it from Accepted to Backlog. See [verification guidance](../poteto-mode/references/engineering-verification.md).
+ 
+ ### 5. Apply
+ 
+-Before applying any Accepted edit, present the synthesizer's full Accepted/Rejected/Backlog output to the user and wait for explicit approval. The user picks which subset to apply and may redirect routings. Skill changes affect every future agent in the org. Do not auto-apply.
++Present the Accepted/Rejected/Backlog result. Apply skill edits when the current request already authorizes them; otherwise ask which proposed edits to apply. Preserve the named scope and do not require a second approval for the same authorized change.
+ 
+-Backlog items file to whatever devex / backlog tracker your team uses automatically. Only the Accepted list waits for approval.
++Prepare backlog items locally with their intended tracker and content. Submit them only when the user has authorized that external write and destination; authorization to review or edit skills does not itself authorize tracker submissions.
+ 
+ For each approved Accepted item, follow the Routing field exactly:
+ 
+diff --git a/plugins/pstack/skills/setup-pstack/SKILL.md b/plugins/pstack/skills/setup-pstack/SKILL.md
+index aee355e..3e59873 100644
+--- a/plugins/pstack/skills/setup-pstack/SKILL.md
++++ b/plugins/pstack/skills/setup-pstack/SKILL.md
+@@ -66,11 +66,11 @@ why investigators: opus
+ why synthesizer: opus
+ reflect tooling: opus
+ reflect judgment, divergent, synthesizer: opus
+-arena runners: opus, fable, sonnet
+-arena cross-judge pool: opus, fable, sonnet
++arena runners: opus, fable
++arena cross-judge pool: opus, fable
+ swarm workers: opus
+-architect runners: opus, fable, sonnet
+-interrogate reviewers: opus, fable, sonnet
++architect runners: opus, fable
++interrogate reviewers: opus, fable
+ 
+ default effort: session
+ session hook: on
+@@ -103,8 +103,8 @@ The role lines are the same everywhere. What differs is the sheet path, how the
+ 
+ Stamped from `plugins/pstack/models.json` (edit there, rerun `tools/generate.mjs`).
+ 
+-- Available Claude models: `opus`, `fable`, `sonnet`, `haiku`
+-- Default panel: `opus`, `fable`, `sonnet`
++- Available Claude models: `opus`, `fable`
++- Default panel: `opus`, `fable`
+ - Reasoning effort levels: `low`, `medium`, `high`, `xhigh`, `max`
+ - Default reasoning effort: `session`
+ - Single-role default: `opus`
+diff --git a/plugins/pstack/skills/show-me-your-work/SKILL.md b/plugins/pstack/skills/show-me-your-work/SKILL.md
+index 1b05c51..19689f5 100644
+--- a/plugins/pstack/skills/show-me-your-work/SKILL.md
++++ b/plugins/pstack/skills/show-me-your-work/SKILL.md
+@@ -32,7 +32,7 @@ ts	phase	decision	why	evidence	result
+ 
+ ## Logging a row
+ 
+-Write each entry the way you'd tell a teammate what you did. Plain words, concrete actions, no AI speak or abstract jargon (the **unslop** skill applies to log text too).
++Write each entry the way you'd tell a teammate what you did. Plain words, concrete actions, no AI speak or abstract jargon (the active writing preferences applies to log text too).
+ 
+ Use the helper `scripts/log.sh <logfile> <phase> <decision> <why> <evidence> <result>`. It stamps `ts`, writes the header on first use, strips stray tabs/newlines, and prefixes any cell starting with `=`, `+`, `-`, `@`, or `"` with a single quote. A bare `printf` appending a row works too, but mind those same bytes if cells come from generated or user-supplied text.
+ 
+@@ -49,7 +49,7 @@ Commit it only when the work is ambitious enough that a reviewer needs the trail
+ ## Rules
+ 
+ - Append-only. A wrong call gets a new row that supersedes it. Never edit or delete history.
+-- Prefer evidence produced by committed scripts over hand-made one-offs (the **encode-lessons-in-structure** principle skill).
++- Prefer evidence produced by committed scripts over hand-made one-offs ([verification guidance](../poteto-mode/references/engineering-verification.md)).
+ 
+ ## Audit the log against the transcript
+ 
+diff --git a/plugins/pstack/skills/teach/SKILL.md b/plugins/pstack/skills/teach/SKILL.md
+index 7c82be6..1bdee39 100644
+--- a/plugins/pstack/skills/teach/SKILL.md
++++ b/plugins/pstack/skills/teach/SKILL.md
+@@ -17,6 +17,6 @@ Teach sits on top of `how` and `why`. Get your bearings on what the work is and
+ 4. Keep it a conversation, not a lecture or a performance. Offer to go deeper or move on, and follow their lead. No quizzes. No pacing theater. Don't print "Pause", don't ask them to say it back, don't announce "the sentence to nail", and don't flag a part as important or hard ("here is the part worth slowing down on", "this is the tricky part", "here is where it gets interesting"). Just say it. When you would pause, stop and let them respond. Running one-shot with no live human, deliver it cleanly and put any offer to go deeper at the end.
+ 5. Show, don't only tell, and build the picture up diagram by diagram. Open the diff, the code, or the debugger when that is the fastest way to land it. Draw when a picture lands faster than words. For anything with three or more moving parts, do not draw one diagram with all of them at once. Draw a short series instead, where each diagram redraws the last and adds a single part, so the reader watches the system assemble. A single all-at-once diagram, especially one saved for the end, is a reference, not teaching. Concretely, to teach a flow from A to B to C, draw it three times. First A to B. Then redraw and add C. Then redraw and add the return edge or the next piece. Match the medium to the idea, and use both kinds when both help. A mermaid diagram fits a flow or structure where the labels carry the meaning. When the idea is spatial, like layout, overlap, scroll position, or a before and after, reach for the image-generation tool and draw it marker-on-whiteboard style with a few short labels, since image models garble long text. Generate that picture, don't settle for describing it in words. The build-up rule holds for generated images too. A single simple point needs no figure.
+ 
+-Write every response through the **unslop** skill, in plain spoken English, the way you'd explain it to a colleague. Be tight, not terse. Cut filler and hedging, keep the part that makes it click. State the concrete mechanism, not a metaphor, a framing, or a preview of what is coming. This is the target density: "Virtualization runs in two parts, one for rendering and one for loading from disk. When an item scrolls out past the buffer, both its DOM node and its in-memory data are evicted." Normal sentence case, not all-lowercase. No em dashes. Prefer periods over commas. Keep each sentence to one or two commas. If clauses pile up, split them into separate sentences. Give each concept one name and keep it. Avoid mirror sentences ("A without B, or B without A") and tidy closers ("the rest follows", "it all falls out"). The words in these steps are directions to you, not labels to print. Don't echo the structure as headers or stock phrases.
++Write every response through the active writing preferences, in plain spoken English, the way you'd explain it to a colleague. Be tight, not terse. Cut filler and hedging, keep the part that makes it click. State the concrete mechanism, not a metaphor, a framing, or a preview of what is coming. This is the target density: "Virtualization runs in two parts, one for rendering and one for loading from disk. When an item scrolls out past the buffer, both its DOM node and its in-memory data are evicted." Normal sentence case, not all-lowercase. No em dashes. Prefer periods over commas. Keep each sentence to one or two commas. If clauses pile up, split them into separate sentences. Give each concept one name and keep it. Avoid mirror sentences ("A without B, or B without A") and tidy closers ("the rest follows", "it all falls out"). The words in these steps are directions to you, not labels to print. Don't echo the structure as headers or stock phrases.
+ 
+ **Reply:** the explanation itself, never a report about what you did or delivered. Lead with the main point, then the plain account of what it is, how it works, and why, and the threads worth chasing with `how` or `why`.
+diff --git a/plugins/pstack/skills/technical-writing/SKILL.md b/plugins/pstack/skills/technical-writing/SKILL.md
+index 8ac3ce4..1fccb65 100644
+--- a/plugins/pstack/skills/technical-writing/SKILL.md
++++ b/plugins/pstack/skills/technical-writing/SKILL.md
+@@ -15,7 +15,7 @@ Three rules sit above the layers:
+ 
+ The codebase is the word list. Write the real symbol, file, flag, or command name, not a synonym or a description of it.
+ 
+-Don't invent jargon. Use the words a developer would say out loud: "move", "delete", "a budget that only decreases", not "evacuate", "ratchet", or "endgame". A named pattern is fine when the doc says what it means the first time. Propose a new offender and its replacement as an addition to `unslop`'s abstract-metaphor rule in your reply, with the diff. Don't edit that skill.
++Don't invent jargon. Use the words a developer would say out loud: "move", "delete", "a budget that only decreases", not "evacuate", "ratchet", or "endgame". A named pattern is fine when the doc says what it means the first time. Propose a new offender and its replacement as an addition to the abstract-metaphor rule in the active writing preferences, in your reply, with the diff. Don't edit them.
+ 
+ ## Vary the rhythm
+ 
+@@ -89,7 +89,7 @@ Don't mix modes: no reference tables inside a tutorial, no tutorial hand-holding
+ 
+ ## Voice and repo specifics
+ 
+-- Apply the **unslop** skill to every doc this skill touches. That skill owns the slop-pattern catalog: AI vocabulary, filler, hedging, formatting tells.
++- Apply the active writing preferences to every doc this skill touches. That skill owns the slop-pattern catalog: AI vocabulary, filler, hedging, formatting tells.
+ - PR descriptions and commit messages are writing too. Every layer except Diátaxis applies to them. A PR body is a briefing that a reviewer can read in under a minute. Do not paste swarm logs, SHA lists, or metric tables. Link them.
+ - Product UI strings are not documentation. Use your product's copy guidelines for those.
+ - Indent code snippets with tabs. Write real paths and real symbols. Make every count or tree claim true at the commit that lands it, and include the command that regenerates it.
+diff --git a/plugins/pstack/skills/typescript-best-practices/SKILL.md b/plugins/pstack/skills/typescript-best-practices/SKILL.md
+index 2bf543f..811515d 100644
+--- a/plugins/pstack/skills/typescript-best-practices/SKILL.md
++++ b/plugins/pstack/skills/typescript-best-practices/SKILL.md
+@@ -6,7 +6,7 @@ paths: ["**/*.ts", "**/*.tsx"]
+ 
+ # TypeScript best practices
+ 
+-Apply the **type-system-discipline** principle skill first.
++Apply [design guidance](../poteto-mode/references/engineering-design.md) first.
+ 
+ | Rule | Summary |
+ |------|---------|
+@@ -21,7 +21,7 @@ Apply the **type-system-discipline** principle skill first.
+ | Type guards | Must verify the claim. A lying guard is worse than `as` because the bug hides behind a name that says it's safe. Name them `isX` or `hasX`. |
+ | Exhaustiveness | Inline `const _exhaustive: never = x;` in default arms so the compiler errors when a new variant is added. |
+ | `satisfies` over `as` | Validates the value without widening literal types. |
+-| Boundary validation | Parse where data crosses in, into a named domain type. `Record<string, unknown>` (however spelled) stops at that parse. Trust types inside. See the **boundary-discipline** principle skill. |
++| Boundary validation | Parse where data crosses in, into a named domain type. `Record<string, unknown>` (however spelled) stops at that parse. Trust types inside. See [design guidance](../poteto-mode/references/engineering-design.md). |
+ | Schema-derived types | Reach for `Pick`/`Omit`/`Parameters`/`ReturnType`/`Awaited`/`typeof` before declaring a new interface. |
+ | Object args | Pass objects, not positional, so argument order is self-documenting. Skip on hot paths (per-frame render, tokenizers, parsers). |
+ | Real tests | Don't mock what you can run. Prefer the framework's real test primitives with leak/disposable checks, and verify UI in a running build. Mock only what you can't run locally. |
+diff --git a/plugins/pstack/skills/typescript-best-practices/references/patterns.md b/plugins/pstack/skills/typescript-best-practices/references/patterns.md
+index c21d876..cb63903 100644
+--- a/plugins/pstack/skills/typescript-best-practices/references/patterns.md
++++ b/plugins/pstack/skills/typescript-best-practices/references/patterns.md
+@@ -1,6 +1,6 @@
+ # TypeScript patterns
+ 
+-Code examples for each rule in `SKILL.md`. The underlying principles are language-agnostic. See the **type-system-discipline** and **boundary-discipline** principle skills.
++Code examples for each rule in `SKILL.md`. The underlying principles are language-agnostic. See [design guidance](../../poteto-mode/references/engineering-design.md).
+ 
+ ## Branded types
+ 
+@@ -269,7 +269,7 @@ const config = { theme: "dark", cols: 3 } satisfies Config;
+ 
+ ## Boundary validation
+ 
+-Validate once where data crosses in. Trust types inside. See the **boundary-discipline** principle skill.
++Validate once where data crosses in. Trust types inside. See [design guidance](../../poteto-mode/references/engineering-design.md).
+ 
+ - **Wire formats** (proto, JSON-RPC): parse with `ignoreUnknownFields` so forward-compatible changes don't break old clients.
+ - **Persisted JSON:** versioned blob with a try/catch around the parse.
+diff --git a/plugins/pstack/skills/unslop/SKILL.md b/plugins/pstack/skills/unslop/SKILL.md
+deleted file mode 100644
+index 7d14d8c..0000000
+--- a/plugins/pstack/skills/unslop/SKILL.md
++++ /dev/null
+@@ -1,66 +0,0 @@
+----
+-name: unslop
+-description: Cut AI tells from any writing. Must always apply.
+----
+-
+-# Unslop
+-
+-Edit text to remove AI patterns.
+-
+-## Process
+-
+-1. Scan for the patterns below.
+-2. Rewrite. Preserve meaning, match intended tone.
+-
+-## Patterns to detect and fix
+-
+-Rule numbers are stable ids that other skills cite. A removed rule leaves a gap.
+-
+-### Content
+-
+-3. **Superficial -ing phrases.** "highlighting...", "ensuring...", "reflecting...", "showcasing...", "fostering...". Delete or expand with real sources.
+-5. **Vague attributions.** "Experts believe", "Industry reports suggest", "Some critics argue". Name the source or delete.
+-
+-### Language
+-
+-7. **AI vocabulary.** Additionally, crucial, delve, enduring, enhance, fostering, garner, interplay, intricate, landscape (abstract), pivotal, showcase, tapestry (abstract), testament, underscore, vibrant. Replace with plain words.
+-8. **Fancy ways to say "is".** "serves as", "stands as", "boasts", "features". Just say "is" or "has".
+-9. **"Not just X, but Y."** State the point directly instead.
+-10. **Rule of three.** Forcing ideas into groups of three. Use the natural number.
+-11. **Synonym cycling.** Protagonist, main character, central figure, hero all in one paragraph. Pick one, repeat it.
+-12. **False ranges.** "from X to Y" where X and Y aren't on a meaningful scale. List topics directly.
+-
+-### Style
+-
+-13. **Em dash overuse.** Avoid em dashes entirely. Use periods or commas only (no parentheses, no en dashes, no hyphen-as-dash substitutes). If a thought needs separation, end the sentence or use a comma.
+-14. **Colon overuse.** Colons are fine before a list or example. Not as mid-sentence connectors. "If you're coming from traditional automation: instead of registering event handlers, you describe conditions" adds nothing with the colon. Rewrite to let the point stand on its own without comparison framing. "Describing when the scheduler should fire works best as plain English." Same meaning, no crutch punctuation.
+-15. **Boldface overuse.** Don't bold every proper noun or acronym.
+-16. **Inline-header lists.** The tell is a bold label and colon that restates the line: "**Performance:** Performance improved...". Convert those to prose. A bold lead-in that ends in a period, names the item, and is followed by genuinely new detail ("**Schema in TypeScript.** Tables live in one file.") is fine, not a tell.
+-17. **Title case headings.** Use sentence case.
+-18. **Decorative emojis.** Remove from headings and bullets.
+-19. **Curly quotes.** Replace with straight quotes.
+-
+-### Communication artifacts
+-
+-20. **Chatbot phrases.** "I hope this helps!", "Let me know if...", "Of course!", "Certainly!", "Found the smoking gun!" Remove.
+-22. **Sycophantic tone.** "Great question! You're absolutely right!" Respond directly.
+-
+-### Filler
+-
+-23. **Filler phrases.** "In order to" becomes "To". "Due to the fact that" becomes "Because". "It is important to note that" gets deleted.
+-24. **Excessive hedging.** "could potentially possibly be argued that it might" becomes "may".
+-25. **Generic conclusions.** "The future looks bright." State specific plans or facts.
+-
+-### Jargon
+-
+-26. **Abstract metaphor nouns.** Substrate, wedge, vector, locus, vantage, nexus, primitive (as noun), harness (as metaphor), surface (as in "API surface"), bedrock, scaffolding (as metaphor), modality, paradigm, gold-plating, ratchet (as metaphor), evacuate (for moving code), endgame, north star, flywheel. These read as technical but usually have a plainer concrete word. "Substrate" becomes "base". "Wedge in" becomes "add". "Vector" becomes "way" or "method". "Gold-plating" becomes "more than the job needs". "Ratchet" becomes the mechanism's real name or "a limit that only tightens". "Evacuate" becomes "move out". "Endgame" becomes "the last phase". Pick the concrete word.
+-
+-### Plain speech
+-
+-27. **Say what it does, not how it feels.** "the database stays close at hand", "SQL you can read", "types that follow your schema" name a feeling. The fix names the mechanism or a number: "`.toSQL()` returns the exact string sent to the database", "a column rename fails the build". Ask what the sentence tells the reader to do or know, then write that. If you can't restate it as a concrete instruction, fact, or number, cut it. One more check: if the sentence could appear unchanged in another project's docs, it says nothing about this one. Cut it.
+-28. **Shorten or split dense sentences.** If the reader has to backtrack to parse a sentence, break it in two or drop clauses. One idea per sentence.
+-29. **Active voice.** Prefer it. Catch "is/are/was/were + past participle" and name the actor: "queries are validated" becomes "the compiler validates queries", "the file is parsed by the loader" becomes "the loader parses the file". Passive is fine only when the actor is unknown or genuinely doesn't matter.
+-30. **Cut adverbs, or use a stronger verb.** "runs quickly" becomes "is fast" or the number. "significantly improves" becomes the measured delta. An adverb propping up a weak verb means the verb is wrong.
+-31. **Prefer the plain word.** "utilize" becomes "use", "leverage" becomes "use", "facilitate" becomes "help", "numerous" becomes "many", "in the event that" becomes "if". The fancier synonym is rarely clearer.
+-32. **Mannered prose.** Metaphor or flourish where a literal phrase exists: aphorisms ("wire it or delete it"), rhetorical fragments for effect, personified code ("the plan holds it"), figurative verbs ("rides along", "stands on"), stock framing phrases. "A dial worth turning" becomes "a parameter worth varying". Say what you mean. Rule 26 covers the metaphor nouns.
+-33. **Over-compression.** Dropped articles, verbless fragments, symbol-speak, and abbreviations that make the reader decode instead of read. "Parser rejects bad date → exit 2, no write" becomes "The parser rejects a bad date, exits with code 2, and writes nothing." Write whole sentences with their articles and verbs, and spell out arrows and abbreviations.

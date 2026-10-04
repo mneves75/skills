@@ -16,6 +16,12 @@ https://github.com/openclaw/agent-skills/tree/711711b86294673feced9d1cb636b539da
 Copyright (c) 2026 openclaw. Distributed under the MIT License included in that skill's directory.
 Local modifications include model/reasoning defaults, portable packaging, retained TruffleHog scanning, and regression-tested security fixes.
 
+The pstack collection (collections/pstack) is vendored from a local fork of
+https://github.com/michael-denyer/pstack-claude, a port of Lauren Tan's pstack
+(https://github.com/cursor/plugins/tree/main/pstack). collections/pstack/UPSTREAM pins the commit.
+Copyright (c) 2026 Lauren Tan and (c) 2026 Michael Denyer. Distributed under the MIT License
+in collections/pstack/LICENSE. Local modifications are listed in collections/pstack/README.md.
+
 The mneves-handoff skill is adapted from OpenClaw Agent Skills' handoff skill (renamed to avoid a
 name collision):
 https://github.com/openclaw/agent-skills/tree/711711b86294673feced9d1cb636b539daf3c218/skills/handoff

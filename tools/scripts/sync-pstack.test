@@ -1,0 +1,160 @@
+#!/usr/bin/env bash
+# End-to-end test for sync-pstack.sh against a throwaway fixture repository.
+# No network: the fixture stands in for pstack-claude.
+#
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 Marcus Neves
+set -euo pipefail
+
+here=$(cd "$(dirname "$0")" && pwd)
+sync="$here/sync-pstack.sh"
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+fails=0
+check() { if eval "$2"; then echo "PASS: $1"; else echo "FAIL: $1"; fails=$((fails + 1)); fi; }
+
+src="$work/src"
+mkdir -p "$src/plugins/pstack/skills/alpha" "$src/plugins/pstack/skills/beta/references" "$src/plugins/pstack/.claude-plugin"
+cat > "$src/plugins/pstack/skills/alpha/SKILL.md" <<'EOF'
+---
+name: alpha
+description: "Alpha does the first thing when asked."
+menu-description: apply alpha
+---
+
+# Alpha
+
+Body line with: a colon.
+EOF
+cat > "$src/plugins/pstack/skills/beta/SKILL.md" <<'EOF'
+---
+name: beta
+description: Beta helps with TypeScript files when editing them.
+paths: ["**/*.ts", "**/*.tsx"]
+---
+
+Beta body.
+EOF
+echo "ref" > "$src/plugins/pstack/skills/beta/references/notes.md"
+echo '{ "name": "pstack", "version": "9.9.9" }' > "$src/plugins/pstack/.claude-plugin/plugin.json"
+printf 'MIT License\n\nCopyright (c) 2026 Fixture Author\n' > "$src/LICENSE"
+git -C "$src" init -q
+git -C "$src" add -A
+git -C "$src" -c user.email=t@t -c user.name=t commit -qm fixture
+sha=$(git -C "$src" rev-parse HEAD)
+# Untracked files in the source tree must never ship.
+mkdir -p "$src/plugins/pstack/skills/alpha/node_modules"
+echo junk > "$src/plugins/pstack/skills/alpha/node_modules/junk.js"
+
+dest="$work/dest"
+mkdir -p "$dest/skills/stale"
+echo "stale" > "$dest/skills/stale/SKILL.md"
+echo "hand-written" > "$dest/README.md"
+
+bash "$sync" "$src" "$sha" "$dest"
+
+check "tracked skills are copied" '[ -f "$dest/skills/alpha/SKILL.md" ] && [ -f "$dest/skills/beta/references/notes.md" ]'
+check "untracked files are not copied" '[ ! -e "$dest/skills/alpha/node_modules" ]'
+check "skills deleted upstream are removed" '[ ! -e "$dest/skills/stale" ]'
+check "hand-written collection files are preserved" '[ "$(cat "$dest/README.md")" = "hand-written" ]'
+check "non-spec key moves under metadata" 'grep -qx "metadata:" "$dest/skills/alpha/SKILL.md" && grep -qx "  menu-description: \"apply alpha\"" "$dest/skills/alpha/SKILL.md" && ! grep -q "^menu-description:" "$dest/skills/alpha/SKILL.md"'
+expected_paths='  paths: "[\"**/*.ts\", \"**/*.tsx\"]"'
+check "flow-list value becomes a quoted string" 'grep -qxF "$expected_paths" "$dest/skills/beta/SKILL.md"'
+check "spec keys are untouched" 'grep -qx "name: alpha" "$dest/skills/alpha/SKILL.md" && grep -qx "description: \"Alpha does the first thing when asked.\"" "$dest/skills/alpha/SKILL.md"'
+check "body is byte-identical" '[ "$(sed "1,/^---$/d" "$src/plugins/pstack/skills/alpha/SKILL.md" | sed "1,/^---$/d")" = "$(sed "1,/^---$/d" "$dest/skills/alpha/SKILL.md" | sed "1,/^---$/d")" ]'
+check "UPSTREAM pins the full source commit" 'grep -q "$sha" "$dest/UPSTREAM"'
+check "UPSTREAM records the port version" 'grep -q "9.9.9" "$dest/UPSTREAM"'
+check "LICENSE comes from the source commit" 'grep -q "Fixture Author" "$dest/LICENSE"'
+
+snapshot() { (cd "$dest" && find . -type f -print0 | sort -z | xargs -0 shasum) ; }
+before=$(snapshot)
+bash "$sync" "$src" "$sha" "$dest"
+check "a second run changes nothing" '[ "$before" = "$(snapshot)" ]'
+
+if bash "$sync" "$src" "no-such-ref" "$dest" 2>/dev/null; then ok=0; else ok=1; fi
+check "an unknown ref fails" '[ $ok -eq 1 ]'
+check "a failed run leaves the collection untouched" '[ "$before" = "$(snapshot)" ]'
+
+# A local fork: one commit on top of the published branch. UPSTREAM must name the
+# published commit it is based on, since the local commit exists nowhere public.
+fork="$work/fork"
+git clone -q "$src" "$fork"
+echo "local note" > "$fork/plugins/pstack/skills/alpha/LOCAL.md"
+git -C "$fork" add -A
+git -C "$fork" -c user.email=t@t -c user.name=t commit -qm "local override"
+fork_dest="$work/fork-dest"
+bash "$sync" "$fork" HEAD "$fork_dest"
+check "a fork records the published commit it is based on" 'grep -qx "based-on: $sha" "$fork_dest/UPSTREAM"'
+check "a fork records how many local commits sit on top" 'grep -qx "local-commits: 1" "$fork_dest/UPSTREAM"'
+check "an unforked sync reports zero local commits" 'grep -qx "local-commits: 0" "$dest/UPSTREAM"'
+
+check "a fork ships the local skill changes as a patch" '[ -s "$fork_dest/local-overrides.patch" ]'
+replay="$work/replay"
+git clone -q "$src" "$replay"
+git -C "$replay" apply "$fork_dest/local-overrides.patch" 2>/dev/null || true
+check "the patch rebuilds the fork from the published commit" 'diff -r "$replay/plugins/pstack/skills" "$fork/plugins/pstack/skills" >/dev/null'
+check "an unforked sync ships no patch" '[ ! -e "$dest/local-overrides.patch" ]'
+
+# The origin URL is published in UPSTREAM: credentials and local paths must never ship.
+git -C "$fork" remote set-url origin "https://user:s3cret@example.com/owner/pstack-claude.git"
+bash "$sync" "$fork" HEAD "$fork_dest" >/dev/null
+check "credentials are stripped from the source URL" 'grep -qx "source: https://example.com/owner/pstack-claude.git" "$fork_dest/UPSTREAM"'
+git -C "$fork" remote set-url origin "$src"
+bash "$sync" "$fork" HEAD "$fork_dest" >/dev/null
+check "a local-path origin is not published" 'grep -qx "source: local" "$fork_dest/UPSTREAM"'
+
+# Without a dest argument the collection lands under the repository holding the script.
+repo="$work/repo"
+mkdir -p "$repo/tools/scripts"
+cp "$sync" "$repo/tools/scripts/"
+(cd "$work" && bash "$repo/tools/scripts/sync-pstack.sh" "$src" "$sha" >/dev/null)
+check "the default dest is the repository's collections/pstack" '[ -f "$repo/collections/pstack/skills/alpha/SKILL.md" ]'
+
+# Frontmatter shapes the script must handle or refuse. Each case is its own source repo.
+case_repo() {
+  local dir="$work/case-$1"
+  mkdir -p "$dir/plugins/pstack/skills/gamma" "$dir/plugins/pstack/.claude-plugin"
+  printf '%s' "$2" > "$dir/plugins/pstack/skills/gamma/SKILL.md"
+  [ "${3:-}" = "no-plugin-json" ] || echo '{ "version": "1.0.0" }' > "$dir/plugins/pstack/.claude-plugin/plugin.json"
+  echo "MIT" > "$dir/LICENSE"
+  git -C "$dir" init -q && git -C "$dir" add -A && git -C "$dir" -c user.email=t@t -c user.name=t commit -qm case
+  echo "$dir"
+}
+refuses() {
+  local out="$work/out-$1"
+  mkdir -p "$out" && echo keep > "$out/README.md"
+  if bash "$sync" "$2" HEAD "$out" 2>/dev/null; then return 1; fi
+  [ ! -e "$out/skills" ] && [ "$(cat "$out/README.md")" = keep ]
+}
+r=$(case_repo existing-meta $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmetadata:\n  author: someone\nicon: star\n---\nbody\n')
+bash "$sync" "$r" HEAD "$work/out-meta" >/dev/null
+check "a moved key joins an existing metadata block" '[ "$(sed -n "4,6p" "$work/out-meta/skills/gamma/SKILL.md")" = "$(printf "metadata:\n  author: someone\n  icon: \"star\"")" ]'
+r=$(case_repo single-quoted $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmode: \'fast\'\n---\nbody\n')
+bash "$sync" "$r" HEAD "$work/out-sq" >/dev/null
+check "a single-quoted value is unquoted before re-quoting" 'grep -qx "  mode: \"fast\"" "$work/out-sq/skills/gamma/SKILL.md"'
+r=$(case_repo four-space-meta $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmetadata:\n    author: someone\nicon: star\n---\nbody\n')
+bash "$sync" "$r" HEAD "$work/out-4sp" >/dev/null
+check "a moved key matches the existing metadata indentation" 'grep -qx "    icon: \"star\"" "$work/out-4sp/skills/gamma/SKILL.md"'
+r=$(case_repo commented-meta $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmetadata:\n    # provenance\n  author: someone\nicon: star\n---\nbody\n')
+bash "$sync" "$r" HEAD "$work/out-cmt" >/dev/null
+check "a leading comment does not set the metadata indentation" 'grep -qx "  icon: \"star\"" "$work/out-cmt/skills/gamma/SKILL.md"'
+r=$(case_repo yaml-escapes $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmode: \'don\'\'t stop\'\nhint: "say \\"hi\\""\n---\nbody\n')
+bash "$sync" "$r" HEAD "$work/out-esc" >/dev/null
+check "a doubled single quote decodes to one apostrophe" 'grep -qxF "  mode: \"don'"'"'t stop\"" "$work/out-esc/skills/gamma/SKILL.md"'
+check "a double-quoted escape survives unchanged" 'grep -qxF "  hint: \"say \\\"hi\\\"\"" "$work/out-esc/skills/gamma/SKILL.md"'
+r=$(case_repo flow-meta $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmetadata: {author: someone}\nicon: star\n---\nbody\n')
+check "a flow-style metadata block is refused" 'refuses flow "$r"'
+r=$(case_repo multiline $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nicons:\n  - star\n---\nbody\n')
+check "a multi-line non-spec key is refused" 'refuses multiline "$r"'
+r=$(case_repo no-frontmatter $'# gamma\n\nbody\n')
+check "a skill without frontmatter is refused" 'refuses nofm "$r"'
+r=$(case_repo no-plugin $'---\nname: gamma\ndescription: Gamma does a thing when asked.\n---\nbody\n' no-plugin-json)
+check "a source without plugin.json is refused" 'refuses noplugin "$r"'
+
+sed -i.bak 's/^name: beta$/name: wrong/' "$src/plugins/pstack/skills/beta/SKILL.md" && rm "$src/plugins/pstack/skills/beta/SKILL.md.bak"
+git -C "$src" -c user.email=t@t -c user.name=t commit -qam "break name"
+if bash "$sync" "$src" HEAD "$dest" 2>/dev/null; then ok=0; else ok=1; fi
+check "a name/directory mismatch fails" '[ $ok -eq 1 ]'
+check "a rejected sync leaves the collection untouched" '[ "$before" = "$(snapshot)" ]'
+
+[ "$fails" -eq 0 ] && echo "PASS: sync-pstack ($(grep -c '^check ' "$0") checks)" || { echo "FAIL: $fails check(s)"; exit 1; }

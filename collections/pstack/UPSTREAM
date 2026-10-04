@@ -1,0 +1,5 @@
+source: https://github.com/michael-denyer/pstack-claude.git
+commit: 29a0a54e62b6857041424f2985c4155beeb44077
+based-on: c1123fe2aaf7963a777f2a4171bf829116873064
+local-commits: 3
+version: 0.9.67

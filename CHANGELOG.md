@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.30.0] - 2026-10-04
+
+### Added
+
+- **pstack collection**: [`collections/pstack`](collections/pstack/) vendors 32 pstack skills for Claude Code, Codex, Pi and other agents. They come from Lauren Tan's pstack through the pstack-claude port
+  (0.9.67, based on `c1123fe`), with three local commits shipped as `local-overrides.patch`:
+  Opus/Fable-only Claude roles, local-only autonomy, and the `principle-*` and `unslop` skills
+  folded into `poteto-mode` references. It installs with `--full-depth` or its tree URL; the
+  default install is unchanged. Its README lists what each agent can run without the plugin.
+- **`tools/scripts/sync-pstack.sh`**: regenerates the collection from tracked files at a pinned
+  commit, moves non-spec frontmatter keys under `metadata:`, records the published base commit
+  in `UPSTREAM` (credentials stripped) with a patch that rebuilds the fork from it, and validates
+  before it replaces anything. `sync-pstack.test` covers it against
+  a fixture repository; CI runs it and validates every collection skill with `skills-ref`.
+- **Matt Pocock overlap report** in the collection README: `tdd` and `teach` collide by name,
+  and thirteen skill groups share triggers, including Matt Pocock's new `pr`.
+
+### Changed
+
+- **`mneves-fable-orchestrator`**: Defaults re-verified against the vendor model lists on
+  2026-10-04; no id changed.
+
 ## [1.29.0] - 2026-10-02
 
 ### Added
