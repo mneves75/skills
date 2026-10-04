@@ -17,7 +17,13 @@ measure whether a *target* codebase is ready for agents.
 - **1.30.0** (2026-10-04): `collections/pstack` vendors 32 pstack skills from a local
   pstack-claude fork (`UPSTREAM` pins it; `tools/scripts/sync-pstack.sh` regenerates it). The
   default install still covers `skills/` only. pstack's `tdd` and `teach` keep their names by
-  the owner's choice, colliding with Matt Pocock's. Follows the unmerged PR #7 (1.28/1.29).
+  the owner's choice, colliding with Matt Pocock's.
+- **1.29.0** (2026-10-02): twelve skills. `mneves-chatgpt-search` adds a portable
+  official-guidance workflow for discovery, crawler access, citations and referral
+  attribution, with training preferences and privacy preserved. Catalogs and HOWTO
+  document the read-only, local-improvement and measurement modes. No ranking promise
+  or new analytics dependency; repeated ChatGPT answers remain separate from API results.
+
 - **1.27.0** (2026-09-30): ten skill entrypoints use conditional detail and bounded work.
   Portable Codex routing separates ordinary Sol/medium, bounded Luna/medium, difficult Sol/high,
   routine Sol/high review and explicit Astra/xhigh specialists. Autoreview's access-only retry

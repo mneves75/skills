@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Exercise the real generator in an isolated copy: reject truncated output and
+# non-repeatable builds without changing the working tree.
+set -euo pipefail
+root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)
+cd "$root"
+python3 - <<'PY'
+import hashlib
+from pathlib import Path
+import shutil
+import subprocess
+import tempfile
+
+source = Path.cwd()
+with tempfile.TemporaryDirectory(prefix='skills-build-site-') as scratch:
+    target = Path(scratch)
+    for name in ('HOWTO.md', 'CHANGELOG.md', 'site/index.html',
+                 'tools/scripts/build-site.sh', 'tools/scripts/check-html-active.py',
+                 'tools/scripts/changelog-rows.py'):
+        destination = target / name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source / name, destination)
+    previous = None
+    for attempt in range(2):
+        result = subprocess.run(['bash', 'tools/scripts/build-site.sh'], cwd=target,
+                                text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        print(result.stdout, end='')
+        assert result.returncode == 0, f'build failed: {result.returncode}'
+        html = (target / 'site/howto.html').read_text()
+        assert '<h2 id="combining-them">Combining them</h2>' in html, 'HOWTO truncated before its final section'
+        current = {name: hashlib.sha256((target / name).read_bytes()).hexdigest()
+                   for name in ('site/howto.html', 'site/index.html')}
+        if previous is not None:
+            assert current == previous, 'generated site changed on an unchanged second build'
+        previous = current
+    print(f'PASS: complete HOWTO and repeatable generated site: {previous}')
+PY
