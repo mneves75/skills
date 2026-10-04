@@ -494,6 +494,17 @@ $ python3 scripts/srs_db.py stats
 between sessions.</li>
 </ul>
 <hr>
+<h2 id="pstack-collection">pstack collection</h2>
+<p><a href="https://github.com/mneves75/skills/blob/main/collections/pstack/"><code>collections/pstack</code></a> adds 32 skills from Lauren Tan&#39;s pstack. It is not
+part of the install above:</p>
+<pre><code class="language-bash">npx skills@latest add https://github.com/mneves75/skills/tree/main/collections/pstack/skills
+</code></pre>
+<p>Start with <code>poteto-mode</code> (&quot;poteto mode: add rate limiting to the upload API&quot;); it routes to the
+other pstack workflows. <code>how</code> and <code>why</code> answer &quot;how does X work&quot; and &quot;why is X this way&quot;,
+<code>interrogate</code> attacks a plan or diff with several reviewers, and <code>swarm</code> fans out parallel
+workers. Without the pstack-claude plugin, dispatches to <code>pstack:*</code> agents fall back to a
+general-purpose subagent; the collection README explains this and lists the overlaps with Matt
+Pocock&#39;s skills.</p>
 <h2 id="combining-them">Combining them</h2>
 <p>A typical shipping flow: <code>mneves-fable-orchestrator</code> splits the work and dispatches it;
 <code>mneves-expert-review</code> challenges the plan before code is written; <code>mneves-verify</code> gives the

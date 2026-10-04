@@ -14,6 +14,10 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.30.0** (2026-10-04): `collections/pstack` vendors 32 pstack skills from a local
+  pstack-claude fork (`UPSTREAM` pins it; `tools/scripts/sync-pstack.sh` regenerates it). The
+  default install still covers `skills/` only. pstack's `tdd` and `teach` keep their names by
+  the owner's choice, colliding with Matt Pocock's. Follows the unmerged PR #7 (1.28/1.29).
 - **1.27.0** (2026-09-30): ten skill entrypoints use conditional detail and bounded work.
   Portable Codex routing separates ordinary Sol/medium, bounded Luna/medium, difficult Sol/high,
   routine Sol/high review and explicit Astra/xhigh specialists. Autoreview's access-only retry
@@ -100,6 +104,10 @@ measure whether a *target* codebase is ready for agents.
 
 ## Decisions that still bind
 
+- **Collections are vendored, not ported.** A third-party pack that breaks the `skills/`
+  invariants (TypeScript scripts, nested references, model ids) lives under `collections/` as a
+  generated copy with its own license and pin. Rewriting it to the `skills/` rules would be a
+  hard fork with manual syncs; regenerate from the source instead.
 - **Naming and provenance.** Original skills use the `mneves-` prefix. Adapted third-party skills
   retain their upstream name, compatible license, copyright, and source. Directory name and
   frontmatter `name:` must match.

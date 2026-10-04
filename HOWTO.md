@@ -490,6 +490,22 @@ $ python3 scripts/srs_db.py stats
 
 ---
 
+## pstack collection
+
+[`collections/pstack`](collections/pstack/) adds 32 skills from Lauren Tan's pstack. It is not
+part of the install above:
+
+```bash
+npx skills@latest add https://github.com/mneves75/skills/tree/main/collections/pstack/skills
+```
+
+Start with `poteto-mode` ("poteto mode: add rate limiting to the upload API"); it routes to the
+other pstack workflows. `how` and `why` answer "how does X work" and "why is X this way",
+`interrogate` attacks a plan or diff with several reviewers, and `swarm` fans out parallel
+workers. Without the pstack-claude plugin, dispatches to `pstack:*` agents fall back to a
+general-purpose subagent; the collection README explains this and lists the overlaps with Matt
+Pocock's skills.
+
 ## Combining them
 
 A typical shipping flow: `mneves-fable-orchestrator` splits the work and dispatches it;

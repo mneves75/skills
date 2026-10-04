@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.27.0-blue)
+![Version](https://img.shields.io/badge/version-1.30.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -26,6 +26,18 @@ For compact task prompts, bounded retries and model routing, see
 | [mneves-superaudit](skills/mneves-superaudit/) | Bounded audit-and-ship pass: slop, performance, agent DX, PR triage — falsifiable completion criteria, existing authority and requested stops |
 | [mneves-teach-back-srs](skills/mneves-teach-back-srs/) | Spaced-repetition learning through codebase teach-back sessions (SM-2 + SQLite) |
 | [mneves-verify](skills/mneves-verify/) | Independent verification before done/fixed/shipped: fresh context checks the artifact against criteria, PASS/FAIL/BLOCKED |
+
+## Collections
+
+Third-party skill packs vendored with their upstream names and licenses. They sit outside
+`skills/`, so the default install below leaves them out.
+
+| Collection | Skills | Install |
+|---|---|---|
+| [pstack](collections/pstack/) | 32 engineering workflow skills from Lauren Tan's pstack, via the pstack-claude port: `poteto-mode`, `architect`, `interrogate`, `swarm`, `how`, `why` and more | `npx skills@latest add https://github.com/mneves75/skills/tree/main/collections/pstack/skills` |
+
+Its README lists the deviations from upstream and the name collisions with Matt Pocock's
+skills (`tdd`, `teach`).
 
 ## Install
 
@@ -111,8 +123,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). Security reports: [SECURITY.md](SECURITY
 
 Original work in this repository is Apache-2.0. The adapted
 [`imagegen-frontend-mobile`](skills/imagegen-frontend-mobile/) and
-[`autoreview`](skills/autoreview/) skills retain their upstream MIT licenses and copyrights;
-see the `LICENSE` file in each directory.
+[`autoreview`](skills/autoreview/) skills and the [`pstack`](collections/pstack/) collection retain
+their upstream MIT licenses and copyrights; see the `LICENSE` file in each directory.
 
 The repository's readiness tooling runs locally. Image-generation workflows may send prompts and
 references to the configured image provider; autoreview sends scanned review inputs to the

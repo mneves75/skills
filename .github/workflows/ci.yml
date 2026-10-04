@@ -48,8 +48,23 @@ jobs:
           set -euo pipefail
           for d in skills/*/; do npx -y skills-ref@0.1.5 validate "$d"; done
 
+      - name: Collection skills (name == directory, Agent Skills spec, sync outputs present)
+        run: |
+          set -euo pipefail
+          for c in collections/*/; do
+            test -f "$c/UPSTREAM" && test -f "$c/LICENSE" || { echo "$c: missing UPSTREAM or LICENSE"; exit 1; }
+            for dir in "$c"skills/*/; do
+              name=$(basename "$dir")
+              grep -qx "name: $name" "$dir/SKILL.md" || { echo "$dir/SKILL.md: frontmatter name must be '$name'"; exit 1; }
+              npx -y skills-ref@0.1.5 validate "$dir"
+            done
+          done
+
+      - name: Collection sync e2e (fixture repo, no network)
+        run: bash tools/scripts/sync-pstack.test
+
       - name: Shell syntax
-        run: bash -n skills/mneves-fable-orchestrator/tools/codex-lane skills/mneves-fable-orchestrator/tools/codex-lane.test .githooks/pre-commit .githooks/pre-commit.test tools/scripts/build-site.sh tools/scripts/check-defaults-block.sh
+        run: bash -n skills/mneves-fable-orchestrator/tools/codex-lane skills/mneves-fable-orchestrator/tools/codex-lane.test .githooks/pre-commit .githooks/pre-commit.test tools/scripts/build-site.sh tools/scripts/check-defaults-block.sh tools/scripts/sync-pstack.sh tools/scripts/sync-pstack.test
 
       - name: codex-lane e2e (fake codex, no provider calls)
         run: bash skills/mneves-fable-orchestrator/tools/codex-lane.test

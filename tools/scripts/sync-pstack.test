@@ -1,0 +1,97 @@
+#!/usr/bin/env bash
+# End-to-end test for sync-pstack.sh against a throwaway fixture repository.
+# No network: the fixture stands in for pstack-claude.
+#
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 Marcus Neves
+set -euo pipefail
+
+here=$(cd "$(dirname "$0")" && pwd)
+sync="$here/sync-pstack.sh"
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+fails=0
+check() { if eval "$2"; then echo "PASS: $1"; else echo "FAIL: $1"; fails=$((fails + 1)); fi; }
+
+src="$work/src"
+mkdir -p "$src/plugins/pstack/skills/alpha" "$src/plugins/pstack/skills/beta/references" "$src/plugins/pstack/.claude-plugin"
+cat > "$src/plugins/pstack/skills/alpha/SKILL.md" <<'EOF'
+---
+name: alpha
+description: "Alpha does the first thing when asked."
+menu-description: apply alpha
+---
+
+# Alpha
+
+Body line with: a colon.
+EOF
+cat > "$src/plugins/pstack/skills/beta/SKILL.md" <<'EOF'
+---
+name: beta
+description: Beta helps with TypeScript files when editing them.
+paths: ["**/*.ts", "**/*.tsx"]
+---
+
+Beta body.
+EOF
+echo "ref" > "$src/plugins/pstack/skills/beta/references/notes.md"
+echo '{ "name": "pstack", "version": "9.9.9" }' > "$src/plugins/pstack/.claude-plugin/plugin.json"
+printf 'MIT License\n\nCopyright (c) 2026 Fixture Author\n' > "$src/LICENSE"
+git -C "$src" init -q
+git -C "$src" add -A
+git -C "$src" -c user.email=t@t -c user.name=t commit -qm fixture
+sha=$(git -C "$src" rev-parse HEAD)
+# Untracked files in the source tree must never ship.
+mkdir -p "$src/plugins/pstack/skills/alpha/node_modules"
+echo junk > "$src/plugins/pstack/skills/alpha/node_modules/junk.js"
+
+dest="$work/dest"
+mkdir -p "$dest/skills/stale"
+echo "stale" > "$dest/skills/stale/SKILL.md"
+echo "hand-written" > "$dest/README.md"
+
+bash "$sync" "$src" "$sha" "$dest"
+
+check "tracked skills are copied" '[ -f "$dest/skills/alpha/SKILL.md" ] && [ -f "$dest/skills/beta/references/notes.md" ]'
+check "untracked files are not copied" '[ ! -e "$dest/skills/alpha/node_modules" ]'
+check "skills deleted upstream are removed" '[ ! -e "$dest/skills/stale" ]'
+check "hand-written collection files are preserved" '[ "$(cat "$dest/README.md")" = "hand-written" ]'
+check "non-spec key moves under metadata" 'grep -qx "metadata:" "$dest/skills/alpha/SKILL.md" && grep -qx "  menu-description: \"apply alpha\"" "$dest/skills/alpha/SKILL.md" && ! grep -q "^menu-description:" "$dest/skills/alpha/SKILL.md"'
+expected_paths='  paths: "[\"**/*.ts\", \"**/*.tsx\"]"'
+check "flow-list value becomes a quoted string" 'grep -qxF "$expected_paths" "$dest/skills/beta/SKILL.md"'
+check "spec keys are untouched" 'grep -qx "name: alpha" "$dest/skills/alpha/SKILL.md" && grep -qx "description: \"Alpha does the first thing when asked.\"" "$dest/skills/alpha/SKILL.md"'
+check "body is byte-identical" '[ "$(sed "1,/^---$/d" "$src/plugins/pstack/skills/alpha/SKILL.md" | sed "1,/^---$/d")" = "$(sed "1,/^---$/d" "$dest/skills/alpha/SKILL.md" | sed "1,/^---$/d")" ]'
+check "UPSTREAM pins the full source commit" 'grep -q "$sha" "$dest/UPSTREAM"'
+check "UPSTREAM records the port version" 'grep -q "9.9.9" "$dest/UPSTREAM"'
+check "LICENSE comes from the source commit" 'grep -q "Fixture Author" "$dest/LICENSE"'
+
+snapshot() { (cd "$dest" && find . -type f -print0 | sort -z | xargs -0 shasum) ; }
+before=$(snapshot)
+bash "$sync" "$src" "$sha" "$dest"
+check "a second run changes nothing" '[ "$before" = "$(snapshot)" ]'
+
+if bash "$sync" "$src" "no-such-ref" "$dest" 2>/dev/null; then ok=0; else ok=1; fi
+check "an unknown ref fails" '[ $ok -eq 1 ]'
+check "a failed run leaves the collection untouched" '[ "$before" = "$(snapshot)" ]'
+
+# A local fork: one commit on top of the published branch. UPSTREAM must name the
+# published commit it is based on, since the local commit exists nowhere public.
+fork="$work/fork"
+git clone -q "$src" "$fork"
+echo "local note" > "$fork/plugins/pstack/skills/alpha/LOCAL.md"
+git -C "$fork" add -A
+git -C "$fork" -c user.email=t@t -c user.name=t commit -qm "local override"
+fork_dest="$work/fork-dest"
+bash "$sync" "$fork" HEAD "$fork_dest"
+check "a fork records the published commit it is based on" 'grep -qx "based-on: $sha" "$fork_dest/UPSTREAM"'
+check "a fork records how many local commits sit on top" 'grep -qx "local-commits: 1" "$fork_dest/UPSTREAM"'
+check "an unforked sync reports zero local commits" 'grep -qx "local-commits: 0" "$dest/UPSTREAM"'
+
+sed -i.bak 's/^name: beta$/name: wrong/' "$src/plugins/pstack/skills/beta/SKILL.md" && rm "$src/plugins/pstack/skills/beta/SKILL.md.bak"
+git -C "$src" -c user.email=t@t -c user.name=t commit -qam "break name"
+if bash "$sync" "$src" HEAD "$dest" 2>/dev/null; then ok=0; else ok=1; fi
+check "a name/directory mismatch fails" '[ $ok -eq 1 ]'
+check "a rejected sync leaves the collection untouched" '[ "$before" = "$(snapshot)" ]'
+
+[ "$fails" -eq 0 ] && echo "PASS: sync-pstack ($(grep -c '^check ' "$0") checks)" || { echo "FAIL: $fails check(s)"; exit 1; }
