@@ -1,0 +1,27 @@
+// Worker configuration. Comments, block comments, trailing commas and URLs inside strings
+// must all survive parsing.
+{
+  "name": "demo-worker",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-01-01",
+  "triggers": { "crons": ["0 10 * * *"] },
+  "vars": { "DOCS_URL": "https://docs.example.com/guide" }, /* a URL: // inside a string is not a comment */
+  "kv_namespaces": [{ "binding": "CACHE", "id": "top-kv-id" }],
+  "d1_databases": [{ "binding": "DB", "database_name": "demo", "database_id": "top-db-id" }],
+  "env": {
+    "staging": {
+      "routes": [{ "pattern": "staging.example.com", "custom_domain": true }],
+      "triggers": { "crons": ["0 10 * * *"] },
+      "vars": { "APP_ENV": "staging" },
+      "kv_namespaces": [{ "binding": "CACHE", "id": "staging-kv-id" }],
+      "d1_databases": [{ "binding": "DB", "database_name": "demo-staging", "database_id": "staging-db-id" }],
+    },
+    "production": {
+      "routes": [{ "pattern": "app.example.com", "custom_domain": true }],
+      "triggers": { "crons": ["0 10 * * *"] },
+      "vars": { "APP_ENV": "production" },
+      "kv_namespaces": [{ "binding": "CACHE", "id": "production-kv-id" }],
+      "d1_databases": [{ "binding": "DB", "database_name": "demo-production", "database_id": "production-db-id" }],
+    },
+  },
+}

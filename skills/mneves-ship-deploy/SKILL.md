@@ -2,6 +2,7 @@
 name: mneves-ship-deploy
 description: "Use for `ship-staging`, `ship-prod`, or an explicit staging/production deployment request for a project you own. Runs review, release preparation, deployment, and verification. Plain `ship` does not invoke this skill or authorize external writes."
 license: Apache-2.0
+compatibility: The procedure needs only Git. The optional contract check (`scripts/release-contract-check.py`) needs Python 3.11+. The reference release scripts in `assets/` need bash 3.2+, git, curl, sed, awk and the Wrangler version the project pins.
 ---
 
 # Ship Staging / Prod
@@ -26,6 +27,8 @@ Within the requested release scope:
 
 Staging authorization does not waive required gates or authorize destructive operations, credential access, separate publication, or an unspecified deployment target. Missing required input and failed gates remain blockers.
 
+**One decision packet.** A gate that cannot pass (an advisory with no patched release, a tool that cannot run here) becomes one request to the user, sent as soon as it is known: the candidate (repository, commit, version), the target, each failing gate as a named waiver with its reason, and the rollback plan. Keep running every other gate while you wait. An approval of the packet approves exactly the waivers it lists; record them in the release evidence.
+
 ## Do not invoke when
 
 - The user said only "ship", "commit", "push", or "land the PR" without naming staging or production → use the normal authorization rules; do not infer either mode.
@@ -47,12 +50,13 @@ Then establish, without guessing:
    | Signal | Deploy via |
    |---|---|
    | `vercel.json`, `.vercel/` | `deploy-to-vercel` skill, when installed, or the repository's documented Vercel deployment command |
-   | `wrangler.toml` / `wrangler.jsonc` | `cloudflare-deploy` skill, when installed, or the repository's documented Cloudflare deployment command |
+   | `wrangler.toml` / `wrangler.jsonc` | `cloudflare-deploy` skill, when installed, or the repository's documented Cloudflare deployment command. Read [references/cloudflare.md](references/cloudflare.md) before the first deploy. |
    | `eas.json` + Expo app | `eas-app-stores` skill, when installed, or the repository's documented store workflow (staging = TestFlight / internal track) |
-   | `docker-compose.yml`, deploy script, VPS host in repo docs | repo's own deploy script; use `vps-setup` for host work only when installed and authorized |
+   | `docker-compose.yml`, deploy script, VPS host in repo docs | repo's own deploy script; use `vps-setup` for host work only when installed and authorized. Read [references/vps.md](references/vps.md) before the first deploy. |
 5. **Staging environment** — required for both modes. If none exists, say so and ask whether to run beta-tag-only for `ship-staging`; never skip staging and never invent a staging URL.
+6. **Release contract** — `scripts/release.sh` and `scripts/verify-live.sh`, when the repository has them, are the entry points for Phases 4 and 5: start with `scripts/release.sh <target> --check`, which prints the plan and builds, deploys and tags nothing. The checker ships in this skill's own folder, next to this file: run `python3 <skill folder>/scripts/release-contract-check.py <repo>` when Python 3.11+ is available and report each `FAIL`. Read [references/release-contract.md](references/release-contract.md) when an entry point is missing or a check fails.
 
-Report the five findings in one short paragraph before doing anything mutating.
+Report the six findings in one short paragraph before doing anything mutating.
 
 ## Phase 1 — Review gates
 
@@ -63,7 +67,7 @@ Run in order, fixing what each surfaces before moving on:
 3. `improve` (deep pass) — read-only survey producing prioritized plans. Land only what is in scope for this release; everything else becomes a named follow-up, not silent work.
 4. If Phase 1 uncovers work too large for this session, use the host's native task/goal facility only when the user requests that workflow; otherwise report the remaining work. Keep it within the authorized release scope.
 
-Gates that must be green before Phase 2: build, typecheck, lint, tests. If a gate cannot run here (needs a DB, a device, a paid service), state which one and why, and do not claim it passed.
+Gates that must be green before Phase 2: build, typecheck, lint, tests. If a gate cannot run here (needs a DB, a device, a paid service), state which one and why, and do not claim it passed. One failing gate is one named waiver in the decision packet; the release still runs every other gate.
 
 ## Phase 2 — Version, changelog, docs
 
@@ -91,15 +95,17 @@ Land the PR only when authorized and when its merge does not bypass the producti
 
 ## Phase 4 — Staging (`vX.Y.Z-beta<N>`)
 
+Order: deploy the pushed commit, prove it live, then tag. A tag names bytes that were served and checked.
+
+1. **Deploy** a commit the remote already has. Use `scripts/release.sh staging` when the repository has it (it performs steps 2 and 3 itself, and may require the commit to be the tip of the default branch); otherwise the detected skill or documented command.
+2. **Prove it live.** Run `scripts/verify-live.sh staging` when it exists. Otherwise assert what that script would: the served commit or version equals the candidate; the health response body has its expected fields; one request that must succeed does, and one that must be refused is. Then exercise the flow that changed with `agent-browser` / `/browse` (web) or `argent` (mobile), signed in when the change touches signed-in behavior, and read the logs for new errors. Desktop and mobile are separate targets. A green deploy command is not verification.
+3. **Tag** the verified commit:
+
 ```bash
-git tag -a vX.Y.Z-beta1 -m "vX.Y.Z-beta1 — staging" && git push origin vX.Y.Z-beta1
+git tag -a vX.Y.Z-beta<N> <commit> -m "vX.Y.Z-beta<N> — staging" && git push origin vX.Y.Z-beta<N>
 ```
 
-`<N>` starts at 1 and increments for each new staging attempt of the same target version — `v2.4.0-beta1`, `-beta2`, … The clean tag `vX.Y.Z` is reserved for production and is cut **only after** staging is verified.
-
-Deploy to staging with the detected skill, then verify for real: hit the staging URL with `agent-browser` / `/browse` (web) or `argent` (mobile), check the deployed version string, exercise the flow that changed, read the logs for new errors. Desktop and mobile are separate targets. A green deploy command is not verification.
-
-Staging fails → fix, bump to `-beta<N+1>`, repeat. Never promote an unverified beta.
+`<N>` starts at 1 and increments for each verified staging build of the same target version — `v2.4.0-beta1`, `-beta2`, … A staging attempt that fails its live proof gets no tag: fix, deploy again, prove again. The clean tag `vX.Y.Z` is reserved for production. Never promote an unverified build.
 
 ## Mode stop — `ship-staging`
 
@@ -115,13 +121,15 @@ Any repository, commit, version, environment, or target mismatch invalidates the
 
 Enter this phase only after the user's explicit OK for the exact candidate and production target. The production tag and its push are part of this approval boundary.
 
+Same order as staging: deploy the commit staging serves, prove it live with the same assertions, then tag.
+
 ```bash
-git tag -a vX.Y.Z -m "vX.Y.Z" && git push origin vX.Y.Z
+git tag -a vX.Y.Z <commit> -m "vX.Y.Z" && git push origin vX.Y.Z
 ```
 
-Deploy with the same skill, production target. Then:
+Then:
 
-- Verify live the same way you verified staging; confirm the deployed version matches the tag.
+- Confirm the tag points at the commit production serves.
 - Publication (GitHub Release, npm, app stores) needs its own explicit `release`/`publish` ask — a tag and a deploy are not a release. When asked: `npm view <pkg>@<version>` proves the npm side; the GitHub Release body links the npm version page, tarball, integrity, and CI proof.
 - Bump the changelog to the next patch `Unreleased` and commit.
 - End on the repository's expected branch, preserving unrelated changes. Switch branches only when authorized; update with a fast-forward and verify `git status -sb`.

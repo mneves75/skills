@@ -509,6 +509,24 @@ Review and deployment integrations are optional. If a named skill is unavailable
 uses the repository's documented equivalent with the same gates, or reports the missing
 capability. Missing staging and failed gates remain blockers.
 
+**Order.** The agent deploys the commit the remote already has, proves it live (served commit,
+health body, one request that must succeed and one that must be refused), and only then tags.
+A gate that cannot pass reaches you once, as a packet: the candidate, the target, each failing
+gate as a named waiver, and the rollback plan.
+
+**Release contract (optional tooling).** The skill prefers two entry points when a repository
+has them: `scripts/release.sh <staging|production>` and `scripts/verify-live.sh
+<staging|production>`. Check a repository, or every deployable repository in a folder, without
+running any of its code (Python 3.11+):
+
+```bash
+python3 skills/mneves-ship-deploy/scripts/release-contract-check.py path/to/repo
+python3 skills/mneves-ship-deploy/scripts/release-contract-check.py --fleet path/to/projects
+```
+
+`skills/mneves-ship-deploy/assets/` holds a reference `release.sh` and `verify-live.sh` for a
+single-Worker project. Copy them into `scripts/`, fill the placeholders, and adapt.
+
 ---
 
 ## mneves-chatgpt-search

@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`mneves-ship-deploy` release contract**: `references/release-contract.md` defines two entry
+  points a deployable repository provides (`scripts/release.sh` and `scripts/verify-live.sh`)
+  and ten guarantees. `scripts/release-contract-check.py` reports conformance for one
+  repository or a folder of them and never runs a repository's code. `assets/` holds a
+  reference release script and live check for a single-Worker project, with a guard test.
+- **`mneves-ship-deploy` references**: `references/cloudflare.md` (what a Wrangler
+  environment inherits, build-time values per target, service bindings, a recovery point
+  before a migration, stale first reads, schedules, and a review check for shared caches in
+  front of identity) and `references/vps.md` (the path production really uses, building off
+  the host, the resolved Compose file).
+
+### Changed
+
+- **`mneves-ship-deploy`**: deploys the pushed commit, proves it live, then tags. It used to
+  tag and push the tag before deploying, so a tag could name a build nobody had verified. A
+  gate that cannot pass becomes one decision packet with named waivers while every other gate
+  still runs. The preflight reports a sixth finding, the release contract.
+
 ## [1.31.0] - 2026-10-04
 
 ### Changed
