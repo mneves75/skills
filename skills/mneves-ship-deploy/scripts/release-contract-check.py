@@ -59,6 +59,8 @@ APP_SUFFIXES = {
     ".php", ".vue", ".svelte", ".astro",
 }
 CONFIG_SUFFIXES = {".json", ".jsonc", ".toml", ".yml", ".yaml", ".env", ".cfg", ".ini"}
+HTML_SUFFIXES = {".html", ".htm"}
+APP_HTML_DIRS = {"src", "app", "pages", "public", "templates", "views", "web", "client"}
 LOCK_FILES = {"package-lock.json", "pnpm-lock.yaml", "yarn.lock", "bun.lock", "composer.lock", "Cargo.lock", "uv.lock"}
 MAX_FILE_BYTES = 1_000_000
 MAX_FILES = 20_000
@@ -182,7 +184,7 @@ class Repo:
         if self._walk is None:
             found: list[Path] = []
             for dirpath, dirnames, filenames in os.walk(self.root):
-                dirnames[:] = sorted(d for d in dirnames if d not in SKIP_DIRS)
+                dirnames[:] = sorted(d for d in dirnames if d not in SKIP_DIRS and not d.startswith("."))
                 for name in sorted(filenames):
                     found.append(Path(dirpath) / name)
                 if len(found) > MAX_FILES:
@@ -191,10 +193,17 @@ class Repo:
         return self._walk
 
     def source_files(self, suffixes: set[str], under: Path | None = None) -> list[Path]:
+        """Files the application builds or runs. HTML counts only as an entry or template: index.html at the
+        unit root, or HTML under an application directory; other HTML is documentation or an export."""
         picked = []
+        base = under or self.root
         for path in self.files():
             if under is not None and not path.is_relative_to(under):
                 continue
+            if path.suffix in HTML_SUFFIXES:
+                below = path.relative_to(base)
+                if not (below.as_posix() == "index.html" or set(below.parts[:-1]) & APP_HTML_DIRS):
+                    continue
             parts = set(path.relative_to(self.root).parts[:-1])
             name = path.name
             if path.suffix not in suffixes or name in LOCK_FILES or parts & TEST_DIRS:
@@ -521,25 +530,42 @@ def runtime_pin(repo: Repo, unit: Path, view: list[Line] | None) -> Result:
     return Result("release.runtime-pin", FAIL, f"pin declared in {declared} but scripts/release.sh never compares it with the running tools", True)
 
 
+COMMENT_START = ("//", "#", "*", "/*", "<!--", "--")
+
+
+def live_lines(text: str):
+    """(line number, text) for lines that are not comment-only."""
+    for no, raw in enumerate(text.splitlines(), 1):
+        if raw.strip() and not raw.lstrip().startswith(COMMENT_START):
+            yield no, raw
+
+
 def served_commit(repo: Repo, unit: Path) -> Result:
     meta = re.compile(r"app-commit")
     key = re.compile(r"""["']?\bcommit\b["']?\s*[:=,}]""")
+    handler = re.compile(r"health|[\"'`]/(?:api/)?version\b", re.I)
     health_file = None
-    for path in repo.source_files(APP_SUFFIXES, unit):
+    files = repo.source_files(APP_SUFFIXES, unit)
+    for path in files:
         text = repo.read(path)
         if not text:
             continue
-        for no, raw in enumerate(text.splitlines(), 1):
+        lines = list(live_lines(text))
+        for no, raw in lines:
             if meta.search(raw):
                 return Result("served-commit", PASS, f"{repo.rel(path)}:{no} exposes app-commit", True)
-        if re.search(r"health", text, re.I) and health_file is None:
-            for no, raw in enumerate(text.splitlines(), 1):
+        if health_file is None and any(handler.search(raw) for _no, raw in lines):
+            for no, raw in lines:
                 if key.search(raw):
                     health_file = f"{repo.rel(path)}:{no}"
                     break
     if health_file:
         return Result("served-commit", PASS, f"{health_file} reports a commit field in a health handler", True)
-    return Result("served-commit", WARN, "no app-commit meta tag or health commit field found in source", True)
+    where = "." if unit == repo.root else repo.rel(unit)
+    return Result("served-commit", WARN,
+                  f"no app-commit meta tag or health commit field found in {len(files)} application files under {where} "
+                  "(code, index.html and HTML under src/, app/, pages/, public/, templates/, views/, web/ or client/; "
+                  "documentation, tests and other HTML are not read)", True)
 
 
 # ---- Wrangler ----
@@ -744,7 +770,7 @@ def workers_dev_origin(repo: Repo, unit: Path) -> Result:
         text = repo.read(path)
         if not text or ".workers.dev" not in text:
             continue
-        for no, raw in enumerate(text.splitlines(), 1):
+        for no, raw in live_lines(text):
             if pattern.search(raw):
                 hits.append(f"{repo.rel(path)}:{no}")
     if not hits:

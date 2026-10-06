@@ -546,6 +546,97 @@ class SourceSearch(Base):
         (self.repo / "index.html").write_text('<html><head><meta name="app-commit" content="abc1234"></head></html>\n')
         self.assertEqual(self.statuses()["served-commit"], "PASS")
 
+    META = '<html><head><meta name="app-commit" content="abc1234"></head></html>\n'
+    WORKERS_URL = 'See https://demo.example-account.workers.dev for the preview.\n'
+
+    def without_health_commit(self) -> None:
+        mutate(self.repo, "src/worker.ts", "commit: env.APP_COMMIT, ", "")
+
+    def test_served_commit_in_a_root_level_notes_html_is_not_a_pass(self) -> None:
+        self.without_health_commit()
+        (self.repo / "notes.html").write_text(self.META)
+        self.assertEqual(self.statuses()["served-commit"], "WARN")
+
+    def test_served_commit_in_index_html_at_the_unit_root_passes(self) -> None:
+        self.without_health_commit()
+        (self.repo / "index.html").write_text(self.META)
+        self.assertEqual(self.statuses()["served-commit"], "PASS")
+
+    def test_served_commit_as_a_field_of_a_health_handler_in_src_passes(self) -> None:
+        self.without_health_commit()
+        (self.repo / "src" / "health.ts").write_text(
+            'export function health(env: { COMMIT: string }): Response {\n  return Response.json({ status: "ok", commit: env.COMMIT });\n}\n')
+        check = report_for(self.repo)["served-commit"]
+        self.assertEqual(check["status"], "PASS")
+        self.assertIn("src/health.ts:2", check["evidence"])
+
+    def test_served_commit_only_in_a_readme_is_a_warning(self) -> None:
+        self.without_health_commit()
+        (self.repo / "README.md").write_text('Add <meta name="app-commit" content="..."> and a health handler returning { commit: sha }.\n')
+        self.assertEqual(self.statuses()["served-commit"], "WARN")
+
+    def test_a_workers_dev_url_only_in_a_root_level_notes_html_is_ignored(self) -> None:
+        (self.repo / "notes.html").write_text(f"<p>{self.WORKERS_URL}</p>\n")
+        self.assertEqual(self.statuses()["cf.workers-dev-origin"], "PASS")
+
+    def test_a_workers_dev_url_in_src_config_is_reported(self) -> None:
+        (self.repo / "src" / "config.ts").write_text('export const ORIGIN = "https://demo.example-account.workers.dev";\n')
+        check = report_for(self.repo)["cf.workers-dev-origin"]
+        self.assertEqual(check["status"], "WARN")
+        self.assertIn("src/config.ts:1", check["evidence"])
+
+    def test_html_under_an_application_directory_counts(self) -> None:
+        for directory in ("public", "templates", "app/views", "web", "client", "pages", "views", "apps/x/src/deep"):
+            with self.subTest(directory):
+                repo = build_conforming(self.tmp / ("html-" + directory.replace("/", "_")))
+                mutate(repo, "src/worker.ts", "commit: env.APP_COMMIT, ", "")
+                (repo / directory).mkdir(parents=True)
+                (repo / directory / "page.html").write_text(self.META)
+                self.assertEqual(self.statuses(repo)["served-commit"], "PASS")
+
+    def test_other_root_level_html_and_docs_html_are_ignored(self) -> None:
+        self.without_health_commit()
+        for name in ("report.html", "implementation-notes.html", "export.htm"):
+            (self.repo / name).write_text(self.META + self.WORKERS_URL)
+        (self.repo / "docs").mkdir()
+        (self.repo / "docs" / "index.html").write_text(self.META + self.WORKERS_URL)
+        (self.repo / "archive").mkdir()
+        (self.repo / "archive" / "old.html").write_text(self.META + self.WORKERS_URL)
+        checks = report_for(self.repo)
+        self.assertEqual(checks["served-commit"]["status"], "WARN")
+        self.assertEqual(checks["cf.workers-dev-origin"]["status"], "PASS")
+
+    def test_a_comment_does_not_satisfy_served_commit(self) -> None:
+        self.without_health_commit()
+        (self.repo / "src" / "health.ts").write_text(
+            '// health handler: returns { commit: sha } once wired\n/* commit: sha */\nexport const health = () => Response.json({ status: "ok" });\n')
+        (self.repo / "src" / "note.ts").write_text('// <meta name="app-commit" content="x">\n# app-commit\nexport {};\n')
+        self.assertEqual(self.statuses()["served-commit"], "WARN")
+
+    def test_tool_output_in_a_hidden_directory_is_not_read(self) -> None:
+        (self.repo / ".review-tool" / "findings").mkdir(parents=True)
+        (self.repo / ".review-tool" / "findings" / "one.json").write_text('{ "note": "https://demo.example-account.workers.dev" }\n')
+        self.assertEqual(self.statuses()["cf.workers-dev-origin"], "PASS")
+
+    def test_a_workers_dev_url_in_a_code_comment_is_not_an_origin(self) -> None:
+        (self.repo / "src" / "config.ts").write_text('// preview at https://demo.example-account.workers.dev\nexport const A = 1;\n')
+        self.assertEqual(self.statuses()["cf.workers-dev-origin"], "PASS")
+
+    def test_a_commit_field_in_a_test_or_fixture_does_not_satisfy_served_commit(self) -> None:
+        self.without_health_commit()
+        (self.repo / "tests").mkdir()
+        (self.repo / "tests" / "health.test.ts").write_text('const body = { status: "ok", commit: "abc" }; // health\n')
+        (self.repo / "fixtures").mkdir()
+        (self.repo / "fixtures" / "health.json").write_text('{ "health": true, "commit": "abc" }\n')
+        self.assertEqual(self.statuses()["served-commit"], "WARN")
+
+    def test_when_nothing_qualifies_served_commit_says_where_it_looked(self) -> None:
+        self.without_health_commit()
+        evidence = report_for(self.repo)["served-commit"]["evidence"]
+        self.assertIn("application files", evidence)
+        self.assertIn("documentation", evidence)
+        self.assertIn("index.html", evidence)
+
     def test_workers_dev_in_documentation_or_dependencies_is_ignored(self) -> None:
         (self.repo / "README.md").write_text("Preview at https://demo.example-account.workers.dev\n")
         (self.repo / "node_modules" / "dep").mkdir(parents=True)

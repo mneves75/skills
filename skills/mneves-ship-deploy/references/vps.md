@@ -6,6 +6,13 @@ it live, then tag. Each check ends on a condition you can observe.
 
 ## Before the deploy
 
+**Confirm the project still runs on a host.** Deploy tooling outlives migrations: a
+repository can keep a working `deploy.sh` for months after production moved to another
+platform.
+Done when the application repository's own deployment documentation and its latest release
+record name the host path as the current one. When they name another platform, stop: this
+file does not apply, and the host path is at most a rollback.
+
 **Find the path production really uses.** A repository's `deploy.sh` can be older than the
 way the service runs today, and running it can collide with the live container or start one
 without its secrets.
