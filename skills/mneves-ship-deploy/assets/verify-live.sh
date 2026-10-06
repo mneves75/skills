@@ -17,7 +17,8 @@
 # match wrangler's `triggers.crons`; a design that depends on a service binding adds one for the
 # transport it reports (for example a response header). Neither applies to this reference.
 #
-# Install: replace the __PLACEHOLDERS__ (the same URLs as release.sh) and edit the ADAPT block.
+# Install: replace the __PLACEHOLDERS__ (the same URLs as release.sh) and edit the ADAPT block, or put the URLs
+# in the git-ignored scripts/release.env that release.sh also reads.
 # Needs bash 3.2+, curl, sed and tr.
 set -euo pipefail
 
@@ -27,13 +28,21 @@ case "$target" in staging | production) ;; *) echo "$usage" >&2; exit 2 ;; esac
 [ "$#" -eq 1 ] || { echo "$usage" >&2; exit 2; }
 
 # ---- ADAPT ----
-STAGING_URL="__STAGING_URL__"
-PRODUCTION_URL="__PRODUCTION_URL__"
+# release.sh passes its own URLs in RELEASE_STAGING_URL and RELEASE_PRODUCTION_URL, because the copy of this
+# script in the release checkout has no ignored release.env beside it.
+STAGING_URL="${RELEASE_STAGING_URL:-__STAGING_URL__}"
+PRODUCTION_URL="${RELEASE_PRODUCTION_URL:-__PRODUCTION_URL__}"
 HEALTH_PATH="/health"
 DATA_PATH="/api/items"        # must answer 200 and contain DATA_EXPECT
 DATA_EXPECT='"items"'
 REFUSED_PATH="/api/admin"     # must be refused with REFUSED_STATUS
 REFUSED_STATUS="401"
+
+# A public repository can keep the two URLs out of the committed file: STAGING_URL and PRODUCTION_URL assignments
+# in scripts/release.env (git-ignored, the same file release.sh reads) are sourced before the placeholder check.
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+[ ! -f "$script_dir/release.env" ] || . "$script_dir/release.env"
 
 for pair in "STAGING_URL=$STAGING_URL" "PRODUCTION_URL=$PRODUCTION_URL"; do
   case "${pair#*=}" in

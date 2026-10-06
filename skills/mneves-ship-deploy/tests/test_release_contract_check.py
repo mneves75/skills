@@ -62,10 +62,10 @@ def mutate(repo: Path, rel: str, old: str, new: str, count: int = -1) -> None:
     path.write_text(text.replace(old, new, count))
 
 
-def run_checker(*args: str) -> subprocess.CompletedProcess:
+def run_checker(*args: str, timeout: int = 120) -> subprocess.CompletedProcess:
     env = {k: os.environ[k] for k in ("PATH", "LANG", "LC_ALL", "SYSTEMROOT") if k in os.environ}
     env.update({"PYTHONDONTWRITEBYTECODE": "1", "HOME": tempfile.gettempdir()})
-    return subprocess.run([sys.executable, "-B", str(CHECKER), *args], capture_output=True, text=True, env=env)
+    return subprocess.run([sys.executable, "-B", str(CHECKER), *args], capture_output=True, text=True, env=env, timeout=timeout)
 
 
 def report_for(repo: Path) -> dict:
@@ -94,6 +94,36 @@ def find_private_strings(text: str) -> list[str]:
     found = [m.group(0) for m in HOME_PATH.finditer(text)]
     found += [m.group(0) for m in ACCOUNT_ID_SHAPE.finditer(text)]
     found += [m.group(0) for m in WORKERS_DEV_HOST.finditer(text) if not m.group(1).startswith("example-")]
+    return found
+
+
+FORBIDDEN_IMPORTS = {"subprocess", "socket", "urllib", "http", "requests", "ssl", "ftplib", "smtplib", "shutil",
+                     "tempfile", "multiprocessing", "ctypes"}
+FORBIDDEN_CALLS = {"system", "popen", "write_text", "write_bytes", "unlink", "rmdir", "mkdir", "makedirs", "rename",
+                   "remove", "removedirs", "touch", "chmod", "chown", "symlink_to", "hardlink_to", "truncate", "exec",
+                   "eval", "Popen", "check_output", "check_call", "rmtree", "copyfile", "copy2", "move", "urlopen"}
+MODE = re.compile(r"[rwaxbt+U]{1,4}")
+
+
+def forbidden_constructs(source: str) -> list[str]:
+    """Imports and calls that let a script write, run another program or reach the network."""
+    found: list[str] = []
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Import):
+            found += [f"import {a.name}" for a in node.names if a.name.split(".")[0] in FORBIDDEN_IMPORTS]
+        elif isinstance(node, ast.ImportFrom):
+            if (node.module or "").split(".")[0] in FORBIDDEN_IMPORTS:
+                found.append(f"from {node.module} import ...")
+            found += [f"from {node.module} import {a.name}" for a in node.names if a.name in FORBIDDEN_CALLS]
+        elif isinstance(node, ast.Call):
+            func = node.func
+            name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
+            if name in FORBIDDEN_CALLS:
+                found.append(f"call to {name}")
+            if name == "open":
+                modes = [a.value for a in node.args[:2] if isinstance(a, ast.Constant) and isinstance(a.value, str) and MODE.fullmatch(a.value)]
+                modes += [k.value.value for k in node.keywords if k.arg == "mode" and isinstance(k.value, ast.Constant)]
+                found += [f"open() for writing: {m}" for m in modes if set(str(m)) & set("wax+")]
     return found
 
 
@@ -141,19 +171,30 @@ class ConformingRepository(Base):
 
     def test_text_output_labels_heuristic_checks(self) -> None:
         lines = {line.split()[1]: line for line in run_checker(str(self.repo)).stdout.splitlines() if line[:4].strip() in ("PASS", "FAIL", "WARN", "NA")}
-        for check_id in ("release.pushed-source", "release.tag-after-proof", "release.rollback", "served-commit"):
+        for check_id in ("release.check-mode", "release.waivers", "release.pushed-source", "release.tag-after-proof",
+                         "release.evidence", "release.rollback", "release.runtime-pin", "served-commit"):
             with self.subTest(check_id):
                 self.assertIn("[heuristic]", lines[check_id])
         self.assertNotIn("[heuristic]", lines["entry.release"])
 
     def test_json_labels_heuristic_checks(self) -> None:
         checks = report_for(self.repo)
-        for check_id in ("release.pushed-source", "release.tag-after-proof", "release.rollback", "served-commit", "cf.workers-dev-origin"):
+        for check_id in ("release.check-mode", "release.waivers", "release.pushed-source", "release.tag-after-proof",
+                         "release.evidence", "release.rollback", "release.runtime-pin", "served-commit", "cf.workers-dev-origin"):
             with self.subTest(check_id):
                 self.assertTrue(checks[check_id]["heuristic"])
-        for check_id in ("entry.release", "release.check-mode", "release.waivers", "release.evidence", "cf.env-routes"):
+        for check_id in ("entry.release", "entry.verify-live", "cf.targets", "cf.env-routes", "cf.env-triggers",
+                         "cf.worker-cache", "guardrail.local"):
             with self.subTest(check_id):
                 self.assertFalse(checks[check_id]["heuristic"])
+
+    def test_release_checks_stay_heuristic_even_when_there_is_no_script(self) -> None:
+        _m_missing_release(self.repo)
+        checks = report_for(self.repo)
+        for check_id in IDS:
+            if check_id.startswith("release."):
+                with self.subTest(check_id):
+                    self.assertTrue(checks[check_id]["heuristic"])
 
 
 # (name, mutation, check id, expected status, heuristic label expected or None, evidence pattern)
@@ -233,7 +274,7 @@ def _m_no_pin(repo: Path) -> None:
 def _m_pin_not_compared(repo: Path) -> None:
     (repo / "scripts" / "release.sh").write_text(
         '#!/usr/bin/env bash\nset -euo pipefail\ncase "${1:-}" in staging|production) ;; *) exit 2 ;; esac\nfor a in "$@"; do case "$a" in --check) exit 0 ;; --waive) shift ;; esac; done\n'
-        'git ls-remote --symref origin HEAD\nscripts/verify-live.sh "$1"\ngit tag -a "v1" HEAD\necho release.json\necho "wrangler rollback x"\n'
+        'git ls-remote --symref origin HEAD\nscripts/verify-live.sh "$1"\ngit tag -a "v1" HEAD\necho "{}" > release.json\necho "wrangler rollback x"\n'
     )
     (repo / "scripts" / "release.sh").chmod(0o755)
 
@@ -278,17 +319,17 @@ def _m_workflow(repo: Path) -> None:
 VIOLATIONS = [
     ("inherited routes", _m_inherited_routes, "cf.env-routes", "FAIL", False, r"wrangler\.jsonc:\d+"),
     ("environment missing a kv binding", _m_env_missing_kv, "cf.env-bindings", "FAIL", False, r"kv_namespaces"),
-    ("environment missing a d1 binding (not on the documented list)", _m_env_missing_d1, "cf.env-bindings", "FAIL", True, r"d1_databases"),
+    ("environment missing a d1 binding (not on the documented list)", _m_env_missing_d1, "cf.env-bindings", "WARN", True, r"d1_databases"),
     ("environment missing vars", _m_env_missing_vars, "cf.env-bindings", "WARN", False, r"vars"),
     ("environment without its own triggers", _m_env_missing_triggers, "cf.env-triggers", "WARN", False, r"triggers"),
     ("Workers Cache on at the top level", _m_cache_top, "cf.worker-cache", "WARN", False, r"wrangler\.jsonc:\d+ Workers Cache is on for the top level; its key ignores Cookie and Authorization"),
     ("Workers Cache explicitly off", _m_cache_off, "cf.worker-cache", "PASS", False, r"off or absent"),
     ("Workers Cache on only under one environment", _m_cache_env_only, "cf.worker-cache", "WARN", False, r"wrangler\.jsonc:\d+ Workers Cache is on for env\.production;"),
     ("single deploy target", _m_single_target, "cf.targets", "FAIL", False, r"wrangler\.jsonc"),
-    ("blanket --skip-checks", _blanket("--skip-checks"), "release.waivers", "FAIL", False, r"scripts/release\.sh:\d+"),
-    ("blanket --skip-gates", _blanket("--skip-gates"), "release.waivers", "FAIL", False, r"--skip-gates"),
-    ("blanket --no-verify", _blanket("--no-verify"), "release.waivers", "FAIL", False, r"--no-verify"),
-    ("blanket --skip-tests", _blanket("--skip-tests"), "release.waivers", "FAIL", False, r"--skip-tests"),
+    ("blanket --skip-checks", _blanket("--skip-checks"), "release.waivers", "FAIL", True, r"scripts/release\.sh:\d+"),
+    ("blanket --skip-gates", _blanket("--skip-gates"), "release.waivers", "FAIL", True, r"--skip-gates"),
+    ("blanket --no-verify", _blanket("--no-verify"), "release.waivers", "FAIL", True, r"--no-verify"),
+    ("blanket --skip-tests", _blanket("--skip-tests"), "release.waivers", "FAIL", True, r"--skip-tests"),
     ("tag created before verify-live", _m_tag_before_verify, "release.tag-after-proof", "FAIL", True, r"scripts/release\.sh:\d+"),
     ("no tag step at all", _m_no_tag_step, "release.tag-after-proof", "WARN", True, r"no tag"),
     ("missing verify-live.sh", _m_missing_verify_live, "entry.verify-live", "FAIL", False, r"scripts/verify-live\.sh"),
@@ -297,10 +338,10 @@ VIOLATIONS = [
     ("release.sh not executable", _m_release_not_executable, "entry.release", "FAIL", False, r"executable"),
     ("undeclared runtime pin", _m_no_pin, "release.runtime-pin", "FAIL", True, r"no runtime pin"),
     ("pin declared but never compared", _m_pin_not_compared, "release.runtime-pin", "FAIL", True, r"compar"),
-    ("no --check", _m_no_check_flag, "release.check-mode", "FAIL", False, r"--check"),
-    ("no --waive and no blanket flag", _m_no_waive, "release.waivers", "WARN", False, r"--waive"),
+    ("no --check", _m_no_check_flag, "release.check-mode", "FAIL", True, r"--check"),
+    ("no --waive and no blanket flag", _m_no_waive, "release.waivers", "WARN", True, r"--waive"),
     ("default branch not asked of the remote", _m_no_remote_default_branch, "release.pushed-source", "FAIL", True, r"ls-remote"),
-    ("no release.json", _m_no_evidence, "release.evidence", "FAIL", False, r"release\.json"),
+    ("no release.json", _m_no_evidence, "release.evidence", "FAIL", True, r"release\.json"),
     ("no rollback command", _m_no_rollback, "release.rollback", "FAIL", True, r"rollback"),
     ("no commit in the health handler", _m_no_health_commit, "served-commit", "WARN", True, r"app-commit|commit"),
     ("hard-coded workers.dev origin", _m_workers_dev_origin, "cf.workers-dev-origin", "WARN", True, r"src/proxy\.ts:\d+"),
@@ -422,12 +463,12 @@ class ReleaseScriptReading(Base):
     def test_waive_with_a_blanket_bypass_fails(self) -> None:
         check = self.plant_arms("--skip-checks")
         self.assertEqual(check["status"], "FAIL")
-        self.assertFalse(check["heuristic"])
+        self.assertTrue(check["heuristic"])
 
     def test_waive_alone_passes(self) -> None:
         check = report_for(self.repo)["release.waivers"]
         self.assertEqual(check["status"], "PASS")
-        self.assertFalse(check["heuristic"])
+        self.assertTrue(check["heuristic"])
 
     def test_a_blanket_bypass_beside_a_specific_skip_fails_and_names_the_blanket_one(self) -> None:
         check = self.plant_arms("--skip-migrations", "--no-verify")
@@ -1053,6 +1094,443 @@ class Monorepos(Base):
         self.assertEqual(list(units_of(str(bare))), ["bare"])
 
 
+REFERENCE_VERIFY_CALL = (
+    '  if EXPECT_COMMIT="$commit" EXPECT_VERSION="$version" scripts/verify-live.sh "$target" > "$evidence/verify-live.log" 2>&1; '
+    'then proved=1; break; fi\n'
+)
+
+
+def write_config(repo: Path, data: dict) -> None:
+    (repo / "wrangler.jsonc").write_text(json.dumps(data, indent=2) + "\n")
+
+
+def stub_release(repo: Path, body: str) -> None:
+    path = repo / "scripts" / "release.sh"
+    path.write_text("#!/usr/bin/env bash\nset -euo pipefail\n" + body)
+    path.chmod(0o755)
+
+
+class WorkersCacheEntrypoints(Base):
+    """Cloudflare enables the cache per entrypoint: exports.<name>.cache.enabled, at the top level or in an environment."""
+
+    NOTE = "its key ignores Cookie and Authorization, so every response that depends on them must be private, no-store"
+
+    def check(self, data: dict) -> dict:
+        write_config(self.repo, {"name": "w", "main": "src/worker.ts", **data})
+        return report_for(self.repo)["cf.worker-cache"]
+
+    def test_a_top_level_entrypoint_with_the_cache_on_is_reported_with_the_inheritance_note(self) -> None:
+        check = self.check({"exports": {"default": {"type": "worker", "cache": {"enabled": True}}}, "env": {"staging": {}, "production": {}}})
+        self.assertEqual(check["status"], "WARN")
+        self.assertFalse(check["heuristic"])
+        self.assertIn(f"Workers Cache is on for entrypoint default of the top level; {self.NOTE}", check["evidence"])
+        self.assertIn("environments may inherit it", check["evidence"])
+        self.assertRegex(check["evidence"], r"wrangler\.jsonc:\d+")
+
+    def test_an_entrypoint_inside_an_environment_names_both(self) -> None:
+        check = self.check({"env": {"staging": {}, "production": {"exports": {"admin": {"type": "worker", "cache": {"enabled": True}}}}}})
+        self.assertEqual(check["status"], "WARN")
+        self.assertIn("entrypoint admin of env.production", check["evidence"])
+        self.assertNotIn("top level", check["evidence"])
+
+    def test_only_the_entrypoint_that_enables_it_is_named(self) -> None:
+        check = self.check({"exports": {"web": {"type": "worker", "cache": {"enabled": False}},
+                                        "api": {"type": "worker", "cache": {"enabled": True}}}})
+        self.assertEqual(check["status"], "WARN")
+        self.assertIn("entrypoint api", check["evidence"])
+        self.assertNotIn("entrypoint web", check["evidence"])
+
+    def test_an_entrypoint_that_turns_it_off_narrows_nothing_for_the_top_level(self) -> None:
+        check = self.check({"cache": {"enabled": True}, "exports": {"default": {"type": "worker", "cache": {"enabled": False}}}})
+        self.assertEqual(check["status"], "WARN")
+        self.assertIn("Workers Cache is on for the top level;", check["evidence"])
+        self.assertNotIn("entrypoint default", check["evidence"])
+
+    def test_a_top_level_cache_and_an_entrypoint_are_both_named(self) -> None:
+        check = self.check({"cache": {"enabled": True}, "exports": {"default": {"type": "worker", "cache": {"enabled": True}}}})
+        self.assertIn("the top level and entrypoint default of the top level", check["evidence"])
+
+    def test_entrypoints_with_the_cache_off_or_malformed_pass(self) -> None:
+        for exports in ({"default": {"type": "worker", "cache": {"enabled": False}}}, {"default": {"type": "worker"}},
+                        {"default": "weird"}, {"default": {"cache": "on"}}, [], "none"):
+            with self.subTest(exports=exports):
+                self.assertEqual(self.check({"exports": exports})["status"], "PASS")
+
+    def test_the_documented_environment_shapes_c2(self) -> None:
+        check = self.check({"cache": {"enabled": False}, "env": {
+            "staging": {"cache": {"enabled": False}},
+            "production": {"cache": {"enabled": True, "cross_version_cache": True}}}})
+        self.assertEqual(check["status"], "WARN")
+        self.assertIn("env.production", check["evidence"])
+
+    def test_a_toml_entrypoint_table_and_an_environment_entrypoint_table(self) -> None:
+        (self.repo / "wrangler.jsonc").unlink()
+        (self.repo / "wrangler.toml").write_text('name = "w"\n[exports.default]\ntype = "worker"\n[exports.default.cache]\nenabled = true\n[env.staging]\n')
+        check = report_for(self.repo)["cf.worker-cache"]
+        self.assertEqual(check["status"], "WARN")
+        self.assertRegex(check["evidence"], r"wrangler\.toml:\d+ Workers Cache is on for entrypoint default of the top level;")
+        (self.repo / "wrangler.toml").write_text('name = "w"\n[env.staging.exports.api.cache]\nenabled = true\n')
+        check = report_for(self.repo)["cf.worker-cache"]
+        self.assertIn("entrypoint api of env.staging", check["evidence"])
+
+    def test_two_config_files_in_one_unit_are_both_read(self) -> None:
+        (self.repo / "wrangler.toml").write_text('name = "w"\n[cache]\nenabled = true\n')
+        check = report_for(self.repo)["cf.worker-cache"]  # wrangler.jsonc (cache absent) and wrangler.toml (cache on)
+        self.assertEqual(check["status"], "WARN")
+        self.assertIn("wrangler.toml", check["evidence"])
+
+
+class ReleaseScriptTextChecks(Base):
+    """False passes the reviewer showed: a message that mentions release.json, --check after a deploy, a non-fatal proof."""
+
+    def waivers_and_modes(self) -> dict:
+        return report_for(self.repo)
+
+    # -- release.evidence --
+    def test_a_message_that_merely_mentions_release_json_is_not_evidence(self) -> None:
+        stub_release(self.repo, 'echo "release.json is NOT written by this script"\necho "see release.json" >&2\nprintf "%s\\n" release.json\n')
+        check = report_for(self.repo)["release.evidence"]
+        self.assertEqual(check["status"], "FAIL")
+        self.assertTrue(check["heuristic"])
+
+    def test_each_way_of_writing_release_json_counts(self) -> None:
+        for line in ('cat > "$evidence/release.json" << JSON', 'echo "{}" >> release.json', 'jq -n "{}" > "$d/release.json"',
+                     'printf "%s" "$body" | tee "$out/release.json"', 'node -e \'require("fs").writeFileSync("release.json", "{}")\'',
+                     'python3 -c \'import json; json.dump({}, open("release.json", "w"))\'', 'printf "{}" 1> release.json'):
+            with self.subTest(line):
+                stub_release(self.repo, line + "\n")
+                self.assertEqual(report_for(self.repo)["release.evidence"]["status"], "PASS")
+
+    # -- release.check-mode --
+    def test_check_handled_only_after_a_deploy_is_a_warning(self) -> None:
+        stub_release(self.repo, 'case "${1:-}" in staging|production) ;; *) exit 2;; esac\n'
+                                'wrangler deploy --env "$1"\n'
+                                'for a in "$@"; do case "$a" in --check) exit 0;; esac; done\n')
+        check = report_for(self.repo)["release.check-mode"]
+        self.assertEqual(check["status"], "WARN")
+        self.assertTrue(check["heuristic"])
+        self.assertRegex(check["evidence"], r"after the first deploy command at scripts/release\.sh:\d+")
+
+    def test_check_handled_before_the_first_deploy_passes(self) -> None:
+        stub_release(self.repo, 'for a in "$@"; do case "$a" in --check) exit 0;; esac; done\nwrangler deploy --env "$1"\n')
+        self.assertEqual(report_for(self.repo)["release.check-mode"]["status"], "PASS")
+
+    def test_the_reference_script_handles_check_before_it_deploys(self) -> None:
+        check = report_for(self.repo)["release.check-mode"]
+        self.assertEqual(check["status"], "PASS")
+        text = (self.repo / "scripts" / "release.sh").read_text().splitlines()
+        self.assertLess(next(i for i, l in enumerate(text) if "--check)" in l), next(i for i, l in enumerate(text) if " deploy --tag" in l))
+
+    def test_a_deploy_word_in_a_message_or_a_comment_is_not_a_deploy_command(self) -> None:
+        stub_release(self.repo, 'echo "run wrangler deploy later"\nsay "Deploy $tag"\n# wrangler deploy\n'
+                                'for a in "$@"; do case "$a" in --check) exit 0;; esac; done\n')
+        self.assertEqual(report_for(self.repo)["release.check-mode"]["status"], "PASS")
+
+    # -- release.tag-after-proof --
+    def plant_proof(self, replacement: str) -> dict:
+        mutate(self.repo, "scripts/release.sh", REFERENCE_VERIFY_CALL, replacement)
+        return report_for(self.repo)["release.tag-after-proof"]
+
+    def test_a_non_fatal_proof_does_not_let_the_tag_pass(self) -> None:
+        for variant in ('  scripts/verify-live.sh "$target" || true\n', '  scripts/verify-live.sh "$target" || :\n',
+                        '  scripts/verify-live.sh "$target" ||true\n', '  scripts/verify-live.sh "$target"; true\n',
+                        '  scripts/verify-live.sh "$target" || echo ignored\n', '  scripts/verify-live.sh "$target" &\n',
+                        '  scripts/verify-live.sh "$target" || exit 0\n',
+                        '  set +e\n  scripts/verify-live.sh "$target"\n'):
+            with self.subTest(variant):
+                self.setUp()
+                check = self.plant_proof(variant)
+                self.assertEqual(check["status"], "FAIL", check)
+                self.assertTrue(check["heuristic"])
+                self.assertRegex(check["evidence"], r"non-fatal|status is discarded|set \+e")
+
+    def test_a_fatal_proof_still_passes(self) -> None:
+        for variant in (REFERENCE_VERIFY_CALL, '  scripts/verify-live.sh "$target" || rollback_hint\n',
+                        '  scripts/verify-live.sh "$target" || die "live proof failed"\n',
+                        '  scripts/verify-live.sh "$target" || { echo bad >&2; exit 1; }\n',
+                        '  scripts/verify-live.sh "$target"\n',
+                        '  set +e\n  scripts/verify-live.sh "$target"\n  status=$?\n  set -e\n  [ "$status" -eq 0 ] || exit 1\n',
+                        '  if ! scripts/verify-live.sh "$target"; then rollback_hint; fi\n'):
+            with self.subTest(variant):
+                self.setUp()
+                check = self.plant_proof(variant)
+                self.assertEqual(check["status"], "PASS", check)
+
+    # -- blanket names the reviewer added --
+    def test_force_yolo_and_no_guard_flags_are_blanket_bypasses(self) -> None:
+        for flag in ("--force", "--yolo", "--no-guard", "--no-guards", "--no-guard-checks"):
+            with self.subTest(flag):
+                repo = build_conforming(self.tmp / ("w" + flag.replace("-", "_")))
+                mutate(repo, "scripts/release.sh", "    --yes) yes=1 ;;\n", f"    --yes) yes=1 ;;\n    {flag}) force=1 ;;\n")
+                check = report_for(repo)["release.waivers"]
+                self.assertEqual(check["status"], "FAIL", check)
+                self.assertIn(f"offers {flag},", check["evidence"])
+
+    def test_the_waivers_verdicts_are_all_heuristic(self) -> None:
+        for flag, expected in ((None, "PASS"), ("--skip-migrations", "WARN"), ("--skip-checks", "FAIL")):
+            with self.subTest(flag):
+                repo = build_conforming(self.tmp / ("v" + (flag or "none").replace("-", "_")))
+                if flag:
+                    mutate(repo, "scripts/release.sh", "    --yes) yes=1 ;;\n", f"    --yes) yes=1 ;;\n    {flag}) x=1 ;;\n")
+                check = report_for(repo)["release.waivers"]
+                self.assertEqual(check["status"], expected)
+                self.assertTrue(check["heuristic"])
+
+    # -- pushed source --
+    def test_fetch_of_a_branch_followed_by_a_comparison_with_the_remote_ref_asks_the_remote(self) -> None:
+        mutate(self.repo, "scripts/release.sh", 'symref="$(git ls-remote --symref origin HEAD)" || die "cannot reach origin"',
+               'git fetch origin main; symref="$(git rev-parse origin/main)" || die "cannot reach origin"')
+        self.assertEqual(report_for(self.repo)["release.pushed-source"]["status"], "PASS")
+
+    def test_fetch_with_variables_and_a_comparison_on_a_later_line(self) -> None:
+        mutate(self.repo, "scripts/release.sh", 'symref="$(git ls-remote --symref origin HEAD)" || die "cannot reach origin"',
+               'git fetch --quiet "$remote" "$branch"\nsymref="$(git rev-parse "$remote/$branch")" || die "cannot reach origin"')
+        self.assertEqual(report_for(self.repo)["release.pushed-source"]["status"], "PASS")
+
+    def test_a_fetch_that_is_never_compared_with_the_remote_ref_does_not_count(self) -> None:
+        mutate(self.repo, "scripts/release.sh", 'symref="$(git ls-remote --symref origin HEAD)" || die "cannot reach origin"',
+               'git fetch origin main; symref="$(git rev-parse HEAD)" || die "cannot reach origin"')
+        self.assertEqual(report_for(self.repo)["release.pushed-source"]["status"], "FAIL")
+        self.setUp()
+        mutate(self.repo, "scripts/release.sh", 'symref="$(git ls-remote --symref origin HEAD)" || die "cannot reach origin"',
+               'git fetch origin main; symref="$(git rev-parse upstream/main)" || die "cannot reach origin"')
+        self.assertEqual(report_for(self.repo)["release.pushed-source"]["status"], "FAIL")
+
+
+class RuntimePinSources(Base):
+    def only_pin(self, name: str, content: str) -> None:
+        (self.repo / ".nvmrc").unlink()
+        mutate(self.repo, "package.json", '  "packageManager": "npm@10.9.2"\n', "")
+        mutate(self.repo, "package.json", '"version": "1.2.3",', '"version": "1.2.3"')
+        (self.repo / name).write_text(content)
+
+    def test_node_bun_and_python_version_files_are_pins(self) -> None:
+        for name, content in ((".node-version", "22.11.0\n"), (".bun-version", "1.3.14\n"), (".python-version", "3.12.4\n")):
+            with self.subTest(name):
+                self.setUp()
+                self.only_pin(name, content)
+                check = report_for(self.repo)["release.runtime-pin"]
+                self.assertNotIn("no runtime pin declared", check["evidence"])
+                self.assertEqual(check["status"], "FAIL")  # declared, but the reference script reads other files
+                self.assertIn(name, check["evidence"])
+                mutate(self.repo, "scripts/release.sh", ".nvmrc", name)
+                self.assertEqual(report_for(self.repo)["release.runtime-pin"]["status"], "PASS")
+
+
+class BindingKeysTheVendorPageDoesNotList(Base):
+    def top_and_env(self, key: str, value) -> dict:
+        data = {"name": "w", "main": "src/worker.ts", key: value, "env": {"staging": {}, "production": {}}}
+        write_config(self.repo, data)
+        return report_for(self.repo)["cf.env-bindings"]
+
+    def test_unlisted_binding_keys_are_a_heuristic_warning(self) -> None:
+        for key, value in (("d1_databases", [{"binding": "DB"}]), ("hyperdrive", [{"binding": "H"}]), ("browser", {"binding": "B"}),
+                           ("images", {"binding": "I"}), ("ai", {"binding": "AI"}), ("send_email", [{"name": "E"}]),
+                           ("mtls_certificates", [{"binding": "M"}]), ("analytics_engine_datasets", [{"binding": "A"}]),
+                           ("dispatch_namespaces", [{"binding": "D"}])):
+            with self.subTest(key):
+                check = self.top_and_env(key, value)
+                self.assertEqual(check["status"], "WARN", check)
+                self.assertTrue(check["heuristic"])
+                self.assertIn(key, check["evidence"])
+                self.assertIn("not on the documented non-inheritable list", check["evidence"])
+
+    def test_keys_the_page_lists_still_fail(self) -> None:
+        for key, value in (("kv_namespaces", [{"binding": "K"}]), ("r2_buckets", [{"binding": "R"}]), ("services", [{"binding": "S"}]),
+                           ("durable_objects", {"bindings": []}), ("queues", {"producers": []}), ("workflows", [{"binding": "W"}]),
+                           ("vectorize", [{"binding": "V"}])):
+            with self.subTest(key):
+                check = self.top_and_env(key, value)
+                self.assertEqual(check["status"], "FAIL", check)
+                self.assertFalse(check["heuristic"])
+
+    def test_a_listed_key_missing_beside_an_unlisted_one_fails_on_the_listed_one(self) -> None:
+        write_config(self.repo, {"name": "w", "d1_databases": [{"binding": "DB"}], "kv_namespaces": [{"binding": "K"}],
+                                 "env": {"staging": {"d1_databases": []}, "production": {"d1_databases": []}}})
+        check = report_for(self.repo)["cf.env-bindings"]
+        self.assertEqual(check["status"], "FAIL")
+        self.assertFalse(check["heuristic"])
+        self.assertIn("kv_namespaces", check["evidence"])
+
+
+def make_unreadable(path: Path):
+    path.chmod(0o000)
+
+
+@unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "permission checks need a non-root user")
+class UnreadableAndOddFiles(Base):
+    def tearDown(self) -> None:
+        for path in self.tmp.rglob("*"):
+            try:
+                if path.is_dir():
+                    path.chmod(0o755)
+            except OSError:
+                pass
+
+    def run_json(self, *args: str) -> tuple[subprocess.CompletedProcess, dict]:
+        proc = run_checker(*args, "--json")
+        self.assertNotIn("Traceback", proc.stderr, proc.stderr)
+        self.assertIn(proc.returncode, (0, 1), proc.stderr)
+        return proc, json.loads(proc.stdout)
+
+    def checks(self, *args: str) -> dict:
+        _proc, data = self.run_json(*args)
+        return {c["id"]: c for c in data["repos"][0]["checks"]}
+
+    def test_unreadable_directories_are_reported_as_warnings_and_the_run_continues(self) -> None:
+        for rel in ("src", "scripts", ".githooks", ".github", "."):
+            with self.subTest(rel):
+                self.setUp()
+                (self.repo / ".github" / "workflows").mkdir(parents=True)
+                target = self.repo if rel == "." else self.repo / rel
+                make_unreadable(target)
+                try:
+                    proc = run_checker(str(self.repo), "--json")
+                finally:
+                    target.chmod(0o755)
+                self.assertNotIn("Traceback", proc.stderr, proc.stderr)
+                self.assertIn(proc.returncode, (0, 1), proc.stderr)
+                checks = {c["id"]: c for c in json.loads(proc.stdout)["repos"][0]["checks"]}
+                self.assertEqual(len(checks), len(IDS))
+                shown = " ".join(c["evidence"] for c in checks.values())
+                self.assertIn("cannot read", shown)
+
+    def test_an_unreadable_scripts_directory_warns_instead_of_claiming_the_script_is_missing(self) -> None:
+        make_unreadable(self.repo / "scripts")
+        try:
+            checks = self.checks(str(self.repo))
+        finally:
+            (self.repo / "scripts").chmod(0o755)
+        for check_id in ("entry.release", "entry.verify-live", "release.check-mode", "release.waivers", "release.evidence"):
+            with self.subTest(check_id):
+                self.assertEqual(checks[check_id]["status"], "WARN", checks[check_id])
+                self.assertIn("cannot read", checks[check_id]["evidence"])
+
+    def test_an_unreadable_source_directory_never_gives_the_source_searches_a_clean_pass(self) -> None:
+        mutate(self.repo, "src/worker.ts", "commit: env.APP_COMMIT, ", "")
+        make_unreadable(self.repo / "src")
+        try:
+            checks = self.checks(str(self.repo))
+        finally:
+            (self.repo / "src").chmod(0o755)
+        self.assertEqual(checks["served-commit"]["status"], "WARN")
+        self.assertEqual(checks["cf.workers-dev-origin"]["status"], "WARN")
+        self.assertIn("cannot read", checks["cf.workers-dev-origin"]["evidence"])
+
+    def test_a_fleet_survives_an_unreadable_unit_and_still_reports_the_others(self) -> None:
+        fleet = self.tmp / "fleet"
+        fleet.mkdir()
+        shutil.copytree(self.repo, fleet / "good")
+        shutil.copytree(self.repo, fleet / "bad")
+        make_unreadable(fleet / "bad")
+        try:
+            proc, data = self.run_json("--fleet", str(fleet))
+        finally:
+            (fleet / "bad").chmod(0o755)
+        self.assertIn("good", [r["unit"] for r in data["repos"]])
+        self.assertTrue(any("bad" in note and "cannot read" in note for note in data.get("skipped", [])), data.get("skipped"))
+        text = run_checker("--fleet", str(fleet))
+        self.assertNotIn("Traceback", text.stderr)
+
+    @unittest.skipUnless(hasattr(os, "mkfifo"), "needs mkfifo")
+    def test_a_fifo_is_never_opened(self) -> None:
+        for rel in (".nvmrc", "package.json", "wrangler.jsonc", "src/pipe.ts", "scripts/release.sh", "scripts/verify-live.sh", ".githooks/pre-commit"):
+            with self.subTest(rel):
+                self.setUp()
+                path = self.repo / rel
+                path.unlink(missing_ok=True)
+                os.mkfifo(path)
+                proc = run_checker(str(self.repo), "--json", timeout=20)  # a blocking open would time out
+                self.assertNotIn("Traceback", proc.stderr, proc.stderr)
+                self.assertIn(proc.returncode, (0, 1))
+                self.assertEqual(len(json.loads(proc.stdout)["repos"][0]["checks"]), len(IDS))
+                if rel != "src/pipe.ts":  # a FIFO among the sources is skipped silently; named inputs are reported
+                    self.assertIn("not a regular file", proc.stdout)
+
+    def test_a_symlink_to_a_device_is_not_read(self) -> None:
+        (self.repo / "src" / "zero.ts").symlink_to("/dev/zero")
+        proc = run_checker(str(self.repo), "--json", timeout=20)
+        self.assertNotIn("Traceback", proc.stderr)
+        self.assertIn(proc.returncode, (0, 1))
+
+    def test_a_dangling_or_looping_symlink_does_not_crash(self) -> None:
+        (self.repo / "src" / "dangling.ts").symlink_to("nowhere")
+        (self.repo / "loop").symlink_to(".")
+        proc = run_checker(str(self.repo), "--json", timeout=20)
+        self.assertNotIn("Traceback", proc.stderr)
+        self.assertIn(proc.returncode, (0, 1))
+
+    def test_deeply_nested_configuration_is_reported_as_unreadable_not_a_crash(self) -> None:
+        deep = "[" * 400000 + "]" * 400000  # deeper than the JSON decoder of 3.14 accepts, and than tomllib on any version
+        for rel, body in (("wrangler.jsonc", '{"name": "w", "a": ' + deep + "}"), ("package.json", '{"a": ' + deep + "}"),
+                          ("wrangler.toml", "a = " + deep + "\n")):
+            with self.subTest(rel):
+                self.setUp()
+                if rel == "wrangler.toml":
+                    (self.repo / "wrangler.jsonc").unlink()
+                (self.repo / rel).write_text(body)
+                checks = self.checks(str(self.repo))
+                affected = ("cf.targets", "cf.worker-cache") if rel.startswith("wrangler") else ("release.runtime-pin",)
+                for check_id in affected:
+                    self.assertEqual(checks[check_id]["status"], "WARN", checks[check_id])
+                    self.assertRegex(checks[check_id]["evidence"], rel + r".*(too deeply nested|cannot read|cannot parse)")
+
+    def test_a_second_config_that_cannot_be_read_turns_a_clean_pass_into_a_warning(self) -> None:
+        (self.repo / "wrangler.toml").write_text("a = " + "[" * 50000 + "]" * 50000 + "\n")
+        checks = self.checks(str(self.repo))
+        for check_id in ("cf.targets", "cf.env-routes", "cf.env-bindings", "cf.worker-cache"):
+            with self.subTest(check_id):
+                self.assertEqual(checks[check_id]["status"], "WARN", checks[check_id])
+                self.assertIn("wrangler.toml: too deeply nested to read", checks[check_id]["evidence"])
+
+    def test_a_file_over_the_size_limit_is_too_large_to_read_and_never_a_string_of_fails(self) -> None:
+        pad = " " * 1_100_000
+        (self.repo / "scripts" / "release.sh").write_text((self.repo / "scripts" / "release.sh").read_text() + "\n# " + pad + "\n")
+        checks = self.checks(str(self.repo))
+        for check_id in ("release.check-mode", "release.waivers", "release.pushed-source", "release.tag-after-proof",
+                         "release.evidence", "release.rollback", "release.runtime-pin"):
+            with self.subTest(check_id):
+                self.assertEqual(checks[check_id]["status"], "WARN", checks[check_id])
+                self.assertIn("too large to read", checks[check_id]["evidence"])
+        self.assertEqual(checks["entry.release"]["status"], "PASS")
+
+    def test_a_wrangler_config_over_the_size_limit_is_too_large_to_read(self) -> None:
+        (self.repo / "wrangler.jsonc").write_text('{"name": "w"}' + " " * 1_100_000)
+        checks = self.checks(str(self.repo))
+        for check_id in ("cf.targets", "cf.env-routes", "cf.env-triggers", "cf.env-bindings", "cf.worker-cache"):
+            with self.subTest(check_id):
+                self.assertEqual(checks[check_id]["status"], "WARN")
+                self.assertIn("too large to read", checks[check_id]["evidence"])
+
+    def test_a_package_json_over_the_size_limit_does_not_claim_no_pin_is_declared(self) -> None:
+        (self.repo / ".nvmrc").unlink()
+        (self.repo / "package.json").write_text('{"name": "w", "version": "1.2.3", "packageManager": "npm@10.9.2"}' + " " * 1_100_000)
+        check = self.checks(str(self.repo))["release.runtime-pin"]
+        self.assertEqual(check["status"], "WARN")
+        self.assertIn("too large to read", check["evidence"])
+
+    def test_a_scan_that_stops_at_the_file_limit_says_so_and_never_passes_on_absence(self) -> None:
+        module = load_module()
+        module.MAX_FILES = 3
+        mutate(self.repo, "src/worker.ts", "commit: env.APP_COMMIT, ", "")
+        for number in range(8):
+            (self.repo / "src" / f"extra{number}.ts").write_text("export const n = 1;\n")
+        results = {r.id: r for r in module.check_unit(module.Repo(self.repo), self.repo)}
+        for check_id in ("served-commit", "cf.workers-dev-origin"):
+            with self.subTest(check_id):
+                self.assertEqual(results[check_id].status, "WARN", results[check_id])
+                self.assertIn("stopped after 3 files", results[check_id].evidence)
+
+    def test_a_commit_that_was_found_stays_a_pass_when_the_scan_was_cut_short(self) -> None:
+        module = load_module()
+        module.MAX_FILES = 3
+        (self.repo / "index.html").write_text('<meta name="app-commit" content="x">\n')
+        for number in range(8):
+            (self.repo / "src" / f"extra{number}.ts").write_text("export const n = 1;\n")
+        results = {r.id: r for r in module.check_unit(module.Repo(self.repo), self.repo)}
+        self.assertEqual(results["served-commit"].status, "PASS")
+
+
 class ReadOnly(Base):
     def test_a_run_changes_nothing_and_executes_nothing(self) -> None:
         marker = self.tmp / "marker"
@@ -1068,34 +1546,76 @@ class ReadOnly(Base):
         self.assertFalse(marker.exists(), "the checker ran a repository script")
 
     def test_the_checker_imports_no_network_or_process_module_and_never_writes(self) -> None:
-        tree = ast.parse(CHECKER.read_text())
-        forbidden = {"subprocess", "socket", "urllib", "http", "requests", "ssl", "ftplib", "smtplib", "shutil", "tempfile", "multiprocessing"}
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Import):
-                names = {a.name.split(".")[0] for a in node.names}
-            elif isinstance(node, ast.ImportFrom):
-                names = {(node.module or "").split(".")[0]}
-            else:
-                names = set()
-            self.assertFalse(names & forbidden, f"forbidden import {names & forbidden}")
-            if isinstance(node, ast.Call):
-                func = node.func
-                name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
-                self.assertNotIn(name, {"system", "popen", "write_text", "write_bytes", "unlink", "rmdir", "mkdir", "rename",
-                                        "touch", "chmod", "symlink_to", "exec", "eval", "Popen", "check_output"})
-                if name == "open":
-                    mode = ""
-                    if len(node.args) > 1 and isinstance(node.args[1], ast.Constant):
-                        mode = str(node.args[1].value)
-                    for kw in node.keywords:
-                        if kw.arg == "mode" and isinstance(kw.value, ast.Constant):
-                            mode = str(kw.value.value)
-                    self.assertFalse(set(mode) & set("wax+"), f"open() for writing: {mode}")
+        self.assertEqual(forbidden_constructs(CHECKER.read_text()), [])
+
+    def test_the_no_write_scan_catches_each_planted_construct(self) -> None:
+        planted = {
+            "Path.open for writing": 'from pathlib import Path\nPath("data.txt").open("w")\n',
+            "Path.open append by keyword": 'from pathlib import Path\nPath("data.txt").open(mode="a")\n',
+            "Path.write_text": 'from pathlib import Path\nPath("data.txt").write_text("y")\n',
+            "Path.write_bytes": 'from pathlib import Path\nPath("data.txt").write_bytes(b"y")\n',
+            "os.remove": 'import os\nos.remove("data.txt")\n',
+            "os.unlink": 'import os\nos.unlink("x")\n',
+            "os.rename": 'import os\nos.rename("x", "y")\n',
+            "os.makedirs": 'import os\nos.makedirs("x")\n',
+            "os.system": 'import os\nos.system("true")\n',
+            "os.popen": 'import os\nos.popen("true")\n',
+            "import shutil": "import shutil\n",
+            "from shutil import rmtree": "from shutil import rmtree\n",
+            "shutil.rmtree": "import shutil\nshutil.rmtree('x')\n",
+            "builtin open for writing": 'open("data.txt", "w")\n',
+            "builtin open exclusive create": 'open("data.txt", "x")\n',
+            "io.open for writing": 'import io\nio.open("data.txt", "w+")\n',
+            "subprocess": "import subprocess\n",
+            "from os import remove": 'from os import remove\nremove("data.txt")\n',
+            "socket": "import socket\n",
+            "urllib": "import urllib.request\n",
+            "eval": 'eval("1")\n',
+            "tempfile": "import tempfile\n",
+        }
+        for name, source in planted.items():
+            with self.subTest(name):
+                self.assertTrue(forbidden_constructs(source), f"{name} was not caught")
+
+    def test_the_no_write_scan_leaves_reading_alone(self) -> None:
+        clean = 'from pathlib import Path\nPath("data.txt").read_text()\nopen("data.txt")\nopen("data.txt", "r")\nPath("data.txt").open()\n"a b".replace("a", "b")\n'
+        self.assertEqual(forbidden_constructs(clean), [])
 
     def test_the_stated_python_floor_matches_the_syntax_it_uses(self) -> None:
         text = CHECKER.read_text()
         self.assertRegex(text, r"Python 3\.11")
         self.assertIn("tomllib", text)
+
+    def floor_binary(self) -> str | None:
+        match = re.search(r"Python 3\.(\d+)", CHECKER.read_text())
+        return shutil.which(f"python3.{match.group(1)}") if match else None
+
+    def compile_with(self, binary: str, source: Path) -> subprocess.CompletedProcess:
+        code = "import py_compile, sys; py_compile.compile(sys.argv[1], cfile=sys.argv[2], doraise=True)"
+        return subprocess.run([binary, "-B", "-c", code, str(source), str(self.tmp_out / "out.pyc")], capture_output=True, text=True)
+
+    def test_the_checker_compiles_under_the_stated_floor(self) -> None:
+        binary = self.floor_binary()
+        if not binary:
+            self.skipTest("no python3.<floor> binary on PATH; only the text check of the floor ran")
+        self.assertEqual(self.compile_with(binary, CHECKER).returncode, 0)
+
+    def test_the_floor_compile_check_fails_on_syntax_newer_than_the_floor(self) -> None:
+        binary = self.floor_binary()
+        if not binary:
+            self.skipTest("no python3.<floor> binary on PATH")
+        scratch = self.tmp_out / "newer.py"
+        scratch.write_text(CHECKER.read_text() + "\ntype Alias = int\n")  # PEP 695 syntax is 3.12+
+        proc = self.compile_with(binary, scratch)
+        if "3.11" not in subprocess.run([binary, "-c", "import sys; print(sys.version)"], capture_output=True, text=True).stdout:
+            self.skipTest("the floor binary is not 3.11, so 3.12 syntax is not an error for it")
+        self.assertNotEqual(proc.returncode, 0, "py_compile accepted syntax newer than the floor")
+
+    def setUp(self) -> None:
+        self._out = tempfile.TemporaryDirectory(prefix="floor-compile.")
+        self.addCleanup(self._out.cleanup)
+        self.tmp_out = Path(self._out.name)
+        super().setUp()
 
 
 class ShellSyntax(unittest.TestCase):
@@ -1109,12 +1629,21 @@ class ShellSyntax(unittest.TestCase):
                 self.assertEqual(proc.returncode, 0, proc.stderr)
 
     def test_shipped_files_name_no_person_machine_or_account(self) -> None:
-        tests_dir = Path(__file__).resolve().parent
-        roots = [ASSETS, SKILL / "scripts", tests_dir]
-        for root in roots:
-            for path in sorted(p for p in root.rglob("*") if p.is_file() and "__pycache__" not in p.parts):
-                with self.subTest(str(path.relative_to(SKILL))):
-                    self.assertEqual(find_private_strings(path.read_text()), [])
+        scanned = 0
+        for path in sorted(p for p in SKILL.rglob("*") if p.is_file() and "__pycache__" not in p.parts):
+            try:
+                text = path.read_text()
+            except UnicodeDecodeError:
+                continue  # binary file
+            scanned += 1
+            with self.subTest(str(path.relative_to(SKILL))):
+                self.assertEqual(find_private_strings(text), [])
+        self.assertGreater(scanned, 10)
+
+    def test_the_scan_reaches_skill_md_and_the_references(self) -> None:
+        files = {p.relative_to(SKILL).as_posix() for p in SKILL.rglob("*") if p.is_file()}
+        self.assertIn("SKILL.md", files)
+        self.assertTrue(any(f.startswith("references/") for f in files))
 
 
 # Strings are assembled from parts so that this file does not itself contain what it forbids.

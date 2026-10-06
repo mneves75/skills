@@ -14,6 +14,11 @@ scripts/verify-live.sh are looked up in the unit and then at the repository root
 read the repository root. A path passed as <repo> that sits below a directory holding `.git` is
 checked as that single unit; a repository root expands to its units.
 
+An input that cannot be read (permission denied, over the 1 MB limit, not a regular file, nested too deeply
+to parse) never raises and never reads as "missing": the checks that depend on it report WARN and say why.
+A file scan cut short at MAX_FILES, an unlistable directory or a file too large to read turns an absence
+conclusion (no workers.dev URL found) into a WARN. FIFOs, sockets and devices are never opened.
+
 Reports PASS, FAIL, WARN or NA per check, with one evidence line (path:line where one exists).
 Checks that infer behaviour from script or source text carry the label `heuristic`: they read
 text, never run it, so a comment-free but unusual script can fool them either way.
@@ -33,7 +38,9 @@ if sys.version_info < (3, 11):
 import argparse
 import json
 import os
+import dataclasses
 import re
+import stat
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -162,35 +169,102 @@ def _drop_trailing_commas(text: str) -> str:
 
 # ---- Repository view ----
 
+class Unreadable(Exception):
+    """An input a check depends on that exists but cannot be read; the message names the path and why."""
+
+
+def probe(path: Path) -> tuple[str, str]:
+    """('missing' | 'file' | 'dir' | 'other' | 'error', detail), without raising and without opening anything."""
+    try:
+        mode = os.stat(path).st_mode
+    except (FileNotFoundError, NotADirectoryError):
+        return "missing", ""
+    except OSError as error:
+        return "error", error.strerror or type(error).__name__
+    if stat.S_ISREG(mode):
+        return "file", ""
+    if stat.S_ISDIR(mode):
+        return "dir", ""
+    return "other", ""
+
+
 class Repo:
     def __init__(self, root: Path) -> None:
         self.root = root
         self._text: dict[Path, str | None] = {}
+        self._why: dict[Path, str] = {}
         self._walk: list[Path] | None = None
+        self.unlisted: list[tuple[Path, str]] = []  # directories the walk could not list
+        self.truncated = False
 
     def rel(self, path: Path) -> str:
-        return path.relative_to(self.root).as_posix()
+        try:
+            return path.relative_to(self.root).as_posix()
+        except ValueError:
+            return str(path)
 
     def read(self, path: Path) -> str | None:
+        """The text of a regular file within the size limit, else None (see why())."""
         if path not in self._text:
-            try:
-                with open(path, encoding="utf-8-sig", errors="replace") as handle:
-                    self._text[path] = handle.read(MAX_FILE_BYTES + 1) if path.stat().st_size <= MAX_FILE_BYTES else None
-            except OSError:
-                self._text[path] = None
+            self._text[path] = self._read(path)
         return self._text[path]
+
+    def _read(self, path: Path) -> str | None:
+        kind, detail = probe(path)
+        if kind == "missing":
+            return None
+        if kind == "error":
+            self._why[path] = f"cannot read ({detail})"
+            return None
+        if kind != "file":
+            self._why[path] = "not a regular file"  # a FIFO, socket or device is never opened
+            return None
+        try:
+            if os.stat(path).st_size > MAX_FILE_BYTES:
+                self._why[path] = "too large to read"
+                return None
+            with open(path, encoding="utf-8-sig", errors="replace") as handle:
+                return handle.read()
+        except OSError as error:
+            self._why[path] = f"cannot read ({error.strerror or type(error).__name__})"
+            return None
+
+    def why(self, path: Path) -> str:
+        return self._why.get(path, "")
+
+    def require(self, path: Path) -> str | None:
+        """Like read(), but raises Unreadable when the file exists and cannot be read."""
+        text = self.read(path)
+        if text is None and self.why(path):
+            raise Unreadable(f"{self.rel(path)}: {self.why(path)}")
+        return text
 
     def files(self) -> list[Path]:
         if self._walk is None:
             found: list[Path] = []
-            for dirpath, dirnames, filenames in os.walk(self.root):
+
+            def listing_failed(error: OSError) -> None:
+                self.unlisted.append((Path(error.filename) if error.filename else self.root, error.strerror or "error"))
+
+            for dirpath, dirnames, filenames in os.walk(self.root, onerror=listing_failed):
                 dirnames[:] = sorted(d for d in dirnames if d not in SKIP_DIRS and not d.startswith("."))
                 for name in sorted(filenames):
                     found.append(Path(dirpath) / name)
                 if len(found) > MAX_FILES:
+                    self.truncated = True
                     break
             self._walk = found
         return self._walk
+
+    def search_gaps(self, under: Path | None) -> list[str]:
+        """Why a search of the files under `under` may be incomplete (call after files())."""
+        gaps = []
+        for path, why in self.unlisted:
+            if under is None or path == under or path.is_relative_to(under) or under.is_relative_to(path):
+                gaps.append(f"cannot read {self.rel(path)} ({why})")
+        if self.truncated:
+            gaps.append(f"file scan stopped after {MAX_FILES} files")
+        return gaps
 
     def source_files(self, suffixes: set[str], under: Path | None = None) -> list[Path]:
         """Files the application builds or runs. HTML counts only as an entry or template: index.html at the
@@ -213,6 +287,22 @@ class Repo:
             picked.append(path)
         return picked
 
+    def scan_gaps(self, under: Path | None, files: list[Path]) -> list[str]:
+        """Gaps of a source search: unlistable directories, a cut-short walk, and files too large or unreadable."""
+        gaps = self.search_gaps(under)
+        for path in files:
+            self.read(path)
+            why = self.why(path)
+            if why and why != "not a regular file":  # a FIFO among the sources holds no source and is skipped
+                gaps.append(f"{self.rel(path)}: {why}")
+        return gaps
+
+
+def note_gaps(gaps: list[str]) -> str:
+    if not gaps:
+        return ""
+    return "; incomplete scan: " + "; ".join(gaps[:3]) + (f"; and {len(gaps) - 3} more" if len(gaps) > 3 else "")
+
 
 @dataclass(frozen=True)
 class Line:
@@ -225,24 +315,29 @@ class Line:
 
 
 def code_lines(repo: Repo, path: Path) -> list[Line]:
-    text = repo.read(path) or ""
+    text = repo.require(path) or ""
     return [Line(repo.rel(path), no, raw) for no, raw in enumerate(text.splitlines(), 1)
             if raw.strip() and not raw.lstrip().startswith("#")]
 
 
-def find_script(repo: Repo, unit: Path, name: str) -> Path | None:
-    """scripts/<name> in the unit first, then at the repository root."""
+def find_script(repo: Repo, unit: Path, name: str) -> tuple[Path | None, str]:
+    """scripts/<name> in the unit first, then at the repository root: (path, 'file' | 'other') or (None, 'missing')."""
     for base in (unit, repo.root):
         path = base / "scripts" / name
-        if path.is_file():
-            return path
-    return None
+        kind, detail = probe(path)
+        if kind == "error":
+            raise Unreadable(f"{repo.rel(path)}: cannot read ({detail})")
+        if kind in ("file", "other"):
+            return path, kind
+    return None, "missing"
 
 
-def release_view(repo: Repo, script: Path | None) -> list[Line] | None:
+def release_view(repo: Repo, script: Path | None, kind: str = "file") -> list[Line] | None:
     """Code lines of the release script; a short wrapper is read together with the file it hands over to."""
     if script is None:
         return None
+    if kind != "file":
+        raise Unreadable(f"{repo.rel(script)}: not a regular file")
     lines = code_lines(repo, script)
     if len(lines) <= 5:
         root = repo.root.resolve()
@@ -250,7 +345,7 @@ def release_view(repo: Repo, script: Path | None) -> list[Line] | None:
         for line in list(lines):
             for candidate in re.findall(r"([\w./-]+\.(?:sh|bash|py|mjs|cjs|js|ts))\b", line.text):
                 for target in (script.parent / Path(candidate).name, repo.root / candidate.lstrip("/")):
-                    if target.is_file() and target.resolve() not in seen and target.resolve().is_relative_to(root):
+                    if probe(target)[0] == "file" and target.resolve() not in seen and target.resolve().is_relative_to(root):
                         seen.add(target.resolve())
                         lines.extend(code_lines(repo, target))
                         break
@@ -384,35 +479,52 @@ def find_offer(lines: list[Line], flag: str, *, reject_ok: bool = False) -> tupl
 # ---- Entry points and release script ----
 
 def entry(repo: Repo, unit: Path, check_id: str, name: str) -> Result:
-    path = find_script(repo, unit, name)
+    path, kind = find_script(repo, unit, name)
     if path is None:
         if unit == repo.root:
             return Result(check_id, FAIL, f"scripts/{name} is missing")
         return Result(check_id, FAIL, f"{repo.rel(unit)}/scripts/{name} is missing, and so is scripts/{name} at the repository root")
     rel = repo.rel(path)
+    if kind != "file":
+        return Result(check_id, WARN, f"{rel}: not a regular file")
     if not os.access(path, os.X_OK):
         return Result(check_id, FAIL, f"{rel} exists but is not executable")
     return Result(check_id, PASS, f"{rel} is executable")
 
 
-def no_script(check_id: str, heuristic: bool = False) -> Result:
+def no_script(check_id: str, heuristic: bool = True) -> Result:
     return Result(check_id, NA, "no scripts/release.sh to read", heuristic)
 
 
 # Flags that turn off gates or verification as a class. Any other --skip-* or --no-* flag skips one named step.
-BLANKET = (r"--(?:skip(?:-(?:checks?|gates?|tests?|verify|verification|validation|all))?"
-           r"|no-(?:verify|checks?|gates?|tests?)|ignore-(?:gates?|checks?|failures?)|bypass(?:-[a-z0-9]+)*|unsafe)")
+BLANKET = (r"--(?:skip(?:-(?:checks?|gates?|tests?|verify|verification|validation|all))?|force|yolo"
+           r"|no-(?:verify|checks?|gates?|tests?|guard[a-z0-9-]*)|ignore-(?:gates?|checks?|failures?)|bypass(?:-[a-z0-9]+)*|unsafe)")
 SPECIFIC = r"--(?:skip|no)-[a-z0-9][a-z0-9-]*"
 SPECIFIC_NOTE = "specific skip flags; confirm none turns off a fixed guarantee (pushed source, promotion, recovery point, target parity, live proof)"
+
+
+DEPLOY_COMMAND = re.compile(
+    r"\b(?:wrangler\w*|npx|pnpm|bunx?|yarn|npm|vercel|flyctl|fly|cf|kubectl|helm|docker|make|gh|firebase|netlify|serverless|sls)\b[^\n]*?\bdeploy\b"
+)
+
+
+def first_deploy(view: list[Line]) -> Line | None:
+    return next((l for l in view if not is_message(l.text) and DEPLOY_COMMAND.search(l.text)), None)
 
 
 def check_mode(view: list[Line] | None) -> Result:
     if view is None:
         return no_script("release.check-mode")
     found = find_offer(view, r"--check")
-    if found:
-        return Result("release.check-mode", PASS, f"{found[0].where()} handles --check")
-    return Result("release.check-mode", FAIL, "scripts/release.sh has no --check option")
+    if not found:
+        return Result("release.check-mode", FAIL, "scripts/release.sh has no --check option", True)
+    line = found[0]
+    deploy = first_deploy(view)
+    if deploy is not None and view.index(line) > view.index(deploy):
+        return Result("release.check-mode", WARN,
+                      f"{line.where()} handles --check only after the first deploy command at {deploy.where()}", True)
+    after = f" before the first deploy command at {deploy.where()}" if deploy else ""
+    return Result("release.check-mode", PASS, f"{line.where()} handles --check{after}", True)
 
 
 def waivers(view: list[Line] | None) -> Result:
@@ -420,7 +532,7 @@ def waivers(view: list[Line] | None) -> Result:
         return no_script("release.waivers")
     blanket = find_offer(view, BLANKET, reject_ok=True)
     if blanket:
-        return Result("release.waivers", FAIL, f"{blanket[0].where()} offers {blanket[1]}, a blanket bypass; offer --waive <gate>=<reason> instead")
+        return Result("release.waivers", FAIL, f"{blanket[0].where()} offers {blanket[1]}, a blanket bypass; offer --waive <gate>=<reason> instead", True)
     specific: dict[str, Line] = {}
     for line, flag in iter_offers(view, SPECIFIC, reject_ok=True):
         if not re.fullmatch(BLANKET, flag):
@@ -432,8 +544,20 @@ def waivers(view: list[Line] | None) -> Result:
         missing = "" if offers_waive else "; no --waive either"
         return Result("release.waivers", WARN, f"{specific[flags[0]].where()} offers {shown}: {SPECIFIC_NOTE}{missing}", True)
     if offers_waive:
-        return Result("release.waivers", PASS, f"{offers_waive[0].where()} offers --waive and no skip flag")
-    return Result("release.waivers", WARN, "scripts/release.sh offers no --waive (and no blanket bypass either)")
+        return Result("release.waivers", PASS, f"{offers_waive[0].where()} offers --waive and no skip flag", True)
+    return Result("release.waivers", WARN, "scripts/release.sh offers no --waive (and no blanket bypass either)", True)
+
+
+FETCH_BRANCH = re.compile(r"""\bgit\s+fetch\b(?:\s+-[-\w]+)*\s+(?P<remote>[\w.\"'$\{\}-]+)\s+(?P<branch>[\w./\"'$\{\}-]+)""")
+
+
+def bare(token: str) -> str:
+    return re.sub(r"[\"'{}]", "", token)
+
+
+def without_messages(text: str) -> str:
+    """The line with the quoted text of die/echo/printf/say calls removed: a message is not a comparison."""
+    return re.sub(r"""\b(?:die|echo|printf|say|warn)\s+(?:"[^"]*"|'[^']*')""", "", text)
 
 
 def pushed_source(view: list[Line] | None) -> Result:
@@ -443,6 +567,13 @@ def pushed_source(view: list[Line] | None) -> Result:
     for line in view:
         if not is_message(line.text) and pattern.search(line.text):
             return Result("release.pushed-source", PASS, f"{line.where()} asks the remote for the default branch", True)
+    for index, line in enumerate(view):
+        match = FETCH_BRANCH.search(line.text) if not is_message(line.text) else None
+        if match:
+            ref = f"{bare(match.group('remote'))}/{bare(match.group('branch'))}"
+            if any(ref in bare(without_messages(later.text)) for later in view[index:] if not is_message(later.text)):
+                return Result("release.pushed-source", PASS,
+                              f"{line.where()} fetches {match.group('remote')} {match.group('branch')} and compares with {ref}", True)
     return Result("release.pushed-source", FAIL, "scripts/release.sh never asks the remote for its default branch (git ls-remote ... HEAD)", True)
 
 
@@ -450,6 +581,41 @@ TAG_CREATE = re.compile(
     r"\bgit\b(?:\s+(?:-C\s+\S+|-c\s+\S+|--\S+))*\s+tag\s+(?!-[ldvn]\b|--(?:list|delete|verify)\b)[^\s|;&>)]|\bgh\s+release\s+create\b"
 )
 VERIFY_MENTION_AS_TEST = re.compile(r"(?:^|\s)-[a-zA-Z]\s+\S*verify-live|\b(?:chmod|ls|cat|stat)\b")
+
+
+FATAL_AFTER_OR = re.compile(r"\b(?:exit\s+[1-9]\d*|die|fail|bad_usage|rollback\w*|return\s+[1-9]\d*)\b")
+ERREXIT_ON = re.compile(r"\bset\s+-[a-zA-Z]*e|\bset\s+-o\s+errexit")
+ERREXIT_OFF = re.compile(r"\bset\s+\+[a-zA-Z]*e|\bset\s+\+o\s+errexit")
+
+
+def proof_is_non_fatal(view: list[Line], index: int) -> str:
+    """Why the call to verify-live cannot stop the release, or '' when its failure is fatal."""
+    line = view[index]
+    text = line.text
+    after_or = re.search(r"\|\|(?P<rest>.*)$", text)
+    if after_or and not FATAL_AFTER_OR.search(after_or.group("rest")):
+        return "its status is discarded after ||"
+    if re.search(r";\s*(?:true|:)\s*(?:#.*)?$", text):
+        return "its status is discarded by a following true"
+    if re.search(r"(?<!&)&\s*(?:#.*)?$", text):
+        return "it runs in the background"
+    if not (line.path.endswith((".sh", ".bash")) or "." not in Path(line.path).name):
+        return ""  # another language: only the forms above are read
+    if first_word(text) in ("if", "while", "until", "!") or "&&" in text:
+        return ""
+    errexit = False
+    for earlier in view[:index]:
+        if earlier.path != line.path:
+            continue
+        if ERREXIT_ON.search(earlier.text):
+            errexit = True
+        if ERREXIT_OFF.search(earlier.text):
+            errexit = False
+    if errexit:
+        return ""
+    if any("$?" in l.text for l in view[index:index + 7]):
+        return ""
+    return "errexit is off (set +e or no set -e) and its status is never checked"
 
 
 def tag_after_proof(view: list[Line] | None) -> Result:
@@ -464,16 +630,28 @@ def tag_after_proof(view: list[Line] | None) -> Result:
         return Result("release.tag-after-proof", FAIL, f"{view[tag].where()} creates a tag and the script never calls verify-live", True)
     if tag < proof:
         return Result("release.tag-after-proof", FAIL, f"{view[tag].where()} creates a tag before verify-live is called at {view[proof].where()}", True)
+    reason = proof_is_non_fatal(view, proof)
+    if reason:
+        return Result("release.tag-after-proof", FAIL,
+                      f"{view[proof].where()} calls verify-live non-fatally ({reason}), so the tag at {view[tag].where()} proves nothing", True)
     return Result("release.tag-after-proof", PASS, f"{view[tag].where()} tags after verify-live at {view[proof].where()}", True)
+
+
+WRITES_RELEASE_JSON = re.compile(
+    r"""(?:>>?\s*["']?[^\s"'|;&<]*release\.json)"""
+    r"""|(?:\btee\b[^\n|;&]*release\.json)"""
+    r"""|(?:(?:writeFile\w*|write_text|write_bytes|dump|dumps|save)\b[^\n]*release\.json)"""
+    r"""|(?:\bopen\s*\([^)\n]*release\.json[^)\n]*,\s*["'][wa]\+?["'])"""
+)
 
 
 def evidence(view: list[Line] | None) -> Result:
     if view is None:
         return no_script("release.evidence")
     for line in view:
-        if "release.json" in line.text:
-            return Result("release.evidence", PASS, f"{line.where()} writes release.json")
-    return Result("release.evidence", FAIL, "scripts/release.sh never writes release.json")
+        if "release.json" in line.text and WRITES_RELEASE_JSON.search(line.text):
+            return Result("release.evidence", PASS, f"{line.where()} writes release.json", True)
+    return Result("release.evidence", FAIL, "scripts/release.sh never writes release.json (a redirect, tee or file-writing call)", True)
 
 
 ROLLBACK = re.compile(r"\b(?:wrangler|npx|pnpm|bunx?|yarn|vercel|flyctl|fly|cf|kubectl|helm|docker|git)\b.*\brollback\b")
@@ -489,14 +667,25 @@ def rollback(view: list[Line] | None) -> Result:
     return Result("release.rollback", FAIL, "scripts/release.sh never prints a rollback command", True)
 
 
-def pins_in(repo: Repo, directory: Path) -> list[tuple[str, str, int | None]]:
-    """(source name, path, line) for each runtime pin declared in one directory."""
+PIN_FILES = (".nvmrc", ".node-version", ".bun-version", ".python-version", ".tool-versions")
+
+
+def pins_in(repo: Repo, directory: Path) -> tuple[list[tuple[str, str, int | None]], list[str]]:
+    """((source name, path, line) for each runtime pin declared in one directory, problems reading the sources)."""
     pins: list[tuple[str, str, int | None]] = []
+    problems: list[str] = []
     package = directory / "package.json"
-    text = repo.read(package) if package.is_file() else None
+    text = None
+    try:
+        text = repo.require(package)
+    except Unreadable as error:
+        problems.append(str(error))
     if text:
         try:
             data = json.loads(text)
+        except RecursionError:
+            problems.append(f"{repo.rel(package)}: too deeply nested to read")
+            data = {}
         except ValueError:
             data = {}
         if isinstance(data, dict):
@@ -504,30 +693,47 @@ def pins_in(repo: Repo, directory: Path) -> list[tuple[str, str, int | None]]:
                 pins.append(("packageManager", repo.rel(package), line_of(text, r'"packageManager"\s*:')))
             if isinstance(data.get("engines"), dict) and data["engines"]:
                 pins.append(("engines", repo.rel(package), line_of(text, r'"engines"\s*:')))
-    for name in (".nvmrc", ".tool-versions"):
-        if (directory / name).is_file():
-            pins.append((name, repo.rel(directory / name), 1))
-    return pins
+    for name in PIN_FILES:
+        path = directory / name
+        kind, detail = probe(path)
+        if kind == "file":
+            pins.append((name, repo.rel(path), 1))
+        elif kind == "other":
+            problems.append(f"{repo.rel(path)}: not a regular file")
+        elif kind == "error":
+            problems.append(f"{repo.rel(path)}: cannot read ({detail})")
+    return pins, problems
 
 
-def declared_pins(repo: Repo, unit: Path) -> list[tuple[str, str, int | None]]:
+def declared_pins(repo: Repo, unit: Path) -> tuple[list[tuple[str, str, int | None]], list[str]]:
     """The unit's own pin when it declares one; otherwise the repository root's."""
-    return pins_in(repo, unit) or (pins_in(repo, repo.root) if unit != repo.root else [])
+    pins, problems = pins_in(repo, unit)
+    if pins or unit == repo.root:
+        return pins, problems
+    root_pins, root_problems = pins_in(repo, repo.root)
+    return root_pins, problems + root_problems
 
 
-def runtime_pin(repo: Repo, unit: Path, view: list[Line] | None) -> Result:
-    pins = declared_pins(repo, unit)
+def runtime_pin(repo: Repo, unit: Path, view: list[Line] | None, view_error: str = "") -> Result:
+    pins, problems = declared_pins(repo, unit)
+    note = ("; " + "; ".join(problems)) if problems else ""
     if not pins:
-        return Result("release.runtime-pin", FAIL, "no runtime pin declared (packageManager, .nvmrc, .tool-versions or engines)", True)
+        if problems:
+            return Result("release.runtime-pin", WARN, problems[0], True)
+        return Result("release.runtime-pin", FAIL, "no runtime pin declared (packageManager, .nvmrc, .node-version, .bun-version, .python-version, .tool-versions or engines)", True)
     declared = ", ".join(f"{name} ({path}:{no})" if no else f"{name} ({path})" for name, path, no in pins)
+    if view_error:
+        return Result("release.runtime-pin", WARN, f"pin declared in {declared}; {view_error}", True)
     if view is None:
-        return Result("release.runtime-pin", NA, f"pin declared in {declared}; no scripts/release.sh to compare it", True)
+        return Result("release.runtime-pin", NA, f"pin declared in {declared}; no scripts/release.sh to compare it{note}", True)
     names = [name for name, _path, _no in pins]
     reads = next((l for l in view if not is_message(l.text) and any(name in l.text for name in names)), None)
     probes = next((l for l in view if re.search(r"--version|\bnode\s+-v\b|process\.version", l.text)), None)
     if reads and probes:
-        return Result("release.runtime-pin", PASS, f"{reads.where()} reads the declared pin and {probes.where()} compares it with the running tool", True)
-    return Result("release.runtime-pin", FAIL, f"pin declared in {declared} but scripts/release.sh never compares it with the running tools", True)
+        # A pin source that could not be read may hold a different pin, so the pass is only a warning then.
+        return Result("release.runtime-pin", WARN if problems else PASS,
+                      f"{reads.where()} reads the declared pin and {probes.where()} compares it with the running tool{note}", True)
+    return Result("release.runtime-pin", FAIL, f"pin declared in {declared} but scripts/release.sh never compares it with the running tools{note}", True)
 
 
 COMMENT_START = ("//", "#", "*", "/*", "<!--", "--")
@@ -565,7 +771,7 @@ def served_commit(repo: Repo, unit: Path) -> Result:
     return Result("served-commit", WARN,
                   f"no app-commit meta tag or health commit field found in {len(files)} application files under {where} "
                   "(code, index.html and HTML under src/, app/, pages/, public/, templates/, views/, web/ or client/; "
-                  "documentation, tests and other HTML are not read)", True)
+                  "documentation, tests and other HTML are not read)" + note_gaps(repo.scan_gaps(unit, files)), True)
 
 
 # ---- Wrangler ----
@@ -592,16 +798,23 @@ def load_wrangler(repo: Repo, unit: Path) -> tuple[list[WranglerConfig], list[st
     errors: list[str] = []
     for name in ("wrangler.toml", "wrangler.jsonc", "wrangler.json"):
         path = unit / name
-        if not path.is_file():
+        kind, detail = probe(path)
+        if kind == "missing":
+            continue
+        rel = repo.rel(path)
+        if kind == "error":
+            errors.append(f"{rel}: cannot read ({detail})")
             continue
         text = repo.read(path)
-        rel = repo.rel(path)
         if text is None:
-            errors.append(f"{rel}: unreadable")
+            errors.append(f"{rel}: {repo.why(path) or 'cannot read'}")
             continue
         try:
             data = tomllib.loads(text) if name.endswith(".toml") else json.loads(strip_jsonc(text))
-        except (ValueError, tomllib.TOMLDecodeError) as error:
+        except RecursionError:
+            errors.append(f"{rel}: too deeply nested to read")
+            continue
+        except ValueError as error:
             errors.append(f"{rel}: cannot parse ({error})")
             continue
         if isinstance(data, dict):
@@ -712,11 +925,14 @@ def cf_bindings(config: WranglerConfig) -> Result:
         shown = [f"{at(config, env_line(config, name))} env.{name} omits {key} (top level: {at(config, key_line(config, key))})" for name, key in items[:2]]
         return "; ".join(shown) + (f"; and {len(items) - 2} more" if len(items) > 2 else "")
 
-    failing = [m for m in missing if m[1] not in VALUE_KEYS]
-    if failing:
-        only_unlisted = all(key in UNLISTED_BINDINGS for _name, key in failing)
-        note = " (not on the documented non-inheritable list; the reference says bindings are not inherited)" if only_unlisted else ""
-        return Result("cf.env-bindings", FAIL, describe(failing) + note, only_unlisted)
+    listed = [m for m in missing if m[1] in DOCUMENTED_NON_INHERITABLE and m[1] not in VALUE_KEYS]
+    unlisted = [m for m in missing if m[1] in UNLISTED_BINDINGS]
+    if listed:
+        return Result("cf.env-bindings", FAIL, describe(listed))
+    if unlisted:
+        # The vendor page lists these under bindings but not among the non-inheritable keys: a warning, not a failure.
+        return Result("cf.env-bindings", WARN,
+                      describe(unlisted) + " (not on the documented non-inheritable list; the reference says bindings are not inherited)", True)
     return Result("cf.env-bindings", WARN, describe(missing))
 
 
@@ -725,21 +941,45 @@ def cache_enabled(body: dict) -> bool:
     return isinstance(cache, dict) and cache.get("enabled") is True
 
 
+def enabled_entrypoints(body: dict) -> list[str]:
+    """Names of the entrypoints that enable the cache: exports.<name>.cache.enabled (Wrangler 4.107+)."""
+    exports = body.get("exports")
+    if not isinstance(exports, dict):
+        return []
+    return [name for name, entrypoint in exports.items() if isinstance(entrypoint, dict) and cache_enabled(entrypoint)]
+
+
+def entrypoint_line(config: WranglerConfig, name: str, env: str | None) -> int | None:
+    text = config.text
+    if config.path.endswith(".toml"):
+        prefix = rf"env\.{re.escape(env)}\." if env else ""
+        return line_of(text, rf"^\s*\[\[?{prefix}exports\.{re.escape(name)}\b")
+    start = (env_line(config, env) or 0) if env else 0
+    exports = line_of(text, r'"exports"\s*:', max(start - 1, 0))
+    return line_of(text, rf'"{re.escape(name)}"\s*:', exports - 1) if exports else None
+
+
 def cf_cache(config: WranglerConfig) -> Result:
     """Workers Cache keys ignore Cookie and Authorization, so turning it on is a warning to read, not a fault.
-    Whether environments inherit `cache` is unconfirmed in the Wrangler reference, so an environment that
-    sets nothing next to a top-level true is not counted: the evidence only says it may inherit."""
+    It is enabled per Worker (`cache.enabled`) or per entrypoint (`exports.<name>.cache.enabled`), at the top
+    level or in an environment. Whether environments inherit `cache` is unconfirmed in the Wrangler reference,
+    so an environment that sets nothing next to a top-level true is not counted: the evidence only says it
+    may inherit. An entrypoint that sets false narrows nothing for the others."""
     envs = environments(config)
     targets: list[tuple[str, int | None]] = []
     if cache_enabled(config.data):
         targets.append(("the top level", key_line(config, "cache")))
-    targets += [(f"env.{name}", key_line(config, "cache", name)) for name, body in envs.items() if cache_enabled(body)]
+    targets += [(f"entrypoint {n} of the top level", entrypoint_line(config, n, None)) for n in enabled_entrypoints(config.data)]
+    for env_name, body in envs.items():
+        if cache_enabled(body):
+            targets.append((f"env.{env_name}", key_line(config, "cache", env_name)))
+        targets += [(f"entrypoint {n} of env.{env_name}", entrypoint_line(config, n, env_name)) for n in enabled_entrypoints(body)]
     if not targets:
         return Result("cf.worker-cache", PASS, f"Workers Cache is off or absent in {config.path}")
     names = " and ".join(name for name, _line in targets)
-    note = ""
-    if cache_enabled(config.data) and any("cache" not in body for body in envs.values()):
-        note = "; environments may inherit it"
+    cache_inherited = cache_enabled(config.data) and any("cache" not in body for body in envs.values())
+    exports_inherited = bool(enabled_entrypoints(config.data)) and any("exports" not in body for body in envs.values())
+    note = "; environments may inherit it" if cache_inherited or exports_inherited else ""
     return Result("cf.worker-cache", WARN,
                   f"{at(config, targets[0][1])} Workers Cache is on for {names}; its key ignores Cookie and Authorization, "
                   f"so every response that depends on them must be private, no-store{note}")
@@ -758,62 +998,125 @@ def cloudflare(repo: Repo, unit: Path) -> list[Result]:
            worst([cf_triggers(c) for c in configs], "cf.env-triggers", empty),
            worst([cf_bindings(c) for c in configs], "cf.env-bindings", empty),
            worst([cf_cache(c) for c in configs], "cf.worker-cache", empty)]
-    if errors:
-        out = [Result(r.id, r.status, f"{r.evidence} (unparsed: {errors[0]})", r.heuristic) for r in out]
+    if errors:  # a config that could not be read may hold what the others lack: no clean pass
+        out = [Result(r.id, WARN if r.status == PASS else r.status, f"{r.evidence} (unread: {errors[0]})", r.heuristic) for r in out]
     return out
 
 
 def workers_dev_origin(repo: Repo, unit: Path) -> Result:
     pattern = re.compile(r"https?://[A-Za-z0-9._-]*\.workers\.dev\b")
     hits: list[str] = []
-    for path in repo.source_files(APP_SUFFIXES | CONFIG_SUFFIXES, unit):
+    files = repo.source_files(APP_SUFFIXES | CONFIG_SUFFIXES, unit)
+    for path in files:
         text = repo.read(path)
         if not text or ".workers.dev" not in text:
             continue
         for no, raw in live_lines(text):
             if pattern.search(raw):
                 hits.append(f"{repo.rel(path)}:{no}")
-    if not hits:
-        return Result("cf.workers-dev-origin", PASS, "no hard-coded workers.dev URL in source or config", True)
-    more = f" (+{len(hits) - 1} more)" if len(hits) > 1 else ""
-    return Result("cf.workers-dev-origin", WARN, f"{hits[0]} hard-codes a workers.dev origin{more}; use the environment's own hostname", True)
+    if hits:
+        more = f" (+{len(hits) - 1} more)" if len(hits) > 1 else ""
+        return Result("cf.workers-dev-origin", WARN, f"{hits[0]} hard-codes a workers.dev origin{more}; use the environment's own hostname", True)
+    gaps = repo.scan_gaps(unit, files)
+    if gaps:  # absence proves nothing when part of the tree was not read
+        return Result("cf.workers-dev-origin", WARN, "no hard-coded workers.dev URL found in what could be read" + note_gaps(gaps), True)
+    return Result("cf.workers-dev-origin", PASS, "no hard-coded workers.dev URL in source or config", True)
 
 
 # ---- Guardrails ----
 
 def guardrail_local(repo: Repo) -> Result:
+    problems = []
     for rel in (".githooks/pre-commit", ".husky/pre-commit"):
-        if (repo.root / rel).is_file():
+        kind, detail = probe(repo.root / rel)
+        if kind == "file":
             return Result("guardrail.local", PASS, f"{rel} exists")
+        if kind == "other":
+            problems.append(f"{rel}: not a regular file")
+        elif kind == "error":
+            problems.append(f"{rel}: cannot read ({detail})")
+    if problems:
+        return Result("guardrail.local", WARN, problems[0])
     return Result("guardrail.local", FAIL, "no pre-commit in .githooks/ or .husky/")
 
 
 def guardrail_ci(repo: Repo) -> Result:
     workflows = repo.root / ".github" / "workflows"
-    found = sorted(p for p in workflows.glob("*.y*ml")) if workflows.is_dir() else []
-    if found:
-        return Result("guardrail.ci", WARN, f"{repo.rel(found[0])} present ({len(found)} workflow file(s)), not proven to run")
+    kind, detail = probe(workflows)
+    problem = ""
+    if kind == "error":
+        problem = f".github/workflows: cannot read ({detail})"
+    elif kind == "dir":
+        try:
+            found = sorted(n for n in os.listdir(workflows) if re.fullmatch(r".+\.ya?ml", n))
+        except OSError as error:
+            problem = f".github/workflows: cannot read ({error.strerror})"
+            found = []
+        if found:
+            return Result("guardrail.ci", WARN, f".github/workflows/{found[0]} present ({len(found)} workflow file(s)), not proven to run")
     for rel in (".gitlab-ci.yml", ".circleci/config.yml"):
-        if (repo.root / rel).is_file():
+        kind, detail = probe(repo.root / rel)
+        if kind == "file":
             return Result("guardrail.ci", WARN, f"{rel} present, not proven to run")
+        if kind == "error" and not problem:
+            problem = f"{rel}: cannot read ({detail})"
+    if problem:
+        return Result("guardrail.ci", WARN, problem)
     return Result("guardrail.ci", NA, "no CI workflow files")
 
 
 # ---- Running ----
 
+def guarded(check_id: str, fn) -> Result:
+    """Run one check; an unreadable input becomes a WARN that says so, never an exception."""
+    try:
+        return fn()
+    except Unreadable as error:
+        return Result(check_id, WARN, str(error))
+    except RecursionError:
+        return Result(check_id, WARN, "input too deeply nested to read")
+    except OSError as error:
+        return Result(check_id, WARN, f"cannot read {error.filename or 'an input'} ({error.strerror or type(error).__name__})")
+
+
 def check_unit(repo: Repo, unit: Path) -> list[Result]:
     """Checks for one deployable unit of a repository: the repository root itself, or a directory below it.
     Wrangler checks, source searches and the pin read the unit; scripts are looked up in the unit first and
-    then at the repository root; guardrails always read the repository root."""
-    view = release_view(repo, find_script(repo, unit, "release.sh"))
-    cf = cloudflare(repo, unit)
+    then at the repository root; guardrails always read the repository root. No check raises: an input that
+    cannot be read (permissions, too large, not a regular file, too deeply nested) is reported as a WARN."""
+    view: list[Line] | None = None
+    view_error = ""
+    try:
+        script, kind = find_script(repo, unit, "release.sh")
+        view = release_view(repo, script, kind)
+    except Unreadable as error:
+        view_error = str(error)
+    except (OSError, RecursionError) as error:
+        view_error = f"cannot read scripts/release.sh ({type(error).__name__})"
+
+    def on_view(check_id: str, check) -> Result:
+        if view_error:
+            return Result(check_id, WARN, view_error, True)
+        return guarded(check_id, lambda: check(view))
+
+    try:
+        cf = cloudflare(repo, unit)
+    except (Unreadable, OSError, RecursionError) as error:
+        cf = [Result(i, WARN, f"cannot read the Wrangler config ({type(error).__name__})") for i in
+              ("cf.targets", "cf.env-routes", "cf.env-triggers", "cf.env-bindings", "cf.worker-cache")]
     results = [
-        entry(repo, unit, "entry.release", "release.sh"),
-        entry(repo, unit, "entry.verify-live", "verify-live.sh"),
-        check_mode(view), waivers(view), pushed_source(view), tag_after_proof(view), evidence(view), rollback(view),
-        runtime_pin(repo, unit, view), served_commit(repo, unit), *cf,
-        workers_dev_origin(repo, unit), guardrail_local(repo), guardrail_ci(repo),
+        guarded("entry.release", lambda: entry(repo, unit, "entry.release", "release.sh")),
+        guarded("entry.verify-live", lambda: entry(repo, unit, "entry.verify-live", "verify-live.sh")),
+        on_view("release.check-mode", check_mode), on_view("release.waivers", waivers),
+        on_view("release.pushed-source", pushed_source), on_view("release.tag-after-proof", tag_after_proof),
+        on_view("release.evidence", evidence), on_view("release.rollback", rollback),
+        guarded("release.runtime-pin", lambda: runtime_pin(repo, unit, view, view_error)),
+        guarded("served-commit", lambda: served_commit(repo, unit)), *cf,
+        guarded("cf.workers-dev-origin", lambda: workers_dev_origin(repo, unit)),
+        guarded("guardrail.local", lambda: guardrail_local(repo)), guarded("guardrail.ci", lambda: guardrail_ci(repo)),
     ]
+    # Every verdict about what a release script does is read from its text.
+    results = [dataclasses.replace(r, heuristic=True) if r.id.startswith("release.") else r for r in results]
     assert tuple(r.id for r in results) == IDS, "check order drifted from IDS"
     return results
 
@@ -849,7 +1152,7 @@ UNIT_DEPTH = 3
 def find_units(root: Path) -> list[Path]:
     """Deployable directories in a repository: the root and up to three levels below it."""
     units: list[Path] = []
-    for dirpath, dirnames, _files in os.walk(root):
+    for dirpath, dirnames, _files in os.walk(root, onerror=lambda _error: None):
         here = Path(dirpath)
         depth = len(here.relative_to(root).parts)
         dirnames[:] = sorted(
@@ -863,7 +1166,7 @@ def find_units(root: Path) -> list[Path]:
 def repo_root_of(path: Path) -> Path:
     """The nearest directory at or above `path` that holds a .git; the path itself when none does."""
     for candidate in (path, *path.parents):
-        if (candidate / ".git").exists():
+        if probe(candidate / ".git")[0] in ("dir", "file", "other"):
             return candidate
     return path
 
@@ -894,14 +1197,30 @@ def targets_for_repo(arg: str) -> list[Target]:
     return [Target(root, unit, given / unit.relative_to(root)) for unit in units]
 
 
-def targets_for_fleet(directory: str) -> list[Target]:
+def targets_for_fleet(directory: str) -> tuple[list[Target], list[str]]:
+    """(targets, notes about children that could not be listed): one unreadable child never aborts the run."""
     fleet = Path(directory)
     found: list[Target] = []
-    for child in sorted((p for p in fleet.iterdir() if p.is_dir() and not p.name.startswith(".") and p.name not in SKIP_DIRS),
-                        key=lambda p: p.name):
+    skipped: list[str] = []
+    try:
+        children = sorted((p for p in fleet.iterdir() if not p.name.startswith(".") and p.name not in SKIP_DIRS), key=lambda p: p.name)
+    except OSError as error:
+        return [], [f"{directory}: cannot read ({error.strerror})"]
+    for child in children:
+        kind, detail = probe(child)
+        if kind == "error":
+            skipped.append(f"{child.name}: cannot read ({detail})")
+            continue
+        if kind != "dir":
+            continue
+        try:
+            os.listdir(child)
+        except OSError as error:
+            skipped.append(f"{child.name}: cannot read ({error.strerror})")
+            continue
         root = child.resolve()
         found += [Target(root, unit, child / unit.relative_to(root)) for unit in find_units(root)]
-    return sorted(found, key=lambda t: t.label)
+    return sorted(found, key=lambda t: t.label), skipped
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -919,14 +1238,18 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     if not args.fleet and not args.repos:
         parser.error("give at least one repository, or --fleet <dir>")
     for target in ([args.fleet] if args.fleet else args.repos):
-        if not Path(target).is_dir():
+        if probe(Path(target))[0] != "dir":
             parser.error(f"not a directory: {target}")
     return args
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(sys.argv[1:] if argv is None else argv)
-    targets = targets_for_fleet(args.fleet) if args.fleet else [t for repo in args.repos for t in targets_for_repo(repo)]
+    skipped: list[str] = []
+    if args.fleet:
+        targets, skipped = targets_for_fleet(args.fleet)
+    else:
+        targets = [t for repo in args.repos for t in targets_for_repo(repo)]
     repos: dict[Path, Repo] = {}
     reports = [(t, check_unit(repos.setdefault(t.root, Repo(t.root)), t.unit)) for t in targets]
     any_fail = any(r.status == FAIL for _t, results in reports for r in results)
@@ -937,6 +1260,7 @@ def main(argv: list[str] | None = None) -> int:
             for t, results in reports]}
         if args.fleet:
             payload["fleet"] = args.fleet
+            payload["skipped"] = skipped
         payload["summary"] = summarize([r for _t, results in reports for r in results])
         print(json.dumps(payload, indent=2))
     elif args.fleet:
@@ -948,6 +1272,8 @@ def main(argv: list[str] | None = None) -> int:
             for t, results in reports:
                 print(f"{t.label:<{width}}  {''.join(SYMBOL[r.status] for r in results)}")
             print("legend: P=pass F=fail W=warn -=n/a; columns in order: " + ", ".join(IDS))
+        for note in skipped:
+            print(f"skipped: {note}")
     else:
         print("\n\n".join(render_repo(t.label, t.shown, results) for t, results in reports))
     return 1 if any_fail else 0

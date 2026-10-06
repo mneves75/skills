@@ -6,7 +6,9 @@
 #
 #   staging     the tip of the remote default branch; tag vX.Y.Z-betaN after verify-live passes
 #   production  the commit of the newest staging tag, only while staging serves it; tag vX.Y.Z
-#   --check     print the plan (target, version, commit, tag, URL), check the runtime pin, exit
+#   --check     print the plan (target, version, commit, tag, URL), check the runtime pin, exit; nothing is
+#               built, deployed or tagged, but the remote IS fetched (the ancestry checks need it, and it
+#               writes .git/FETCH_HEAD) and a production plan reads the live staging page
 #   --dry-run   everything up to the deploy; nothing is published and no tag is made
 #   --waive     skip ONE named gate for a stated reason; recorded in release.json (repeatable)
 #   --yes       skip the production confirmation prompt (the owner already approved the candidate)
@@ -17,10 +19,17 @@
 # {"status":"ok","commit":"<APP_COMMIT>","version":"<APP_VERSION>","env":"<APP_ENV>"} from the vars
 # this script passes to `wrangler deploy --var`. The script refuses to run while a placeholder remains.
 # The repository must ignore `.scratch/` (evidence and the build checkout live there).
+# A public repository can keep the four project values (STAGING_URL, PRODUCTION_URL, ACCOUNT_ID,
+# REQUIRED_SECRETS) out of the committed file: put the same assignments in scripts/release.env, which
+# both scripts source before the placeholder check. That file is shell code and MUST be git-ignored.
 #
 # Guarantees covered here: 1 pushed source, 2 promotion, 3 runtime pin, 4 gates and waivers,
-# 6 target parity (secrets on the target, a build per target), 7 live proof with a rollback command,
-# 8 tag after proof, 9 release.json, 10 --check.
+# 6 target parity (partly, see below), 7 live proof with a rollback command, 8 tag after proof,
+# 9 release.json, 10 --check.
+# Guarantee 6 here means two things only: the required secrets are checked on the target, and every
+# gate and the build run with RELEASE_TARGET and RELEASE_COMMIT set. Nothing in this script asserts a
+# build-time value. A project that bakes target-specific values into its build (keys, endpoints) must
+# assert them in a gate of its own, for example a check of the built output against the target.
 # Guarantee 5 (recovery point) does not apply to a Worker without a database. A project with
 # migrations MUST add it before the deploy step: export the database, capture a recovery point
 # (D1 Time Travel bookmark), refuse destructive SQL unless its own flag is passed, then migrate.
@@ -43,6 +52,11 @@ PRODUCTION_URL="__PRODUCTION_URL__"
 ACCOUNT_ID="__ACCOUNT_ID__"
 # Secrets that must exist on each target, space separated; the word none states there are none.
 REQUIRED_SECRETS="__REQUIRED_SECRETS__"
+# A public repository can keep the four values above out of the committed script: put the same
+# assignments in scripts/release.env (git-ignored, sourced here before the placeholder check).
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=/dev/null
+[ ! -f "$script_dir/release.env" ] || . "$script_dir/release.env"
 # One gate per line: <name>=<command>. Each runs in the fresh checkout; --waive names one of these.
 GATES="lint=npm run lint
 typecheck=npm run typecheck
@@ -68,7 +82,8 @@ while [ "$#" -gt 0 ]; do
       [ "$#" -ge 2 ] || bad_usage "--waive needs <gate>=<reason>"
       case "$2" in *=*) ;; *) bad_usage "--waive needs <gate>=<reason>, got '$2'" ;; esac
       w_gate="${2%%=*}"
-      w_reason="$(printf '%s' "${2#*=}" | tr -d '\n\r' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
+      # Control characters (tab, newline, escape...) become spaces so release.json stays valid JSON.
+      w_reason="$(printf '%s' "${2#*=}" | tr '[:cntrl:]' ' ' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
       [ -n "$w_reason" ] || bad_usage "--waive $w_gate needs a reason a reader can check"
       gate_names | awk -v g="$w_gate" '$0 == g { found = 1 } END { exit !found }' ||
         bad_usage "unknown gate '$w_gate' (gates: $(gate_names | tr '\n' ' '))"
@@ -83,6 +98,16 @@ done
 for pair in "STAGING_URL=$STAGING_URL" "PRODUCTION_URL=$PRODUCTION_URL" "ACCOUNT_ID=$ACCOUNT_ID" "REQUIRED_SECRETS=$REQUIRED_SECRETS"; do
   case "${pair#*=}" in *__[A-Z]*__*) die "${pair%%=*} still holds a placeholder (${pair#*=}): edit the ADAPT block of this script" ;; esac
 done
+
+# The live proof is retried: both variables must be whole numbers of at least 1, so the proof cannot be skipped.
+attempts="${VERIFY_LIVE_ATTEMPTS:-18}"
+delay="${VERIFY_LIVE_DELAY:-10}"
+for pair in "VERIFY_LIVE_ATTEMPTS=$attempts" "VERIFY_LIVE_DELAY=$delay"; do
+  case "${pair#*=}" in '' | *[!0-9]*) die "${pair%%=*} must be a whole number of at least 1, got '${pair#*=}'" ;; esac
+  [ "${pair#*=}" -ge 1 ] || die "${pair%%=*} must be a whole number of at least 1, got '${pair#*=}'"
+done
+# verify-live.sh runs from the commit's checkout, where an ignored release.env does not exist: hand it the URLs.
+export RELEASE_STAGING_URL="$STAGING_URL" RELEASE_PRODUCTION_URL="$PRODUCTION_URL"
 
 waiver_reason() { printf '%s' "$waivers" | awk -F= -v g="$1" '$1 == g { sub(/^[^=]*=/, ""); print; exit }'; }
 json_field() { printf '%s' "$1" | tr -d '\n' | sed -n "s/.*\"$2\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p"; }
@@ -197,7 +222,7 @@ check_pin() {
   fi
 }
 check_pin
-[ "$check" -eq 0 ] || { echo; echo "guards passed (--check: nothing built or deployed)"; exit 0; }
+[ "$check" -eq 0 ] || { echo; echo "guards passed (--check: nothing built, deployed or tagged; the remote was fetched and the live staging page may have been read)"; exit 0; }
 
 # ---- Build and verify in a fresh checkout of the commit ----
 export WRANGLER_SEND_METRICS=false CLOUDFLARE_ACCOUNT_ID="$ACCOUNT_ID"
@@ -301,8 +326,6 @@ rollback_hint() {
 
 # ---- Live proof (retried: a first deploy to a new hostname waits for DNS and its certificate) ----
 say "Live checks against $url"
-attempts="${VERIFY_LIVE_ATTEMPTS:-18}"
-delay="${VERIFY_LIVE_DELAY:-10}"
 proved=0
 n=0
 while [ "$n" -lt "$attempts" ]; do

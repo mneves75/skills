@@ -35,15 +35,15 @@ choice: a two-line shell wrapper around an existing script conforms.
    A pushed tag is never moved.
 9. **Evidence.** It writes `release.json`: target, tag, version, commit, deployed and previous
    version ids, waivers, URL and UTC time. Prose ledgers link to that file.
-10. **`--check`** prints the plan (target, version, commit, tag, URL) and exits before any
-    build or deploy. It may read the remote and the live staging page; it writes nothing.
+10. **`--check`** prints the plan (target, version, commit, tag, URL) and exits. It builds,
+    deploys and tags nothing. It may fetch from the remote and read the live staging page.
 
 Guarantees 1, 2, 5, 6 and 7 are fixed: no flag turns them off. `--dry-run` runs everything up
 to the deploy and publishes nothing.
 
-In a public repository, host names, URLs and account ids come from an ignored environment
-file or private configuration that the scripts read at run time, never from constants
-committed in the scripts.
+In a public repository, host names, URLs and account ids stay out of the committed scripts:
+they come from an ignored file the scripts read at run time (the reference scripts read
+`scripts/release.env` when it exists).
 
 ## What `verify-live.sh` asserts
 

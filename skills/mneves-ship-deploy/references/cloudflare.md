@@ -66,10 +66,15 @@ list is the fact.
 A response that depends on a cookie or an `Authorization` header never passes through a shared
 cache whose key ignores that identity. Four caches qualify:
 
-- **Workers Cache**, switched on by `cache.enabled` in the Wrangler configuration. Its key
-  ignores both `Cookie` and `Authorization`, so two signed-in users asking for the same path
-  get the same cached response. `scripts/release-contract-check.py` reports it as
-  `cf.worker-cache`.
+- **Workers Cache**, switched on by `cache.enabled` in the Wrangler configuration, for the
+  whole Worker or for one entrypoint under `exports`. Its key does not include `Cookie`.
+  Cloudflare bypasses it in three cases: the response sets a cookie; the response says
+  `private` or `no-store`; the request carries `Authorization` and the response is not
+  marked `public`, `must-revalidate` or `s-maxage`. A request that only carries a session
+  cookie gets none of these. Its response is stored, for two hours when it sets no
+  `Cache-Control`, and the next signed-in user on that path receives it. Callers that
+  arrive through a service binding are kept apart by `ctx.props`.
+  `scripts/release-contract-check.py` reports the setting as `cf.worker-cache`.
 - The **Cache API** in code (`caches.default`, `caches.open`).
 - `cacheEverything` on a subrequest.
 - A **zone cache rule** that covers the path.

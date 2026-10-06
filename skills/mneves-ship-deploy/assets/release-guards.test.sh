@@ -25,7 +25,7 @@ ACCOUNT="example-account-id"
 export FAKE_STATE="$tmp/state" FAKE_WEB="$tmp/web"
 mkdir -p "$tmp/bin" "$FAKE_STATE" "$FAKE_WEB"
 export FAKE_ACCOUNT="$ACCOUNT" FAKE_SECRETS="API_TOKEN" FAKE_NODE_VERSION="v22.11.0" FAKE_FAIL_GATE=""
-export VERIFY_LIVE_ATTEMPTS=1 VERIFY_LIVE_DELAY=0
+export VERIFY_LIVE_ATTEMPTS=1 VERIFY_LIVE_DELAY=1
 
 # ---- Fake programs ----
 cat > "$tmp/bin/wrangler" <<'FAKE'
@@ -349,9 +349,143 @@ for needle in 'deployments status --json' 'version_id' 'percentage' 'secret list
   else fail "release.sh header names $needle"; fi
 done
 
-# ==== A pushed tag is never moved ====
-if grep -E 'tag +(-f|--force)|push +[^#]*(--force|-f )' "$here/release.sh" > /dev/null; then fail "release.sh never moves or force-pushes a tag"
-else pass "release.sh never moves or force-pushes a tag"; fi
+# ==== The retry variables cannot skip the proof (attempts 0, non-numbers, delay) ====
+new_repo retry
+serve "$STAGING_URL" "$(head_sha)" staging
+for bad in 0 abc -1 1.5 " 2"; do
+  : > "$FAKE_STATE/calls.log"
+  VERIFY_LIVE_ATTEMPTS="$bad" run staging
+  if [ "$code" = 1 ] && printf '%s\n' "$out" | grep -F 'VERIFY_LIVE_ATTEMPTS' > /dev/null && no_deploy && no_tags; then pass "VERIFY_LIVE_ATTEMPTS='$bad' is refused before anything is deployed"
+  else fail "VERIFY_LIVE_ATTEMPTS='$bad' is refused before anything is deployed (exit $code)" "$out"; fi
+done
+for bad in 0 abc -3 2.5; do
+  : > "$FAKE_STATE/calls.log"
+  VERIFY_LIVE_DELAY="$bad" run staging
+  if [ "$code" = 1 ] && printf '%s\n' "$out" | grep -F 'VERIFY_LIVE_DELAY' > /dev/null && no_deploy && no_tags; then pass "VERIFY_LIVE_DELAY='$bad' is refused before anything is deployed"
+  else fail "VERIFY_LIVE_DELAY='$bad' is refused before anything is deployed (exit $code)" "$out"; fi
+done
+VERIFY_LIVE_ATTEMPTS=2 VERIFY_LIVE_DELAY=1 run staging
+if [ "$code" = 0 ]; then pass "valid retry variables run the release (control)"; else fail "valid retry variables run the release (control)" "$out"; fi
+
+# ==== A missing or non-executable proof stops the release before the deploy ====
+new_repo noproof
+serve "$STAGING_URL" "$(head_sha)" staging
+git -C "$work" rm -q scripts/verify-live.sh && git -C "$work" commit -q -m "drop the proof" && git -C "$work" push -q origin main
+serve "$STAGING_URL" "$(head_sha)" staging
+expect "a commit with no verify-live.sh is refused" 1 "verify-live.sh" -- staging
+check "a missing proof deploys nothing" no_deploy
+check "a missing proof leaves no tag" no_tags
+new_repo noexec
+git -C "$work" update-index --chmod=-x scripts/verify-live.sh && git -C "$work" commit -q -m "not executable" && git -C "$work" push -q origin main
+serve "$STAGING_URL" "$(head_sha)" staging
+expect "a verify-live.sh that is not executable is refused" 1 "executable" -- staging
+check "a non-executable proof deploys nothing" no_deploy
+
+# ==== A waiver reason with control characters still yields valid JSON ====
+valid_json() {
+  if command -v python3 > /dev/null; then python3 -m json.tool "$1" > /dev/null 2>&1; return; fi
+  if grep -q "$(printf '\t')" "$1"; then return 1; fi
+}
+n=0
+for reason in "$(printf 'tab\there')" "$(printf 'bell\001and\033esc')" 'quote " and back\slash' "$(printf 'cr\rlf')"; do
+  n=$((n + 1)); new_repo "ctl$n"
+  serve "$STAGING_URL" "$(head_sha)" staging
+  run staging --waive "lint=$reason"
+  json="$(release_json)"
+  if [ "$code" = 0 ] && [ -f "$json" ] && valid_json "$json"; then pass "release.json is valid JSON for the waiver reason $(printf '%s' "$reason" | od -An -c | tr -s ' ' | head -c 40)"
+  else fail "release.json is valid JSON for a waiver reason with control characters (exit $code)" "$out" "$([ -f "$json" ] && cat "$json")"; fi
+done
+new_repo ctlmsg
+serve "$STAGING_URL" "$(head_sha)" staging
+run staging --waive "lint=$(printf 'a\tb')"
+json="$(release_json)"
+if [ -f "$json" ] && grep -F '"reason": "a b"' "$json" > /dev/null; then pass "a tab in a waiver reason becomes a space"
+else fail "a tab in a waiver reason becomes a space" "$out"; fi
+
+# ==== scripts/release.env keeps project values out of the committed script ====
+# use_env_file: install the scripts raw (placeholders intact) and put the values in an ignored release.env.
+use_env_file() {
+  cp "$here/release.sh" "$work/scripts/release.sh"; cp "$here/verify-live.sh" "$work/scripts/verify-live.sh"
+  chmod +x "$work/scripts/release.sh" "$work/scripts/verify-live.sh"
+  printf '.scratch/\nscripts/release.env\n' > "$work/.gitignore"
+  commit_push "raw scripts"
+  printf 'STAGING_URL="%s"\nPRODUCTION_URL="%s"\nACCOUNT_ID="%s"\nREQUIRED_SECRETS="API_TOKEN"\n' "$STAGING_URL" "$PRODUCTION_URL" "$ACCOUNT" > "$work/scripts/release.env"
+}
+new_repo envfile
+use_env_file
+sha="$(head_sha)"
+serve "$STAGING_URL" "$sha" staging
+check "release.env is ignored by Git" test -z "$(git -C "$work" status --porcelain)"
+expect "placeholders in the committed script are filled from scripts/release.env" 0 "Released v1.2.3-beta1" -- staging
+check "the release deployed with the values of release.env" log_has '^wrangler deploy .*--env staging( |$)'
+rm -f "$work/scripts/release.env"
+expect "placeholders with no scripts/release.env are still refused" 1 "placeholder" -- staging --check
+code=0; out="$(cd "$work" && "$BASH" scripts/verify-live.sh staging 2>&1 < /dev/null)" || code=$?
+if [ "$code" = 1 ] && printf '%s\n' "$out" | grep -F placeholder > /dev/null; then pass "verify-live.sh with placeholders and no release.env is still refused"
+else fail "verify-live.sh with placeholders and no release.env is still refused" "$out"; fi
+printf 'STAGING_URL="%s"\nPRODUCTION_URL="%s"\n' "$STAGING_URL" "$PRODUCTION_URL" > "$work/scripts/release.env"
+code=0; out="$(cd "$work" && "$BASH" scripts/verify-live.sh staging 2>&1 < /dev/null)" || code=$?
+if [ "$code" = 0 ]; then pass "verify-live.sh reads its URLs from scripts/release.env"
+else fail "verify-live.sh reads its URLs from scripts/release.env" "$out"; fi
+
+# ==== --check says what is true ====
+new_repo checkline
+run staging --check
+if printf '%s\n' "$out" | grep -F 'nothing built, deployed or tagged' > /dev/null && printf '%s\n' "$out" | grep -F 'remote was fetched' > /dev/null; then pass "--check says nothing is built, deployed or tagged and that the remote is fetched"
+else fail "--check says nothing is built, deployed or tagged and that the remote is fetched" "$out"; fi
+if printf '%s\n' "$out" | grep -F 'nothing built or deployed)' > /dev/null; then fail "--check no longer claims it only builds nothing"; else pass "--check no longer claims it only builds nothing"; fi
+
+# ==== The header is honest about what the script asserts ====
+header="$(sed -n '1,/^set -euo pipefail/p' "$here/release.sh")"
+for needle in 'scripts/release.env' 'git-ignored' 'RELEASE_TARGET' 'gate of its own' 'fetch'; do
+  if printf '%s\n' "$header" | grep -F -- "$needle" > /dev/null; then pass "release.sh header says: $needle"
+  else fail "release.sh header says: $needle"; fi
+done
+if printf '%s\n' "$header" | grep -F 'a build per target' > /dev/null; then fail "release.sh header no longer claims 'a build per target'"; else pass "release.sh header no longer claims 'a build per target'"; fi
+vheader="$(sed -n '1,/^set -euo pipefail/p' "$here/verify-live.sh")"
+if printf '%s\n' "$vheader" | grep -F 'scripts/release.env' > /dev/null; then pass "verify-live.sh header names scripts/release.env"; else fail "verify-live.sh header names scripts/release.env"; fi
+
+# ==== A pushed tag is never moved, deleted or force-pushed ====
+# tag_hazard <file>: succeeds when the file's code (comments excluded) force-moves or deletes a tag or force-pushes.
+tag_hazard() {
+  grep -v '^[[:space:]]*#' "$1" | grep -E \
+    -e 'git[^|;&]*[[:space:]]tag[[:space:]]([^|;&]*[[:space:]])?(-[a-zA-Z]*[fd][a-zA-Z]*|--force|--delete)([[:space:]]|$)' \
+    -e '\+refs/tags/' \
+    -e 'push[^|;&]*[[:space:]"'"'"']:refs/tags/' \
+    -e 'push[^|;&]*(--force|--delete|--prune)' \
+    -e 'push[^|;&]*[[:space:]]-[a-zA-Z]*f([[:space:]]|$)' > /dev/null
+}
+while IFS= read -r variant; do
+  printf '#!/usr/bin/env bash\n%s\n' "$variant" > "$tmp/hazard.sh"
+  if tag_hazard "$tmp/hazard.sh"; then pass "the tag guard catches: $variant"; else fail "the tag guard catches: $variant"; fi
+done << 'HAZARDS'
+git tag -f v1 HEAD
+git tag -a -f v1 HEAD -m x
+git tag --force v1 HEAD
+git -C "$root" tag -fa "$tag" "$commit"
+git tag -d v1
+git tag --delete v1
+git push origin +refs/tags/v1
+git push origin "+refs/tags/$tag"
+git push origin :refs/tags/v1
+git push origin ":refs/tags/$tag"
+git push --delete origin v1
+git push --force origin main
+git push -f origin v1
+git push --force-with-lease origin v1
+HAZARDS
+while IFS= read -r clean; do
+  printf '#!/usr/bin/env bash\n%s\n' "$clean" > "$tmp/clean.sh"
+  if tag_hazard "$tmp/clean.sh"; then fail "the tag guard leaves alone: $clean"; else pass "the tag guard leaves alone: $clean"; fi
+done << 'CLEAN'
+git -C "$root" tag -a "$tag" "$commit" -m "release"
+git push --quiet origin "refs/tags/$tag"
+git fetch --quiet origin "refs/tags/$t:refs/tags/$t"
+# git tag -f is only a comment here
+git tag --list
+CLEAN
+if tag_hazard "$here/release.sh"; then fail "release.sh never moves, deletes or force-pushes a tag"
+else pass "release.sh never moves, deletes or force-pushes a tag"; fi
 
 if [ "$failures" -ne 0 ]; then echo "release guard tests FAILED ($failures)"; exit 1; fi
 echo "release guard tests passed"
