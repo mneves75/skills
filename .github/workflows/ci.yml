@@ -64,10 +64,16 @@ jobs:
         run: bash tools/scripts/sync-pstack.test
 
       - name: Shell syntax
-        run: bash -n skills/mneves-fable-orchestrator/tools/codex-lane skills/mneves-fable-orchestrator/tools/codex-lane.test .githooks/pre-commit .githooks/pre-commit.test tools/scripts/build-site.sh tools/scripts/build-site.test tools/scripts/check-defaults-block.sh tools/scripts/sync-pstack.sh tools/scripts/sync-pstack.test
+        run: bash -n skills/mneves-fable-orchestrator/tools/codex-lane skills/mneves-fable-orchestrator/tools/codex-lane.test .githooks/pre-commit .githooks/pre-commit.test tools/scripts/build-site.sh tools/scripts/build-site.test tools/scripts/check-defaults-block.sh tools/scripts/sync-pstack.sh tools/scripts/sync-pstack.test skills/mneves-ship-deploy/assets/release.sh skills/mneves-ship-deploy/assets/verify-live.sh skills/mneves-ship-deploy/assets/release-guards.test.sh
 
       - name: codex-lane e2e (fake codex, no provider calls)
         run: bash skills/mneves-fable-orchestrator/tools/codex-lane.test
+
+      - name: Release contract check (planted violations, read-only)
+        run: python3 skills/mneves-ship-deploy/scripts/run-tests.py
+
+      - name: Reference release guards (throwaway repo, fake wrangler, no network)
+        run: bash skills/mneves-ship-deploy/assets/release-guards.test.sh
 
       - name: Model ids live only in the orchestrator's Defaults block
         run: |
@@ -75,7 +81,7 @@ jobs:
           bash tools/scripts/check-defaults-block.test
 
       - name: Python syntax
-        run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py
+        run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py skills/mneves-ship-deploy/scripts/release-contract-check.py skills/mneves-ship-deploy/scripts/run-tests.py skills/mneves-ship-deploy/tests/test_release_contract_check.py
 
       - name: ast-grep scan
         run: ast-grep scan --config sgconfig.yml .

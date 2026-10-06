@@ -517,6 +517,18 @@ verified staging; plain &quot;ship&quot; does not select an environment or autho
 <p>Review and deployment integrations are optional. If a named skill is unavailable, the agent
 uses the repository&#39;s documented equivalent with the same gates, or reports the missing
 capability. Missing staging and failed gates remain blockers.</p>
+<p><strong>Order.</strong> The agent deploys the commit the remote already has, proves it live (served commit,
+health body, one request that must succeed and one that must be refused), and only then tags.
+A gate that cannot pass reaches you once, as a packet: the candidate, the target, each failing
+gate as a named waiver, and the rollback plan.</p>
+<p><strong>Release contract (optional tooling).</strong> The skill prefers two entry points when a repository
+has them: <code>scripts/release.sh &lt;staging|production&gt;</code> and <code>scripts/verify-live.sh &lt;staging|production&gt;</code>. Check a repository, or every deployable repository in a folder, without
+running any of its code (Python 3.11+):</p>
+<pre><code class="language-bash">python3 skills/mneves-ship-deploy/scripts/release-contract-check.py path/to/repo
+python3 skills/mneves-ship-deploy/scripts/release-contract-check.py --fleet path/to/projects
+</code></pre>
+<p><code>skills/mneves-ship-deploy/assets/</code> holds a reference <code>release.sh</code> and <code>verify-live.sh</code> for a
+single-Worker project. Copy them into <code>scripts/</code>, fill the placeholders, and adapt.</p>
 <hr>
 <h2 id="mneves-chatgpt-search">mneves-chatgpt-search</h2>
 <p><strong>What it does.</strong> Audits a public site&#39;s deployed discovery surface and improves verified
