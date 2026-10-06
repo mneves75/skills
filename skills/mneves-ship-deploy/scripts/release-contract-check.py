@@ -258,25 +258,118 @@ def is_message(text: str) -> bool:
     return word in MESSAGE_WORDS or word.startswith(("usage=", "usage ="))
 
 
-def find_offer(lines: list[Line], flag: str, *, reject_ok: bool = False) -> tuple[Line, str] | None:
-    """A line where the script handles `flag` as an option: a case label, a comparison or a quoted literal."""
+FAILING_WORDS = {"die", "fail", "bad_usage", "error", "reject"}
+TALKING_WORDS = {"echo", "printf", "usage", "print", "warn", "log", "say"}
+REMOVAL_WORDS = re.compile(r"remov|no longer|deprecat|dropped|obsolet|not (?:supported|available|offered)|refus|recus|n[ãa]o (?:existe|[ée] mais)", re.I)
+
+
+def split_statements(body: str) -> list[str]:
+    """Split shell text on newlines, `;`, `&&` and `||` outside quotes."""
+    out: list[str] = []
+    current: list[str] = []
+    quote = ""
+    i = 0
+    while i < len(body):
+        c = body[i]
+        if quote:
+            current.append(c)
+            if c == "\\" and quote == '"' and i + 1 < len(body):
+                current.append(body[i + 1])
+                i += 1
+            elif c == quote:
+                quote = ""
+        elif c in "\"'":
+            quote = c
+            current.append(c)
+        elif c in "\n;" or body.startswith(("&&", "||"), i):
+            out.append("".join(current))
+            current = []
+            i += 1 if c in "\n;" else 2
+            continue
+        else:
+            current.append(c)
+        i += 1
+    out.append("".join(current))
+    return [st.strip() for st in out if st.strip()]
+
+
+def arm_body(lines: list[Line], index: int, rest: str) -> tuple[str, int]:
+    """Text of a case arm from after its label up to the closing `;;` (or `esac`), and the index of its last line."""
+    if ";;" in rest:
+        return rest.split(";;")[0], index
+    parts = [rest]
+    last = index
+    for offset, line in enumerate(lines[index + 1:index + 30], 1):
+        if ";;" in line.text:
+            parts.append(line.text.split(";;")[0])
+            last = index + offset
+            break
+        if re.match(r"\s*esac\b", line.text):
+            break
+        parts.append(line.text)
+        last = index + offset
+    return "\n".join(parts), last
+
+
+def only_refuses(body: str) -> bool:
+    """True when the arm does nothing but fail: die-like calls, messages, and `exit <non-zero>`."""
+    ends = False
+    for statement in split_statements(body):
+        words = statement.lstrip("({!").split()
+        word = words[0] if words else ""
+        if word in FAILING_WORDS:
+            ends = True
+        elif word == "exit" and len(words) > 1 and re.fullmatch(r"[1-9]\d*", words[1]):
+            ends = True
+        elif word not in TALKING_WORDS:
+            return False
+    return ends
+
+
+def lists_flag_as_available(line: Line, flag: str) -> re.Match[str] | None:
+    """A usage or help line that names the flag as an option, unless it says the flag was removed."""
+    if REMOVAL_WORDS.search(line.text) or re.search(r"\b(?:die|fail|bad_usage)\s+[\"']", line.text):
+        return None  # says the flag was removed, or is the text of a refusal
+    usage_line = re.search(r"usage", line.text, re.I)
+    help_entry = re.match(rf"""\s*(?:(?:echo|printf)\s+)?["']?\s*\[?(?P<flag>{flag})(?:\]|\s|$)""", line.text)
+    return re.search(rf"""(?<![\w-])(?P<flag>{flag})(?![\w-])""", line.text) if usage_line else help_entry
+
+
+def iter_offers(lines: list[Line], flag: str, *, reject_ok: bool = False):
+    """Lines where the script handles `flag` as an option: a case label, a comparison or a quoted literal.
+    With reject_ok, a case arm whose whole body only refuses is not an offer, and a usage or help line
+    that lists the flag as available is. Yields (line, matched flag) in file order."""
     label = re.compile(
         rf"""(?:^\s*|;;\s*|\bin\s+)(?:["']?[\w*.=-]+["']?\s*\|\s*)*["']?(?P<flag>{flag})["']?\s*(?:\|\s*["']?[\w*.=-]+["']?\s*)*\)(?P<rest>.*)$"""
     )
     compare = re.compile(rf"""(?:==?|!=)\s*["']?(?P<flag>{flag})["']?(?![\w-])""")
     quoted = re.compile(rf"""["'](?P<flag>{flag})["']""")
-    for line in lines:
+    skip_to = -1
+    for index, line in enumerate(lines):
+        if index <= skip_to:
+            continue  # inside an arm that only refuses: its text is a refusal, not an offer
         match = label.search(line.text)
         if match:
-            if reject_ok and first_word(match.group("rest")) in MESSAGE_WORDS:
+            body, last = arm_body(lines, index, match.group("rest"))
+            if reject_ok and only_refuses(body):
+                skip_to = last
                 continue
-            return line, match.group("flag")
+            yield line, match.group("flag")
+            continue
+        if reject_ok:
+            match = lists_flag_as_available(line, flag)
+            if match:
+                yield line, match.group("flag")
+                continue
         if is_message(line.text):
             continue
         match = compare.search(line.text) or quoted.search(line.text)
         if match:
-            return line, match.group("flag")
-    return None
+            yield line, match.group("flag")
+
+
+def find_offer(lines: list[Line], flag: str, *, reject_ok: bool = False) -> tuple[Line, str] | None:
+    return next(iter_offers(lines, flag, reject_ok=reject_ok), None)
 
 
 # ---- Entry points and release script ----
@@ -297,7 +390,11 @@ def no_script(check_id: str, heuristic: bool = False) -> Result:
     return Result(check_id, NA, "no scripts/release.sh to read", heuristic)
 
 
-BLANKET = r"--(?:skip(?:-[a-z0-9]+)*|no-(?:verify|checks?|gates?|tests?|lint|hooks?)|ignore-(?:gates?|checks?|failures?)|bypass(?:-[a-z0-9]+)*|unsafe)"
+# Flags that turn off gates or verification as a class. Any other --skip-* or --no-* flag skips one named step.
+BLANKET = (r"--(?:skip(?:-(?:checks?|gates?|tests?|verify|verification|validation|all))?"
+           r"|no-(?:verify|checks?|gates?|tests?)|ignore-(?:gates?|checks?|failures?)|bypass(?:-[a-z0-9]+)*|unsafe)")
+SPECIFIC = r"--(?:skip|no)-[a-z0-9][a-z0-9-]*"
+SPECIFIC_NOTE = "specific skip flags; confirm none turns off a fixed guarantee (pushed source, promotion, recovery point, target parity, live proof)"
 
 
 def check_mode(view: list[Line] | None) -> Result:
@@ -315,9 +412,18 @@ def waivers(view: list[Line] | None) -> Result:
     blanket = find_offer(view, BLANKET, reject_ok=True)
     if blanket:
         return Result("release.waivers", FAIL, f"{blanket[0].where()} offers {blanket[1]}, a blanket bypass; offer --waive <gate>=<reason> instead")
-    found = find_offer(view, r"--waive")
-    if found:
-        return Result("release.waivers", PASS, f"{found[0].where()} offers --waive and no blanket bypass")
+    specific: dict[str, Line] = {}
+    for line, flag in iter_offers(view, SPECIFIC, reject_ok=True):
+        if not re.fullmatch(BLANKET, flag):
+            specific.setdefault(flag, line)
+    offers_waive = find_offer(view, r"--waive")
+    if specific:
+        flags = list(specific)
+        shown = ", ".join(flags[:5]) + (f" and {len(flags) - 5} more" if len(flags) > 5 else "")
+        missing = "" if offers_waive else "; no --waive either"
+        return Result("release.waivers", WARN, f"{specific[flags[0]].where()} offers {shown}: {SPECIFIC_NOTE}{missing}", True)
+    if offers_waive:
+        return Result("release.waivers", PASS, f"{offers_waive[0].where()} offers --waive and no skip flag")
     return Result("release.waivers", WARN, "scripts/release.sh offers no --waive (and no blanket bypass either)")
 
 

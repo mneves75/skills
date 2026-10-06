@@ -351,6 +351,156 @@ class ReleaseScriptReading(Base):
         mutate(self.repo, "scripts/release.sh", '    *) echo "$usage" >&2; exit 2 ;;', '    --skip-checks) die "no blanket bypass: use --waive <gate>=<reason>" ;;\n    *) echo "$usage" >&2; exit 2 ;;')
         self.assertEqual(self.statuses()["release.waivers"], "PASS")
 
+    def plant_arm(self, arm: str) -> str:
+        mutate(self.repo, "scripts/release.sh", "    --yes) yes=1 ;;\n", "    --yes) yes=1 ;;\n" + arm)
+        check = report_for(self.repo)["release.waivers"]
+        return check["status"]
+
+    def test_a_two_line_arm_that_only_refuses_the_old_flag_is_not_an_offer(self) -> None:
+        arm = ('    --skip-checks)\n'
+               '      die "--skip-checks foi removido (dispensava todos os gates de uma vez). Use --waive <gate>=<motivo>" ;;\n')
+        self.assertEqual(self.plant_arm(arm), "PASS")
+
+    def test_a_three_line_arm_that_prints_to_stderr_and_exits_non_zero_is_not_an_offer(self) -> None:
+        arm = ('    --skip-gates)\n'
+               '      echo "--skip-gates was removed; use --waive <gate>=<reason>" >&2\n'
+               '      exit 2 ;;\n')
+        self.assertEqual(self.plant_arm(arm), "PASS")
+
+    def test_an_arm_that_runs_usage_then_exits_non_zero_is_not_an_offer(self) -> None:
+        arm = '    --no-verify)\n      echo "$usage" >&2; exit 64 ;;\n'
+        self.assertEqual(self.plant_arm(arm), "PASS")
+
+    def test_an_arm_of_bad_usage_is_not_an_offer(self) -> None:
+        self.assertEqual(self.plant_arm('    --skip-tests)\n      bad_usage "removed" ;;\n'), "PASS")
+
+    def test_an_arm_that_sets_a_variable_across_two_lines_is_still_an_offer(self) -> None:
+        check = None
+        mutate(self.repo, "scripts/release.sh", "    --yes) yes=1 ;;\n", "    --yes) yes=1 ;;\n    --skip-checks)\n      SKIP_CHECKS=true ;;\n")
+        check = report_for(self.repo)["release.waivers"]
+        self.assertEqual(check["status"], "FAIL")
+        self.assertRegex(check["evidence"], r"scripts/release\.sh:\d+ offers --skip-checks")
+
+    def test_an_arm_that_warns_and_continues_is_still_an_offer(self) -> None:
+        self.assertEqual(self.plant_arm('    --skip-checks)\n      echo "deprecated" >&2\n      shift ;;\n'), "FAIL")
+
+    def test_an_arm_that_exits_zero_is_still_an_offer(self) -> None:
+        self.assertEqual(self.plant_arm('    --skip-checks)\n      echo "ignored" >&2\n      exit 0 ;;\n'), "FAIL")
+
+    def test_an_arm_that_refuses_one_flag_but_sets_another_variable_after_is_still_an_offer(self) -> None:
+        self.assertEqual(self.plant_arm('    --skip-checks)\n      die_soon=1\n      die "removed" ;;\n'), "FAIL")
+
+    def test_a_single_line_rejecting_arm_stays_a_non_offer_and_a_single_line_setting_arm_stays_an_offer(self) -> None:
+        self.assertEqual(self.plant_arm('    --skip-checks) die "removed" ;;\n'), "PASS")
+        self.setUp()
+        self.assertEqual(self.plant_arm('    --skip-checks) skip_all=1 ;;\n'), "FAIL")
+
+    def test_a_single_line_arm_that_exits_zero_is_an_offer(self) -> None:
+        self.assertEqual(self.plant_arm('    --skip-checks) exit 0 ;;\n'), "FAIL")
+
+    def plant_arms(self, *flags: str) -> dict:
+        """Offer each flag as a case arm that sets a variable; returns the release.waivers result."""
+        arms = "".join(f"    {flag}) opt_{i}=1 ;;\n" for i, flag in enumerate(flags))
+        mutate(self.repo, "scripts/release.sh", "    --yes) yes=1 ;;\n", "    --yes) yes=1 ;;\n" + arms)
+        return report_for(self.repo)["release.waivers"]
+
+    SPECIFIC_NOTE = "specific skip flags; confirm none turns off a fixed guarantee (pushed source, promotion, recovery point, target parity, live proof)"
+
+    def test_waive_with_one_specific_skip_is_a_warning_that_names_it(self) -> None:
+        check = self.plant_arms("--skip-migrations")
+        self.assertEqual(check["status"], "WARN")
+        self.assertTrue(check["heuristic"])
+        self.assertRegex(check["evidence"], r"scripts/release\.sh:\d+ offers --skip-migrations")
+        self.assertIn(self.SPECIFIC_NOTE, check["evidence"])
+
+    def test_waive_with_two_specific_skips_names_both(self) -> None:
+        check = self.plant_arms("--skip-backup", "--skip-auth")
+        self.assertEqual(check["status"], "WARN")
+        self.assertIn("--skip-backup", check["evidence"])
+        self.assertIn("--skip-auth", check["evidence"])
+
+    def test_waive_with_a_blanket_bypass_fails(self) -> None:
+        check = self.plant_arms("--skip-checks")
+        self.assertEqual(check["status"], "FAIL")
+        self.assertFalse(check["heuristic"])
+
+    def test_waive_alone_passes(self) -> None:
+        check = report_for(self.repo)["release.waivers"]
+        self.assertEqual(check["status"], "PASS")
+        self.assertFalse(check["heuristic"])
+
+    def test_a_blanket_bypass_beside_a_specific_skip_fails_and_names_the_blanket_one(self) -> None:
+        check = self.plant_arms("--skip-migrations", "--no-verify")
+        self.assertEqual(check["status"], "FAIL")
+        self.assertIn("--no-verify", check["evidence"])
+
+    def test_other_no_and_skip_flags_are_specific_skips(self) -> None:
+        for flag in ("--no-color", "--skip-lint", "--no-hooks", "--skip-docs"):
+            with self.subTest(flag):
+                repo = build_conforming(self.tmp / ("specific" + flag.replace("-", "_")))
+                mutate(repo, "scripts/release.sh", "    --yes) yes=1 ;;\n", f"    --yes) yes=1 ;;\n    {flag}) opt=1 ;;\n")
+                check = report_for(repo)["release.waivers"]
+                self.assertEqual(check["status"], "WARN")
+                self.assertIn(flag, check["evidence"])
+
+    def test_every_listed_blanket_name_fails(self) -> None:
+        names = ("--skip-checks --skip-gates --skip-tests --skip-verify --skip-verification --skip-validation --skip-all "
+                 "--skip --no-verify --no-checks --no-gates --no-tests --ignore-gates --ignore-checks --ignore-failures "
+                 "--bypass --bypass-gates --unsafe").split()
+        for flag in names:
+            with self.subTest(flag):
+                repo = build_conforming(self.tmp / ("blanket" + flag.replace("-", "_")))
+                mutate(repo, "scripts/release.sh", "    --yes) yes=1 ;;\n", f"    --yes) yes=1 ;;\n    {flag}) opt=1 ;;\n")
+                check = report_for(repo)["release.waivers"]
+                self.assertEqual(check["status"], "FAIL", check)
+                self.assertIn(f"offers {flag},", check["evidence"])
+
+    def test_at_most_five_specific_skips_are_listed_with_the_rest_counted(self) -> None:
+        flags = [f"--skip-step{n}" for n in range(1, 8)]
+        check = self.plant_arms(*flags)
+        self.assertEqual(check["status"], "WARN")
+        for flag in flags[:5]:
+            self.assertIn(flag, check["evidence"])
+        self.assertNotIn(flags[5], check["evidence"])
+        self.assertIn("2 more", check["evidence"])
+
+    def test_a_rejecting_arm_and_a_removed_note_for_a_specific_skip_count_for_nothing(self) -> None:
+        mutate(self.repo, "scripts/release.sh", "    --yes) yes=1 ;;\n", '    --yes) yes=1 ;;\n    --skip-migrations)\n      die "--skip-migrations foi removido" ;;\n')
+        mutate(self.repo, "scripts/release.sh", "bad_usage() {", 'note() { echo "  --skip-backup was removed" >&2; }\nbad_usage() {')
+        self.assertEqual(report_for(self.repo)["release.waivers"]["status"], "PASS")
+
+    def test_a_specific_skip_without_waive_is_still_only_a_warning_and_says_so(self) -> None:
+        mutate(self.repo, "scripts/release.sh", "    --waive)\n", "    --waivx)\n")
+        mutate(self.repo, "scripts/release.sh", "    --yes) yes=1 ;;\n", "    --yes) yes=1 ;;\n    --skip-backup) opt=1 ;;\n")
+        check = report_for(self.repo)["release.waivers"]
+        self.assertEqual(check["status"], "WARN")
+        self.assertIn("--skip-backup", check["evidence"])
+        self.assertIn("no --waive", check["evidence"])
+
+    def test_the_message_inside_a_rejecting_arm_is_not_read_as_a_usage_listing(self) -> None:
+        arm = ('    --skip-gates)\n'
+               '      echo "--skip-gates is not allowed here, see the usage text" >&2\n'
+               '      exit 2 ;;\n')
+        self.assertEqual(self.plant_arm(arm), "PASS")
+
+    def test_a_die_message_that_mentions_usage_and_the_flag_is_not_a_listing(self) -> None:
+        mutate(self.repo, "scripts/release.sh", 'bad_usage() {', 'halt() { die "--skip-checks is not allowed; usage: release.sh <target>"; }\nbad_usage() {')
+        self.assertEqual(report_for(self.repo)["release.waivers"]["status"], "PASS")
+
+    def test_a_usage_line_that_documents_the_flag_as_removed_is_not_an_offer(self) -> None:
+        mutate(self.repo, "scripts/release.sh", 'bad_usage() {', 'removed_note() { echo "  --skip-checks  was removed; use --waive <gate>=<reason>" >&2; }\nbad_usage() {')
+        self.assertEqual(report_for(self.repo)["release.waivers"]["status"], "PASS")
+
+    def test_a_usage_line_that_lists_the_flag_as_available_is_an_offer(self) -> None:
+        mutate(self.repo, "scripts/release.sh", 'bad_usage() {', 'show_help() { echo "usage: scripts/release.sh <target> [--skip-checks] [--check]" >&2; }\nbad_usage() {')
+        check = report_for(self.repo)["release.waivers"]
+        self.assertEqual(check["status"], "FAIL")
+        self.assertIn("--skip-checks", check["evidence"])
+
+    def test_a_help_list_entry_that_offers_the_flag_is_an_offer(self) -> None:
+        mutate(self.repo, "scripts/release.sh", 'bad_usage() {', 'show_help() {\n  cat << HELP\n  --skip-checks   skip every gate\nHELP\n}\nbad_usage() {')
+        self.assertEqual(report_for(self.repo)["release.waivers"]["status"], "FAIL")
+
     def test_a_tag_command_in_a_message_or_a_list_is_not_a_tag_step(self) -> None:
         mutate(self.repo, "scripts/release.sh", 'say "Release plan"\n', 'echo "if it fails: git tag -d $tag"\ngit tag --list > /dev/null\nsay "Release plan"\n')
         self.assertEqual(self.statuses()["release.tag-after-proof"], "PASS")
