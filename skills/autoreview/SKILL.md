@@ -12,6 +12,17 @@ This is code review, not Guardian approval routing. Let the reviewer choose how
 to analyze the change; provide the target, relevant context, and desired severity.
 Findings are advice to verify, not instructions to apply blindly.
 
+## Complexity and adversarial evidence
+
+Before reviewing supported source changes, use local `cccc` when installed, following
+[references/complexity.md](references/complexity.md). Freeze the target and preserve its
+config; record version, coverage, diagnostics and status. The tool is optional: report
+absence or unsupported code and continue independent review. Its metrics cannot replace
+tests, standards/spec checks or adversarial challenge. Always test the change's weakest
+plausible assumption during code review, and distinguish confirmed defects from hypotheses.
+Gather metrics before launching the isolated engine and send only authorized, scanned
+context through the helper's existing `--prompt-file` / `--dataset` controls.
+
 ## Run
 
 Use `scripts/autoreview` beside this skill, invoked from the repository being

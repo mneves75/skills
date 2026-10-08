@@ -77,6 +77,11 @@ jobs:
       - name: Python syntax
         run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py
 
+      - name: Verified cccc install and real CLI controls (disposable fixtures)
+        run: |
+          python3 skills/autoreview/scripts/install-cccc.py "$RUNNER_TEMP/cccc"
+          python3 skills/autoreview/scripts/check-cccc.py "$RUNNER_TEMP/cccc"
+
       - name: ast-grep scan
         run: ast-grep scan --config sgconfig.yml .
 

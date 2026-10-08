@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.31.0-blue)
+![Version](https://img.shields.io/badge/version-1.32.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -28,6 +28,12 @@ For compact task prompts, bounded retries and model routing, see
 | [mneves-ship-deploy](skills/mneves-ship-deploy/) | Prepare and verify staging without redundant confirmation; wait for explicit approval of the exact candidate before production |
 | [mneves-teach-back-srs](skills/mneves-teach-back-srs/) | Spaced-repetition learning through codebase teach-back sessions (SM-2 + SQLite) |
 | [mneves-verify](skills/mneves-verify/) | Independent verification before done/fixed/shipped: fresh context checks the artifact against criteria, PASS/FAIL/BLOCKED |
+
+Code-review workflows use local [cccc](https://github.com/moznion/cccc) when available
+to measure supported source complexity, alongside independent adversarial review and tests.
+It is optional, runs locally and never makes low scores an approval. The portable
+[installation and evidence procedure](skills/autoreview/references/complexity.md) ships
+with `autoreview`, including a pinned checksum-verified installer and real CLI controls.
 
 ## Collections
 

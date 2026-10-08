@@ -63,6 +63,15 @@ Prefer the named tool when it is available; fall back only on capability.
 BLOCKED only when an essential capability is unavailable (e.g., no independent verifier, no
 sandbox for a required run, no way to reach the real endpoint).
 
+For code review, always adversarially challenge the weakest plausible assumption. Use local
+`cccc` when available for supported source as additional evidence, following the separately
+installed `autoreview` complexity guidance. Without that sibling, preserve target config, run
+`cccc --no-cache --min 0` on focused source, record version/status/diagnostics and reconcile
+expected files and parsing errors. Missing tooling, unsupported code or partial scans limit
+only that evidence; if complexity measurement is a frozen requirement, mark its criterion
+BLOCKED. A low score never replaces behavior tests or independent judgment. Do not read source
+or collect code metrics in the source-blind behavior route below.
+
 ### Behavior checks (UI, CLI, API, generated files)
 
 Judge the running thing, not the code. The verifier works only through surfaces a user or

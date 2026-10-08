@@ -47,6 +47,14 @@ is a procedure (independent context, evidence routes, one correction + one rever
 PASS/FAIL/BLOCKED). The rule "no scripts/dependencies/scaffolding" is part of its contract, not
 an accident of laziness.
 
+**Complexity is evidence, not an approval.** Review skills use optional local `cccc`
+to find functions worth examining, while tests and independent adversarial judgment still
+decide correctness. The installer and reviewed release hashes live inside autoreview for
+single-skill portability. It refuses replacement and changes no shell configuration.
+Empty scans, skipped files and parser recovery are checked explicitly because a successful
+process exit alone does not prove complete analysis. Existing repository policy takes
+precedence over arbitrary global score limits.
+
 **`mneves-chatgpt-search` separates access from outcomes.** OpenAI's search crawler is
 independent of its training crawler. A site can allow search while retaining its training
 restrictions. Readable HTML and truthful attribution make a site useful; neither a discovery
