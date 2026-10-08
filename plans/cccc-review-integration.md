@@ -1,20 +1,5 @@
 # cccc integration plan
 
-## Progress
-
-- [x] Primary-source research and adversarial plan review.
-- [x] Isolated branch; preserved the unrelated dirty release worktree.
-- [x] Test-first portable installer and real binary controls.
-- [x] Five review-skill routes and portable absent-sibling fallbacks.
-- [x] Docs/version/changelog/site and deterministic CI controls.
-- [x] improve deep: fixed optimized-Python false PASS and incomplete threshold
-  checks; added download/size/interrupted-write regressions.
-- [x] Matt Pocock standards/spec axes: zero actionable findings; host and release
-  delivery remain explicitly pending. Fresh independent acceptance follows.
-- [ ] Commit, push, CI and authorized merge/catalog delivery.
-- [ ] Owner approval for outside-repository installation and installed-skill refresh.
-- [ ] Task-created scratch/worktree cleanup after its artifacts are delivered.
-
 ## What the review changed
 
 Use the upstream release binary, with reviewed SHA-256 pins, rather than a moving
@@ -29,6 +14,9 @@ because names and lines are not stable identifiers. Installer publication uses
 an exclusive hard link from a verified temporary binary, preserving a concurrent
 winner and dangling symlinks. Real controls confirmed parse recovery and empty
 scans return 0; a nonexistent input returns 2 with no JSON in this release.
+The improve deep pass exposed optimized-Python false PASS and an unchecked
+threshold report. Operational checks now raise explicit failures, and regression
+controls include a real partial write before simulated disk exhaustion.
 
 ## Objective and frozen acceptance
 

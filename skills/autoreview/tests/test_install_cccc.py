@@ -143,7 +143,16 @@ class InstallerTests(unittest.TestCase):
         real_open = Path.open
         def fail_staging(path, *args, **kwargs):
             if path.name == "cccc" and path.parent.name.startswith(".cccc-install-"):
-                raise OSError("disk full")
+                partial = real_open(path, *args, **kwargs)
+                def interrupted_write(data):
+                    partial.write(data[:1])
+                    partial.flush()
+                    raise OSError("disk full")
+                writer = mock.MagicMock()
+                writer.__enter__.return_value = writer
+                writer.__exit__.side_effect = lambda *unused: partial.close()
+                writer.write.side_effect = interrupted_write
+                return writer
             return real_open(path, *args, **kwargs)
         with mock.patch.object(Path, "open", fail_staging):
             with self.assertRaisesRegex(OSError, "disk full"):
