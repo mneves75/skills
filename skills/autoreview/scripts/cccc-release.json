@@ -1,0 +1,11 @@
+{
+  "version": "1.8.0",
+  "verified_on": "2026-10-08",
+  "upstream_commit": "9008fbfb747bdbd7651e3e6311307005659f003b",
+  "sha256": {
+    "aarch64-apple-darwin": "a238b8f121291f81df68359c111a9ba49cf48106fbedda63f4a48f1adc092408",
+    "x86_64-apple-darwin": "3b36ec66a6822f36dbcfd3e353fb1804e98e8160f1e12acb5331b692101b4cf2",
+    "aarch64-unknown-linux-musl": "ba179065369af907b1f6dd4bd7c50c4f99567159882c2f6a004e7b32234c7469",
+    "x86_64-unknown-linux-musl": "0350111e3b649c327e62c99da0a35c77f65884f5e4279a968f4371f73a6a5480"
+  }
+}

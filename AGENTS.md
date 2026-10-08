@@ -53,6 +53,7 @@ tools/scripts/build-site.sh            # HOWTO.md -> site/howto.html + landing c
 bash tools/scripts/build-site.test     # real catalog build: completeness and repeatability
 npx skills@latest add . --list          # what the skills CLI will discover
 python3 skills/autoreview/scripts/run-tests.py  # isolated unit/integration/security suite
+python3 skills/autoreview/scripts/check-cccc.py /absolute/path/to/cccc  # real complexity controls
 tools/scripts/sync-pstack.sh <pstack-claude-repo> <commit>   # regenerate collections/pstack
 bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no network)
 ```
@@ -102,6 +103,16 @@ bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no net
   the `mneves-` prefix rule), its license, and an `UPSTREAM` pin. Its `skills/`, `UPSTREAM`, `LICENSE` and
   `local-overrides.patch` come from a sync script and are never hand-edited; CI requires the Agent Skills spec
   (`skills-ref validate`) and name == directory for every collection skill.
+
+## Code review evidence
+
+Always include adversarial review of code changes. Use local `cccc` for supported changed
+source when available, following `skills/autoreview/references/complexity.md`; record its
+version, target/config identity, file coverage, diagnostics and status. Missing tooling,
+unsupported code or incomplete scans are stated explicitly. Scores never replace tests,
+standards/spec review or independent acceptance. The installer and release manifest ship
+inside autoreview so a single-skill install is self-contained. Do not hand-edit vendored
+collection skills or host-installed third-party skills to add this policy.
 
 ## Adding a Skill
 

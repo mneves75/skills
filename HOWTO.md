@@ -42,6 +42,33 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 
 ## autoreview
 
+### Local complexity and adversarial review
+
+For supported code changes, the review skills use optional local
+[cccc](https://github.com/moznion/cccc) for cognitive and cyclomatic complexity and always
+challenge the weakest plausible assumption. Metrics identify code to inspect; tests and
+independent standards/spec review still decide whether the change is correct.
+
+The autoreview skill includes a portable checksum-verified installer. Obtain approval for
+the destination when required, ensure its directory exists, then run:
+
+```sh
+python3 /path/to/autoreview/scripts/install-cccc.py /approved/bin/cccc
+python3 /path/to/autoreview/scripts/check-cccc.py /approved/bin/cccc
+```
+
+It refuses replacement and does not edit PATH. The pin is maintained only in
+`scripts/cccc-release.json`. macOS/Linux ARM64 and x86-64 binaries are supported; other
+platforms use upstream release instructions. Single-skill installs keep the complete folder.
+
+From the reviewed repository, preserve its config and collect focused evidence with
+`cccc --no-cache --min 0 --pretty src/`. Record the version, config/target, expected files,
+stdout, stderr and exit status. Reconcile reported files and parsing errors: a successful
+exit can still mean partial or empty analysis. Table-config output stays a table and must
+be checked accordingly. Missing tooling and unsupported source are reported; the remaining
+review continues. See [the full procedure](skills/autoreview/references/complexity.md).
+
+
 **What it does.** Freezes the chosen Git target, scans the outgoing input, runs a reviewer in
 an isolated environment, validates its report, and rejects results if sources changed mid-review.
 The helper prints its default model and reasoning tier at startup; one retry on the fallback

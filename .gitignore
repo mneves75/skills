@@ -18,3 +18,5 @@ build/
 # Local tool state
 .codemap/
 __pycache__/
+.scratch/
+.cccc.cache

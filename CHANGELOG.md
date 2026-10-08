@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.32.0] - 2026-10-08
+
+### Added
+
+- **`autoreview` complexity evidence**: portable `cccc` installation with reviewed release
+  checksums, explicit destinations and no replacement or PATH edits; offline failure controls
+  and a separate real-binary smoke check for thresholds, parsing, missing inputs and empty scans.
+- **Implementation plan**: alternatives, frozen acceptance, primary-source research and
+  adversarial findings for the complexity integration.
+
+### Changed
+
+- **Review skills**: autoreview, Fable, expert-review, superaudit and verify use installed
+  `cccc` for supported source and always challenge code changes adversarially. Coverage,
+  parse diagnostics, version and repository policy accompany scores; optional metrics never
+  replace tests or independent review. Single-skill installs retain inline fallbacks.
+- **Fable model defaults**: rechecked against current vendor catalogs; verification date
+  updated without changing role selection.
+- **Documentation and CI**: installation/review guidance, installer tests in the existing
+  portable suite, generated catalog, ignored scratch and local complexity cache artifacts.
+
 ## [1.31.0] - 2026-10-04
 
 ### Changed

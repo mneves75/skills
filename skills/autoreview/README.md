@@ -32,6 +32,14 @@ not a security guarantee. `--dry-run` checks preparation without contacting a re
 
 ## Test
 
+For supported source changes, collect optional local `cccc` complexity evidence before
+launching the reviewer. Follow [the installation and evidence procedure](references/complexity.md)
+for a pinned checksum-verified install, coverage checks and existing repository policy.
+Always challenge the weakest plausible assumption; scores cannot replace tests or review.
+No source is sent by the analyzer. Supplying evidence to an AI reviewer still uses the
+helper's normal scanned-context and disclosure controls.
+
+
 ```sh
 python3 scripts/run-tests.py
 ```
@@ -41,6 +49,12 @@ synthetic credential fixtures. Tests use fake engines and scanners; the macOS sa
 uses the installed Codex CLI to execute a local shell with positive and negative controls.
 It needs ordinary OS permission to create temporary fixtures and launch a nested sandbox.
 Unsupported platform/tool checks are reported as skipped, not as passed.
+
+The suite also runs offline cccc installer controls. For the installed real binary:
+
+```sh
+python3 scripts/check-cccc.py /absolute/path/to/cccc
+```
 
 `scripts/test-review-harness` (`.py`; `.ps1` on Windows) is the live control run: it plants a
 malicious and a benign change and checks that a real engine flags one and clears the other. It

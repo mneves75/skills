@@ -61,6 +61,14 @@ Optional installed skills sharpen individual items when present; skip any that a
 than substituting a weaker check. A repo-wide over-engineering audit helps item 1, a stack-specific
 profiler helps item 2, and a saved end-to-end QA flow helps item 3.
 
+For item 1 and code review, use installed `cccc` on supported source to locate complexity
+hotspots, then adversarially challenge the proposed simplification. The separate `autoreview`
+skill owns detailed guidance. Without it, preserve target config, run `cccc --no-cache --min 0`
+on focused source, record version/status/diagnostics and reconcile expected files and parse
+errors. Report missing/unsupported/incomplete evidence and continue the requested audit.
+Compare corresponding functions with the same version and policy; a lower score is not proof
+of simpler behavior, faster code or adequate tests.
+
 ## 4. Delegation
 
 Use delegation only for independent, substantial work with disjoint ownership and checkable
