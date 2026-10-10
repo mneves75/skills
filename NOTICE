@@ -7,6 +7,11 @@ The readiness tool's pillar/maturity-level structure is inspired by
 Factory.ai's Agent Readiness assessment (https://factory.ai/agent-readiness).
 No Factory.ai code or data is included.
 
+The mneves-background-sessions skill is inspired by diegohaz's "orchestrate-background-sessions"
+gist https://gist.github.com/diegohaz/ff1573a520292ca136aedd6991688e33
+(revision e88272cf60110a4d03c9fe3dcbf4852297e8f333). The procedure follows the gist's ideas
+and structure, reworded; no text from it is included. The gist carries no license.
+
 The imagegen-frontend-mobile skill is adapted and condensed from Leonxlnx's taste-skill:
 https://github.com/Leonxlnx/taste-skill/blob/edb8d32401f5ecb444798fa630641e67462bd8c3/skills/imagegen-frontend-mobile/SKILL.md
 Copyright (c) 2026 Leonxlnx. Distributed under the MIT License included in that skill's directory.

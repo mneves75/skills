@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.32.0-blue)
+![Version](https://img.shields.io/badge/version-1.33.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -21,6 +21,7 @@ For compact task prompts, bounded retries and model routing, see
 | [mneves-chatgpt-search](skills/mneves-chatgpt-search/) | Improve ChatGPT Search discovery, citations and referral attribution using official guidance, separate search/training policies and verifiable evidence |
 | [mneves-eli5](skills/mneves-eli5/) | Feynman-technique explainer calibrated to the listener (child, layperson, executive, junior, expert), answered in the user's language |
 | [mneves-agent-readiness](skills/mneves-agent-readiness/) | Evaluate codebase readiness for AI agents: 9 pillars, maturity levels L1–L5, local-only |
+| [mneves-background-sessions](skills/mneves-background-sessions/) | Coordinate a multi-unit plan with one background Claude Code session per unit: dependency order, run modes, reserved actions, per-result review |
 | [mneves-expert-review](skills/mneves-expert-review/) | Scoped stress test: objective, first principles, relevant research, one combined challenge, distinct alternatives, improved deliverable |
 | [mneves-handoff](skills/mneves-handoff/) | Clipboard-ready, path-free prompt that hands a task to another agent for independent review and discussion first |
 | [mneves-fable-orchestrator](skills/mneves-fable-orchestrator/) | Route ordinary, bounded and difficult work by capability; models live in one Defaults block; ships [`codex-lane`](skills/mneves-fable-orchestrator/tools/codex-lane) |
@@ -141,6 +142,10 @@ selected review provider. Authorize private-content disclosure before either wor
 ## Acknowledgments
 
 The pillar/maturity-level structure follows the shape of [Factory.ai](https://factory.ai/agent-readiness)'s commercial Agent Readiness assessment. This tool is an independent, open-source, local-only implementation with its own checks and scoring.
+
+`mneves-background-sessions` is inspired by diegohaz's
+[orchestrate-background-sessions gist](https://gist.github.com/diegohaz/ff1573a520292ca136aedd6991688e33).
+The procedure follows the gist's ideas and structure, reworded; no text from it is included.
 
 ## Related
 

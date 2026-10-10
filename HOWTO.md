@@ -1,6 +1,6 @@
 # How to use these skills
 
-Twelve skills, one install. This page shows what each one does, how to trigger it, and what a
+Thirteen skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the [README](README.md); for the exact
 procedure an agent follows, open `skills/<name>/SKILL.md`.
 
@@ -33,6 +33,7 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 | `mneves-expert-review` | stress-test a plan or answer before it ships | "challenge this design" |
 | `mneves-verify` | get an independent PASS/FAIL before "done" | "verify it", "prove it" |
 | `mneves-fable-orchestrator` | route independent work by capability | "delegate the backend to codex" |
+| `mneves-background-sessions` | run a multi-step plan as a coordinator over background Claude Code sessions | "coordinate these five issues with background sessions" |
 | `mneves-agent-readiness` | measure how agent-friendly a repo is | "why does the agent struggle here?" |
 | `mneves-teach-back-srs` | learn a codebase with spaced repetition | "let me explain the auth flow" |
 | `mneves-superaudit` | run a bounded audit-and-cleanup pass over a repo | "superaudit this repo, slop and perf only" |
@@ -353,6 +354,59 @@ fact with `codex-lane adopt <lane> <thread-id>`.
 
 ---
 
+## mneves-background-sessions
+
+**What it does.** Turns the current Claude Code session into a coordinator for a plan with
+several units (issues, pull requests, steps). Before anything starts, it agrees with you the
+units in dependency order, whether to run straight through or stop after each stage, which
+units get the stronger or the cheaper model, how many sessions may run at once (three
+suggested), which actions it may take alone, who settles open points, and where records go. It then starts one
+background session (`claude --bg`) per unit, each in its own worktree with its own scratch
+folder, reviews each report and diff itself, sends failures back, integrates only on green
+checks against the current base, records the result, and removes the finished session.
+
+**Triggers.** "coordinate this plan with background sessions", "act as the coordinator",
+"one background session per issue". For a single delegated task, or a harness without
+background sessions, use `mneves-fable-orchestrator` instead.
+
+**Prerequisites.** Claude Code with background sessions; cross-session messaging needs
+2.1.224 or later (2.1.234 on native Windows; 2.1.248 for same-machine messaging on third-party
+providers or with feature-flag fetching off). With no inbound setting, messages across
+permission-prompting and permission-bypassing sessions are held for approval. Configure
+`crossSessionInbound` as `"accept"` on both sides for unattended delivery, and check that no
+project or local `"refuse"` blocks it.
+
+**Example** (illustrative). You ask the coordinator to ship four issues: a schema change, two
+API endpoints that need it, and a settings page.
+
+1. It reads the issues and repository, proposes the order (schema first, the two endpoints in
+   parallel, the page last), recommends staged pacing with a stop after the schema, and asks
+   whether merges need your word each time. You approve merges as a standing rule.
+2. It writes a scratch folder per unit, sets `SCRATCH` to its absolute parent path, and starts
+   the schema worker on the stronger model:
+   ```bash
+   claude --bg --name schema-v2 --worktree schema-v2 \
+     --add-dir "$SCRATCH/schema-v2" \
+     --append-system-prompt-file "$SCRATCH/schema-v2/system-rules.md" \
+     "Worker session. First read $SCRATCH/schema-v2/start-prompt.md in full."
+   ```
+3. The worker messages back. The coordinator reads `report.md`, then the diff, reruns the
+   migration test, merges on green, records the result on the issue, runs `claude stop` and
+   `claude rm`, and stops for your go-ahead on the next stage.
+4. You approve; both endpoint workers start at once, since they share no files.
+
+**Tips.**
+- Keep one unit per session; most of the cost comes from sessions that accumulate work.
+- A worker's message is a peer report, not your approval. A refused action is reported to
+  you, not performed by the coordinator instead.
+- Read session state with `claude agents --json`; Claude Code's internal files are not an
+  interface.
+- The procedure follows the ideas and structure of
+  [diegohaz's orchestrate-background-sessions gist](https://gist.github.com/diegohaz/ff1573a520292ca136aedd6991688e33);
+  reworded; no text from it is included.
+
+---
+
 ## mneves-agent-readiness
 
 **What it does.** Scores a repository on how well it supports an agent's loop of gathering
@@ -594,7 +648,8 @@ Pocock's skills.
 
 ## Combining them
 
-A typical shipping flow: `mneves-fable-orchestrator` splits the work and dispatches it;
+A typical shipping flow: `mneves-fable-orchestrator` splits the work and dispatches it (or
+`mneves-background-sessions` runs a longer multi-unit plan as a coordinator in Claude Code);
 `mneves-expert-review` challenges the plan before code is written; `mneves-verify` gives the
 final verdict before anything is called done. `mneves-agent-readiness` is what you run first
 on a repo where agents keep failing, and `mneves-eli5` is for the moment you have to explain
