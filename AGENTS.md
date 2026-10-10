@@ -17,6 +17,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── autoreview/                # Portable AI review CLI + security tests (MIT)
 │   ├── imagegen-frontend-mobile/   # Mobile screen/flow image generation (MIT)
 │   ├── mneves-agent-readiness/    # Codebase readiness assessment (pairs with tools/)
+│   ├── mneves-background-sessions/ # Coordinator for one background Claude Code session per unit (+ references/)
 │   ├── mneves-chatgpt-search/     # ChatGPT discovery, crawler access, citations and referral attribution
 │   ├── mneves-eli5/               # Feynman explainer, audience-calibrated
 │   ├── mneves-expert-review/      # Expert-panel review/optimization pass (+ references/)

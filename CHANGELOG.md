@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.33.0] - 2026-10-10
+
+### Added
+
+- **`mneves-background-sessions`**: one background Claude Code session per unit of a plan.
+  An original Apache-2.0 skill for a coordinating session: it agrees units in dependency order, the
+  pacing (straight through or staged), capability-based model and effort per unit, a concurrency
+  limit, reserved actions, open-point ownership and the record location before the first
+  session; then reviews, integrates, records and removes each result in turn. Worker file
+  templates live in `references/worker-files.md`. CLI usage follows Claude Code 2.1.295 and its
+  documentation: session state comes from `claude agents --json`, not internal files, and
+  cross-session messaging preconditions are stated. Falls back to the harness's own subagents
+  when background sessions are unavailable. Inspired by diegohaz's
+  orchestrate-background-sessions gist, which carries no license; no text from it is included.
+
+### Changed
+
+- **Fable model defaults**: rechecked against current vendor catalogs; verification date
+  updated without changing role selection.
+- **Catalogs**: README, HOWTO, landing page, AGENTS tree and NOTICE list the new skill; skill
+  count is thirteen.
+
 ## [1.32.0] - 2026-10-08
 
 ### Added
