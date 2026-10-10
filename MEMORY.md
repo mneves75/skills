@@ -16,8 +16,8 @@ measure whether a *target* codebase is ready for agents.
 
 - **1.33.0** (2026-10-10): thirteen skills. `mneves-background-sessions` is an original
   Apache-2.0 skill (not an adaptation): diegohaz's gist that inspired it has no license, so
-  none of its text is reused and NOTICE records it as inspiration only. It needs Claude Code
-  background sessions and states the fallback. Fable Defaults rechecked; ids unchanged.
+  none of its text is reused; NOTICE credits its ideas and structure as followed and reworded.
+  It needs Claude Code background sessions and states the fallback. Fable Defaults rechecked; ids unchanged.
 - **1.31.0** (2026-10-04): pstack `tdd` is test-first by default (fourth local commit in the
   pstack-claude fork; `LOCAL-OVERRIDES.md` §6 there), and links to the fork's retired
   sections were repaired. The fork guards both with `tests/local-overrides.test.mjs`.

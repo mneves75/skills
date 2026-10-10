@@ -375,16 +375,20 @@ checks against the current base, records the result, and removes the finished se
 &quot;one background session per issue&quot;. For a single delegated task, or a harness without
 background sessions, use <code>mneves-fable-orchestrator</code> instead.</p>
 <p><strong>Prerequisites.</strong> Claude Code with background sessions; cross-session messaging needs
-2.1.224 or later (2.1.234 on native Windows). A worker started in <code>bypassPermissions</code> holds
-the coordinator&#39;s messages for approval unless its settings set <code>crossSessionInbound</code> to
-<code>&quot;accept&quot;</code>.</p>
+2.1.224 or later (2.1.234 on native Windows; 2.1.248 for same-machine messaging on third-party
+providers or with feature-flag fetching off). With no inbound setting, messages across
+permission-prompting and permission-bypassing sessions are held for approval. Configure
+<code>crossSessionInbound</code> as <code>&quot;accept&quot;</code> on both sides for unattended delivery, and check that no
+project or local <code>&quot;refuse&quot;</code> blocks it.</p>
 <p><strong>Example</strong> (illustrative). You ask the coordinator to ship four issues: a schema change, two
 API endpoints that need it, and a settings page.</p>
 <ol>
 <li>It reads the issues and repository, proposes the order (schema first, the two endpoints in
 parallel, the page last), recommends staged pacing with a stop after the schema, and asks
 whether merges need your word each time. You approve merges as a standing rule.</li>
-<li>It writes a scratch folder per unit and starts the schema worker on the stronger model:<pre><code class="language-bash">claude --bg --name schema-v2 --worktree schema-v2 \
+<li>It writes a scratch folder per unit, sets <code>SCRATCH</code> to its absolute parent path, and starts
+the schema worker on the stronger model:<pre><code class="language-bash">claude --bg --name schema-v2 --worktree schema-v2 \
+  --add-dir &quot;$SCRATCH/schema-v2&quot; \
   --append-system-prompt-file &quot;$SCRATCH/schema-v2/system-rules.md&quot; \
   &quot;Worker session. First read $SCRATCH/schema-v2/start-prompt.md in full.&quot;
 </code></pre>
@@ -401,9 +405,9 @@ migration test, merges on green, records the result on the issue, runs <code>cla
 you, not performed by the coordinator instead.</li>
 <li>Read session state with <code>claude agents --json</code>; Claude Code&#39;s internal files are not an
 interface.</li>
-<li>The skill is original work inspired by
+<li>The procedure follows the ideas and structure of
 <a href="https://gist.github.com/diegohaz/ff1573a520292ca136aedd6991688e33">diegohaz&#39;s orchestrate-background-sessions gist</a>;
-no text from it is included.</li>
+reworded; no text from it is included.</li>
 </ul>
 <hr>
 <h2 id="mneves-agent-readiness">mneves-agent-readiness</h2>

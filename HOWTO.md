@@ -370,9 +370,11 @@ checks against the current base, records the result, and removes the finished se
 background sessions, use `mneves-fable-orchestrator` instead.
 
 **Prerequisites.** Claude Code with background sessions; cross-session messaging needs
-2.1.224 or later (2.1.234 on native Windows). A worker started in `bypassPermissions` holds
-the coordinator's messages for approval unless its settings set `crossSessionInbound` to
-`"accept"`.
+2.1.224 or later (2.1.234 on native Windows; 2.1.248 for same-machine messaging on third-party
+providers or with feature-flag fetching off). With no inbound setting, messages across
+permission-prompting and permission-bypassing sessions are held for approval. Configure
+`crossSessionInbound` as `"accept"` on both sides for unattended delivery, and check that no
+project or local `"refuse"` blocks it.
 
 **Example** (illustrative). You ask the coordinator to ship four issues: a schema change, two
 API endpoints that need it, and a settings page.
@@ -380,9 +382,11 @@ API endpoints that need it, and a settings page.
 1. It reads the issues and repository, proposes the order (schema first, the two endpoints in
    parallel, the page last), recommends staged pacing with a stop after the schema, and asks
    whether merges need your word each time. You approve merges as a standing rule.
-2. It writes a scratch folder per unit and starts the schema worker on the stronger model:
+2. It writes a scratch folder per unit, sets `SCRATCH` to its absolute parent path, and starts
+   the schema worker on the stronger model:
    ```bash
    claude --bg --name schema-v2 --worktree schema-v2 \
+     --add-dir "$SCRATCH/schema-v2" \
      --append-system-prompt-file "$SCRATCH/schema-v2/system-rules.md" \
      "Worker session. First read $SCRATCH/schema-v2/start-prompt.md in full."
    ```
@@ -397,9 +401,9 @@ API endpoints that need it, and a settings page.
   you, not performed by the coordinator instead.
 - Read session state with `claude agents --json`; Claude Code's internal files are not an
   interface.
-- The skill is original work inspired by
+- The procedure follows the ideas and structure of
   [diegohaz's orchestrate-background-sessions gist](https://gist.github.com/diegohaz/ff1573a520292ca136aedd6991688e33);
-  no text from it is included.
+  reworded; no text from it is included.
 
 ---
 

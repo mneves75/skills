@@ -145,7 +145,7 @@ The pillar/maturity-level structure follows the shape of [Factory.ai](https://fa
 
 `mneves-background-sessions` is inspired by diegohaz's
 [orchestrate-background-sessions gist](https://gist.github.com/diegohaz/ff1573a520292ca136aedd6991688e33).
-The skill is written independently and includes no text from it.
+The procedure follows the gist's ideas and structure, reworded; no text from it is included.
 
 ## Related
 
