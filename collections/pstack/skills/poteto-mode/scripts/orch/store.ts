@@ -3,8 +3,8 @@ import { randomUUID } from "node:crypto";
 import type { Dirent } from "node:fs";
 import {
   access,
+  link,
   mkdir,
-  open,
   readFile,
   readdir,
   rename,
@@ -13,10 +13,13 @@ import {
   writeFile,
 } from "node:fs/promises";
 import { basename, dirname, join, resolve } from "node:path";
+import { stripVTControlCharacters } from "node:util";
 
 const UNIT_HEADER = "id\ttrack\tstate\tbranch\tpr\tsha\tbrief";
 const LEDGER_HEADER = "pr\tsha\tverdict\tevidence\tverifier\tts";
 const LOCK_FILE = ".orch.lock";
+const TAKEOVER_DIR = ".orch.lock.takeover";
+const GT_TIMEOUT_MS = 60_000;
 
 export type Verdict =
   | "live-ui-verified"
@@ -177,6 +180,7 @@ export interface AddStandingParams {
 export interface OpenStoreOptions {
   readonly force?: boolean;
   readonly gt?: string;
+  readonly gtTimeoutMs?: number;
   readonly onLockStolen?: (holder: string) => void;
   readonly onStaleLock?: (holder: string) => void;
 }
@@ -294,13 +298,21 @@ export function parseVerdict(value: string): Verdict {
   return verdict;
 }
 
+// A spreadsheet reads a leading = + - or @ as a formula and a leading ' as a
+// text marker. Such a cell is written with one more ' and unquoteCell strips it.
 function cleanCell(value: string): string {
   const cleaned = value.replace(/[\t\n\r]/g, " ");
-  return /^[=+\-@]/.test(cleaned) ? `'${cleaned}` : cleaned;
+  return /^['=+\-@]/.test(cleaned) ? `'${cleaned}` : cleaned;
+}
+
+// A row written before cells were unquoted on read can start with a ' that is
+// data, so only a ' that cleanCell would have added is stripped.
+function unquoteCell(value: string): string {
+  return /^'['=+\-@]/.test(value) ? value.slice(1) : value;
 }
 
 function requiredCell(value: string, label: string): string {
-  const cleaned = cleanCell(value);
+  const cleaned = value.replace(/[\t\n\r]/g, " ");
   if (cleaned.trim().length === 0) {
     throw new UserError(`${label} must not be empty`);
   }
@@ -384,59 +396,145 @@ async function acquireLock(
   options: OpenStoreOptions
 ): Promise<() => Promise<void>> {
   const path = join(store, LOCK_FILE);
+  const takeover = join(store, TAKEOVER_DIR);
   const pid = String(process.pid);
+
+  // A writer killed between an exclusive open and its write leaves an empty
+  // lock, which names no pid to judge dead. The pid goes into a private file
+  // that is hard-linked into place, so the lock appears with its pid in it.
+  // A filesystem without hard links gets the exclusive open.
   const create = async (): Promise<void> => {
-    const handle = await open(path, "wx");
-    await handle.writeFile(`${pid}\n`);
-    await handle.close();
-  };
-
-  const takeOver = async (): Promise<void> => {
-    await unlink(path);
+    const pidFile = `${path}.${pid}.${randomUUID()}`;
+    await writeFile(pidFile, `${pid}\n`, { flag: "wx" });
     try {
-      await create();
-    } catch (retryError) {
-      if (errorCode(retryError) === "EEXIST") {
-        const retryHolder =
-          (await readFile(path, "utf8")).trim() || "unknown";
-        throw new UserError(`store lock held by pid ${retryHolder}`);
+      await link(pidFile, path);
+    } catch (error) {
+      if (errorCode(error) === "EEXIST") {
+        throw error;
       }
-      throw retryError;
+      await writeFile(path, `${pid}\n`, { flag: "wx" });
+    } finally {
+      await unlink(pidFile).catch(() => {});
     }
   };
 
-  try {
-    await create();
-  } catch (error) {
-    if (errorCode(error) !== "EEXIST") {
-      throw error;
+  // Resolves to null once this writer holds the lock, or to the pid in the
+  // lock that stopped it. A holder can release between the failed create and
+  // the read, and a lock that vanished can be created again.
+  const lockOrHolder = async (): Promise<string | null> => {
+    for (let retries = 2; ; retries -= 1) {
+      try {
+        await create();
+        return null;
+      } catch (error) {
+        if (errorCode(error) !== "EEXIST") {
+          throw error;
+        }
+      }
+      try {
+        return (await readFile(path, "utf8")).trim() || "unknown";
+      } catch (error) {
+        if (errorCode(error) !== "ENOENT" || retries === 0) {
+          return "unknown";
+        }
+      }
     }
-    let holder = "unknown";
+  };
+
+  // POSIX cannot unlink a file only if its content still matches, so each
+  // read-and-unlink runs behind a claim: a directory that holds one file
+  // named for the claimant's pid. rename cannot replace a directory that
+  // holds a file, so a claim excludes every other writer, and a dead
+  // claimant's file is removed by name, which cannot remove a live claimant's.
+  // Resolves to false, without running the body, when a live writer holds
+  // the claim.
+  const claimed = async (body: () => Promise<void>): Promise<boolean> => {
+    const staged = `${takeover}.${pid}.${randomUUID()}`;
+    const discard = (): Promise<void> =>
+      rm(staged, { recursive: true, force: true }).catch(() => {});
+    await mkdir(staged);
     try {
-      holder = (await readFile(path, "utf8")).trim() || "unknown";
-    } catch {
-      holder = "unknown";
+      await writeFile(join(staged, pid), "");
+      for (const claimant of await readdir(takeover).catch(() => [])) {
+        if (holderIsDead(claimant)) {
+          await rm(join(takeover, claimant), { force: true });
+        }
+      }
+      await rename(staged, takeover);
+    } catch (error) {
+      await discard();
+      const code = errorCode(error);
+      if (code !== "ENOTEMPTY" && code !== "EEXIST") {
+        throw error;
+      }
+      return false;
     }
+    try {
+      await body();
+    } finally {
+      await rename(takeover, staged).catch(() => {});
+      await discard();
+    }
+    return true;
+  };
+
+  const takeOver = async (holder: string): Promise<void> => {
+    const replaced = await claimed(async () => {
+      try {
+        const current = (await readFile(path, "utf8")).trim() || "unknown";
+        if (current !== holder) {
+          throw new UserError(`store lock held by pid ${current}`);
+        }
+        await unlink(path);
+      } catch (error) {
+        if (errorCode(error) !== "ENOENT") {
+          throw error;
+        }
+      }
+      const blocker = await lockOrHolder();
+      if (blocker !== null) {
+        throw new UserError(`store lock held by pid ${blocker}`);
+      }
+    });
+    if (!replaced) {
+      throw new UserError(
+        `store lock held by pid ${holder} is being replaced by another writer; retry`
+      );
+    }
+  };
+
+  const holder = await lockOrHolder();
+  if (holder !== null) {
     if (holderIsDead(holder)) {
       options.onStaleLock?.(holder);
-      await takeOver();
+      await takeOver(holder);
     } else if (options.force) {
       options.onLockStolen?.(holder);
-      await takeOver();
+      await takeOver(holder);
     } else {
       throw new UserError(`store lock held by pid ${holder}`);
     }
   }
 
+  // A claimant that refuses the release is replacing the lock. It finishes or
+  // dies, and the next claim sweeps a dead one, so the release tries again.
   return async (): Promise<void> => {
-    try {
-      if ((await readFile(path, "utf8")).trim() === pid) {
-        await unlink(path);
+    const removeOwn = async (): Promise<void> => {
+      try {
+        if ((await readFile(path, "utf8")).trim() === pid) {
+          await unlink(path);
+        }
+      } catch (error) {
+        if (errorCode(error) !== "ENOENT") {
+          throw error;
+        }
       }
-    } catch (error) {
-      if (errorCode(error) !== "ENOENT") {
-        throw error;
+    };
+    for (;;) {
+      if (await claimed(removeOwn)) {
+        return;
       }
+      await new Promise((resolve) => setTimeout(resolve, 10));
     }
   };
 }
@@ -457,7 +555,7 @@ async function readTsv(
       if (cells.length !== width) {
         throw new UserError(`${basename(path)} has a malformed row`);
       }
-      return cells;
+      return cells.map(unquoteCell);
     });
 }
 
@@ -579,7 +677,7 @@ async function readPointers(
       /\r?\n$/,
       ""
     );
-    const row = raw.split("\t");
+    const row = raw.split("\t").map(unquoteCell);
     if (/[\r\n]/.test(raw) || row.length !== 5) {
       throw new UserError(`inbox pointer ${entry.name} is malformed`);
     }
@@ -1041,12 +1139,6 @@ function parseGtPullRequest({
   );
 }
 
-// A colour setting such as FORCE_COLOR in the user's environment must not
-// break the gt parsers below.
-function withoutColour(raw: string): string {
-  return raw.replace(/\u001b\[[0-9;]*m/g, "");
-}
-
 function parseGtBranches(raw: string): readonly string[] {
   const branches: string[] = [];
   const lines = raw.replace(/\r/g, "").split("\n");
@@ -1081,18 +1173,24 @@ function graphitePullRequest({
   branch,
   gt,
   repo,
+  timeout,
 }: {
   branch: string;
   gt: string;
   repo: string;
+  timeout: number;
 }): GtPullRequest {
   let raw: string;
   try {
-    raw = withoutColour(
+    // A colour setting such as FORCE_COLOR in the user's environment must not
+    // break the gt parsers.
+    raw = stripVTControlCharacters(
       execFileSync(gt, ["--no-interactive", "info", branch], {
         cwd: repo,
         encoding: "utf8",
         stdio: ["ignore", "pipe", "pipe"],
+        timeout,
+        killSignal: "SIGKILL",
       })
     );
   } catch (error) {
@@ -1123,13 +1221,15 @@ function graphitePullRequest({
 function graphiteFrontier({
   gt,
   repo,
+  timeout,
 }: {
   gt: string;
   repo: string;
+  timeout: number;
 }): readonly GtFrontierEntry[] {
   let raw: string;
   try {
-    raw = withoutColour(
+    raw = stripVTControlCharacters(
       execFileSync(
         gt,
         ["--no-interactive", "log", "short", "--stack", "--reverse"],
@@ -1137,6 +1237,8 @@ function graphiteFrontier({
           cwd: repo,
           encoding: "utf8",
           stdio: ["ignore", "pipe", "pipe"],
+          timeout,
+          killSignal: "SIGKILL",
         }
       )
     );
@@ -1147,7 +1249,7 @@ function graphiteFrontier({
   }
   const result = parseGtBranches(raw).map((branch) => ({
     branches: branch,
-    ...graphitePullRequest({ branch, gt, repo }),
+    ...graphitePullRequest({ branch, gt, repo, timeout }),
   }));
   if (new Set(result.map((row) => row.pr)).size !== result.length) {
     throw new UserError("gt info output contains duplicate pull requests");
@@ -1164,11 +1266,15 @@ function branchSha({
 }): string {
   let raw: string;
   try {
-    raw = execFileSync("git", ["rev-parse", branch], {
-      cwd: repo,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    raw = execFileSync(
+      "git",
+      ["rev-parse", "--verify", `refs/heads/${branch}^{commit}`],
+      {
+        cwd: repo,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      }
+    );
   } catch (error) {
     throw new UserError(
       `git rev-parse ${branch} failed: ${errorMessage(error)}`
@@ -1184,11 +1290,13 @@ function branchSha({
 function resolveFrontier({
   gt,
   repo,
+  timeout,
 }: {
   gt: string;
   repo: string;
+  timeout: number;
 }): readonly FrontierPr[] {
-  return graphiteFrontier({ gt, repo }).map((row) => ({
+  return graphiteFrontier({ gt, repo, timeout }).map((row) => ({
     ...row,
     sha: branchSha({ branch: row.branches, repo }),
   }));
@@ -1521,7 +1629,11 @@ export function openStore(
           throw new UserError("--prs must not contain duplicates");
         }
         const old = await readFrontier(store);
-        const prs = resolveFrontier({ gt: options.gt ?? "gt", repo });
+        const prs = resolveFrontier({
+          gt: options.gt ?? "gt",
+          repo,
+          timeout: options.gtTimeoutMs ?? GT_TIMEOUT_MS,
+        });
         if (pin !== undefined) {
           validateFrontierPin({
             actual: prs.map((row) => row.pr),

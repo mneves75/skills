@@ -47,7 +47,7 @@ describe("commit identity", () => {
     mergeStateStatus: "CLEAN",
     reviewDecision: "APPROVED",
     headRefOid: "head",
-    baseRefOid: "base",
+    baseRef: { target: { oid: "base" } },
     headRefName: "feature",
     baseRefName: "main",
     state: "OPEN",
@@ -56,7 +56,10 @@ describe("commit identity", () => {
   };
 
   it("rejects an open PR without a head or base commit where it is parsed", () => {
-    for (const missing of [{ headRefOid: null }, { baseRefOid: "" }])
+    for (const missing of [
+      { headRefOid: null },
+      { baseRef: { target: { oid: "" } } },
+    ])
       expect(() =>
         parsePullRequest({ ...rawPullRequest, ...missing }, context)
       ).toThrow(WatcherQueryError);
@@ -70,7 +73,7 @@ describe("commit identity", () => {
           state: "MERGED",
           mergedAt: "2026-07-26T00:00:00Z",
           headRefOid: null,
-          baseRefOid: null,
+          baseRef: null,
         },
         context
       )
@@ -115,66 +118,62 @@ describe("commit identity", () => {
   });
 
   it("rejects a changed head even when earlier checks and rollups passed", async () => {
-    const reader = {
-      ...fakeReader(),
-      async revision() {
-        return {
-          context,
-          headRefOid: "replacement",
-          baseRefName: "main",
-          baseRefOid: "base",
-        };
-      },
-    };
+    const reader = fakeReader({ factsOnReread: { headRefOid: "replacement" } });
     await expect(readSnapshot({ ...snapshotArgs, reader })).rejects.toThrow(
-      "PR head or destination changed"
+      "PR changed while collecting head against main: headRefOid head -> replacement"
     );
   });
 
   it("rejects a retarget even when the head and checks remain unchanged", async () => {
-    const reader = {
-      ...fakeReader(),
-      async revision() {
-        return {
-          context,
-          headRefOid: "head",
-          baseRefName: "release",
-          baseRefOid: "base",
-        };
-      },
-    };
+    const reader = fakeReader({ factsOnReread: { baseRefName: "release" } });
     await expect(readSnapshot({ ...snapshotArgs, reader })).rejects.toThrow(
-      "PR head or destination changed"
+      "PR changed while collecting"
     );
   });
 
   it("rejects base movement with the same head and base branch", async () => {
+    const reader = fakeReader({ factsOnReread: { baseRefOid: "advanced" } });
+    await expect(readSnapshot({ ...snapshotArgs, reader })).rejects.toThrow(
+      "PR changed while collecting"
+    );
+  });
+
+  it("detects current base movement when the PR's scalar base OID stays stale", async () => {
+    const base = fakeReader();
+    let reads = 0;
     const reader = {
-      ...fakeReader(),
-      async revision() {
-        return {
-          context,
-          headRefOid: "head",
-          baseRefName: "main",
-          baseRefOid: "advanced",
-        };
+      ...base,
+      async pullRequest(requested: typeof context) {
+        const baseRefOid = reads++ === 0 ? "base" : "advanced";
+        return parsePullRequest(
+          {
+            ...rawPullRequest,
+            baseRefOid: "stale-base",
+            baseRef: { target: { oid: baseRefOid } },
+          },
+          requested
+        );
       },
     };
     await expect(readSnapshot({ ...snapshotArgs, reader })).rejects.toThrow(
-      "PR head or destination changed"
+      "PR changed while collecting"
     );
   });
 
   it("cannot report ready when the destination query is unavailable", async () => {
+    const base = fakeReader();
+    let reads = 0;
     const reader = {
-      ...fakeReader(),
-      async revision() {
-        throw new WatcherQueryError({
-          kind: "command-exit",
-          retryable: true,
-          code: 1,
-          detail: "destination unavailable",
-        });
+      ...base,
+      async pullRequest(requested: typeof context) {
+        if (++reads > 1)
+          throw new WatcherQueryError({
+            kind: "command-exit",
+            retryable: true,
+            code: 1,
+            detail: "destination unavailable",
+          });
+        return base.pullRequest(requested);
       },
     };
     const verdict = await runSimple({
@@ -196,18 +195,13 @@ describe("commit identity", () => {
   });
 
   it("retries a changed head and only proves the stable observation", async () => {
-    let reads = 0;
-    const reader = {
-      ...fakeReader(),
-      async revision() {
-        return {
-          context,
-          baseRefOid: "base",
-          headRefOid: ++reads === 1 ? "replacement" : "head",
-          baseRefName: "main",
-        };
-      },
-    };
+    const reader = fakeReader({
+      factsOnReread: { headRefOid: "replacement" },
+      commitRollups: [
+        { oid: "head", state: "SUCCESS" },
+        { oid: "replacement", state: "SUCCESS" },
+      ],
+    });
     const verdict = await runSimple({
       dependencies: {
         reader,
@@ -220,7 +214,9 @@ describe("commit identity", () => {
       statusOnly: false,
       options,
     });
-    expect(reads).toBe(2);
+    expect(reader.calls.filter((call) => call === "pullRequest")).toHaveLength(
+      4
+    );
     expect(verdict).toMatchObject({
       kind: "READY",
       scope: {
@@ -228,7 +224,7 @@ describe("commit identity", () => {
           proof: {
             revision: {
               context,
-              headRefOid: "head",
+              headRefOid: "replacement",
               baseRefName: "main",
               baseRefOid: "base",
             },
@@ -248,7 +244,7 @@ describe("stack branch ambiguity", () => {
   });
 
   it("ignores duplicate heads outside the requested stack", () => {
-    const result = orderStack(context, [
+    const result = orderStack(context, "main", [
       pr(1, "feature", "main"),
       pr(2, "hotfix", "main"),
       pr(3, "hotfix", "release"),
@@ -262,13 +258,16 @@ describe("stack branch ambiguity", () => {
 
   it("keeps a missing seed independent of unrelated duplicate heads", () => {
     expect(
-      orderStack(context, [pr(2, "hotfix", "main"), pr(3, "hotfix", "release")])
+      orderStack(context, "main", [
+        pr(2, "hotfix", "main"),
+        pr(3, "hotfix", "release"),
+      ])
     ).toEqual([context]);
   });
 
   it("rejects an ambiguous downstack parent", () => {
     expect(() =>
-      orderStack(context, [
+      orderStack(context, "main", [
         pr(1, "feature", "hotfix"),
         pr(2, "hotfix", "main"),
         pr(3, "hotfix", "release"),
@@ -278,7 +277,7 @@ describe("stack branch ambiguity", () => {
 
   it("rejects an ambiguous parent when traversing descendants", () => {
     expect(() =>
-      orderStack(context, [
+      orderStack(context, "main", [
         pr(1, "feature", "main"),
         pr(2, "hotfix", "feature"),
         pr(3, "hotfix", "release"),
@@ -290,7 +289,7 @@ describe("stack branch ambiguity", () => {
 
 it("rejects a repository-local cycle without walking forever", () => {
   expect(() =>
-    orderStack(context, [
+    orderStack(context, "main", [
       {
         number: context.number,
         headRepository: context,
@@ -308,7 +307,7 @@ it("rejects a repository-local cycle without walking forever", () => {
 });
 
 it("includes a fork PR whose base genuinely depends on a local parent", () => {
-  const result = orderStack(context, [
+  const result = orderStack(context, "main", [
     {
       number: context.number,
       headRepository: context,
@@ -329,7 +328,7 @@ it("includes a fork PR whose base genuinely depends on a local parent", () => {
 });
 
 it("does not attach children to a same-named branch in a fork", () => {
-  const result = orderStack(context, [
+  const result = orderStack(context, "main", [
     {
       number: context.number,
       headRepository: { owner: "fork", repo: "repo" },
@@ -382,7 +381,7 @@ describe("deadline", () => {
       expect(now).toBe(1);
       expect(
         reader.calls.filter((call) => call === "pullRequest")
-      ).toHaveLength(1);
+      ).toHaveLength(2);
     });
   }
 
@@ -698,6 +697,10 @@ describe("merge gate", () => {
       "merge-blocked",
       "find the branch protection rule holding the merge (mergeStateStatus=BLOCKED with clean CI)",
     ],
+    [
+      "behind-base",
+      "update the branch with its base before waiting for the merge queue (mergeStateStatus=BEHIND)",
+    ],
   ] as const)
     it(`renders the ${reason} action`, () => {
       expect(
@@ -713,6 +716,26 @@ describe("merge gate", () => {
         })
       ).toBe(`BLOCKER: ${reason}\npr=1\naction=${action}\n`);
     });
+
+  it("shows a branch behind its base in the status table", async () => {
+    const row = await readSnapshot({
+      ...snapshotArgs,
+      reader: fakeReader({ facts: { mergeStateStatus: "BEHIND" } }),
+    });
+    expect(
+      renderPretty({
+        schemaVersion: 1,
+        sequence: 1,
+        observedAt: "fixture",
+        mode: "single",
+        kind: "STATUS",
+        terminal: true,
+        exitCode: 0,
+        reason: "status-only",
+        rows: [row],
+      })
+    ).toContain("| ⚠️ behind base |");
+  });
 });
 
 describe("blocker producers", () => {
@@ -811,10 +834,11 @@ describe("landing validators", () => {
     [
       "parseLandingRevision",
       () =>
-        parseLandingRevision(
-          { headRefOid: "head", baseRefName: "main" },
-          context
-        ),
+        parseLandingRevision({
+          context,
+          headRefOid: "head",
+          baseRefName: "main",
+        }),
       "baseRefOid must be a non-empty string",
     ],
   ] as const)
@@ -844,7 +868,7 @@ describe("landing validators", () => {
             mergeStateStatus: "CLEAN",
             reviewDecision: "APPROVED",
             headRefOid: null,
-            baseRefOid: "base",
+            baseRef: { target: { oid: "base" } },
             headRefName: "feature",
             baseRefName: "main",
             state: "OPEN",

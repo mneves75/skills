@@ -8,6 +8,7 @@ import {
   type LandingRecord,
   type ShippingService,
 } from "./shipping.ts";
+import { fakeGitHub } from "./shipping.test-helper.ts";
 
 const context = { owner: "owner", repo: "repo", number: parsePrNumber(1) };
 const empty: LandingRecord = {
@@ -179,7 +180,7 @@ const raw = {
   state: "OPEN",
   headRefOid: "head",
   baseRefName: "main",
-  baseRefOid: "base",
+  baseRef: { target: { oid: "base" } },
   autoMergeRequest: null,
   mergeQueueEntry: null,
   mergeCommit: null,
@@ -189,6 +190,18 @@ const response = (pullRequest: unknown) => ({
 });
 
 describe("shipping GitHub boundary", () => {
+  it("reads the current base target instead of the PR's stored base OID", async () => {
+    let query = "";
+    const service = new GhShippingService(async (args) => {
+      query = args.find((arg) => arg.startsWith("query=")) ?? "";
+      return response(raw);
+    });
+    expect(await service.inspect(context)).toMatchObject({
+      revision: { baseRefOid: "base" },
+    });
+    expect(query).toContain("baseRef { target { oid } }");
+  });
+
   it("parses the complete record and distinguishes queue-only pending state", async () => {
     const service = new GhShippingService(async () =>
       response({ ...raw, mergeQueueEntry: { id: "queued" } })
@@ -200,7 +213,7 @@ describe("shipping GitHub boundary", () => {
   });
 
   for (const field of [
-    "baseRefOid",
+    "baseRef",
     "autoMergeRequest",
     "mergeQueueEntry",
     "mergeCommit",
@@ -227,28 +240,79 @@ describe("shipping GitHub boundary", () => {
   });
 
   it("uses separate mutations for both pending mechanisms", async () => {
-    let autoMergeRequest: { enabledAt: string } | null = { enabledAt: "now" };
-    let mergeQueueEntry: { id: string } | null = { id: "queue" };
-    const service = new GhShippingService(async (args) => {
-      const query = args.find((arg) => arg.startsWith("query=")) ?? "";
-      if (query.includes("disablePullRequestAutoMerge")) {
-        expect(args).toContain("id=pr-id");
-        autoMergeRequest = null;
-        return {
-          data: { disablePullRequestAutoMerge: { clientMutationId: null } },
-        };
-      }
-      if (query.includes("dequeuePullRequest")) {
-        expect(args).toContain("id=pr-id");
-        mergeQueueEntry = null;
-        return { data: { dequeuePullRequest: { clientMutationId: null } } };
-      }
-      return response({ ...raw, autoMergeRequest, mergeQueueEntry });
-    });
+    const pullRequest = {
+      ...raw,
+      autoMergeRequest: { enabledAt: "now" },
+      mergeQueueEntry: { id: "queue" },
+    };
+    const service = new GhShippingService(async (args) =>
+      fakeGitHub(pullRequest, args)
+    );
     const expected = await service.inspect(context);
     expect(await cancelPending(service, expected)).toEqual({
       kind: "cancelled",
       record: empty,
+    });
+  });
+
+  it("stops before dequeue when the current base moves during readback", async () => {
+    const reads = [
+      {
+        ...raw,
+        baseRef: { target: { oid: "base" } },
+        autoMergeRequest: { enabledAt: "now" },
+        mergeQueueEntry: { id: "queue" },
+      },
+      {
+        ...raw,
+        baseRef: { target: { oid: "base" } },
+        autoMergeRequest: { enabledAt: "now" },
+        mergeQueueEntry: { id: "queue" },
+      },
+      {
+        ...raw,
+        baseRef: { target: { oid: "advanced" } },
+        autoMergeRequest: null,
+        mergeQueueEntry: { id: "queue" },
+      },
+      {
+        ...raw,
+        baseRef: { target: { oid: "advanced" } },
+        autoMergeRequest: null,
+        mergeQueueEntry: null,
+      },
+    ];
+    const mutations: string[] = [];
+    const service = new GhShippingService(async (args) => {
+      const query = args.find((arg) => arg.startsWith("query=")) ?? "";
+      if (query.includes("disablePullRequestAutoMerge")) {
+        mutations.push("disable");
+        return { data: { disablePullRequestAutoMerge: {} } };
+      }
+      if (query.includes("dequeuePullRequest")) {
+        mutations.push("dequeue");
+        return { data: { dequeuePullRequest: {} } };
+      }
+      const pullRequest = reads.shift();
+      if (!pullRequest) throw new Error("unexpected inspection");
+      return response(pullRequest);
+    });
+    const expected = await service.inspect(context);
+
+    expect(await cancelPending(service, expected)).toMatchObject({
+      kind: "changed",
+      expected: { revision: { baseRefOid: "base" } },
+      observed: { revision: { baseRefOid: "advanced" } },
+    });
+    expect(mutations).toEqual(["disable"]);
+  });
+
+  it("treats a null base ref as unavailable for an open PR", async () => {
+    const service = new GhShippingService(async () =>
+      response({ ...raw, baseRef: null, baseRefOid: "stored-base" })
+    );
+    expect(await inspectLanding(service, context)).toMatchObject({
+      kind: "unavailable",
     });
   });
 
@@ -271,8 +335,8 @@ describe("shipping validation detail", () => {
     ],
     [
       "an empty base commit",
-      { ...raw, baseRefOid: "" },
-      "baseRefOid must be a non-empty string",
+      { ...raw, baseRef: { target: { oid: "" } } },
+      "baseRef.target.oid must be a non-empty string",
     ],
     [
       "a malformed queue entry",

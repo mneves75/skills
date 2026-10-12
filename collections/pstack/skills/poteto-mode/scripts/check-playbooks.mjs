@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { existsSync, readdirSync, readFileSync, realpathSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -15,7 +15,7 @@ export function checkPlaybooks(root, bundled = BUNDLED) {
   const problems = [];
   for (const name of readdirSync(dir).filter((file) => file.endsWith(".md")).sort()) {
     const path = `.agents/playbooks/${name}`;
-    const text = readFileSync(join(dir, name), "utf8").replaceAll("\r\n", "\n");
+    const text = readFileSync(join(dir, name), "utf8").replace(/^\uFEFF/, "").replaceAll("\r\n", "\n");
     const front = text.match(/^---\n([\s\S]*?)\n---\n/)?.[1] ?? "";
     const field = (key) => front.match(new RegExp(`^${key}:[ \\t]*(.*)$`, "m"))?.[1].trim() ?? "";
     if (!field("when")) problems.push(`${path}: its frontmatter needs a "when:" line`);
@@ -25,7 +25,8 @@ export function checkPlaybooks(root, bundled = BUNDLED) {
       .filter(Boolean)
       .map((stem) => {
         const file = join(bundled, `${stem}.md`);
-        return { stem, text: existsSync(file) ? readFileSync(file, "utf8") : null };
+        const known = !/[\\/]/.test(stem) && existsSync(file);
+        return { stem, text: known ? readFileSync(file, "utf8") : null };
       });
     for (const base of bases) {
       if (base.text === null) problems.push(`${path}: extends \`${base.stem}\`, which this pstack has no playbook for`);
@@ -54,11 +55,17 @@ function invokedDirectly() {
 }
 
 if (invokedDirectly()) {
-  const problems = checkPlaybooks(resolve(process.argv[2] ?? "."));
+  const root = resolve(process.argv[2] ?? ".");
+  const directory = join(root, ".agents/playbooks");
+  const problems = statSync(root, { throwIfNoEntry: false })?.isDirectory()
+    ? checkPlaybooks(root)
+    : [`${root} is not a directory`];
   if (problems.length > 0) {
     console.error(problems.join("\n"));
     process.exitCode = 1;
-  } else {
+  } else if (existsSync(directory)) {
     console.log("Every project playbook matches this pstack's playbooks.");
+  } else {
+    console.log(`No project playbooks to check: ${directory} does not exist.`);
   }
 }

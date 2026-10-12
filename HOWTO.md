@@ -566,7 +566,7 @@ writes and deployments retain the host's authorization rules.
 
 ## pstack collection
 
-[`collections/pstack`](collections/pstack/) adds 32 skills from Lauren Tan's pstack. It is not
+[`collections/pstack`](collections/pstack/) adds 33 skills from Lauren Tan's pstack. It is not
 part of the install above:
 
 ```bash
