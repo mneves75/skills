@@ -56,6 +56,13 @@ record and certificate.
 Done when the served commit matches on repeated reads over a short backoff. When a zone rule
 caches HTML, purge it and read again.
 
+**A static site with a single-page fallback answers 200 to everything.** With
+`not_found_handling` set to `single-page-application`, every GET returns the HTML shell,
+including a missing asset and a path that should not exist.
+Done when the live proof checks that the entry script comes back as JavaScript, and its
+negative control is a method the site refuses (for example `OPTIONS /` answering 405), not a
+missing path.
+
 **Schedules match the configuration.**
 Done when the cron list the platform reports for the deployed Worker equals `triggers.crons`
 for that environment. Documentation that says a schedule changed is a claim; the platform's

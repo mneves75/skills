@@ -34,7 +34,9 @@ choice: a two-line shell wrapper around an existing script conforms.
 8. **Tag after proof.** `vX.Y.Z-betaN` once staging passes, `vX.Y.Z` once production passes.
    A pushed tag is never moved.
 9. **Evidence.** It writes `release.json`: target, tag, version, commit, deployed and previous
-   version ids, waivers, URL and UTC time. Prose ledgers link to that file.
+   version ids, waivers, URL and UTC time. A prose ledger records what that file says. The
+   file itself usually sits in an ignored run directory, so a committed ledger copies its
+   values.
 10. **`--check`** prints the plan (target, version, commit, tag, URL) and exits. It builds,
     deploys and tags nothing. It may fetch from the remote and read the live staging page.
 
