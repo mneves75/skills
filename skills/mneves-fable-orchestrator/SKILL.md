@@ -23,7 +23,8 @@ whole skill.
 | Ordinary worker | Scoped implementation and routine inherited agents |
 | Bounded worker | Search, summaries, writing, and mechanically checkable tasks |
 | Heavy executor | Difficult debugging, architecture, or refactors needing stronger execution |
-| Plan advisor | Read-only review of the Claude main session's plan before a decision with real downside; nothing else |
+| Planner | Develop the plan before implementation; does not execute the changes |
+| Plan advisor | Read-only review of a plan before a decision with real downside; nothing else |
 | Reviewer | Independent review of a fixed Git target (`autoreview` when installed) |
 | Specialist | Deliberate comparison or capability-specific work |
 
@@ -36,15 +37,15 @@ before it can perform ordinary implementation.
 The only place this skill names models. Edit this block on a model release; nothing else.
 
 ```
-main session      = Sonnet, latest release (Claude alias `sonnet`), reasoning high, with an Opus advisor (Claude `advisorModel` alias `opus`) | gpt-6.1-sol, reasoning medium (Codex orchestrator)
-frontend subagent = Opus, latest release (Claude subagent alias `opus`)
-ordinary worker   = Sonnet, latest release (Claude subagent alias `sonnet`), reasoning high | gpt-6.1-sol, reasoning medium (Codex worker)
-bounded worker    = gpt-6-luna, reasoning medium (bounded Codex task)
-heavy executor    = Sonnet, latest release (Claude subagent alias `sonnet`), reasoning high | gpt-6.1-sol, reasoning high (Codex worker)
-reviewer          = gpt-6.1-sol, reasoning high  (autoreview's routine Codex default)
-reviewer fallback = gpt-6-astra, reasoning high  (autoreview retries once after an account access failure)
-plan advisor      = gpt-6-astra, reasoning xhigh  (reviews the Claude main session's plans only)
-specialist        = gpt-6-astra, reasoning xhigh  (explicit difficult or independent specialist review)
+main session      = gpt-6.1-sol, reasoning xhigh (Codex orchestrator)
+frontend subagent = gpt-6.1-sol, reasoning xhigh (Codex worker)
+ordinary worker   = gpt-6.1-sol, reasoning xhigh (Codex worker)
+bounded worker    = gpt-6.1-sol, reasoning xhigh (bounded Codex task)
+heavy executor    = gpt-6.1-sol, reasoning xhigh (Codex worker)
+reviewer          = gpt-6.1-sol, reasoning xhigh (autoreview's Codex default; no model fallback)
+planner           = gpt-6-astra, reasoning high (planning)
+plan advisor      = gpt-6-astra, reasoning high (advice and plan review)
+specialist        = gpt-6.1-sol, reasoning xhigh (specialist execution or review)
 ```
 
 Verified against the vendor model lists on 2026-10-04; a release re-verifies every id above and
@@ -71,9 +72,10 @@ Use fresh context and a self-contained brief for an independent worker; continue
 worker for corrections to its task. Routine direct work stays in the main session.
 
 Use the reviewer only when the user, repository, or risk requires independent review. A
-different-model requirement needs an explicitly selected specialist; ordinary review defaults
-do not satisfy it automatically. The plan advisor serves only the Claude main session's plans;
-it does not execute implementations or Codex reviews.
+different-model requirement needs an explicitly selected reviewer allowed by the host policy;
+ordinary review defaults do not satisfy it automatically. If none is available, report the
+gate as blocked. The planner and plan advisor serve planning and advice only; they do not
+execute implementations or code reviews.
 
 For a Codex dispatch from another harness, one round is `codex exec`, and `tools/codex-lane`
 (shipped here) keeps a thread alive across rounds. `codex-auto` appears in the reference as a

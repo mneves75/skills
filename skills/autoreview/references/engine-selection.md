@@ -17,8 +17,8 @@ Reasoning levels are validated per model before preparation; an explicitly selec
 
 Codex is the default engine. The helper owns the default model and reasoning tier and
 prints them at startup; run `--help` for the current values rather than assuming them.
-An account-access failure retries once on the configured fallback at its own reasoning tier;
-a primary reasoning override leaves that fallback untouched.
+Codex review has no automatic model fallback. Account-access failures are reported without
+switching to an advisory or planning model. Explicit caller overrides remain authoritative.
 
 ## Optional engine prerequisites
 

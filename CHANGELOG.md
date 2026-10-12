@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Codex model routing**: planning and read-only advice use Astra with high reasoning;
+  execution, discovery, frontend work, specialists and code review use Sol with xhigh
+  reasoning. Autoreview no longer falls back to an advisory model on account-access failures.
+- **pstack routing**: regenerated Codex and Pi execution mappings and effort defaults from
+  their owning source. The exported local patch now includes model configuration, generator
+  changes and their tests so rebuilding the collection preserves the routing policy.
+
 ### Added
 
 - **`mneves-ship-deploy` release contract**: `references/release-contract.md` defines two entry

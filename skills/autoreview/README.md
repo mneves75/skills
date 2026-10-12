@@ -20,10 +20,10 @@ python3 /path/to/autoreview/scripts/autoreview --mode local --max-priority P3
 ```
 
 The helper owns the default model and reasoning tier and prints them at startup; `--help`
-reports the current values. A confirmed account-access failure retries once on the fallback. Rate limits, capacity failures, scanner refusals,
-and invalid reports do not trigger that fallback. A custom primary model disables it.
+reports the current values. Codex review does not fall back to another model on account-access,
+rate-limit or capacity failures, scanner refusals, or invalid reports.
 `--model` and `--thinking` override environment settings; environment settings override
-the defaults. The fallback effort remains `high` when primary effort is overridden.
+the defaults. Planning and advisory models are never automatic review fallbacks.
 The built-in severity threshold remains P0; pass P3 for a review including lower priorities.
 
 Inputs are sent to the selected provider. Scanning credentials does not make private business

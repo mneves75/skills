@@ -114,7 +114,9 @@ local_commits=$(git -C "$src" rev-list --count "$base..$sha")
 printf 'source: %s\ncommit: %s\nbased-on: %s\nlocal-commits: %s\nversion: %s\n' \
   "$origin" "$sha" "$base" "$local_commits" "$version" > "$stage/UPSTREAM"
 if [ "$local_commits" -gt 0 ]; then
-  git -C "$src" diff --binary "$base" "$sha" -- plugins/pstack/skills > "$stage/local-overrides.patch"
+  git -C "$src" diff --binary "$base" "$sha" -- \
+    plugins/pstack/skills plugins/pstack/models.json tools/runtimes.mjs \
+    tests/models.test.mjs > "$stage/local-overrides.patch"
 fi
 
 mkdir -p "$dest"

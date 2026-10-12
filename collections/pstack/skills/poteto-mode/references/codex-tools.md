@@ -44,9 +44,10 @@ poteto-mode's Subagents section sets Claude-specific defaults (`subagent_type: "
 
 Skills name Claude defaults (a single-role default for code/prose/judgment plus a diverse-model panel for diverse-model panels; each model-consuming skill lists its own in a Models section). These slugs do not resolve on Codex. Substitute your configured Codex models:
 
-- Single-model roles: your primary Codex model (for example `gpt-6-sol`).
-- Roles that default to the strongest Claude model (`bug-fix`, `perf-issue`, `hillclimb`, `strongest judgment`): your strongest Codex model (for example `gpt-6-astra`).
-- Diverse-model panels (`arena`, `architect`, `interrogate`, `how` critics, `reflect`): the adversarial signal comes from model diversity, so use the distinct Codex models available to you. A good default panel on ChatGPT is `gpt-6-astra`, `gpt-6-sol`, `gpt-6-luna`. If only one model family is reachable, vary reasoning effort and note in the verdict that diversity was reduced.
+- Single-model execution roles: `gpt-6.1-sol` at `xhigh` reasoning.
+- Roles that default to the strongest Claude model (`bug-fix`, `perf-issue`, `hillclimb`, `strongest judgment`): `gpt-6.1-sol` at `xhigh` reasoning.
+- Execution and review panels (`arena`, `interrogate`, `how` critics, `reflect`): use `gpt-6.1-sol` at `xhigh` reasoning. Note reduced model diversity when every participant uses the same model; independent contexts do not provide cross-model independence.
+- Planning (`architect`) and read-only advice: select the host's dedicated planning/advisor route and its effort, rather than an execution alias. Never use that route for implementation or code review.
 
 `/setup-pstack` writes the configured model list. On Codex, set it to your Codex model slugs.
 

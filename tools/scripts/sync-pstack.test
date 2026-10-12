@@ -80,6 +80,10 @@ check "a failed run leaves the collection untouched" '[ "$before" = "$(snapshot)
 fork="$work/fork"
 git clone -q "$src" "$fork"
 echo "local note" > "$fork/plugins/pstack/skills/alpha/LOCAL.md"
+printf '%s\n' '{"codex":{"default":"gpt-6.1-sol"}}' > "$fork/plugins/pstack/models.json"
+mkdir -p "$fork/tools" "$fork/tests"
+printf '%s\n' 'export const effort = "xhigh";' > "$fork/tools/runtimes.mjs"
+printf '%s\n' 'test("routing", () => {});' > "$fork/tests/models.test.mjs"
 git -C "$fork" add -A
 git -C "$fork" -c user.email=t@t -c user.name=t commit -qm "local override"
 fork_dest="$work/fork-dest"
@@ -93,6 +97,7 @@ replay="$work/replay"
 git clone -q "$src" "$replay"
 git -C "$replay" apply "$fork_dest/local-overrides.patch" 2>/dev/null || true
 check "the patch rebuilds the fork from the published commit" 'diff -r "$replay/plugins/pstack/skills" "$fork/plugins/pstack/skills" >/dev/null'
+check "the patch preserves the routing source and its test" 'cmp "$replay/plugins/pstack/models.json" "$fork/plugins/pstack/models.json" && cmp "$replay/tools/runtimes.mjs" "$fork/tools/runtimes.mjs" && cmp "$replay/tests/models.test.mjs" "$fork/tests/models.test.mjs"'
 check "an unforked sync ships no patch" '[ ! -e "$dest/local-overrides.patch" ]'
 
 # The origin URL is published in UPSTREAM: credentials and local paths must never ship.

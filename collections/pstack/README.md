@@ -127,6 +127,11 @@ No other names collide.
 
 ## Re-sync
 
+Codex execution and review use Sol with xhigh reasoning. Planning and advice use the
+host's dedicated advisor route. OpenAI Pi aliases also resolve to Sol; panels report
+reduced model diversity. The local patch includes the owning model configuration,
+generator changes and routing tests so replay preserves this policy.
+
 From a pstack-claude checkout that is fetched and rebased onto its upstream:
 
 ```bash

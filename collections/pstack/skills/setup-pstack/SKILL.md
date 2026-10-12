@@ -72,7 +72,7 @@ swarm workers: opus
 architect runners: opus, fable
 interrogate reviewers: opus, fable
 
-default effort: session
+default effort: xhigh
 session hook: on
 ```
 
@@ -106,5 +106,5 @@ Stamped from `plugins/pstack/models.json` (edit there, rerun `tools/generate.mjs
 - Available Claude models: `opus`, `fable`
 - Default panel: `opus`, `fable`
 - Reasoning effort levels: `low`, `medium`, `high`, `xhigh`, `max`
-- Default reasoning effort: `session`
+- Default reasoning effort: `xhigh`
 - Single-role default: `opus`

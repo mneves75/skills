@@ -44,8 +44,8 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 
 **What it does.** Freezes the chosen Git target, scans the outgoing input, runs a reviewer in
 an isolated environment, validates its report, and rejects results if sources changed mid-review.
-The helper prints its default model and reasoning tier at startup; one retry on the fallback
-is reserved for account-access failures.
+The helper prints its default model and reasoning tier at startup; Codex review has no
+automatic model fallback on account-access failures.
 
 **Example** (illustrative; replace the installed path).
 
@@ -240,7 +240,7 @@ checked for saying what the claim says. Security: an independent audit.
 ```
 Verdict: FAIL
 Builder: claude-fable-5 / Edit, Bash / session 3f2a
-Verifier: gpt-6-astra / xhigh reasoning / read-only sandbox / fresh context
+Verifier: gpt-6.1-sol / xhigh reasoning / read-only sandbox / fresh context
 Different model required: yes (touches billing)
 Different model used: yes
 Criterion 1 — refund endpoint rejects amounts above the original charge: PASS — 3 unit tests + curl with 101% amount returned 422
@@ -267,14 +267,11 @@ the loop ends. Findings map to *fixed*, *disproved* or *blocked*, nothing else.
 ## mneves-fable-orchestrator
 
 **What it does.** Routes non-trivial work across the main session, Codex, and subagents when
-delegation creates independent progress or evidence. In Claude Code the main session is the
-latest Sonnet at `high` with the latest Opus as its advisor, frontend work goes to a subagent on
-the latest Opus, and other Claude subagents run the latest Sonnet at `high`. In Codex the main
-session and ordinary workers use `gpt-6.1-sol` at `medium`; bounded tasks use `gpt-6-luna`
-at `medium`, and difficult execution uses `gpt-6.1-sol` at `high`.
-Routine review uses `gpt-6.1-sol` at `high`, with one access-only fallback to `gpt-6-astra`
-at `high`. An explicit specialist or different-model review uses `gpt-6-astra` at `xhigh`,
-which also advises on the Claude main session's plans. Caller overrides and actual host
+delegation creates independent progress or evidence. Planning and read-only advice use
+`gpt-6-astra` at `high`; all Codex execution, discovery, frontend work, specialist work and
+code review use `gpt-6.1-sol` at `xhigh`. Codex review has no automatic model fallback.
+Other harnesses bind these roles through Codex dispatch when available; the portable defaults
+do not change a running harness's main-session model. Caller overrides and actual host
 configuration take precedence; the skill's Defaults block owns its portable defaults.
 See [usage-efficiency.md](docs/usage-efficiency.md) for compact prompts and measurement limits.
 `codex-lane` keeps one Codex thread alive across rounds so

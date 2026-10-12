@@ -203,8 +203,10 @@ class CodexInferenceRouteTests(unittest.TestCase):
         self.catalogue_bytes = json.dumps(catalogue).encode()
         self.catalogue.write_bytes(self.catalogue_bytes)
 
-    def test_primary_only_catalogue_keeps_normal_fallback_and_frozen_route(self):
+    def test_primary_only_catalogue_keeps_route_and_never_falls_back(self):
         self.use_default_models()
+        self.assertEqual(self.args.thinking, "xhigh")
+        self.assertIsNone(self.args.fallback_model)
         self.write_config()
         original = self.catalogue_bytes
         events = []
@@ -219,16 +221,17 @@ class CodexInferenceRouteTests(unittest.TestCase):
             self.assert_auth_command(observed, self.runtime_helper)
             launchers.append(observed["auth_command"])
             if selected == "gpt-6.1-sol":
-                # A retry keeps the prepared route even if operator files change.
+                # Operator changes after sending must not trigger a new route.
                 self.catalogue.write_bytes(b"changed after primary send")
                 (self.home / "config.toml").write_text('model_provider = "another-route"')
                 return subprocess.CompletedProcess(
                     command, 1, "", "The model gpt-6.1-sol does not exist or you do not have access to it.",
                 )
 
-        self.run_review(during_run=respond, scan=lambda *_: events.append("scan"))
-        self.assertEqual(events, ["gpt-6.1-sol", "scan", "gpt-6-astra"])
-        self.assertEqual(launchers[0], launchers[1])
+        with self.assertRaisesRegex(SystemExit, "provider-access; provider diagnostics suppressed"):
+            self.run_review(during_run=respond, scan=lambda *_: events.append("scan"))
+        self.assertEqual(events, ["gpt-6.1-sol"])
+        self.assertEqual(len(launchers), 1)
 
     def test_primary_only_catalogue_does_not_block_successful_primary(self):
         self.use_default_models()
@@ -638,7 +641,7 @@ class CodexInferenceRouteTests(unittest.TestCase):
 
         self.assertEqual(self.run_review(during_run=stream)["report"], '{"findings": []}')
 
-    def test_command_auth_missing_report_and_failed_retry_do_not_return_diagnostics(self):
+    def test_command_auth_missing_report_and_access_failure_do_not_return_diagnostics(self):
         self.write_config()
         marker = "synthetic-private-diagnostic"
         for stream_output in (False, True):
@@ -656,18 +659,17 @@ class CodexInferenceRouteTests(unittest.TestCase):
 
         self.use_default_models()
         attempts = []
-        def fail_retry(observed):
+        def fail_access(observed):
             attempts.append(observed["command"])
-            diagnostic = (f"The model {self.args.model} does not exist or you do not have access to it."
-                          if len(attempts) == 1 else "provider auth command failed")
+            diagnostic = f"The model {self.args.model} does not exist or you do not have access to it."
             return subprocess.CompletedProcess(observed["command"], 1, marker, diagnostic + "\n" + marker)
 
         console = io.StringIO()
         with contextlib.redirect_stderr(console), self.assertRaises(SystemExit) as caught:
-            self.run_review(during_run=fail_retry)
-        self.assertEqual(len(attempts), 2)
+            self.run_review(during_run=fail_access)
+        self.assertEqual(len(attempts), 1)
         self.assertNotIn(marker, console.getvalue())
-        self.assertEqual(str(caught.exception), "codex engine failed: provider-auth-helper; provider diagnostics suppressed")
+        self.assertEqual(str(caught.exception), "codex engine failed: provider-access; provider diagnostics suppressed")
 
     def test_default_route_keeps_diagnostic_streaming_and_stdout_fallback(self):
         self.args.codex_config = []

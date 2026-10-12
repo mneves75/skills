@@ -617,7 +617,7 @@ class AutoreviewAmpTests(unittest.TestCase):
         reviewer = AUTOREVIEW.reviewer_args(args)[0]
         self.assertEqual(reviewer.amp_bin, "/tmp/trusted-amp")
         self.assertEqual(reviewer.model, "openai/gpt-6.1-sol")
-        self.assertEqual(reviewer.thinking, "high")
+        self.assertEqual(reviewer.thinking, "xhigh")
         self.assertFalse(reviewer.tools)
 
     @unittest.skipIf(os.name == "nt", "Amp runtime is unsupported on native Windows")
@@ -1265,7 +1265,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(sys, "argv", argv):
                     reviewer = AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())[0]
                 self.assertEqual(reviewer.model, "gpt-6-astra")
-                self.assertEqual(reviewer.thinking, effort or "high")
+                self.assertEqual(reviewer.thinking, effort or "xhigh")
                 # An explicit specialist route must not silently change models.
                 self.assertIsNone(reviewer.fallback_model)
 
@@ -1285,7 +1285,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 reviewer = AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())[0]
                 self.assertEqual(reviewer.model, "gpt-6.1-sol")
                 self.assertEqual(reviewer.thinking, effort)
-                self.assertEqual(reviewer.fallback_model, "gpt-6-astra")
+                self.assertIsNone(reviewer.fallback_model)
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -1475,8 +1475,8 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
 
     def test_codex_defaults_and_overrides(self) -> None:
         for options, model, thinking, fallback in (
-            ([], "gpt-6.1-sol", "high", "gpt-6-astra"),
-            (["--thinking", "medium"], "gpt-6.1-sol", "medium", "gpt-6-astra"),
+            ([], "gpt-6.1-sol", "xhigh", None),
+            (["--thinking", "medium"], "gpt-6.1-sol", "medium", None),
             (["--model", "custom-model", "--thinking", "low"], "custom-model", "low", None),
         ):
             with self.subTest(options=options), mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
@@ -1524,7 +1524,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                     self.assertEqual(kwargs["input_text"], prompt)
                     model = command[command.index("--model") + 1]
                     events.append(model)
-                    effort = "xhigh" if model == "gpt-6-astra" else "high"
+                    effort = "xhigh"
                     self.assertIn(f'model_reasoning_effort="{effort}"', command)
                     if model == "gpt-6-astra":
                         if failure == "missing":
