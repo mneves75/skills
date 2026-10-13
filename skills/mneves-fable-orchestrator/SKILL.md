@@ -112,6 +112,13 @@ output. Review guard, budget, fixture, and test-helper edits closely because the
 check rather than fix the behavior; a commit message you did not commission is a lead. Check the brief's assumptions and production rules; test
 existence is not a substitute for the required behavior.
 
+Bind each claim to the right task, project/session and source revision before accepting it.
+Inspect the cited artifact and reconcile the strongest counterexample; a missing record or
+an unused instruction is not proof of a workflow defect. Check the format and coverage of a
+collector before making absence claims. Label measured facts, estimates and unknowns; do not
+infer savings from instruction size or attribute total session usage to one task without proof.
+Retrieve bounded relevant excerpts, keeping full critical output locally when needed.
+
 Use an independent fresh-context review when risk, the repository, or the user requires it; it
 runs on the reviewer role. `autoreview` is a sibling skill in this repository, not shipped with
 this one; without it, run the reviewer model read-only on the diff with a self-contained brief.

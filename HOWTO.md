@@ -378,6 +378,9 @@ Other harnesses bind these roles through Codex dispatch when available; the port
 do not change a running harness's main-session model. Caller overrides and actual host
 configuration take precedence; the skill's Defaults block owns its portable defaults.
 See [usage-efficiency.md](docs/usage-efficiency.md) for compact prompts and measurement limits.
+Before accepting delegated claims, check task/project/source identity, actual evidence and
+counterexamples. The guide's optional one-task receipt reuses the final report; it adds no gate
+and treats unavailable timing or usage as unknown.
 `codex-lane` keeps one Codex thread alive across rounds so
 follow-ups reuse the executor's reasoning instead of restarting from a fresh spec.
 

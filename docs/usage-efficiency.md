@@ -44,7 +44,38 @@ passed. Retry an unchanged blocker only after a relevant capability/input change
 transient retry. A smaller tool-history budget requires saving full critical output as a local
 artifact, not discarding it.
 
-Measure the next ten real tasks: comparable scope, route, completion, mandatory checks, retries,
-corrections, and available usage measurements. Entry-point byte reductions are context-size
-measurements, not demonstrated credit savings. Include corrective rework when judging a cheaper
-route; avoid recurring synthetic audits merely to measure an optimization.
+## Pilot one task receipt
+
+Start with one ordinary task and reuse its existing final report. This is an optional
+measurement experiment, not an extra gate or a replacement for required verification.
+Keep the receipt short:
+
+```text
+Outcome/source: <completed, blocked or abandoned; task/project and checked revision/artifact>.
+Applicable gates: <check and PASS, FAIL, SKIP or BLOCKED; evidence and any skip/block reason>.
+Blockers/corrections: <unresolved blockers and material corrective work, or none>.
+Recording effort: <time/effort to prepare this receipt; measured, estimated or unknown>.
+```
+
+A deliberately inapplicable platform check may be SKIP. An applicable mandatory check that
+cannot run remains BLOCKED or FAIL according to its existing contract; it cannot justify a
+completion claim. Keep any workflow-required verifier verdict format unchanged; put this
+optional receipt in the existing final report or adjacent evidence, rather than adding lines
+to a strict verdict.
+
+Add timing or usage only when the harness already provides it with reliable task attribution.
+Keep input, cached input and output distinct when available, respecting the provider's counter
+definitions; do not add overlapping totals. Otherwise mark the metric unknown. Session elapsed
+time is not active work time, human attention, or production change lead time. Entry-point byte
+reductions are context-size measurements, not demonstrated credit savings. Include corrections
+and recording effort when comparing routes; do not replace missing costs with zero.
+
+Continue only if the pilot informs a concrete decision at negligible recording cost. If useful,
+observe consecutive tasks within one project, task category and harness, retaining blocked and
+abandoned cases. Change one policy element at a time. Small before/after samples are case
+evidence, not causal estimates or proof of unchanged defect risk. Stop collecting fields that
+do not inform a decision; avoid recurring synthetic audits merely to measure an optimization.
+
+This keeps outcome measurement contextual, as recommended by
+[DORA's measurement guidance](https://dora.dev/guides/dora-metrics/). Conditional reference
+loading follows the [Agent Skills specification](https://agentskills.io/specification).

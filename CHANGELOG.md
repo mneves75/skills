@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.34.1] - 2026-10-13
+
+### Changed
+- Delegation acceptance checks source provenance and actual evidence before accepting claims.
+  Task/project/session identity and counterexamples bound workflow or efficiency conclusions.
+- Usage guidance replaces the ten-task prescription with an optional one-task receipt,
+  preserves required gate and strict verifier formats, retains blocked/abandoned cases and
+  distinguishes attributed measurements from unknown costs. The guide and generated site agree.
+
 ## [1.34.0] - 2026-10-13
 
 ### Added
