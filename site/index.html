@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>mneves75/skills: skills for AI coding agents</title>
-<meta name="description" content="Thirteen skills for AI agents: render Markdown as HTML, Word and PDF, improve ChatGPT Search discovery, review code, prepare staging before approved production, hand off tasks, generate mobile concepts, explain, verify, orchestrate, measure readiness, and learn a codebase.">
+<meta name="description" content="Fourteen skills for AI agents: audit application security and privacy, render Markdown as HTML, Word and PDF, improve ChatGPT Search discovery, review code, prepare staging before approved production, hand off tasks, generate mobile concepts, explain, verify, orchestrate, measure readiness, and learn a codebase.">
 <meta property="og:title" content="mneves75/skills">
 <meta property="og:description" content="Skills for AI coding agents. One install, any tool that reads SKILL.md.">
 <meta property="og:type" content="website">
@@ -116,7 +116,7 @@ footer a{color:var(--fg2)}
   <div class="wrap">
     <section class="hero" aria-labelledby="h-hero">
       <h1 id="h-hero">Skills for coding agents that hold themselves to a standard.</h1>
-      <p class="sub">Thirteen procedures your agent loads on demand: render Markdown as HTML, Word and PDF, improve ChatGPT Search discovery, review code, hand off a task, generate mobile concepts, explain a thing to the right audience, stress-test a plan, get an independent verdict before "done", prepare verified staging before approved production, split heavy work across models, measure how agent-ready a repo is, and learn a codebase with spaced repetition. Works in Claude Code, Codex, Cursor, OpenCode, pi and any tool that reads <code>SKILL.md</code>.</p>
+      <p class="sub">Fourteen procedures your agent loads on demand: audit application security and privacy, render Markdown as HTML, Word and PDF, improve ChatGPT Search discovery, review code, hand off a task, generate mobile concepts, explain a thing to the right audience, stress-test a plan, get an independent verdict before "done", prepare verified staging before approved production, split heavy work across models, measure how agent-ready a repo is, and learn a codebase with spaced repetition. Works in Claude Code, Codex, Cursor, OpenCode, pi and any tool that reads <code>SKILL.md</code>.</p>
 
       <div class="install">
         <div class="cmd">
@@ -177,6 +177,12 @@ footer a{color:var(--fg2)}
           <p>Build repeatable project-local Markdown exports as responsive HTML, editable Word documents and print-ready PDF, with consistent styling and content and visual checks.</p>
           <p class="say"><b>Say:</b> "write a renderer for my Markdown reports", "export this MD to HTML, DOCX and PDF"</p>
           <a class="more" href="howto.html#mneves-render">How to use, with an example →</a>
+        </article>
+        <article class="card">
+          <h3>mneves-security</h3>
+          <p>Audits application security and privacy using current OWASP guidance, plans remediation and applies authorized safe fixes. Findings, adversarial review and independent acceptance distinguish source evidence from deployed controls.</p>
+          <p class="say"><b>Say:</b> "audit security and privacy; fix confirmed local issues; do not deploy"</p>
+          <a class="more" href="howto.html#mneves-security">How to use, with an example →</a>
         </article>
         <article class="card">
           <h3>mneves-verify</h3>
@@ -280,10 +286,10 @@ bun --bun /path/to/skills/tools/readiness-check.ts \
       <h2 id="h-log">Changelog</h2>
       <ul class="log">
         <!-- changelog:start -->
+        <li><span class="v">1.34.0<span class="d">2026-10-13</span></span><span><code>mneves-security</code>: portable application security/privacy audit, detailed remediation.</span></li>
         <li><span class="v">1.33.0<span class="d">2026-10-13</span></span><span><code>mneves-render</code>: project-local Markdown renderers for HTML, editable DOCX and PDF.</span></li>
         <li><span class="v">1.32.0<span class="d">2026-10-08</span></span><span><code>autoreview</code> complexity evidence: portable <code>cccc</code> installation with reviewed release.</span></li>
         <li><span class="v">1.31.0<span class="d">2026-10-04</span></span><span>pstack <code>tdd</code>: writes the failing test first for every bug fix or feature by default.</span></li>
-        <li><span class="v">1.30.0<span class="d">2026-10-04</span></span><span>pstack collection: <code>collections/pstack</code> vendors 32 pstack skills for Claude Code, Codex, Pi and other agents.</span></li>
         <!-- changelog:end -->
       </ul>
       <p style="margin-top:1rem"><a href="https://github.com/mneves75/skills/blob/main/CHANGELOG.md">Full changelog →</a></p>

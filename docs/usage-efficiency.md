@@ -28,6 +28,7 @@ an approved implementation continues without repeated permission for the same ac
 | mneves-expert-review | Combine challenge perspectives in one pass; compare distinct options without open-ended generation |
 | mneves-fable-orchestrator | Use ordinary or bounded workers by scope, reserve specialists for justified difficulty, and resume multi-round lanes |
 | mneves-handoff | Carry compact checked context, acceptance, authority and blockers; disclose the discussion template conditionally |
+| mneves-security | Separate audit/fix/delivery authority; keep current standards in a source reference and retain evidence without claiming untested provider controls |
 | mneves-superaudit | Delegate only substantial independent work; carry existing authority across phases while preserving requested stops |
 | mneves-teach-back-srs | Load only teach-back, review, stats or export; resolve the helper once from its installed location |
 | mneves-verify | Choose behavior probes from the frozen criteria; preserve independence and high-risk model requirements |

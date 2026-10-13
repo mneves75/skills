@@ -17,6 +17,12 @@ Cursor, Codex, etc. by symlinking it into that tool's skills directory.
 
 ## The decisions that look odd and aren't
 
+**Security is a procedure, not a universal scanner.** `mneves-security` traces actual
+trust boundaries and uses the target project's scanners and tests. Its source reference
+refreshes official guidance at audit time, while its report separates local evidence,
+live provider state and independent acceptance. An audit never silently grants delivery
+authority or promises that the application is completely secure.
+
 **Original skills carry the `mneves-` prefix.** A rename in 1.3.0 collapsed three near-collisions
 with upstream/community skill names. An adapted third-party skill instead keeps its upstream name,
 license, copyright, and provenance so its origin stays obvious. Directory name and frontmatter

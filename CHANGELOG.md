@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.34.0] - 2026-10-13
+
+### Added
+
+- **`mneves-security`**: portable application security/privacy audit, detailed remediation
+  and authorized safe fixes. Covers twelve review areas and conditional AI/agentic/mobile
+  controls with current official OWASP guidance, adversarial review, independent
+  acceptance, an eight-section engineering report and an evidence-scoped launch checklist.
+- **Security skill plan**: first-principles alternatives, primary-source research,
+  advisory corrections and frozen behavioral acceptance scenarios.
+
+### Changed
+
+- **Catalog and usage docs**: fourteen skills, security examples, scope/verification
+  boundaries, domain terms and regenerated HOWTO/landing changelog.
+
 ## [1.33.0] - 2026-10-13
 
 ### Added
