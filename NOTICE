@@ -3,6 +3,12 @@ Copyright 2025-2026 mneves75
 
 This product includes software developed by mneves75.
 
+The landing page self-hosts a Latin-subset Bricolage Grotesque variable font.
+Copyright 2022 The Bricolage Grotesque Project Authors (https://github.com/ateliertriay/bricolage).
+Distributed under the SIL Open Font License 1.1 in site/assets/fonts/OFL.txt.
+Source: google/fonts at 66928797f271fed5ee428544e7229685e2d90127,
+ofl/bricolagegrotesque/BricolageGrotesque[opsz,wdth,wght].ttf.
+
 The readiness tool's pillar/maturity-level structure is inspired by
 Factory.ai's Agent Readiness assessment (https://factory.ai/agent-readiness).
 No Factory.ai code or data is included.

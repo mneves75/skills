@@ -4,6 +4,15 @@ Portable procedures and supporting resources installed into coding agents.
 
 ## Language
 
+**Security finding**: An observed or suspected weakness with identified evidence,
+affected assets, severity and confidence. An unconfirmed suspicion is not a verified defect.
+
+**Evidence scope**: The environment and surface a check actually establishes, such as
+source configuration, local behavior or deployed behavior.
+
+**Independent acceptance**: A fresh assessor checks frozen criteria against actual
+artifacts. It establishes a scoped verdict, not universal security or launch approval.
+
 **Renderer skill**: A procedure that guides an agent to build a repeatable document
 renderer within the user's project. It is not itself a universal conversion service.
 

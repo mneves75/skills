@@ -37,6 +37,20 @@ description: Clear description of what this skill does and when to use it.
 3. Test with at least one AI tool (Claude Code, Cursor, etc.)
 4. Submit a pull request with clear description
 
+### Changing the Website
+
+Keep product facts aligned with the skill source, README and HOWTO. `PRODUCT.md`
+records the audience and constraints; `DESIGN.md` records the landing page's actual
+visual system, with extensions in `.impeccable/design.json`. Surface briefs are
+development documentation and stay outside the published `site/` directory.
+
+Preserve the landing changelog markers and run `tools/scripts/build-site.sh` followed
+by `bash tools/scripts/build-site.test`. Inspect desktop, tablet and narrow mobile
+renders, keyboard navigation, light/dark contrast and reduced motion. When
+`agent-browser` is available, run `bash tools/scripts/check-site-copy.sh <site-url>`
+through your host's approved browser route to exercise successful and denied copies.
+New local fonts/assets require their license and provenance in `NOTICE`.
+
 ## Skill Requirements
 
 Skills must stay discoverable by `npx skills@latest add mneves75/skills`: one folder per

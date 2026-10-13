@@ -1,6 +1,6 @@
 # How to use these skills
 
-Thirteen skills, one install. This page shows what each one does, how to trigger it, and what a
+Fourteen skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the [README](README.md); for the exact
 procedure an agent follows, open `skills/<name>/SKILL.md`.
 
@@ -28,6 +28,7 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 | `autoreview` | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
 | `mneves-handoff` | hand a task to another agent, review first | "handoff the flaky login test" |
 | `mneves-render` | build repeatable HTML, Word and PDF exports from Markdown | "write a renderer for my Markdown reports" |
+| `mneves-security` | audit security/privacy, plan remediation and apply authorized safe fixes | "audit security and privacy; fix confirmed local issues; do not deploy" |
 | `imagegen-frontend-mobile` | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
 | `mneves-chatgpt-search` | improve ChatGPT Search discovery and measure citations/referrals | "improve this site's ChatGPT Search visibility" |
 | `mneves-eli5` | explain a thing to a specific audience | "explain OAuth to my dad" |
@@ -38,6 +39,50 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 | `mneves-teach-back-srs` | learn a codebase with spaced repetition | "let me explain the auth flow" |
 | `mneves-superaudit` | run a bounded audit-and-cleanup pass over a repo | "superaudit this repo, slop and perf only" |
 | `mneves-ship-deploy` | prepare verified staging, then approve the exact candidate before production | "ship-staging" or "ship-prod" |
+
+---
+
+## mneves-security
+
+**What it does.** Inspects the actual source and trust boundaries, checks current official
+OWASP guidance, records evidence-backed findings and produces an ordered remediation
+plan. In fix mode it applies minimal confirmed patches, tests legitimate and denied
+behavior, and runs adversarial review and independent acceptance. It covers privacy,
+database/resource isolation, auth failures, headers/cookies, validation, secrets, API
+keys, rate/cost protection, bot controls/CORS, logging/errors and dependencies, with
+AI/agentic/mobile checks when those surfaces exist.
+
+**When to use it.** You want an engineering security/privacy audit of an MVP, SaaS, API
+or AI application, or safe implementation of its confirmed remediation items. Audit
+and plan requests remain read-only; a fix request authorizes its in-scope local patches.
+
+**Illustrative request (Codex):**
+
+```text
+Use $mneves-security on this repository. Review the entire first-party source,
+create a detailed remediation plan and fix confirmed local code/config gaps.
+Preserve existing product behavior where safe. Run the documented gates and
+independent verification. Do not merge, change provider settings or deploy.
+```
+
+For a read-only assessment, say “audit only; do not change project files.” Claude Code
+users can invoke `/mneves-security`; other agents can name it directly.
+
+**Evidence.** Expect the eight-section engineering report, findings with severity and
+confidence, a source coverage ledger, exact checks/results, manual actions and launch
+blockers. Local migrations and header files do not prove deployed policies or headers.
+A public provider key is evaluated under its actual contract, not automatically labeled
+a secret. NOT APPLICABLE needs evidence; blocked/untested controls never become PASS.
+
+**Prerequisites and limits.** Ships no scanner or required integration. Uses the target
+project's tools and current official documentation; missing retrieval is disclosed.
+Fable/expert-review/code-review/verify are separately installed optional procedures
+with inline fallbacks. Independent security acceptance still requires a fresh,
+different-model verifier; when unavailable, the useful report remains available and
+that assurance gate is BLOCKED. The skill provides engineering readiness, not legal
+advice or a promise of complete security. Release actions retain explicit task/host authority.
+
+Procedure: [SKILL.md](skills/mneves-security/SKILL.md).
 
 ---
 

@@ -64,10 +64,13 @@ jobs:
         run: bash tools/scripts/sync-pstack.test
 
       - name: Shell syntax
-        run: bash -n skills/mneves-fable-orchestrator/tools/codex-lane skills/mneves-fable-orchestrator/tools/codex-lane.test .githooks/pre-commit .githooks/pre-commit.test tools/scripts/build-site.sh tools/scripts/build-site.test tools/scripts/check-defaults-block.sh tools/scripts/sync-pstack.sh tools/scripts/sync-pstack.test skills/mneves-ship-deploy/assets/release.sh skills/mneves-ship-deploy/assets/verify-live.sh skills/mneves-ship-deploy/assets/release-guards.test.sh
+        run: bash -n skills/mneves-fable-orchestrator/tools/codex-lane skills/mneves-fable-orchestrator/tools/codex-lane.test .githooks/pre-commit .githooks/pre-commit.test tools/scripts/build-site.sh tools/scripts/build-site.test tools/scripts/check-site-copy.sh tools/scripts/check-defaults-block.sh tools/scripts/sync-pstack.sh tools/scripts/sync-pstack.test skills/mneves-ship-deploy/assets/release.sh skills/mneves-ship-deploy/assets/verify-live.sh skills/mneves-ship-deploy/assets/release-guards.test.sh
 
       - name: codex-lane e2e (fake codex, no provider calls)
         run: bash skills/mneves-fable-orchestrator/tools/codex-lane.test
+
+      - name: Landing copy controller syntax
+        run: node --check site/copy-command.js
 
       - name: Release contract check (planted violations, read-only)
         run: python3 skills/mneves-ship-deploy/scripts/run-tests.py

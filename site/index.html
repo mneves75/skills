@@ -3,308 +3,194 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>mneves75/skills: skills for AI coding agents</title>
-<meta name="description" content="Thirteen skills for AI agents: render Markdown as HTML, Word and PDF, improve ChatGPT Search discovery, review code, prepare staging before approved production, hand off tasks, generate mobile concepts, explain, verify, orchestrate, measure readiness, and learn a codebase.">
+<title>mneves75/skills — a clear way forward for coding agents</title>
+<meta name="description" content="Fourteen portable skills for AI coding agents. Choose a procedure for security, review, planning, building, discovery or learning, then install it in the tools you already use.">
 <meta property="og:title" content="mneves75/skills">
-<meta property="og:description" content="Skills for AI coding agents. One install, any tool that reads SKILL.md.">
+<meta property="og:description" content="Reusable procedures for deliberate agent work. One install, any tool that reads SKILL.md.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://mneves75.github.io/skills/">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2314b8a6'/%3E%3Ctext x='16' y='22' font-size='18' font-family='ui-monospace,monospace' font-weight='700' text-anchor='middle' fill='%23fff'%3Es%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%23132236'/%3E%3Ctext x='16' y='23' font-size='23' font-family='sans-serif' font-weight='700' text-anchor='middle' fill='white'%3Es%3C/text%3E%3C/svg%3E">
+<link rel="preload" href="assets/fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
 <style>
-:root{
-  --bg:#f7f6f3;--bg2:#efeee9;--surface:#ffffff;--line:#e3e2dd;
-  --fg:#37352f;--fg2:#787774;--fg3:#9b9a97;
-  --accent:#14b8a6;--accent-hover:#0d9488;--accent-fg:#0f766e;--accent-soft:#e6f7f4;
-  --code:#f1f0ec;--focus:#0d9488;
-}
-@media (prefers-color-scheme:dark){:root{
-  --bg:#191919;--bg2:#202020;--surface:#232323;--line:#333;
-  --fg:#e6e6e3;--fg2:#a3a29e;--fg3:#7d7c78;
-  --accent:#2dd4bf;--accent-hover:#5eead4;--accent-fg:#5eead4;--accent-soft:#12332f;
-  --code:#1c1c1c;--focus:#5eead4;
-}}
+@font-face{font-family:Bricolage;src:url('assets/fonts/bricolage-grotesque.woff2') format('woff2');font-weight:200 800;font-style:normal;font-display:swap}
+:root{color-scheme:light dark;--paper:#fff;--ink:#132236;--muted:#43556c;--rule:#d5dce5;--accent:#164bd6;--soft:#f0f5ff;--blue:#164bd6;--on-blue:#fff;--blue-muted:#d7e4ff;--lime:#def59b;--on-lime:#203615;--code:#edf1f7;--focus:#164bd6;--display:Bricolage,Arial,sans-serif;--body:Bricolage,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+@media(prefers-color-scheme:dark){:root{--paper:#111b2b;--ink:#f1f5fc;--muted:#b6c4d8;--rule:#36465d;--accent:#abc4ff;--soft:#1b2d49;--blue:#1645bd;--code:#21324a;--focus:#d8ee9c}}
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
-body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.6 ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
-a{color:var(--accent-fg);text-decoration:none}
-a:hover{text-decoration:underline}
-:focus-visible{outline:2px solid var(--focus);outline-offset:3px;border-radius:4px}
+html{scroll-padding-top:2rem}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.55 var(--body);-webkit-font-smoothing:antialiased}
+::selection{background:var(--lime);color:var(--on-lime)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:5px}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:.22em}
+a:hover{text-decoration-thickness:2px}
+button{font:inherit;cursor:pointer}button:disabled{cursor:wait;opacity:.7}
 code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
-code{font-size:.92em;background:var(--code);padding:.1em .35em;border-radius:4px}
-.wrap{max-width:64rem;margin:0 auto;padding:0 1.25rem}
-h1,h2,h3{line-height:1.2;letter-spacing:-.01em;margin:0}
-h2{font-size:1.6rem;margin-bottom:.5rem}
-.lede{color:var(--fg2);max-width:38rem;margin:0 0 2rem}
-section{padding:3.5rem 0}
-section+section{border-top:1px solid var(--line)}
-
-header.top{display:flex;align-items:center;justify-content:space-between;padding:1.1rem 0;gap:1rem}
-.brand{display:flex;align-items:center;gap:.6rem;font-weight:600;color:var(--fg)}
-.brand .mark{width:26px;height:26px;border-radius:7px;background:var(--accent);color:#fff;display:grid;place-items:center;font:700 15px ui-monospace,monospace}
-nav.top{display:flex;gap:1.1rem;flex-wrap:wrap;justify-content:flex-end}
-nav.top a{color:var(--fg2);font-size:.95rem}
-nav.top a:hover{color:var(--fg)}
-
-.hero{padding:3.5rem 0 3rem}
-.hero h1{font-size:clamp(2rem,5vw,3.1rem);max-width:40rem}
-.hero p.sub{font-size:1.15rem;color:var(--fg2);max-width:38rem;margin:1.25rem 0 2rem}
-.install{display:grid;gap:.9rem;max-width:40rem}
-.cmd{display:flex;align-items:center;gap:.75rem;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:.75rem .9rem}
-.cmd .label{font-size:.75rem;color:var(--fg3);text-transform:uppercase;letter-spacing:.05em;white-space:nowrap}
-.cmd code{background:none;padding:0;flex:1;min-width:0;overflow-x:auto;white-space:nowrap;font-size:.95rem}
-.cmd button{border:1px solid var(--line);background:var(--bg2);color:var(--fg);border-radius:6px;padding:.35rem .6rem;font:inherit;font-size:.8rem;cursor:pointer}
-.cmd button:hover{border-color:var(--accent)}
-.hero .links{margin-top:1.5rem;color:var(--fg2);font-size:.95rem}
-.hero .links a{margin-right:1.25rem}
-
-.grid{display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(18rem,1fr))}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:1.25rem;display:flex;flex-direction:column;gap:.6rem}
-.card h3{font-size:1.05rem;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:600}
-.card p{margin:0;color:var(--fg2)}
-.card .say{font-size:.9rem;color:var(--fg2)}
-.card .say b{color:var(--fg);font-weight:500}
-.card .more{margin-top:auto;padding-top:.5rem;font-size:.95rem}
-
-.steps{counter-reset:s;display:grid;gap:1.25rem;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))}
-.step{position:relative;padding-left:2.6rem}
-.step::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:.05rem;width:1.9rem;height:1.9rem;border-radius:50%;background:var(--accent-soft);color:var(--accent-fg);display:grid;place-items:center;font-weight:600;font-size:.9rem}
-.step h3{font-size:1.05rem;margin-bottom:.3rem}
-.step p{margin:0;color:var(--fg2)}
-
-.tool{display:grid;gap:1.5rem;grid-template-columns:1fr 1fr;align-items:start}
-.tool>*{min-width:0}
-@media (max-width:48rem){.tool{grid-template-columns:1fr}}
-pre.block{margin:0;background:var(--code);border:1px solid var(--line);border-radius:10px;padding:1rem;overflow-x:auto;font-size:.9rem;line-height:1.5}
-.score{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:1.25rem}
-.score .big{font-size:2.2rem;font-weight:600;letter-spacing:-.02em}
-.score .lvl{display:inline-block;background:var(--accent-soft);color:var(--accent-fg);border-radius:6px;padding:.1rem .5rem;font-weight:600;margin-left:.5rem;vertical-align:middle;font-size:1rem}
-.score small{display:block;color:var(--fg3);margin-top:.25rem}
-.bar{height:8px;background:var(--bg2);border-radius:4px;margin:.9rem 0 .3rem;overflow:hidden}
-.bar i{display:block;height:100%;width:61.7%;background:var(--accent);border-radius:4px}
-
-.start{display:grid;gap:1rem;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr))}
-.start a.tile{display:block;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:1.1rem 1.25rem;color:var(--fg)}
-.start a.tile:hover{border-color:var(--accent);text-decoration:none}
-.start .tile strong{display:block;margin-bottom:.25rem}
-.start .tile span{color:var(--fg2);font-size:.95rem}
-
-.log{list-style:none;margin:0;padding:0;max-width:44rem}
-.log li{display:grid;grid-template-columns:5.5rem 1fr;gap:1rem;padding:.75rem 0;border-bottom:1px solid var(--line)}
-.log li:last-child{border-bottom:0}
-.log .v{font-family:ui-monospace,monospace;font-weight:600}
-.log .d{color:var(--fg3);font-size:.85rem;display:block}
-
-footer{padding:2.5rem 0 3rem;color:var(--fg2);font-size:.9rem;border-top:1px solid var(--line)}
-footer a{color:var(--fg2)}
-.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+code{font-size:.88em;background:var(--code);padding:.12em .3em;border-radius:3px}
+pre{margin:0;overflow:auto;scrollbar-color:var(--muted) var(--code)}
+h1,h2,h3,p{margin:0}
+h1,h2,h3{font-family:var(--display);font-weight:650;line-height:1.1;letter-spacing:-.025em;text-wrap:balance}
+h1{font-size:clamp(3rem,6.3vw,5.65rem);max-width:14ch}h2{font-size:clamp(2rem,3.8vw,3.3rem)}
+h3{font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}
+.wrap{max-width:78rem;margin-inline:auto;padding-inline:clamp(1.25rem,4vw,3rem)}
+.skip{position:absolute;top:.6rem;left:1rem;padding:.7rem 1rem;background:var(--ink);color:var(--paper);transform:translateY(-150%);z-index:3}.skip:focus{transform:translateY(0)}
+.masthead{display:flex;align-items:center;justify-content:space-between;gap:2rem;padding-block:1.5rem;border-bottom:1px solid var(--rule)}
+.brand{display:flex;gap:.65rem;align-items:center;color:var(--ink);font-size:1.1rem;font-weight:700;text-decoration:none;white-space:nowrap}
+.mark{width:32px;height:32px;display:grid;place-items:center;background:var(--ink);color:var(--paper);border-radius:4px;font-size:1.55rem;line-height:1}
+.nav{display:flex;flex-wrap:wrap;align-items:center;gap:1.5rem}.nav a{color:var(--ink);font-size:.95rem;text-decoration:none;padding-block:.5rem}.nav a:hover{text-decoration:underline}
+.hero{display:grid;grid-template-columns:1.7fr 1fr;gap:3rem;align-items:end;padding-block:4.5rem 3.5rem}
+.intro{max-width:32ch;font-size:1.15rem;line-height:1.55}
+.hero-links{display:flex;align-items:center;flex-wrap:wrap;gap:1.25rem;margin-top:1.5rem}
+.action{display:inline-flex;align-items:center;justify-content:center;min-height:46px;background:var(--ink);color:var(--paper);padding:.65rem 1.1rem;border-radius:4px;text-decoration:none;font-size:1rem;font-weight:600}.action:hover{background:var(--accent);color:var(--paper);text-decoration:none}
+.compatibility{margin-top:1.5rem;color:var(--muted);font-size:.9rem}
+.install{padding:1.65rem 2rem;background:var(--blue);color:var(--on-blue);border-radius:4px}
+.install-head{display:flex;justify-content:space-between;align-items:baseline;gap:1.5rem;margin-bottom:1rem}.install h2{font-size:1.6rem;letter-spacing:-.015em}.install a{color:var(--on-blue);font-size:.9rem}
+.commands{display:grid;grid-template-columns:1fr 1fr;gap:2rem}
+.command{min-width:0;display:grid;grid-template-columns:1fr auto;gap:.6rem;align-items:center;padding-block:.6rem;border-top:1px solid #7b9ff3}
+.command code{background:none;color:var(--on-blue);padding:0;white-space:normal;overflow-wrap:anywhere;font-size:.79rem;line-height:1.8}
+.command button{min-height:44px;min-width:65px;border:1px solid #b9ceff;background:transparent;color:var(--on-blue);padding:.4rem .65rem;border-radius:4px;font-size:.85rem}.command button:hover{background:#fff;color:#164bd6}
+.install :focus-visible{outline-color:var(--lime)}
+.copy-status{min-height:1.45em;margin-top:.5rem;font-size:.85rem;color:var(--blue-muted)}
+.catalog{padding-block:4rem}
+.section-heading{display:flex;align-items:baseline;justify-content:space-between;gap:2rem;margin-bottom:1.6rem}.section-heading p{color:var(--muted);max-width:43ch}
+.contents{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;margin-bottom:2.75rem}
+.contents a{display:flex;justify-content:space-between;align-items:center;min-height:48px;padding:.7rem .8rem;background:var(--soft);color:var(--ink);text-decoration:none;font-size:.95rem;font-weight:600;border-radius:3px}.contents a:hover{background:var(--ink);color:var(--paper)}
+.contents svg{width:16px;height:16px;flex-shrink:0;stroke:currentColor;stroke-width:1.5;fill:none}
+.catalog-group{display:grid;grid-template-columns:13rem 1fr;gap:2.5rem;border-top:1px solid var(--rule);padding-block:1.5rem 2rem;scroll-margin-top:1.5rem}
+.group-title h2{font-size:1.6rem;max-width:10ch;line-height:1.15}.group-title p{font-size:.9rem;color:var(--muted);margin-top:.65rem;max-width:20ch}
+.skill-list{display:grid;grid-template-columns:1fr 1fr;column-gap:2.2rem;row-gap:1.8rem}
+.skill{min-width:0;display:flex;flex-direction:column;align-items:start;gap:.55rem}
+.skill p{font-size:.95rem;color:var(--muted);max-width:45ch}.skill .example{font-size:.85rem;line-height:1.5;color:var(--muted)}
+.skill .guide{font-size:.88rem;min-height:32px;padding-top:.2rem}
+.skill.new{background:var(--lime);color:var(--on-lime);padding:1.25rem;border-radius:4px;margin-top:-.1rem}.skill.new p,.skill.new .guide{color:var(--on-lime)}.skill.new :focus-visible{outline-color:var(--on-lime)}
+.release-note{font-size:.75rem;font-weight:600;letter-spacing:.01em;line-height:1.4}
+.collection{display:grid;grid-template-columns:1fr 2fr;gap:2.5rem;padding:1.6rem 0;border-top:1px solid var(--rule)}.collection h3{font-size:1.6rem}.collection p{color:var(--muted);font-size:.95rem;max-width:65ch}.collection a{display:inline-block;margin-top:.65rem}
+.how{padding-block:3.5rem;border-block:1px solid var(--rule)}.how h2{margin-bottom:1.8rem}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:2.5rem}.step h3{margin-bottom:.7rem;font-size:1.35rem}.step p{color:var(--muted);font-size:.95rem;max-width:40ch}
+.privacy-note{margin-top:2rem;max-width:75ch;font-size:.86rem;color:var(--muted)}
+.tool{display:grid;grid-template-columns:1fr 1fr;gap:3rem;padding-block:4rem;align-items:start}.tool>*{min-width:0}.tool h2{margin-bottom:1rem}.tool p{max-width:48ch;color:var(--muted)}.tool p code{overflow-wrap:anywhere}
+.tool pre{margin-top:1.5rem;background:var(--code);padding:1.2rem;border-radius:4px;font-size:.82rem;line-height:1.7}.tool pre code{background:none;padding:0;font-size:inherit}
+.sample{padding:1.65rem;background:var(--soft);border-radius:4px}.sample h3{font-size:1.55rem;margin-bottom:.75rem}.sample p{margin-top:.8rem;font-size:.95rem}
+.sample .result{font-size:1.15rem;color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}.sample .provenance{font-size:.85rem}.sample a{display:inline-block;margin-top:1.25rem}
+.resources{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;padding-block:2rem 3.5rem}.resource{border-top:1px solid var(--rule);padding-top:1rem}.resource h3{margin-bottom:.65rem}.resource p{color:var(--muted);font-size:.9rem;max-width:38ch}.resource a{display:inline-block;margin-top:.8rem}
+.history{padding-block:3.5rem;border-top:1px solid var(--rule)}.log{list-style:none;padding:0;margin:1.5rem 0;max-width:60rem}
+.log li{display:grid;grid-template-columns:7rem 1fr;gap:1.5rem;padding-block:1rem;border-bottom:1px solid var(--rule);font-size:.95rem}.log .v{font-variant-numeric:tabular-nums;font-weight:650}.log .d{display:block;font-size:.82rem;color:var(--muted);font-weight:400;margin-top:.25rem}.history>a{font-size:.95rem}
+.footer{display:flex;justify-content:space-between;align-items:baseline;gap:1.5rem;flex-wrap:wrap;padding-block:1.5rem 2rem;border-top:1px solid var(--rule);font-size:.85rem;color:var(--muted)}.footer div{display:flex;gap:1.25rem;flex-wrap:wrap}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}.contents svg{transition:transform 140ms cubic-bezier(.2,0,0,1)}.contents a:hover svg{transform:translateY(2px)}}
+@media(max-width:64rem){.hero{gap:2rem;grid-template-columns:1.4fr 1fr}.catalog-group{grid-template-columns:10rem 1fr;gap:1.75rem}.commands{grid-template-columns:1fr;gap:.2rem}.command code{font-size:.87rem}}
+@media(max-width:48rem){body{font-size:16px}.masthead{gap:1rem;flex-wrap:wrap;padding-block:1.15rem}.nav{gap:1.15rem}.hero{grid-template-columns:1fr;gap:1.5rem;padding-block:2.5rem}.hero h1{max-width:14ch}.intro{max-width:55ch;font-size:1.08rem}.compatibility{margin-top:1rem}.hero-links{margin-top:1rem}.install{padding:1.3rem}.install-head{align-items:start}.catalog{padding-block:2.5rem}.section-heading{display:block}.section-heading p{margin-top:.75rem}.contents{grid-template-columns:1fr 1fr;margin-bottom:2rem}.catalog-group{grid-template-columns:1fr;gap:1.4rem}.group-title h2{max-width:none}.group-title p{max-width:none;margin-top:.4rem}.skill-list{column-gap:1.5rem}.steps,.resources{grid-template-columns:1fr;gap:1.7rem}.collection{grid-template-columns:1fr;gap:.7rem}.tool{grid-template-columns:1fr;gap:1.75rem;padding-block:2.75rem}.how{padding-block:2.75rem}.resources{padding-bottom:2.5rem}.history{padding-block:2.75rem}}
+@media(max-width:36rem){h1{font-size:clamp(2.9rem,10.4vw,3.6rem)}.brand{font-size:1rem}.nav{gap:1rem;font-size:.88rem}.skill-list{grid-template-columns:1fr;row-gap:1.6rem}.skill p{max-width:65ch}.skill.new{margin-top:0}.install-head{flex-wrap:wrap;gap:.5rem}.command code{font-size:.76rem}.command button{font-size:.8rem}.contents a{font-size:.86rem}.log li{grid-template-columns:5.9rem 1fr;gap:.8rem}.section-heading h2{font-size:2.3rem}}
+@media(forced-colors:active){.action,.command button,.contents a,.skill.new,.sample{border:1px solid ButtonText}}
 </style>
+<script src="copy-command.js" defer></script>
 </head>
 <body>
+<a class="skip" href="#skills">Skip to the skills</a>
 <div class="wrap">
-  <header class="top">
-    <a class="brand" href="./"><span class="mark" aria-hidden="true">s</span>mneves75/skills</a>
-    <nav class="top" aria-label="Site">
-      <a href="#skills">Skills</a>
-      <a href="howto.html">How-to</a>
-      <a href="https://github.com/mneves75/skills">GitHub</a>
-    </nav>
-  </header>
-</div>
-
+<header class="masthead">
+  <a class="brand" href="./"><span class="mark" aria-hidden="true">s</span>mneves75/skills</a>
+  <nav class="nav" aria-label="Site"><a href="#skills">Catalog</a><a href="#install">Install</a><a href="howto.html">Guide</a><a href="https://github.com/mneves75/skills">GitHub</a></nav>
+</header>
 <main>
-  <div class="wrap">
-    <section class="hero" aria-labelledby="h-hero">
-      <h1 id="h-hero">Skills for coding agents that hold themselves to a standard.</h1>
-      <p class="sub">Thirteen procedures your agent loads on demand: render Markdown as HTML, Word and PDF, improve ChatGPT Search discovery, review code, hand off a task, generate mobile concepts, explain a thing to the right audience, stress-test a plan, get an independent verdict before "done", prepare verified staging before approved production, split heavy work across models, measure how agent-ready a repo is, and learn a codebase with spaced repetition. Works in Claude Code, Codex, Cursor, OpenCode, pi and any tool that reads <code>SKILL.md</code>.</p>
-
-      <div class="install">
-        <div class="cmd">
-          <span class="label">npx</span>
-          <code id="c1">npx skills@latest add mneves75/skills</code>
-          <button type="button" data-copy="c1" aria-label="Copy npx command">Copy</button>
-        </div>
-        <div class="cmd">
-          <span class="label">git</span>
-          <code id="c2">git clone https://github.com/mneves75/skills.git ~/.claude/skills/mneves-skills</code>
-          <button type="button" data-copy="c2" aria-label="Copy git command">Copy</button>
-        </div>
-      </div>
-      <p class="sr" aria-live="polite" id="copied"></p>
-      <p class="links">
-        <a href="howto.html">Read the how-to</a>
-        <a href="https://github.com/mneves75/skills#install">All install paths</a>
-        <a href="https://github.com/mneves75/skills#license">Apache-2.0 + MIT</a>
-      </p>
-    </section>
-
-    <section id="skills" aria-labelledby="h-skills">
-      <h2 id="h-skills">What you get</h2>
-      <p class="lede">Each skill is a folder with a <code>SKILL.md</code>: a description the agent matches against your request, then the procedure it follows. The repository tooling runs locally; image generation may send prompts and authorized references to your configured provider.</p>
-      <div class="grid">
-        <article class="card">
-          <h3>autoreview</h3>
-          <p>Structured code review with isolated tools, credential scanning, and source-integrity checks. GPT-6 Sol at high by default; GPT-6 Luna at xhigh on an account-access retry.</p>
-          <p class="say"><b>Say:</b> "use autoreview on my local changes, including P3 findings"</p>
-          <a class="more" href="howto.html#autoreview">How to use, with an example →</a>
-        </article>
-        <article class="card">
-          <h3>mneves-handoff</h3>
-          <p>Writes a clipboard-ready prompt that hands a task to another agent. It opens a discussion: the receiver reviews first and decides whether the task is still worth doing. Portable anchors, no filesystem paths.</p>
-          <p class="say"><b>Say:</b> "handoff the flaky login test", "write a handoff for this bug"</p>
-          <a class="more" href="howto.html#mneves-handoff">How to use, with an example →</a>
-        </article>
-        <article class="card">
-          <h3>imagegen-frontend-mobile</h3>
-          <p>Generates coherent iOS or Android screen and flow images, then inspects the render for legibility, consistency, and mobile conventions. Images only, never code.</p>
-          <p class="say"><b>Say:</b> "design a 4-screen iOS onboarding flow", "make Android screen concepts"</p>
-          <a class="more" href="howto.html#imagegen-frontend-mobile">How to use, with an example →</a>
-        </article>
-        <article class="card">
-          <h3>mneves-eli5</h3>
-          <p>Explains one idea with the Feynman method, calibrated to the listener: child, layperson, executive, junior, expert. Answers in your language.</p>
-          <p class="say"><b>Say:</b> "explain OAuth to my dad", "ELI5", "explique de forma simples"</p>
-          <a class="more" href="howto.html#mneves-eli5">How to use, with an example →</a>
-        </article>
-        <article class="card">
-          <h3>mneves-expert-review</h3>
-          <p>A scoped stress test: first principles, relevant research, one combined challenge, and distinct alternatives compared on explicit criteria. Returns the improved deliverable.</p>
-          <p class="say"><b>Say:</b> "challenge this", "stress-test", "best possible answer"</p>
-          <a class="more" href="howto.html#mneves-expert-review">How to use, with an example →</a>
-        </article>
-        <article class="card">
-          <h3>mneves-render</h3>
-          <p>Build repeatable project-local Markdown exports as responsive HTML, editable Word documents and print-ready PDF, with consistent styling and content and visual checks.</p>
-          <p class="say"><b>Say:</b> "write a renderer for my Markdown reports", "export this MD to HTML, DOCX and PDF"</p>
-          <a class="more" href="howto.html#mneves-render">How to use, with an example →</a>
-        </article>
-        <article class="card">
-          <h3>mneves-verify</h3>
-          <p>A fresh context checks the work against criteria frozen up front, with real evidence: tests, renders, the actual binary. Verdict is PASS, FAIL or BLOCKED. Only PASS allows "done".</p>
-          <p class="say"><b>Say:</b> "verify it", "prove it", "fix all"</p>
-          <a class="more" href="howto.html#mneves-verify">How to use, with an example →</a>
-        </article>
-        <article class="card">
-          <h3>mneves-fable-orchestrator</h3>
-          <p>The main session owns decisions and acceptance. Ordinary, bounded and difficult work use separate capability routes; independent review is selected by risk or requirement. The skill's Defaults block owns model bindings, while explicit caller and host choices take precedence. <code>codex-lane</code> preserves context across rounds and reports a refused resume instead of a stale answer.</p>
-          <p class="say"><b>Say:</b> "delegate", "use codex", "heavy task"</p>
-          <a class="more" href="howto.html#mneves-fable-orchestrator">How to use, with an example →</a>
-        </article>
-        <article class="card" id="mneves-chatgpt-search">
-          <h3>mneves-chatgpt-search</h3>
-          <p>Audits and improves ChatGPT Search discovery using current OpenAI guidance. Keeps search access, training choices, citations and referral measurement separate, with privacy and provenance intact.</p>
-          <p class="say"><b>Say:</b> "improve this site's ChatGPT Search visibility"</p>
-          <a class="more" href="howto.html#mneves-chatgpt-search">How to use, with an example →</a>
-        </article>
-        <article class="card">
-          <h3>mneves-ship-deploy</h3>
-          <p>Prepares and verifies staging without redundant confirmation. Production tags, pushes, deployments and promotion wait for your explicit OK for the exact candidate and target.</p>
-          <p class="say"><b>Say:</b> "ship-staging", "ship-prod"</p>
-          <a class="more" href="howto.html#mneves-ship-deploy">How to use, with an example →</a>
-        </article>
-        <article class="card">
-          <h3>mneves-superaudit</h3>
-          <p>A bounded audit-and-ship pass over one repository: slop, performance, agent DX, PR triage. Each item ends on a falsifiable condition; the workflow preserves existing authorization and requested stops, without granting new authority.</p>
-          <p class="say"><b>Say:</b> "superaudit this repo, items 1 and 2"</p>
-          <a class="more" href="howto.html#mneves-superaudit">How to use, with an example →</a>
-        </article>
-        <article class="card">
-          <h3>mneves-agent-readiness</h3>
-          <p>Scores a repository on how well it supports an agent's loop: context, action, verification, iteration. Nine pillars, a percentage, a level from L1 to L5. Runs locally.</p>
-          <p class="say"><b>Say:</b> "why does the agent struggle here?", "agent readiness"</p>
-          <a class="more" href="howto.html#mneves-agent-readiness">How to use, with an example →</a>
-        </article>
-        <article class="card">
-          <h3>mneves-teach-back-srs</h3>
-          <p>You explain part of the codebase; the agent reads the real code, asks what you skipped, and turns each gap into a flashcard scheduled with SM-2 in a per-project SQLite file.</p>
-          <p class="say"><b>Say:</b> "let me explain the auth flow", "quiz me", "what's due?"</p>
-          <a class="more" href="howto.html#mneves-teach-back-srs">How to use, with an example →</a>
-        </article>
-      </div>
-    </section>
-
-    <section aria-labelledby="h-how">
-      <h2 id="h-how">How it works</h2>
-      <p class="lede">A skill is text the agent reads at the right moment. The install just puts the folders where your tools look.</p>
-      <div class="steps">
-        <div class="step">
-          <h3>Install</h3>
-          <p><code>npx skills add mneves75/skills</code> links each skill into the agents on your machine (<code>-g</code> for user-wide, <code>--all -y</code> for no prompts). Or clone the repo into a skills directory.</p>
-        </div>
-        <div class="step">
-          <h3>The agent matches your request</h3>
-          <p>Every <code>SKILL.md</code> starts with a description that names when to use it. When your message fits, the agent loads the procedure. You can also call one by name: <code>/mneves-verify</code>.</p>
-        </div>
-        <div class="step">
-          <h3>The procedure runs, in your session</h3>
-          <p>Steps, rules and output formats are followed with your tools and your permissions. Some skills ship helpers (<code>autoreview</code>, <code>codex-lane</code>, <code>srs_db.py</code>); others are Markdown only.</p>
-        </div>
-      </div>
-    </section>
-
-    <section aria-labelledby="h-tool">
-      <h2 id="h-tool">The readiness tool</h2>
-      <p class="lede"><code>mneves-agent-readiness</code> ships a Bun + TypeScript assessor with no runtime dependencies. Point it at a repo and it tells you where the agent's feedback loop is broken.</p>
-      <div class="tool">
-        <pre class="block"><code>cd /path/to/your-project
+<section class="hero" aria-labelledby="h-hero">
+  <h1 id="h-hero">Give your agent a clear way forward.</h1>
+  <div><p class="intro">Fourteen reusable procedures for AI coding agents. From the first plan to independent proof, use them with the tools you already have.</p>
+  <div class="hero-links"><a class="action" href="#skills">Choose a skill</a><a href="howto.html">Read the guide</a></div>
+  <p class="compatibility">Claude Code, Codex, Cursor, OpenCode, pi — and any tool that reads <code>SKILL.md</code>.</p></div>
+</section>
+<section class="install" id="install" aria-labelledby="h-install">
+  <div class="install-head"><h2 id="h-install">One install. Your existing agent.</h2><a href="https://github.com/mneves75/skills#install">All install paths</a></div>
+  <div class="commands">
+    <div class="command"><code id="c1" tabindex="0">npx skills@latest add mneves75/skills</code><button type="button" data-copy="c1" aria-label="Copy npx command">Copy</button></div>
+    <div class="command"><code id="c2" tabindex="0">git clone https://github.com/mneves75/skills.git ~/.claude/skills/mneves-skills</code><button type="button" data-copy="c2" aria-label="Copy git command">Copy</button></div>
+  </div>
+  <p class="copy-status" id="copied" role="status" aria-live="polite">Choose skills and agents during installation.</p>
+  <noscript><p>Select a command and copy it manually.</p></noscript>
+</section>
+<section class="catalog" id="skills" aria-labelledby="h-skills">
+  <div class="section-heading"><h2 id="h-skills">Find the right procedure.</h2><p>Start with the work in front of you. Each guide includes triggers, prerequisites and an example.</p></div>
+  <nav class="contents" aria-label="Skill categories">
+    <a href="#review">Review &amp; verify<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v11m-4-4 4 4 4-4"/></svg></a>
+    <a href="#plan">Plan &amp; deliver<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v11m-4-4 4 4 4-4"/></svg></a>
+    <a href="#build">Build &amp; discover<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v11m-4-4 4 4 4-4"/></svg></a>
+    <a href="#learn">Explain &amp; learn<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v11m-4-4 4 4 4-4"/></svg></a>
+  </nav>
+  <section class="catalog-group" id="review" aria-labelledby="h-review">
+    <div class="group-title"><h2 id="h-review">Review &amp; verify</h2><p>Challenge assumptions. Check the evidence.</p></div>
+    <div class="skill-list">
+      <article class="skill new"><h3>mneves-security</h3><p>Audit application security and privacy using current OWASP guidance, plan remediation and apply authorized safe fixes. Adversarial review and independent acceptance distinguish source evidence from deployed controls.</p><p class="example">Try: “audit security and privacy; fix confirmed local issues; do not deploy”</p><span class="release-note">Added in 1.34.0</span><a class="guide" href="howto.html#mneves-security" aria-label="Read the mneves-security guide">Read the guide</a></article>
+      <article class="skill"><h3>autoreview</h3><p>Structured, isolated AI review of a fixed Git target. Ships its helper, security tests and its own engine defaults.</p><p class="example">Try: “use autoreview on my local changes, including P3 findings”</p><a class="guide" href="howto.html#autoreview" aria-label="Read the autoreview guide">Read the guide</a></article>
+      <article class="skill"><h3>mneves-verify</h3><p>A fresh context checks frozen criteria against real evidence: tests, renders and the actual binary. PASS, FAIL or BLOCKED; only PASS allows “done.”</p><p class="example">Try: “verify it”, “prove it”, “fix all”</p><a class="guide" href="howto.html#mneves-verify" aria-label="Read the mneves-verify guide">Read the guide</a></article>
+      <article class="skill"><h3>mneves-superaudit</h3><p>A bounded audit-and-ship pass: slop, performance, agent DX and PR triage. Falsifiable completion, existing authority and requested stops stay intact.</p><p class="example">Try: “superaudit this repo, items 1 and 2”</p><a class="guide" href="howto.html#mneves-superaudit" aria-label="Read the mneves-superaudit guide">Read the guide</a></article>
+    </div>
+  </section>
+  <section class="catalog-group" id="plan" aria-labelledby="h-plan">
+    <div class="group-title"><h2 id="h-plan">Plan &amp; deliver</h2><p>Decide, coordinate and hand over.</p></div>
+    <div class="skill-list">
+      <article class="skill"><h3>mneves-fable-orchestrator</h3><p>The main session owns decisions and acceptance. Route bounded, ordinary and difficult work by capability; <code>codex-lane</code> preserves multi-round context. Model bindings have one Defaults owner.</p><p class="example">Try: “delegate”, “use codex”, “heavy task”</p><a class="guide" href="howto.html#mneves-fable-orchestrator" aria-label="Read the mneves-fable-orchestrator guide">Read the guide</a></article>
+      <article class="skill"><h3>mneves-expert-review</h3><p>Stress-test a draft through first principles, relevant research, one combined challenge and distinct alternatives. Returns the improved deliverable.</p><p class="example">Try: “challenge this”, “stress-test”, “best possible answer”</p><a class="guide" href="howto.html#mneves-expert-review" aria-label="Read the mneves-expert-review guide">Read the guide</a></article>
+      <article class="skill"><h3>mneves-handoff</h3><p>A clipboard-ready handoff that opens a discussion. The receiver reviews first and decides whether the task is still worth doing. Portable anchors, no filesystem paths.</p><p class="example">Try: “handoff the flaky login test”, “write a handoff for this bug”</p><a class="guide" href="howto.html#mneves-handoff" aria-label="Read the mneves-handoff guide">Read the guide</a></article>
+      <article class="skill"><h3>mneves-ship-deploy</h3><p>Deploy the pushed commit, prove it live, then tag. Staging preserves existing authority; production requires explicit approval of the exact candidate and target.</p><p class="example">Try: “ship-staging”, “ship-prod”</p><a class="guide" href="howto.html#mneves-ship-deploy" aria-label="Read the mneves-ship-deploy guide">Read the guide</a></article>
+    </div>
+  </section>
+  <section class="catalog-group" id="build" aria-labelledby="h-build">
+    <div class="group-title"><h2 id="h-build">Build &amp; discover</h2><p>Make the artifact. Understand the project.</p></div>
+    <div class="skill-list">
+      <article class="skill"><h3>mneves-render</h3><p>Build repeatable project-local Markdown exports as responsive HTML, editable Word and print-ready PDF, with shared styling and content/visual checks.</p><p class="example">Try: “write a renderer for my Markdown reports”</p><a class="guide" href="howto.html#mneves-render" aria-label="Read the mneves-render guide">Read the guide</a></article>
+      <article class="skill"><h3>imagegen-frontend-mobile</h3><p>Generate coherent iOS or Android screen and flow images, then inspect legibility, consistency and mobile conventions. Images only, never code.</p><p class="example">Try: “design a 4-screen iOS onboarding flow”</p><a class="guide" href="howto.html#imagegen-frontend-mobile" aria-label="Read the imagegen-frontend-mobile guide">Read the guide</a></article>
+      <article class="skill"><h3>mneves-chatgpt-search</h3><p>Audit and improve ChatGPT Search discovery with current official guidance. Keep search access, training choices, citations and referral measurement separate, with privacy and provenance intact.</p><p class="example">Try: “improve this site's ChatGPT Search visibility”</p><a class="guide" href="howto.html#mneves-chatgpt-search" aria-label="Read the mneves-chatgpt-search guide">Read the guide</a></article>
+      <article class="skill"><h3>mneves-agent-readiness</h3><p>Assess how well a repo supports the agent's context, action, verification and iteration loop. Nine pillars, a percentage and maturity levels L1–L5. Runs locally.</p><p class="example">Try: “why does the agent struggle here?”</p><a class="guide" href="howto.html#mneves-agent-readiness" aria-label="Read the mneves-agent-readiness guide">Read the guide</a></article>
+    </div>
+  </section>
+  <section class="catalog-group" id="learn" aria-labelledby="h-learn">
+    <div class="group-title"><h2 id="h-learn">Explain &amp; learn</h2><p>Make understanding stick.</p></div>
+    <div class="skill-list">
+      <article class="skill"><h3>mneves-eli5</h3><p>Explain an idea with the Feynman method, calibrated to a child, layperson, executive, junior or expert. Answers in the listener's language.</p><p class="example">Try: “explain OAuth to my dad”, “ELI5”, “explique de forma simples”</p><a class="guide" href="howto.html#mneves-eli5" aria-label="Read the mneves-eli5 guide">Read the guide</a></article>
+      <article class="skill"><h3>mneves-teach-back-srs</h3><p>You explain the codebase; the agent reads the code, asks what you skipped and turns gaps into SM-2 flashcards in a per-project SQLite file.</p><p class="example">Try: “let me explain the auth flow”, “quiz me”, “what's due?”</p><a class="guide" href="howto.html#mneves-teach-back-srs" aria-label="Read the mneves-teach-back-srs guide">Read the guide</a></article>
+    </div>
+  </section>
+  <div class="collection"><h3>Go further with pstack.</h3><div><p>A separate collection of 33 engineering workflow skills from Lauren Tan's pstack, through the pstack-claude port. Start with <code>poteto-mode</code>; it is not included in the default install.</p><a href="https://github.com/mneves75/skills/tree/main/collections/pstack">Explore the collection</a></div></div>
+</section>
+<section class="how" aria-labelledby="h-how">
+  <h2 id="h-how">A procedure, in your session.</h2>
+  <div class="steps">
+    <div class="step"><h3>Install the folders.</h3><p>The skills CLI links folders where your tools look. Use <code>-g</code> for user-wide installation or <code>--all -y</code> for no prompts. A plain Git clone works too.</p></div>
+    <div class="step"><h3>Name the work.</h3><p>Each <code>SKILL.md</code> begins with a description. Your agent loads the matching procedure, or you call it directly: <code>/mneves-verify</code>.</p></div>
+    <div class="step"><h3>Keep your boundaries.</h3><p>The steps run with your tools and permissions. Some skills ship helpers; others are Markdown only. A workflow preserves your scope and existing authority.</p></div>
+  </div>
+  <p class="privacy-note">The readiness tooling runs locally. Image generation may send authorized prompts and references to your configured provider. Autoreview sends selected review inputs after credential scanning. Each procedure states its own requirements and limits.</p>
+</section>
+<section class="tool" aria-labelledby="h-tool">
+  <div><h2 id="h-tool">Find where the feedback loop breaks.</h2><p><code>mneves-agent-readiness</code> includes a Bun + TypeScript assessor with no runtime dependencies. Point it at the project you want to assess.</p><pre tabindex="0"><code>cd /path/to/your-project
 bun --bun /path/to/skills/tools/readiness-check.ts \
   --format=html --output=report.html
 
-# static checks only, fast
+# Static checks only
 bun --bun /path/to/skills/tools/readiness-check.ts \
   --skip-tests --skip-build
 
-# gate a CI job
+# Gate a CI job
 bun --bun /path/to/skills/tools/readiness-check.ts \
-  --min-level=3</code></pre>
-        <div class="score">
-          <div><span class="big">61.7%</span><span class="lvl">L3 Standardized</span></div>
-          <small>FastAPI at <code>9a8a13f</code>, static checks, 2026-08-26</small>
-          <div class="bar" role="img" aria-label="61.7 percent"><i></i></div>
-          <small>Style 88% · documentation strong · task discovery and product signals weakest</small>
-          <p style="margin:1rem 0 0"><a href="fastapi.html">Open the full sample report →</a></p>
-        </div>
-      </div>
-    </section>
-
-    <section aria-labelledby="h-start">
-      <h2 id="h-start">Start here</h2>
-      <div class="start">
-        <a class="tile" href="howto.html"><strong>How-to guide</strong><span>Every skill: what it does, trigger phrases, prerequisites, a worked example, tips.</span></a>
-        <a class="tile" href="https://github.com/mneves75/skills/tree/main/skills"><strong>Read the skills</strong><span>The <code>SKILL.md</code> files are short. Reading one is the fastest way to know what your agent will do.</span></a>
-        <a class="tile" href="https://github.com/mneves75/skills/blob/main/CONTRIBUTING.md"><strong>Write your own</strong><span>Folder name equals frontmatter <code>name</code>, a description that says when to use it, no home paths. CI checks the rest.</span></a>
-      </div>
-    </section>
-
-    <section aria-labelledby="h-log">
-      <h2 id="h-log">Changelog</h2>
-      <ul class="log">
-        <!-- changelog:start -->
+  --min-level=3</code></pre></div>
+  <aside class="sample" aria-labelledby="h-sample"><h3 id="h-sample">A real sample assessment.</h3><p class="result">FastAPI · 61.7% · L3 Standardized</p><p class="provenance">Static checks at commit <code>9a8a13f</code>, 2026-08-26.</p><p>Style scored 88%. Documentation was strong; task discovery and product signals were weakest. This is a historical example, not a benchmark of these skills.</p><a href="fastapi.html">Read the sample report</a></aside>
+</section>
+<section class="resources" aria-label="Further reading">
+  <div class="resource"><h3>Use the skills.</h3><p>Triggers, prerequisites, examples and tips for every procedure.</p><a href="howto.html">Open the how-to guide</a></div>
+  <div class="resource"><h3>Read the source.</h3><p>The <code>SKILL.md</code> files show exactly what your agent will follow.</p><a href="https://github.com/mneves75/skills/tree/main/skills">Browse the procedures</a></div>
+  <div class="resource"><h3>Write your own.</h3><p>Portable folders, clear triggers and verifiable behavior. The contributing guide covers the rules.</p><a href="https://github.com/mneves75/skills/blob/main/CONTRIBUTING.md">Read the contributing guide</a></div>
+</section>
+<section class="history" aria-labelledby="h-log">
+  <h2 id="h-log">What changed.</h2>
+  <ul class="log">
+    <!-- changelog:start -->
+        <li><span class="v">1.34.0<span class="d">2026-10-13</span></span><span><code>mneves-security</code>: portable application security/privacy audit, detailed remediation.</span></li>
         <li><span class="v">1.33.0<span class="d">2026-10-13</span></span><span><code>mneves-render</code>: project-local Markdown renderers for HTML, editable DOCX and PDF.</span></li>
         <li><span class="v">1.32.0<span class="d">2026-10-08</span></span><span><code>autoreview</code> complexity evidence: portable <code>cccc</code> installation with reviewed release.</span></li>
         <li><span class="v">1.31.0<span class="d">2026-10-04</span></span><span>pstack <code>tdd</code>: writes the failing test first for every bug fix or feature by default.</span></li>
-        <li><span class="v">1.30.0<span class="d">2026-10-04</span></span><span>pstack collection: <code>collections/pstack</code> vendors 32 pstack skills for Claude Code, Codex, Pi and other agents.</span></li>
         <!-- changelog:end -->
-      </ul>
-      <p style="margin-top:1rem"><a href="https://github.com/mneves75/skills/blob/main/CHANGELOG.md">Full changelog →</a></p>
-    </section>
-  </div>
+  </ul>
+  <a href="https://github.com/mneves75/skills/blob/main/CHANGELOG.md">Read the full changelog</a>
+</section>
 </main>
-
-<div class="wrap">
-  <footer>
-    Apache-2.0 + MIT · mneves75 · <a href="https://github.com/mneves75/skills">source</a> · <a href="https://github.com/mneves75/skills/blob/main/SECURITY.md">security</a>
-  </footer>
+<footer class="footer"><span>mneves75/skills · Apache-2.0 + MIT</span><div><a href="https://github.com/mneves75/skills">Source</a><a href="https://github.com/mneves75/skills/blob/main/SECURITY.md">Security</a><a href="https://github.com/mneves75/skills/blob/main/NOTICE">Attributions</a></div></footer>
 </div>
-
-<script>
-document.querySelectorAll('button[data-copy]').forEach(function (b) {
-  b.addEventListener('click', function () {
-    var text = document.getElementById(b.dataset.copy).textContent;
-    var done = function () { b.textContent = 'Copied'; document.getElementById('copied').textContent = 'Command copied'; setTimeout(function () { b.textContent = 'Copy'; }, 1500); };
-    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done); else done();
-  });
-});
-</script>
 </body>
 </html>

@@ -6,12 +6,59 @@ root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)
 cd "$root"
 python3 - <<'PY'
 import hashlib
+from collections import Counter
+from html.parser import HTMLParser
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import tempfile
 
 source = Path.cwd()
+skill_names = {path.parent.name for path in (source / 'skills').glob('*/SKILL.md')}
+
+class Catalog(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.entries = []
+        self.ids = set()
+        self.entry = None
+        self.in_name = False
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if attrs.get('id'):
+            self.ids.add(attrs['id'])
+        if tag == 'article' and 'skill' in attrs.get('class', '').split():
+            self.entry = {'name': '', 'guides': []}
+            self.entries.append(self.entry)
+        if self.entry is not None:
+            if tag == 'h3':
+                self.in_name = True
+            if tag == 'a':
+                self.entry['guides'].append(attrs.get('href'))
+
+    def handle_endtag(self, tag):
+        if tag == 'h3':
+            self.in_name = False
+        if tag == 'article':
+            self.entry = None
+
+    def handle_data(self, data):
+        if self.in_name and self.entry is not None:
+            self.entry['name'] += data
+
+def validate_catalog(index, howto, names):
+    catalog, guide = Catalog(), Catalog()
+    catalog.feed(index)
+    guide.feed(howto)
+    actual = Counter(entry['name'].strip() for entry in catalog.entries)
+    assert actual == Counter({name: 1 for name in names}), f'catalog differs from source skills: {actual}'
+    for entry in catalog.entries:
+        name = entry['name'].strip()
+        assert entry['guides'] == [f'howto.html#{name}'], f'{name}: incorrect guide link'
+        assert name in guide.ids, f'{name}: guide anchor missing from HOWTO'
+
 with tempfile.TemporaryDirectory(prefix='skills-build-site-') as scratch:
     target = Path(scratch)
     for name in ('HOWTO.md', 'CHANGELOG.md', 'site/index.html',
@@ -28,10 +75,31 @@ with tempfile.TemporaryDirectory(prefix='skills-build-site-') as scratch:
         assert result.returncode == 0, f'build failed: {result.returncode}'
         html = (target / 'site/howto.html').read_text()
         assert '<h2 id="combining-them">Combining them</h2>' in html, 'HOWTO truncated before its final section'
+        index = (target / 'site/index.html').read_text()
+        validate_catalog(index, html, skill_names)
         current = {name: hashlib.sha256((target / name).read_bytes()).hexdigest()
                    for name in ('site/howto.html', 'site/index.html')}
         if previous is not None:
             assert current == previous, 'generated site changed on an unchanged second build'
         previous = current
     print(f'PASS: complete HOWTO and repeatable generated site: {previous}')
+    first_entry = re.search(r'<article class="skill(?: new)?">.*?</article>', index, re.S)
+    assert first_entry, 'missing catalog fixture entry'
+    entry = first_entry.group()
+    first_guide = re.search(r'href="howto.html#[^"]+"', entry)
+    assert first_guide, 'missing catalog fixture guide'
+    mutants = {
+        'missing entry': index.replace(entry, '', 1),
+        'duplicate entry': index.replace(entry, entry + entry, 1),
+        'broken guide': index.replace(first_guide.group(),
+                                    'href="howto.html#missing-guide"', 1),
+    }
+    for label, mutant in mutants.items():
+        assert mutant != index, f'{label} mutation did not plant a violation'
+        try:
+            validate_catalog(mutant, html, skill_names)
+        except AssertionError:
+            print(f'PASS: reject {label}')
+        else:
+            raise AssertionError(f'catalog guard accepted {label}')
 PY

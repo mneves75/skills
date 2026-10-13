@@ -1,0 +1,589 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-13T06:42:06.303Z",
+  "title": "Design System: mneves75/skills landing page",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Route Cobalt Link",
+        "tonalRamp": [
+          "oklch(15% 0.21929 263.83)",
+          "oklch(26.43% 0.21929 263.83)",
+          "oklch(37.86% 0.21929 263.83)",
+          "oklch(49.29% 0.21929 263.83)",
+          "oklch(60.71% 0.21929 263.83)",
+          "oklch(72.14% 0.21929 263.83)",
+          "oklch(83.57% 0.21929 263.83)",
+          "oklch(95% 0.21929 263.83)"
+        ]
+      },
+      "blue": {
+        "role": "primary",
+        "displayName": "Route Cobalt Surface",
+        "tonalRamp": [
+          "oklch(15% 0.21929 263.83)",
+          "oklch(26.43% 0.21929 263.83)",
+          "oklch(37.86% 0.21929 263.83)",
+          "oklch(49.29% 0.21929 263.83)",
+          "oklch(60.71% 0.21929 263.83)",
+          "oklch(72.14% 0.21929 263.83)",
+          "oklch(83.57% 0.21929 263.83)",
+          "oklch(95% 0.21929 263.83)"
+        ]
+      },
+      "on-blue": {
+        "role": "primary",
+        "displayName": "Blue-Surface White",
+        "tonalRamp": [
+          "oklch(15% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95% 0.00000 0.00)"
+        ]
+      },
+      "blue-muted": {
+        "role": "primary",
+        "displayName": "Blue-Surface Supporting Text",
+        "tonalRamp": [
+          "oklch(15% 0.03947 265.06)",
+          "oklch(26.43% 0.03947 265.06)",
+          "oklch(37.86% 0.03947 265.06)",
+          "oklch(49.29% 0.03947 265.06)",
+          "oklch(60.71% 0.03947 265.06)",
+          "oklch(72.14% 0.03947 265.06)",
+          "oklch(83.57% 0.03947 265.06)",
+          "oklch(95% 0.03947 265.06)"
+        ]
+      },
+      "lime": {
+        "role": "secondary",
+        "displayName": "Fresh Lime",
+        "tonalRamp": [
+          "oklch(15% 0.11657 120.39)",
+          "oklch(26.43% 0.11657 120.39)",
+          "oklch(37.86% 0.11657 120.39)",
+          "oklch(49.29% 0.11657 120.39)",
+          "oklch(60.71% 0.11657 120.39)",
+          "oklch(72.14% 0.11657 120.39)",
+          "oklch(83.57% 0.11657 120.39)",
+          "oklch(95% 0.11657 120.39)"
+        ]
+      },
+      "on-lime": {
+        "role": "secondary",
+        "displayName": "Lime-Surface Ink",
+        "tonalRamp": [
+          "oklch(15% 0.06171 136.23)",
+          "oklch(26.43% 0.06171 136.23)",
+          "oklch(37.86% 0.06171 136.23)",
+          "oklch(49.29% 0.06171 136.23)",
+          "oklch(60.71% 0.06171 136.23)",
+          "oklch(72.14% 0.06171 136.23)",
+          "oklch(83.57% 0.06171 136.23)",
+          "oklch(95% 0.06171 136.23)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Reading Paper",
+        "tonalRamp": [
+          "oklch(15% 0.00000 0.00)",
+          "oklch(26.43% 0.00000 0.00)",
+          "oklch(37.86% 0.00000 0.00)",
+          "oklch(49.29% 0.00000 0.00)",
+          "oklch(60.71% 0.00000 0.00)",
+          "oklch(72.14% 0.00000 0.00)",
+          "oklch(83.57% 0.00000 0.00)",
+          "oklch(95% 0.00000 0.00)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Deep Ink",
+        "tonalRamp": [
+          "oklch(15% 0.04349 255.99)",
+          "oklch(26.43% 0.04349 255.99)",
+          "oklch(37.86% 0.04349 255.99)",
+          "oklch(49.29% 0.04349 255.99)",
+          "oklch(60.71% 0.04349 255.99)",
+          "oklch(72.14% 0.04349 255.99)",
+          "oklch(83.57% 0.04349 255.99)",
+          "oklch(95% 0.04349 255.99)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Quiet Ink",
+        "tonalRamp": [
+          "oklch(15% 0.04419 254.78)",
+          "oklch(26.43% 0.04419 254.78)",
+          "oklch(37.86% 0.04419 254.78)",
+          "oklch(49.29% 0.04419 254.78)",
+          "oklch(60.71% 0.04419 254.78)",
+          "oklch(72.14% 0.04419 254.78)",
+          "oklch(83.57% 0.04419 254.78)",
+          "oklch(95% 0.04419 254.78)"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Structural Rule",
+        "tonalRamp": [
+          "oklch(15% 0.01449 254.61)",
+          "oklch(26.43% 0.01449 254.61)",
+          "oklch(37.86% 0.01449 254.61)",
+          "oklch(49.29% 0.01449 254.61)",
+          "oklch(60.71% 0.01449 254.61)",
+          "oklch(72.14% 0.01449 254.61)",
+          "oklch(83.57% 0.01449 254.61)",
+          "oklch(95% 0.01449 254.61)"
+        ]
+      },
+      "soft": {
+        "role": "neutral",
+        "displayName": "Soft Blue Paper",
+        "tonalRamp": [
+          "oklch(15% 0.01441 264.50)",
+          "oklch(26.43% 0.01441 264.50)",
+          "oklch(37.86% 0.01441 264.50)",
+          "oklch(49.29% 0.01441 264.50)",
+          "oklch(60.71% 0.01441 264.50)",
+          "oklch(72.14% 0.01441 264.50)",
+          "oklch(83.57% 0.01441 264.50)",
+          "oklch(95% 0.01441 264.50)"
+        ]
+      },
+      "code": {
+        "role": "neutral",
+        "displayName": "Code Surface",
+        "tonalRamp": [
+          "oklch(15% 0.00912 258.34)",
+          "oklch(26.43% 0.00912 258.34)",
+          "oklch(37.86% 0.00912 258.34)",
+          "oklch(49.29% 0.00912 258.34)",
+          "oklch(60.71% 0.00912 258.34)",
+          "oklch(72.14% 0.00912 258.34)",
+          "oklch(83.57% 0.00912 258.34)",
+          "oklch(95% 0.00912 258.34)"
+        ]
+      },
+      "focus": {
+        "role": "primary",
+        "displayName": "Reading Focus Cobalt",
+        "tonalRamp": [
+          "oklch(15% 0.21929 263.83)",
+          "oklch(26.43% 0.21929 263.83)",
+          "oklch(37.86% 0.21929 263.83)",
+          "oklch(49.29% 0.21929 263.83)",
+          "oklch(60.71% 0.21929 263.83)",
+          "oklch(72.14% 0.21929 263.83)",
+          "oklch(83.57% 0.21929 263.83)",
+          "oklch(95% 0.21929 263.83)"
+        ]
+      },
+      "accent-dark": {
+        "role": "primary",
+        "displayName": "Light Route Blue",
+        "tonalRamp": [
+          "oklch(15% 0.08793 266.67)",
+          "oklch(26.43% 0.08793 266.67)",
+          "oklch(37.86% 0.08793 266.67)",
+          "oklch(49.29% 0.08793 266.67)",
+          "oklch(60.71% 0.08793 266.67)",
+          "oklch(72.14% 0.08793 266.67)",
+          "oklch(83.57% 0.08793 266.67)",
+          "oklch(95% 0.08793 266.67)"
+        ]
+      },
+      "blue-dark": {
+        "role": "primary",
+        "displayName": "Night Route Cobalt",
+        "tonalRamp": [
+          "oklch(15% 0.19478 263.79)",
+          "oklch(26.43% 0.19478 263.79)",
+          "oklch(37.86% 0.19478 263.79)",
+          "oklch(49.29% 0.19478 263.79)",
+          "oklch(60.71% 0.19478 263.79)",
+          "oklch(72.14% 0.19478 263.79)",
+          "oklch(83.57% 0.19478 263.79)",
+          "oklch(95% 0.19478 263.79)"
+        ]
+      },
+      "paper-dark": {
+        "role": "neutral",
+        "displayName": "Night Reading Paper",
+        "tonalRamp": [
+          "oklch(15% 0.03478 259.52)",
+          "oklch(26.43% 0.03478 259.52)",
+          "oklch(37.86% 0.03478 259.52)",
+          "oklch(49.29% 0.03478 259.52)",
+          "oklch(60.71% 0.03478 259.52)",
+          "oklch(72.14% 0.03478 259.52)",
+          "oklch(83.57% 0.03478 259.52)",
+          "oklch(95% 0.03478 259.52)"
+        ]
+      },
+      "ink-dark": {
+        "role": "neutral",
+        "displayName": "Night Reading Ink",
+        "tonalRamp": [
+          "oklch(15% 0.01029 261.79)",
+          "oklch(26.43% 0.01029 261.79)",
+          "oklch(37.86% 0.01029 261.79)",
+          "oklch(49.29% 0.01029 261.79)",
+          "oklch(60.71% 0.01029 261.79)",
+          "oklch(72.14% 0.01029 261.79)",
+          "oklch(83.57% 0.01029 261.79)",
+          "oklch(95% 0.01029 261.79)"
+        ]
+      },
+      "muted-dark": {
+        "role": "neutral",
+        "displayName": "Night Quiet Ink",
+        "tonalRamp": [
+          "oklch(15% 0.03213 257.24)",
+          "oklch(26.43% 0.03213 257.24)",
+          "oklch(37.86% 0.03213 257.24)",
+          "oklch(49.29% 0.03213 257.24)",
+          "oklch(60.71% 0.03213 257.24)",
+          "oklch(72.14% 0.03213 257.24)",
+          "oklch(83.57% 0.03213 257.24)",
+          "oklch(95% 0.03213 257.24)"
+        ]
+      },
+      "rule-dark": {
+        "role": "neutral",
+        "displayName": "Night Structural Rule",
+        "tonalRamp": [
+          "oklch(15% 0.04440 257.42)",
+          "oklch(26.43% 0.04440 257.42)",
+          "oklch(37.86% 0.04440 257.42)",
+          "oklch(49.29% 0.04440 257.42)",
+          "oklch(60.71% 0.04440 257.42)",
+          "oklch(72.14% 0.04440 257.42)",
+          "oklch(83.57% 0.04440 257.42)",
+          "oklch(95% 0.04440 257.42)"
+        ]
+      },
+      "soft-dark": {
+        "role": "neutral",
+        "displayName": "Night Soft Blue Paper",
+        "tonalRamp": [
+          "oklch(15% 0.05656 258.94)",
+          "oklch(26.43% 0.05656 258.94)",
+          "oklch(37.86% 0.05656 258.94)",
+          "oklch(49.29% 0.05656 258.94)",
+          "oklch(60.71% 0.05656 258.94)",
+          "oklch(72.14% 0.05656 258.94)",
+          "oklch(83.57% 0.05656 258.94)",
+          "oklch(95% 0.05656 258.94)"
+        ]
+      },
+      "code-dark": {
+        "role": "neutral",
+        "displayName": "Night Code Surface",
+        "tonalRamp": [
+          "oklch(15% 0.04887 257.08)",
+          "oklch(26.43% 0.04887 257.08)",
+          "oklch(37.86% 0.04887 257.08)",
+          "oklch(49.29% 0.04887 257.08)",
+          "oklch(60.71% 0.04887 257.08)",
+          "oklch(72.14% 0.04887 257.08)",
+          "oklch(83.57% 0.04887 257.08)",
+          "oklch(95% 0.04887 257.08)"
+        ]
+      },
+      "focus-dark": {
+        "role": "secondary",
+        "displayName": "Night Focus Lime",
+        "tonalRamp": [
+          "oklch(15% 0.10765 120.79)",
+          "oklch(26.43% 0.10765 120.79)",
+          "oklch(37.86% 0.10765 120.79)",
+          "oklch(49.29% 0.10765 120.79)",
+          "oklch(60.71% 0.10765 120.79)",
+          "oklch(72.14% 0.10765 120.79)",
+          "oklch(83.57% 0.10765 120.79)",
+          "oklch(95% 0.10765 120.79)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Main heading, balanced and limited to 14ch."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Major section headings; small title overrides are contextual."
+      },
+      "title": {
+        "displayName": "Procedure Title",
+        "purpose": "Procedure and resource names."
+      },
+      "body": {
+        "displayName": "Reading Body",
+        "purpose": "Page baseline; catalog prose uses a smaller inherited-body setting."
+      },
+      "label": {
+        "displayName": "Category Label",
+        "purpose": "Semibold category links."
+      },
+      "nav": {
+        "displayName": "Site Navigation",
+        "purpose": "Regular-weight header navigation."
+      },
+      "action": {
+        "displayName": "Action Label",
+        "purpose": "Semibold catalog action."
+      },
+      "copy": {
+        "displayName": "Copy Label",
+        "purpose": "Outlined installation copy control."
+      },
+      "command": {
+        "displayName": "Install Command",
+        "purpose": "Monospace install commands with explicit responsive sizes."
+      }
+    },
+    "themeAssignments": {
+      "default": {
+        "--paper": "{colors.paper}",
+        "--ink": "{colors.ink}",
+        "--muted": "{colors.muted}",
+        "--rule": "{colors.rule}",
+        "--accent": "{colors.accent}",
+        "--soft": "{colors.soft}",
+        "--blue": "{colors.blue}",
+        "--on-blue": "{colors.on-blue}",
+        "--blue-muted": "{colors.blue-muted}",
+        "--lime": "{colors.lime}",
+        "--on-lime": "{colors.on-lime}",
+        "--code": "{colors.code}",
+        "--focus": "{colors.focus}"
+      },
+      "dark": {
+        "media": "(prefers-color-scheme:dark)",
+        "assignments": {
+          "--paper": "{colors.paper-dark}",
+          "--ink": "{colors.ink-dark}",
+          "--muted": "{colors.muted-dark}",
+          "--rule": "{colors.rule-dark}",
+          "--accent": "{colors.accent-dark}",
+          "--soft": "{colors.soft-dark}",
+          "--blue": "{colors.blue-dark}",
+          "--code": "{colors.code-dark}",
+          "--focus": "{colors.focus-dark}"
+        }
+      }
+    },
+    "tonalRampNote": "Eight-step OKLCH previews are synthesized from each source color's hue and chroma. They are panel metadata, not additional runtime colors.",
+    "shadows": [],
+    "motion": [
+      {
+        "name": "category-arrow-transition",
+        "value": "transform 140ms cubic-bezier(.2,0,0,1)",
+        "purpose": "Category-link hover feedback only under prefers-reduced-motion:no-preference."
+      },
+      {
+        "name": "category-arrow-hover",
+        "value": "translateY(2px)",
+        "purpose": "Small downward arrow movement on category hover."
+      },
+      {
+        "name": "anchor-scroll",
+        "value": "smooth",
+        "purpose": "Anchor scrolling only under prefers-reduced-motion:no-preference."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "compact",
+        "value": "64rem"
+      },
+      {
+        "name": "stacked",
+        "value": "48rem"
+      },
+      {
+        "name": "narrow",
+        "value": "36rem"
+      }
+    ],
+    "responsiveBehavior": [
+      {
+        "breakpoint": "compact",
+        "changes": "Opening 1.4fr/1fr; category column 10rem; install commands stack; command size .87rem."
+      },
+      {
+        "breakpoint": "stacked",
+        "changes": "Body 16px; opening/category groups/steps/resources/assessor become single-column; category navigation and procedures retain two columns; intro 1.08rem."
+      },
+      {
+        "breakpoint": "narrow",
+        "changes": "Procedures stack; display clamp(2.9rem,10.4vw,3.6rem); command .76rem; copy .8rem; category label .86rem; release column 5.9rem."
+      }
+    ],
+    "browserSurfaces": {
+      "focus": {
+        "width": "3px",
+        "style": "solid",
+        "color": "{colors.focus}",
+        "offset": "5px"
+      },
+      "installFocus": {
+        "color": "{colors.lime}"
+      },
+      "newProcedureFocus": {
+        "color": "{colors.on-lime}"
+      },
+      "selection": {
+        "backgroundColor": "{colors.lime}",
+        "textColor": "{colors.on-lime}"
+      },
+      "codeScrollbar": {
+        "thumb": "{colors.muted}",
+        "track": "{colors.code}"
+      },
+      "underline": {
+        "thickness": "1px",
+        "hoverThickness": "2px",
+        "offset": ".22em"
+      },
+      "numerals": {
+        "value": "tabular-nums",
+        "purpose": "Release versions and the sample result."
+      },
+      "forcedColors": {
+        "media": "(forced-colors:active)",
+        "value": "1px solid ButtonText",
+        "purpose": "Retain boundaries for action, copy controls, category links and filled asides."
+      }
+    },
+    "sourceFiles": [
+      "site/index.html",
+      "site/copy-command.js"
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Action",
+      "kind": "button",
+      "refersTo": "action",
+      "description": "The native catalog link, styled as the primary action.",
+      "html": "<a class=\"ds-action\" href=\"#skills\">Choose a skill</a>",
+      "css": ".ds-action{display:inline-flex;align-items:center;justify-content:center;min-height:46px;background:var(--ink,#132236);color:var(--paper,#fff);padding:.65rem 1.1rem;border-radius:4px;text-decoration:none;font-family:var(--body,Bricolage,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);font-size:1rem;font-weight:600;line-height:1.55}.ds-action:hover{background:var(--accent,#164bd6);color:var(--paper,#fff);text-decoration:none}.ds-action:focus-visible{outline:3px solid var(--focus,#164bd6);outline-offset:5px}"
+    },
+    {
+      "name": "Copy Command",
+      "kind": "button",
+      "refersTo": "copy-button",
+      "description": "Outlined copy control in its cobalt command context; the preview preserves styling, not clipboard behavior.",
+      "html": "<div class=\"ds-install-preview\"><div class=\"ds-command\"><code class=\"ds-command-code\" tabindex=\"0\">npx skills@latest add mneves75/skills</code><button class=\"ds-copy\" type=\"button\" aria-label=\"Copy npx command\">Copy</button></div></div>",
+      "css": ".ds-install-preview{padding:1.65rem 2rem;background:var(--blue,#164bd6);color:var(--on-blue,#fff);border-radius:4px}.ds-command{display:grid;grid-template-columns:1fr auto;gap:.6rem;align-items:center;min-width:0;padding-block:.6rem;border-top:1px solid #7b9ff3}.ds-command-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:none;color:var(--on-blue,#fff);padding:0;white-space:normal;overflow-wrap:anywhere;font-size:.79rem;line-height:1.8}.ds-copy{font-family:var(--body,Bricolage,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);font-size:.85rem;line-height:1.55;min-height:44px;min-width:65px;border:1px solid #b9ceff;background:transparent;color:var(--on-blue,#fff);padding:.4rem .65rem;border-radius:4px;cursor:pointer}.ds-copy:hover{background:#fff;color:#164bd6}.ds-copy:disabled{cursor:wait;opacity:.7}.ds-copy:focus-visible{outline:3px solid var(--lime,#def59b);outline-offset:5px}.ds-command-code:focus-visible{outline:3px solid var(--lime,#def59b);outline-offset:5px}@media(max-width:64rem){.ds-command-code{font-size:.87rem}}@media(max-width:36rem){.ds-command-code{font-size:.76rem}.ds-copy{font-size:.8rem}}@media(forced-colors:active){.ds-copy{border:1px solid ButtonText}}"
+    },
+    {
+      "name": "Site Navigation",
+      "kind": "nav",
+      "refersTo": "site-nav",
+      "description": "Wrapping plain-text navigation with underlined hover feedback.",
+      "html": "<nav class=\"ds-site-nav\" aria-label=\"Site\"><a href=\"#skills\">Catalog</a><a href=\"#install\">Install</a><a href=\"howto.html\">Guide</a><a href=\"https://github.com/mneves75/skills\">GitHub</a></nav>",
+      "css": ".ds-site-nav{display:flex;flex-wrap:wrap;align-items:center;gap:1.5rem;font-family:var(--body,Bricolage,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);line-height:1.55}.ds-site-nav a{color:var(--ink,#132236);font-size:.95rem;font-weight:400;text-decoration:none;text-decoration-thickness:1px;text-underline-offset:.22em;padding-block:.5rem}.ds-site-nav a:hover{text-decoration:underline;text-decoration-thickness:2px}.ds-site-nav a:focus-visible{outline:3px solid var(--focus,#164bd6);outline-offset:5px}@media(max-width:48rem){.ds-site-nav{gap:1.15rem}}@media(max-width:36rem){.ds-site-nav{gap:1rem}}"
+    },
+    {
+      "name": "Category Navigation",
+      "kind": "nav",
+      "refersTo": "category-link",
+      "description": "Softly filled category routes with inline downward arrows.",
+      "html": "<nav class=\"ds-categories\" aria-label=\"Skill categories\"><a href=\"#review\">Review &amp; verify<svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M8 2v11m-4-4 4 4 4-4\"/></svg></a><a href=\"#plan\">Plan &amp; deliver<svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M8 2v11m-4-4 4 4 4-4\"/></svg></a><a href=\"#build\">Build &amp; discover<svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M8 2v11m-4-4 4 4 4-4\"/></svg></a><a href=\"#learn\">Explain &amp; learn<svg viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M8 2v11m-4-4 4 4 4-4\"/></svg></a></nav>",
+      "css": ".ds-categories{display:grid;grid-template-columns:repeat(4,1fr);gap:.6rem;font-family:var(--body,Bricolage,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);line-height:1.55}.ds-categories a{display:flex;justify-content:space-between;align-items:center;min-height:48px;padding:.7rem .8rem;background:var(--soft,#f0f5ff);color:var(--ink,#132236);text-decoration:none;font-size:.95rem;font-weight:600;border-radius:3px}.ds-categories a:hover{background:var(--ink,#132236);color:var(--paper,#fff)}.ds-categories svg{width:16px;height:16px;flex-shrink:0;stroke:currentColor;stroke-width:1.5;fill:none}.ds-categories a:focus-visible{outline:3px solid var(--focus,#164bd6);outline-offset:5px}@media(prefers-reduced-motion:no-preference){.ds-categories svg{transition:transform 140ms cubic-bezier(.2,0,0,1)}.ds-categories a:hover svg{transform:translateY(2px)}}@media(max-width:48rem){.ds-categories{grid-template-columns:1fr 1fr}}@media(max-width:36rem){.ds-categories a{font-size:.86rem}}@media(forced-colors:active){.ds-categories a{border:1px solid ButtonText}}"
+    },
+    {
+      "name": "Procedure Entry",
+      "kind": "custom",
+      "refersTo": "skill-entry",
+      "description": "Unboxed procedure content with the guide immediately after its example.",
+      "html": "<article class=\"ds-skill\"><h3>mneves-eli5</h3><p>Explain an idea with the Feynman method, calibrated to a child, layperson, executive, junior or expert. Answers in the listener’s language.</p><p class=\"ds-example\">Try: “explain OAuth to my dad”, “ELI5”, “explique de forma simples”</p><a class=\"ds-guide\" href=\"howto.html#mneves-eli5\" aria-label=\"Read the mneves-eli5 guide\">Read the guide</a></article>",
+      "css": ".ds-skill{min-width:0;display:flex;flex-direction:column;align-items:start;gap:.55rem;font-family:var(--body,Bricolage,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);line-height:1.55;color:var(--ink,#132236)}.ds-skill h3{margin:0;font-family:var(--display,Bricolage,Arial,sans-serif);font-weight:650;line-height:1.1;text-wrap:balance;font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}.ds-skill p{margin:0;font-size:.95rem;color:var(--muted,#43556c);max-width:45ch}.ds-skill .ds-example{font-size:.85rem;line-height:1.5}.ds-guide{font-size:.88rem;min-height:32px;padding-top:.2rem}.ds-guide{color:var(--accent,#164bd6);text-decoration-thickness:1px;text-underline-offset:.22em}.ds-guide:hover{text-decoration-thickness:2px}.ds-guide:focus-visible{outline:3px solid var(--focus,#164bd6);outline-offset:5px}@media(max-width:36rem){.ds-skill p{max-width:65ch}}"
+    },
+    {
+      "name": "New Procedure",
+      "kind": "card",
+      "refersTo": "new-procedure",
+      "description": "The implemented lime emphasis for the newly added security procedure.",
+      "html": "<article class=\"ds-new\"><h3>mneves-security</h3><p>Audit application security and privacy using current OWASP guidance, plan remediation and apply authorized safe fixes. Adversarial review and independent acceptance distinguish source evidence from deployed controls.</p><p class=\"ds-new-example\">Try: “audit security and privacy; fix confirmed local issues; do not deploy”</p><span class=\"ds-release-note\">Added in 1.34.0</span><a class=\"ds-new-guide\" href=\"howto.html#mneves-security\" aria-label=\"Read the mneves-security guide\">Read the guide</a></article>",
+      "css": ".ds-new{min-width:0;display:flex;flex-direction:column;align-items:start;gap:.55rem;font-family:var(--body,Bricolage,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);line-height:1.55;background:var(--lime,#def59b);color:var(--on-lime,#203615);padding:1.25rem;border-radius:4px;margin-top:-.1rem}.ds-new h3{margin:0;font-family:var(--display,Bricolage,Arial,sans-serif);font-weight:650;line-height:1.1;text-wrap:balance;font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}.ds-new p{margin:0;font-size:.95rem;max-width:45ch;color:var(--on-lime,#203615)}.ds-new .ds-new-example{font-size:.85rem;line-height:1.5}.ds-release-note{font-size:.75rem;font-weight:600;letter-spacing:.01em;line-height:1.4}.ds-new-guide{color:var(--on-lime,#203615);font-size:.88rem;min-height:32px;padding-top:.2rem;text-decoration-thickness:1px;text-underline-offset:.22em}.ds-new-guide:hover{text-decoration-thickness:2px}.ds-new-guide:focus-visible{outline:3px solid var(--on-lime,#203615);outline-offset:5px}@media(max-width:36rem){.ds-new{margin-top:0}.ds-new p{max-width:65ch}}@media(forced-colors:active){.ds-new{border:1px solid ButtonText}}"
+    },
+    {
+      "name": "Historical Sample",
+      "kind": "card",
+      "refersTo": "sample-card",
+      "description": "Soft tonal aside whose result retains its historical provenance.",
+      "html": "<aside class=\"ds-sample\"><h3>A real sample assessment.</h3><p class=\"ds-result\">FastAPI · 61.7% · L3 Standardized</p><p class=\"ds-provenance\">Static checks at commit <code>9a8a13f</code>, 2026-08-26.</p><p>Style scored 88%. Documentation was strong; task discovery and product signals were weakest. This is a historical example, not a benchmark of these skills.</p><a href=\"fastapi.html\">Read the sample report</a></aside>",
+      "css": ".ds-sample{padding:1.65rem;background:var(--soft,#f0f5ff);color:var(--ink,#132236);border-radius:4px;font-family:var(--body,Bricolage,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);line-height:1.55}.ds-sample h3{margin:0 0 .75rem;font-family:var(--display,Bricolage,Arial,sans-serif);font-weight:650;line-height:1.1;text-wrap:balance;font-size:1.55rem;letter-spacing:-.015em}.ds-sample p{margin:.8rem 0 0;font-size:.95rem;max-width:48ch;color:var(--muted,#43556c)}.ds-sample .ds-result{font-size:1.15rem;color:var(--ink,#132236);font-weight:600;font-variant-numeric:tabular-nums}.ds-sample .ds-provenance{font-size:.85rem}.ds-sample code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;background:var(--code,#edf1f7);padding:.12em .3em;border-radius:3px}.ds-sample a{display:inline-block;margin-top:1.25rem}.ds-sample a{color:var(--accent,#164bd6);text-decoration-thickness:1px;text-underline-offset:.22em}.ds-sample a:hover{text-decoration-thickness:2px}.ds-sample a:focus-visible{outline:3px solid var(--focus,#164bd6);outline-offset:5px}@media(forced-colors:active){.ds-sample{border:1px solid ButtonText}}"
+    },
+    {
+      "name": "Release Row",
+      "kind": "custom",
+      "refersTo": "release-row",
+      "description": "Aligned version/date and change text with inset above a thin rule.",
+      "html": "<ul class=\"ds-log\"><li><span class=\"ds-version\">1.34.0<span class=\"ds-date\">2026-10-13</span></span><span><code>mneves-security</code>: portable application security/privacy audit, detailed remediation.</span></li></ul>",
+      "css": ".ds-log{list-style:none;padding:0;margin:1.5rem 0;max-width:60rem;font-family:var(--body,Bricolage,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);line-height:1.55;color:var(--ink,#132236)}.ds-log li{display:grid;grid-template-columns:7rem 1fr;gap:1.5rem;padding-block:1rem;border-bottom:1px solid var(--rule,#d5dce5);font-size:.95rem}.ds-version{font-variant-numeric:tabular-nums;font-weight:650}.ds-date{display:block;font-size:.82rem;color:var(--muted,#43556c);font-weight:400;margin-top:.25rem}.ds-log code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;background:var(--code,#edf1f7);padding:.12em .3em;border-radius:3px}@media(max-width:36rem){.ds-log li{grid-template-columns:5.9rem 1fr;gap:.8rem}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Civic Wayfinding Index",
+    "overview": "A clear public index: expressive headings establish the route, thin rules align the categories, and each procedure remains easy to read. White and deep ink carry the reading surface; committed cobalt gives installation a distinct place, while lime marks the new procedure and selected browser states.\n\nThis records the implemented landing page in site/index.html and its copy controller in site/copy-command.js. It does not govern the generated HOWTO or the historical readiness report. The visual system uses a local display face, native links and small controls, with no raster artwork or ornamental scene.",
+    "keyCharacteristics": [
+      "Expressive Bricolage headings over aligned, lightly ruled category rows.",
+      "Solid cobalt installation surfaces with restrained lime emphasis.",
+      "Flat, nearly square forms; readable content stays visible without JavaScript.",
+      "System light/dark preferences, visible focus and reduced-motion support."
+    ],
+    "rules": [
+      {
+        "name": "The Role Before Hue Rule",
+        "body": "Keep reading surfaces, installation surfaces and new-procedure emphasis distinct; use the existing theme assignments rather than applying one accent to every region.",
+        "section": "colors"
+      },
+      {
+        "name": "The Expressive Heading Rule",
+        "body": "Use the local Bricolage face for headings; keep monospace for commands and inline code.",
+        "section": "typography"
+      },
+      {
+        "name": "The Aligned Category Rule",
+        "body": "Use a shared category column and thin separators to organize the catalog; retain vertical padding around each group.",
+        "section": "layout"
+      },
+      {
+        "name": "The Flat Surface Rule",
+        "body": "Separate regions with rules and solid tonal fills; the implemented system has no box shadows.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Honest Control Rule",
+        "body": "Show copy progress, success and a recoverable failure; preserve the command as a selectable keyboard target.",
+        "section": "components"
+      }
+    ],
+    "dos": [
+      "Do preserve the category alignment, readable procedure summaries and nearby guide links.",
+      "Do use the existing light/dark color assignments and visible focus treatments.",
+      "Do keep the local Bricolage face, balanced headings and the observed responsive type hierarchy.",
+      "Do keep install commands selectable and show truthful copy status."
+    ],
+    "donts": [
+      "Don't turn the unboxed catalog entries into a wall of identical filled cards.",
+      "Don't replace the local display face with a system display face or use monospace as decoration.",
+      "Don't add raster illustrations, decorative controls or shadows to this landing-page system.",
+      "Don't hide content behind motion or make copy success appear before the clipboard write succeeds."
+    ]
+  }
+}
+
