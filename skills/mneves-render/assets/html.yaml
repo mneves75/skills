@@ -1,4 +1,4 @@
-from: markdown-raw_html-raw_tex
+from: markdown-smart-raw_html-raw_tex
 to: html5
 standalone: true
 template: document.html
@@ -6,3 +6,5 @@ css:
   - document.css
 embed-resources: true
 fail-if-warnings: true
+filters:
+  - scripts/check_ast.py

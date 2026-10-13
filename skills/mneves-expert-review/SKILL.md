@@ -42,6 +42,13 @@ Read the draft — or the request, if no draft exists yet — fully before start
    when absent, use an equivalent fresh read-only verifier. Report missing required capability
    as blocked. Fold verified findings back into the solution.
 
+   For code, challenge the weakest assumption adversarially and use installed `cccc` on
+   supported changed source as a comprehension signal. The separately installed `autoreview`
+   skill owns detailed complexity guidance. Without it, preserve target config, run
+   `cccc --no-cache --min 0` on focused source, record version/status/diagnostics, and reconcile
+   expected files and parse errors. Missing tooling or unsupported/partial scans are reported;
+   scores never establish correctness or justify a mechanical refactor.
+
 5. **Compare meaningful alternatives.** Start with a conservative option, a minimal option,
    and one that challenges the premise. Merge equivalent options. Add another only if evidence
    exposes a materially different trade-off. Compare against the decision criteria; use a

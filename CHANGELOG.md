@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.33.0] - 2026-10-13
+
+### Added
+
+- **`mneves-render`**: project-local Markdown renderers for HTML, editable DOCX and PDF.
+  Pandoc starters preserve metadata and literal punctuation, share HTML/print styling,
+  guard active content, and constrain long text and oversized figures. Real-engine
+  regressions and CI LibreOffice previews complement structural and visual acceptance.
+- **Agent workflow configuration**: local Markdown issue-tracker and single-context domain
+  documentation for the repository's engineering skills.
+- **`mneves-ship-deploy` release contract**: a read-only conformance checker, reference
+  release/live-verification scripts, planted controls and Cloudflare/VPS deployment guidance.
+
 ### Changed
 
 - **pstack upstream update**: refreshed all 33 collection skills from the owner's fork,
@@ -23,36 +36,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   their owning source. The exported local patch now includes model configuration, generator
   changes and their tests so rebuilding the collection preserves the routing policy.
 
-### Added
-
-- **`mneves-ship-deploy` release contract**: `references/release-contract.md` defines two entry
-  points a deployable repository provides (`scripts/release.sh` and `scripts/verify-live.sh`)
-  and ten guarantees. `scripts/release-contract-check.py` reports conformance for one
-  repository or a folder of them and never runs a repository's code. `assets/` holds a
-  reference release script and live check for a single-Worker project, with a guard test.
-- **`mneves-ship-deploy` references**: `references/cloudflare.md` (what a Wrangler
-  environment inherits, build-time values per target, service bindings, a recovery point
-  before a migration, stale first reads, schedules, and a review check for shared caches in
-  front of identity) and `references/vps.md` (the path production really uses, building off
-  the host, the resolved Compose file).
-
-### Changed
-
 - **`mneves-ship-deploy`**: deploys the pushed commit, proves it live, then tags. It used to
   tag and push the tag before deploying, so a tag could name a build nobody had verified. A
   gate that cannot pass becomes one decision packet with named waivers while every other gate
   still runs. The preflight reports a sixth finding, the release contract.
 
-## [1.32.0] - 2026-10-12
+
+## [1.32.0] - 2026-10-08
 
 ### Added
 
-- **`mneves-md-renderers`**: project-local Markdown renderers for HTML, editable DOCX and PDF.
-  Preserves source content across the requested formats. Includes Pandoc
-  defaults, a shared HTML/print stylesheet and template, a smoke fixture, Word style mapping
-  and separate structural/visual acceptance checks. Render only the requested formats.
-- **Agent workflow configuration**: local Markdown issue-tracker and single-context domain
-  documentation for the repository's engineering skills.
+- **`autoreview` complexity evidence**: portable `cccc` installation with reviewed release
+  checksums, explicit destinations and no replacement or PATH edits; offline failure controls
+  and a separate real-binary smoke check for thresholds, parsing, missing inputs and empty scans.
+- **Implementation plan**: alternatives, frozen acceptance, primary-source research and
+  adversarial findings for the complexity integration.
+
+### Changed
+
+- **Review skills**: autoreview, Fable, expert-review, superaudit and verify use installed
+  `cccc` for supported source and always challenge code changes adversarially. Coverage,
+  parse diagnostics, version and repository policy accompany scores; optional metrics never
+  replace tests or independent review. Single-skill installs retain inline fallbacks.
+- **Fable model defaults**: rechecked against current vendor catalogs; verification date
+  updated without changing role selection.
+- **Documentation and CI**: installation/review guidance, installer tests in the existing
+  portable suite, generated catalog, ignored scratch and local complexity cache artifacts.
 
 ## [1.31.0] - 2026-10-04
 

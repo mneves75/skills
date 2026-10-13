@@ -48,7 +48,7 @@ plan advisor      = gpt-6-astra, reasoning high (advice and plan review)
 specialist        = gpt-6.1-sol, reasoning xhigh (specialist execution or review)
 ```
 
-Verified against the vendor model lists on 2026-10-12; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-10-13; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file).
 
@@ -115,6 +115,14 @@ existence is not a substitute for the required behavior.
 Use an independent fresh-context review when risk, the repository, or the user requires it; it
 runs on the reviewer role. `autoreview` is a sibling skill in this repository, not shipped with
 this one; without it, run the reviewer model read-only on the diff with a self-contained brief.
+
+For code review, always include an adversarial challenge to the weakest plausible assumption.
+When `cccc` is installed, collect complexity evidence for supported changed source before
+dispatch and supply the version, target/config identity, file coverage, diagnostics and status.
+The separate `autoreview` skill owns its detailed complexity reference; single-skill installs
+may lack it. Then run `cccc --no-cache --min 0` on focused source with the owning config,
+reconcile expected files and parsing errors, report missing/unsupported/incomplete evidence,
+and continue independent review. Scores never replace tests or standards/spec judgment.
 Routine edits need only proportionate deterministic checks. If a correction is needed, continue
 the existing agent or lane so it retains context.
 

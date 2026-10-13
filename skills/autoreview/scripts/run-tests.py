@@ -29,7 +29,8 @@ def main() -> int:
             ["-m", "unittest", "tests.test_autoreview_hardening",
              "tests.test_codex_inference_route", "tests.test_codex_sandbox",
              "tests.test_git_line_endings", "tests.test_git_boundary",
-             "tests.test_git_filter_collection"],
+             "tests.test_git_filter_collection", "tests.test_install_cccc",
+             "tests.test_check_cccc"],
         ):
             result = subprocess.run([sys.executable, "-B", *args], cwd=root, env=env)
             if result.returncode:

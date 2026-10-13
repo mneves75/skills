@@ -83,6 +83,11 @@ jobs:
       - name: Python syntax
         run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py skills/mneves-ship-deploy/scripts/release-contract-check.py skills/mneves-ship-deploy/scripts/run-tests.py skills/mneves-ship-deploy/tests/test_release_contract_check.py
 
+      - name: Verified cccc install and real CLI controls (disposable fixtures)
+        run: |
+          python3 skills/autoreview/scripts/install-cccc.py "$RUNNER_TEMP/cccc"
+          python3 skills/autoreview/scripts/check-cccc.py "$RUNNER_TEMP/cccc"
+
       - name: ast-grep scan
         run: ast-grep scan --config sgconfig.yml .
 
@@ -101,6 +106,31 @@ jobs:
           bun install --frozen-lockfile
           bun run typecheck
           bun run lint
+
+  render-starters:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install document engines and preview fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y pandoc poppler-utils libreoffice-writer fonts-liberation fonts-dejavu python3-venv libpango-1.0-0
+          python3 -m venv .scratch/render-engine
+          .scratch/render-engine/bin/pip install weasyprint==70.0
+          echo "$PWD/.scratch/render-engine/bin" >> "$GITHUB_PATH"
+      - name: Reject active content through actual Pandoc commands
+        run: python3 skills/mneves-render/tests/test_check_ast.py
+      - name: Render and check HTML, DOCX and PDF starters
+        run: python3 skills/mneves-render/tests/test_starters.py --require-office --artifacts .scratch/render-acceptance
+      - name: Retain document previews for visual acceptance
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: render-acceptance
+          path: .scratch/render-acceptance
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: error
 
   autoreview:
     strategy:

@@ -27,7 +27,7 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 |---|---|---|
 | `autoreview` | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
 | `mneves-handoff` | hand a task to another agent, review first | "handoff the flaky login test" |
-| `mneves-md-renderers` | build repeatable HTML, Word and PDF exports from Markdown | "write a renderer for my Markdown reports" |
+| `mneves-render` | build repeatable HTML, Word and PDF exports from Markdown | "write a renderer for my Markdown reports" |
 | `imagegen-frontend-mobile` | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
 | `mneves-chatgpt-search` | improve ChatGPT Search discovery and measure citations/referrals | "improve this site's ChatGPT Search visibility" |
 | `mneves-eli5` | explain a thing to a specific audience | "explain OAuth to my dad" |
@@ -41,7 +41,7 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 
 ---
 
-## mneves-md-renderers
+## mneves-render
 
 **What it does.** Helps any agent build a repeatable renderer inside your project. Markdown
 stays authoritative; it produces only the formats you ask for: responsive HTML, editable
@@ -54,18 +54,52 @@ It does not rewrite or summarize your source or require a specific agent vendor.
 
 **Example** (illustrative).
 
-> Use mneves-md-renderers to build a renderer for docs/report.md. Produce HTML, editable DOCX
+> Use mneves-render to build a renderer for docs/report.md. Produce HTML, editable DOCX
 > and PDF with our existing typography. Keep all content and citations. Add a repeatable
 > command, inspect HTML at desktop and mobile widths, and inspect every PDF and DOCX page.
 
 **What you receive.** The requested files, a project-local renderer and regeneration command,
 plus the checks actually run and any unverified format limitations. Pandoc and a PDF engine
-are external tools, not bundled dependencies; existing equivalent tools are fine.
+are external tools, not bundled dependencies; existing equivalent tools are fine. The Pandoc
+starters also require Python 3.10+ for their bundled content-policy guard. They preserve
+metadata and literal punctuation; the guard is not a resource sandbox or SVG sanitizer.
 
-Procedure: [SKILL.md](skills/mneves-md-renderers/SKILL.md).
-Starter commands: [Pandoc recipe](skills/mneves-md-renderers/references/pandoc.md).
+**Maintaining the starter.** Run `python3 skills/mneves-render/tests/test_check_ast.py` and
+`python3 skills/mneves-render/tests/test_starters.py`. CI produces LibreOffice previews;
+successful conversion still needs page-by-page visual inspection. Microsoft Word pagination
+and PDF/UA conformance are separate checks, not implied by these tests.
+
+Procedure: [SKILL.md](skills/mneves-render/SKILL.md).
+Starter commands: [Pandoc recipe](skills/mneves-render/references/pandoc.md).
 
 ## autoreview
+
+### Local complexity and adversarial review
+
+For supported code changes, the review skills use optional local
+[cccc](https://github.com/moznion/cccc) for cognitive and cyclomatic complexity and always
+challenge the weakest plausible assumption. Metrics identify code to inspect; tests and
+independent standards/spec review still decide whether the change is correct.
+
+The autoreview skill includes a portable checksum-verified installer. Obtain approval for
+the destination when required, ensure its directory exists, then run:
+
+```sh
+python3 /path/to/autoreview/scripts/install-cccc.py /approved/bin/cccc
+python3 /path/to/autoreview/scripts/check-cccc.py /approved/bin/cccc
+```
+
+It refuses replacement and does not edit PATH. The pin is maintained only in
+`scripts/cccc-release.json`. macOS/Linux ARM64 and x86-64 binaries are supported; other
+platforms use upstream release instructions. Single-skill installs keep the complete folder.
+
+From the reviewed repository, preserve its config and collect focused evidence with
+`cccc --no-cache --min 0 --pretty src/`. Record the version, config/target, expected files,
+stdout, stderr and exit status. Reconcile reported files and parsing errors: a successful
+exit can still mean partial or empty analysis. Table-config output stays a table and must
+be checked accordingly. Missing tooling and unsupported source are reported; the remaining
+review continues. See [the full procedure](skills/autoreview/references/complexity.md).
+
 
 **What it does.** Freezes the chosen Git target, scans the outgoing input, runs a reviewer in
 an isolated environment, validates its report, and rejects results if sources changed mid-review.

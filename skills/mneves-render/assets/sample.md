@@ -1,5 +1,5 @@
 ---
-title: Renderer acceptance sample
+pagetitle: Renderer acceptance sample
 lang: en
 ---
 

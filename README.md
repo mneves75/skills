@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.32.0-blue)
+![Version](https://img.shields.io/badge/version-1.33.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -23,12 +23,18 @@ For compact task prompts, bounded retries and model routing, see
 | [mneves-agent-readiness](skills/mneves-agent-readiness/) | Evaluate codebase readiness for AI agents: 9 pillars, maturity levels L1–L5, local-only |
 | [mneves-expert-review](skills/mneves-expert-review/) | Scoped stress test: objective, first principles, relevant research, one combined challenge, distinct alternatives, improved deliverable |
 | [mneves-handoff](skills/mneves-handoff/) | Clipboard-ready, path-free prompt that hands a task to another agent for independent review and discussion first |
-| [mneves-md-renderers](skills/mneves-md-renderers/) | Build project-local Markdown renderers for HTML, editable DOCX and PDF, with shared design, starter templates and content/visual verification |
+| [mneves-render](skills/mneves-render/) | Build project-local Markdown renderers for HTML, editable DOCX and PDF, with shared design, tested starter templates and content/visual verification |
 | [mneves-fable-orchestrator](skills/mneves-fable-orchestrator/) | Route ordinary, bounded and difficult work by capability; models live in one Defaults block; ships [`codex-lane`](skills/mneves-fable-orchestrator/tools/codex-lane) |
 | [mneves-superaudit](skills/mneves-superaudit/) | Bounded audit-and-ship pass: slop, performance, agent DX, PR triage — falsifiable completion criteria, existing authority and requested stops |
 | [mneves-ship-deploy](skills/mneves-ship-deploy/) | Deploy the pushed commit, prove it live, then tag; staging without redundant confirmation, explicit approval of the exact candidate before production; ships a release-contract check |
 | [mneves-teach-back-srs](skills/mneves-teach-back-srs/) | Spaced-repetition learning through codebase teach-back sessions (SM-2 + SQLite) |
 | [mneves-verify](skills/mneves-verify/) | Independent verification before done/fixed/shipped: fresh context checks the artifact against criteria, PASS/FAIL/BLOCKED |
+
+Code-review workflows use local [cccc](https://github.com/moznion/cccc) when available
+to measure supported source complexity, alongside independent adversarial review and tests.
+It is optional, runs locally and never makes low scores an approval. The portable
+[installation and evidence procedure](skills/autoreview/references/complexity.md) ships
+with `autoreview`, including a pinned checksum-verified installer and real CLI controls.
 
 ## Collections
 

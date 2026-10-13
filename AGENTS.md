@@ -21,7 +21,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── mneves-eli5/               # Feynman explainer, audience-calibrated
 │   ├── mneves-expert-review/      # Expert-panel review/optimization pass (+ references/)
 │   ├── mneves-handoff/            # Discussion-first handoff prompt for another agent (MIT, adapted)
-│   ├── mneves-md-renderers/       # Project-local Markdown -> HTML, editable DOCX and PDF
+│   ├── mneves-render/             # Project-local Markdown -> HTML, editable DOCX and PDF
 │   ├── mneves-fable-orchestrator/ # Model routing; Codex reference + tools/codex-lane (+ its test)
 │   ├── mneves-superaudit/         # Bounded audit-and-ship pass (+ references/)
 │   ├── mneves-ship-deploy/         # Deploy, prove live, then tag (+ references/, contract check, reference release scripts)
@@ -56,6 +56,9 @@ tools/scripts/build-site.sh            # HOWTO.md -> site/howto.html + landing c
 bash tools/scripts/build-site.test     # real catalog build: completeness and repeatability
 npx skills@latest add . --list          # what the skills CLI will discover
 python3 skills/autoreview/scripts/run-tests.py  # isolated unit/integration/security suite
+python3 skills/mneves-render/tests/test_check_ast.py  # actual Pandoc content-policy controls
+python3 skills/mneves-render/tests/test_starters.py   # Pandoc + WeasyPrint + Poppler acceptance
+python3 skills/autoreview/scripts/check-cccc.py /absolute/path/to/cccc  # real complexity controls
 tools/scripts/sync-pstack.sh <pstack-claude-repo> <commit>   # regenerate collections/pstack
 bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no network)
 ```
@@ -77,8 +80,8 @@ bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no net
 - Skills are Markdown-first. Shipped executables are `bash` + `set -euo pipefail`, `bash -n`
   clean when written in Bash. Python helpers use Python 3.10+ and the standard library;
   each helper states its own floor and that claim must match the syntax it actually uses.
-  Executable skills are `autoreview`, `mneves-fable-orchestrator`, `mneves-ship-deploy`, and
-  `mneves-teach-back-srs`;
+  Executable skills are `autoreview`, `mneves-fable-orchestrator`, `mneves-ship-deploy`,
+  `mneves-teach-back-srs`, and `mneves-render`;
   the repository copy is canonical and each ships its relevant verification procedure
   (`codex-lane.test` runs against a fake `codex` on `PATH`, so it never spends quota).
 - No `any` / `as any` in `tools/`; use `unknown` + a narrowing guard. ast-grep blocks it.
@@ -106,6 +109,16 @@ bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no net
   the `mneves-` prefix rule), its license, and an `UPSTREAM` pin. Its `skills/`, `UPSTREAM`, `LICENSE` and
   `local-overrides.patch` come from a sync script and are never hand-edited; CI requires the Agent Skills spec
   (`skills-ref validate`) and name == directory for every collection skill.
+
+## Code review evidence
+
+Always include adversarial review of code changes. Use local `cccc` for supported changed
+source when available, following `skills/autoreview/references/complexity.md`; record its
+version, target/config identity, file coverage, diagnostics and status. Missing tooling,
+unsupported code or incomplete scans are stated explicitly. Scores never replace tests,
+standards/spec review or independent acceptance. The installer and release manifest ship
+inside autoreview so a single-skill install is self-contained. Do not hand-edit vendored
+collection skills or host-installed third-party skills to add this policy.
 
 ## Adding a Skill
 

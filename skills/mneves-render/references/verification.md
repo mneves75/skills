@@ -9,6 +9,8 @@ headings, emphasis, lists, tables, code, links and a footnote; it does not cover
 - Compare the source document tree with extracted output: all sections, numeric values,
   captions, table cells, code, links and footnotes must survive. Normalize only presentation
   whitespace and pagination; keep case, punctuation and accents meaningful.
+  Include literal quotes, apostrophes, `--`, `---` and `...` with expectations independent
+  of the parser, so its own typography transformation cannot hide a mismatch.
 - Check HTML with a DOM parser: language/title, heading hierarchy, actual link targets,
   image alt text, tables and no unwanted executable source content.
 - Open DOCX as a ZIP and inspect `word/document.xml`, styles and relationships, or reopen it
@@ -44,6 +46,12 @@ Run the project entry point, not only individual engines:
    no stale final output represented as fresh success.
 5. Exercise actual special features: a multipage table, long code, math, Mermaid, raw HTML
    or unusual scripts when present. Either support them or name the blocked feature.
+6. Test a long plain URL/token in a paragraph and heading, and an oversized local figure
+   with top/middle/bottom markers. Require complete text and page bounds plus readable
+   rasters; shrinking an unreadable figure is not a pass.
+7. Reject active schemes and event-handler attributes in links, spans and images, even
+   without raw HTML. Pair negative fixtures with valid HTTPS/fragment links, IDs and
+   image dimensions. Run the shipped AST filter; do not put the guard only in test code.
 
 Keep output logs and engine versions as evidence. Clean only task-created temporary files;
 never remove user documents to tidy the output folder. Report structural and visual results

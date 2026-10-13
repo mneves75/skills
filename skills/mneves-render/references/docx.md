@@ -5,10 +5,9 @@ images: they lose editable text, heading navigation, list structure and searchab
 The bundled defaults create a functional first draft with Pandoc's built-in styles; they
 do **not** make it visually match the HTML automatically.
 
-The starter clears the metadata title because the sample has a visible H1 in its body.
-This prevents Word from printing the title twice. For a source with only a frontmatter
-title, remove that override or map the title into a body heading first. Check this choice
-per input rather than blindly discarding titles.
+The starter preserves metadata title, subtitle, authors and date. A body H1 is independent:
+if both are supplied, both appear. Choose one title source deliberately, without heuristic
+deduplication. The sample uses `pagetitle` for the browser tab and a visible body H1.
 
 For the final project renderer, create a project-owned reference document:
 

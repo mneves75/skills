@@ -7,7 +7,7 @@
   background: #fff;
 }
 * { box-sizing: border-box; }
-body { margin: 0; }
+body { margin: 0; overflow-wrap: anywhere; }
 main { max-width: 72ch; margin: 0 auto; padding: 2rem 1.25rem; }
 h1, h2, h3, h4, h5, h6 { line-height: 1.2; break-after: avoid; }
 h1 { font-size: 2rem; margin: 0 0 1.25rem; }
@@ -17,7 +17,7 @@ p, ul, ol, blockquote, pre, table, figure { margin: 0 0 1rem; }
 p, li { orphans: 3; widows: 3; }
 a { color: #174ea6; text-decoration: underline; overflow-wrap: anywhere; }
 a:focus-visible { outline: 2px solid #174ea6; outline-offset: 3px; }
-img, svg { max-width: 100%; height: auto; }
+img, svg { max-width: 100%; max-height: 220mm; width: auto; height: auto; }
 figure { margin-inline: 0; }
 figcaption { font-size: 0.875rem; color: #425466; }
 blockquote { margin-inline: 0; padding-left: 1rem; border-left: 3px solid #64748b; }
