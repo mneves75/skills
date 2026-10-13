@@ -228,6 +228,18 @@ class StarterAcceptance(unittest.TestCase):
         _, text = self.make_pdf(outputs["html"])
         self.assertIn(LONG_TOKEN, "".join(text.split()), "PDF clipped a plain text token")
 
+    def test_multipage_table_preserves_every_row(self):
+        sentinels = [f"ROW{index:03d}END" for index in range(80)]
+        source = "# Multipage table\n\n| Record | Value |\n|:---|---:|\n"
+        source += "\n".join(f"| {sentinel} | {index} |"
+                            for index, sentinel in enumerate(sentinels))
+        source += "\n\n## Final section\n\nAFTERTABLESENTINEL\n"
+        outputs = self.render("multipage-table", source, ("html",))
+        _, text = self.make_pdf(outputs["html"])
+        self.assertGreaterEqual(text.count("\f"), 2, "Fixture did not span multiple pages")
+        for sentinel in [*sentinels, "AFTERTABLESENTINEL"]:
+            self.assertEqual(text.count(sentinel), 1, sentinel)
+
     def test_tall_local_svg_fits_pdf_page(self):
         # Text near both vertical extremes reveals clipping of an oversized figure.
         svg = ('<svg xmlns="http://www.w3.org/2000/svg" width="600" height="2400" '
