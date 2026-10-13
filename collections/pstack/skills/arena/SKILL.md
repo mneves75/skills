@@ -9,22 +9,11 @@ On Codex, read the [platform mapping](../poteto-mode/references/codex-tools.md),
 
 On GitHub Copilot, read the [platform mapping](../poteto-mode/references/copilot-tools.md), including its per-skill notes, before following this skill.
 
-Fan out N parallel attempts at the same task. Read every candidate end to end. Pick the strongest as the base. Graft the best ideas from the others into it. Verify the synthesized result.
-
-## Start
-
-Open a todolist with one entry per phase before launching anything.
-
-1. Frame
-2. Fan out
-3. Cross-judge
-4. Pick
-5. Graft
-6. Verify
+Open a todolist with one entry per phase (Frame, Fan out, Cross-judge, Pick, Graft, Verify) before launching anything.
 
 ## Phase A: Frame
 
-The N candidates will receive the same prompt, so the prompt is the contract.
+Every candidate gets the same prompt, so the prompt is the contract.
 
 1. State the artifact each candidate is producing.
 2. Derive the rubric. State what success looks like for *this* task, then turn it into 3-6 concrete gradeable criteria. The rubric is the picker's tool in Phase D. Candidates only see the task.
@@ -33,21 +22,17 @@ The N candidates will receive the same prompt, so the prompt is the contract.
 
 ## Phase B: Fan out
 
-Spawn all N subagents in one message with `run_in_background: true`, each with the task, the path to the shared grounding, its own output path, and instructions to produce both the artifact and a short rationale.
+Spawn all N subagents in one message with `run_in_background: true`, each with the task, the path to the shared grounding, its own output path, and instructions to produce the artifact and a short rationale naming the alternatives it considered and what it rejected.
 
-Each rationale names the alternatives the candidate considered and what it rejected.
-
-If a candidate fails to produce output, proceed with N-1 and note the dropout in the synthesis record.
+If a candidate produces no output, proceed with N-1 and note the dropout.
 
 ## Phase C: Cross-judge
 
-After all Phase B candidates complete, choose one model from the `arena cross-judge pool` line in `pstack-models.md`. If the sheet or that line is missing, choose from the runner defaults in [Models](#models). Prefer a different model family from the parent's. Spawn one readonly judge subagent on that model. It sees the rubric and the candidates by path label, scores each criterion, and recommends a base with rationale. It runs in parallel with the parent's reading in Phase D, not with the candidates themselves. Don't spawn the judge while candidates are still writing.
+After all Phase B candidates complete, choose one model from the `arena cross-judge pool` line in `pstack-models.md`. If the sheet or that line is missing, choose from the runner defaults in [Models](#models). Prefer a different model family from the parent's. Spawn one readonly judge subagent on that model. It sees the rubric and the candidates by path label, scores each criterion, and recommends a base with rationale. It runs in parallel with your reading in Phase D. Don't spawn it while candidates are still writing.
 
 ## Phase D: Pick a base
 
-Read every candidate end to end before picking.
-
-Score each candidate against the rubric criterion by criterion, not on holistic feel. Compare against the cross-judge. Agreement on the base confirms the pick. Disagreement means one of you is biased or the rubric was ambiguous. Read both rationales before deciding.
+Read every candidate end to end before picking. Score each against the rubric criterion by criterion, not on holistic feel, and compare with the cross-judge. Agreement on the base confirms the pick. Disagreement means one of you is biased or the rubric was ambiguous. Read both rationales before deciding.
 
 Pick the base on which candidate a future maintainer can extend most easily without breaking invariants. Prefer the cleaner boundary or smaller API when two feel tied, per poteto-mode's [evolution guidance](../poteto-mode/references/engineering-evolution.md).
 
@@ -55,7 +40,7 @@ Record the pick and the reason in a short synthesis note alongside the base arti
 
 ## Phase E: Graft
 
-Walk each losing candidate once more and identify what is worth porting into the base. The signal is usually one or two things per candidate, not most of it.
+Walk each losing candidate once more for what is worth porting into the base, usually one or two things per candidate, not most of it.
 
 Fold each graft in by hand, per [evolution guidance](../poteto-mode/references/engineering-evolution.md). Don't paste mechanically. The result has to remain coherent under one mental model.
 
@@ -71,7 +56,7 @@ If verification surfaces a problem the arena did not catch, either Phase A was w
 
 ## Outputs
 
-One synthesized artifact. One short synthesis note alongside, naming the base, the grafts (with source candidate), the rejections, the dropouts if any, and the verification result.
+One synthesized artifact, with a short synthesis note alongside naming the base and why, the cross-judge's verdict, each graft with its source candidate, what was rejected and why, any convergence or dropouts, and the verification result.
 
 ## Models
 

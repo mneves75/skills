@@ -26,7 +26,7 @@ pstack skills are written in Claude Code tool language (the `Skill` tool, the `A
 
 poteto-mode's Subagents section sets Claude-specific defaults (`subagent_type: "pstack:poteto-agent"`, `run_in_background: true`). On GitHub Copilot:
 
-- The plugin's agents load as `task` agent types under their namespaced names, `pstack:poteto-agent` and `pstack:comment-sicko`. Pass the skill's `subagent_type` as `agent_type` unchanged.
+- The plugin's agents load as `task` agent types under their namespaced names, `pstack:poteto-agent`, `pstack:comment-sicko`, `pstack:thermo-nuclear-review-subagent`, and `pstack:thermo-nuclear-code-quality-review-subagent`. Pass the skill's `subagent_type` as `agent_type` unchanged.
 - `subagent_type: "general-purpose"` maps to `agent_type: "general-purpose"`. Where a skill leaves the type unset, use `pstack:poteto-agent`.
 - `readonly: true` (reviewers, explorers, critics) maps to a read-only agent type: `explore` for code reading, `code-review` for diff review. When a read-only role must run commands or reach MCP tools, use `general-purpose` and tell it in the prompt not to write files; review its diff anyway.
 - `readonly: false`, or a role that needs MCP tools, maps to `general-purpose` or `pstack:poteto-agent`.
@@ -115,6 +115,7 @@ Affected skill entry points point here. Most skills need only the tables above. 
 | `how` | The explorers and the explainer are `task` calls with the sheet's `how` role models; critics use a read-only agent type (see Subagent policy). |
 | `arena` | Runners and the cross-judge pool come from the sheet's panel lines; pick the cross-judge from a different vendor than the candidate it grades. |
 | `no-comments` | Dispatch `task` with `agent_type: "pstack:comment-sicko"`. |
+| `thermos` | Dispatch two `task` calls with `mode: "background"`, `agent_type: "pstack:thermo-nuclear-review-subagent"` and `agent_type: "pstack:thermo-nuclear-code-quality-review-subagent"`, each with the same diff and file contents in its prompt. |
 | `swarm` | Workers are `task` calls with `mode: "background"`, each on its own worktree; in the app, `create_session` per worker. |
 | `teach` | Running `how` and `why` in parallel maps to `task` fan-out; image generation uses whatever image tool you have, or skip it and say so. |
 | `why` | Available MCP servers appear in your tool list; there is no `mcp__` prefix convention to scan for. |

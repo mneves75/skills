@@ -1,12 +1,12 @@
 # pstack collection
 
-33 skills from [pstack](https://github.com/cursor/plugins/tree/main/pstack), Lauren Tan's
+36 skills from [pstack](https://github.com/cursor/plugins/tree/main/pstack), Lauren Tan's
 engineering skill stack, in the [Agent Skills](https://agentskills.io/specification) format.
 Every agent that reads that format can load them; how much of each workflow runs depends on
 the agent (see [Support by agent](#support-by-agent)).
 
 The skills come from [`mneves75/pstack-claude`](https://github.com/mneves75/pstack-claude),
-a fork of the upstream port updated through 0.9.82, with the local routing version 0.9.83.
+a fork of the upstream port updated through 0.9.83, with the local routing version 0.9.84.
 It ports pstack to Claude Code, Codex and Pi, plus the local changes described under
 [Deviations](#deviations). [`UPSTREAM`](UPSTREAM) names the published commit they sit on
 (`based-on`), and [`local-overrides.patch`](local-overrides.patch) holds the local commits'
@@ -19,7 +19,7 @@ This collection sits outside `skills/`, so a plain `npx skills add mneves75/skil
 install it. Choose one:
 
 ```bash
-# All 33 pstack skills, interactive agent choice
+# All 36 pstack skills, interactive agent choice
 npx skills@latest add https://github.com/mneves75/skills/tree/main/collections/pstack/skills
 
 # One skill
@@ -60,17 +60,21 @@ Bodies are byte-identical to the source commit.
 
 ## Deviations
 
-**From upstream pstack**, as pstack-claude ships it: eight skills are pstack-claude additions
-(`babysit` and `deslop` as Claude Code analogs of Cursor built-ins, `thermo-nuclear-code-quality-review`,
-and five PR skills imported from Cursor's team kit: `fix-ci`, `fix-merge-conflicts`,
-`get-pr-comments`, `make-pr-easy-to-review`, `what-did-i-get-done`). pstack-claude does not port
+**From upstream pstack**, as pstack-claude ships it: additions include `babysit` and `deslop`
+as Claude Code analogs of Cursor built-ins, the thermos review skills (`thermos`,
+`thermo-nuclear-review`, `thermo-nuclear-code-quality-review`), and five PR skills imported
+from Cursor's team kit: `fix-ci`, `fix-merge-conflicts`, `get-pr-comments`,
+`make-pr-easy-to-review`, `what-did-i-get-done`. The upstream `ketchup` skill is also included.
+pstack-claude does not port
 `make-bot-ui`, which targets Grok Bot webhooks.
 
-**From pstack-claude**, the four local commits in `local-overrides.patch` change five things:
+**From pstack-claude**, the local changes in `local-overrides.patch` cover five areas:
 
 1. **Models.** Claude-side roles use Opus and Fable only. Panels that upstream fills with a
    third Claude model run with two, so on Claude Code `interrogate`, `arena` and `architect`
-   panels are same-family. The GPT side is unchanged.
+   panels are same-family. Codex execution and review use Sol with xhigh reasoning;
+   planning and advice use Astra with high reasoning. Codex execution panels retain two independent
+   contexts, but both use the same execution model, so model diversity is reduced.
 2. **Autonomy.** `poteto-mode` works without asking only on the local machine. It stops before
    push, deploy, publish, sending messages, any other external write, credentials, or scope
    expansion. Reach, not reversibility, decides.

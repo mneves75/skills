@@ -43,7 +43,7 @@ Third-party skill packs vendored with their upstream names and licenses. They si
 
 | Collection | Skills | Install |
 |---|---|---|
-| [pstack](collections/pstack/) | 33 engineering workflow skills from Lauren Tan's pstack, via the pstack-claude port: `poteto-mode`, `architect`, `interrogate`, `swarm`, `how`, `why` and more | `npx skills@latest add https://github.com/mneves75/skills/tree/main/collections/pstack/skills` |
+| [pstack](collections/pstack/) | 36 engineering workflow skills from Lauren Tan's pstack, via the pstack-claude port: `poteto-mode`, `architect`, `interrogate`, `swarm`, `how`, `why` and more | `npx skills@latest add https://github.com/mneves75/skills/tree/main/collections/pstack/skills` |
 
 Its README lists the deviations from upstream and the name collisions with Matt Pocock's
 skills (`tdd`, `teach`).
