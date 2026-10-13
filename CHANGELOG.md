@@ -22,6 +22,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Catalog and usage docs**: fourteen skills, security examples, scope/verification
   boundaries, domain terms and regenerated HOWTO/landing changelog.
+- **Skills landing page**: a responsive catalog grouped by job, clearer install/guide
+  hierarchy, self-hosted typography and preserved source/provenance. Copy controls now
+  report unavailable or rejected clipboard writes truthfully; a real-browser regression
+  covers successful, denied and unavailable copying.
+- **Catalog verification**: source skills and guide targets must match the landing page;
+  planted missing-entry, duplicate-entry and broken-link controls exercise the guard.
 
 ## [1.33.0] - 2026-10-13
 

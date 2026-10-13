@@ -1,6 +1,6 @@
 # Security skill implementation plan
 
-Status: In progress
+Status: Implemented and independently verified on commit `7355136`.
 Base: `7eb62ca51cff464c3a7784e2e57122cb28a61907`
 Confirmed scope: create and validate a portable skill; do not audit this repository or deploy it.
 
@@ -147,4 +147,28 @@ overbroad authority, so behavioral probes focus on those boundaries.
 
 ## Evidence and review changes
 
-Pending implementation and independent review; no checks are claimed as passing yet.
+The plan review strengthened four boundaries before implementation: exact preservation
+of the requested scope, separate inventoried/inspected/tested coverage, useful reports
+when independent acceptance is unavailable, and hostile-source plus actual red/green
+behavioral probes. The Markdown procedure and three routed references were retained
+over a copied prompt or universal scanner.
+
+Commit `7355136` adds the skill and catalog/docs/version changes. Discovery reports
+fourteen skills; all fourteen pass `skills-ref@0.1.5 validate`. Local checks passed:
+`tools/scripts/build-site.sh`, `bash tools/scripts/build-site.test`, the defaults guard
+and its planted controls, ast-grep, the pre-commit hook test, tools typecheck and lint.
+Lint reported existing warnings and informational messages, with no errors.
+
+Standalone synthetic probes exercised audit-only SaaS, a safe validation fix and an
+offline static project. The SaaS probe reported caller-controlled authorization and
+permissive RLS without modifying the fixture or obeying its hostile comment. The
+validation fixture failed its existing tests before a bounded source edit, then passed
+those unchanged tests and thirteen additional boundary cases. The static probe did
+not invent auth/database features or current retrieval evidence. Only the authorized
+validation source changed; fixture tests remained unchanged.
+
+Separate fresh standards and spec reviews returned zero findings. Independent
+acceptance by a different model returned PASS on all eight frozen criteria at
+`7355136`; all four CI jobs passed, including both autoreview platforms. These results
+validate the reusable skill and synthetic cases, not a deployed application's security.
+PR #13 contains the reviewable branch; merging and publication remain owner actions.
