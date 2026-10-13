@@ -1,6 +1,6 @@
 # How to use these skills
 
-Twelve skills, one install. This page shows what each one does, how to trigger it, and what a
+Thirteen skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the [README](README.md); for the exact
 procedure an agent follows, open `skills/<name>/SKILL.md`.
 
@@ -27,6 +27,7 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 |---|---|---|
 | `autoreview` | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
 | `mneves-handoff` | hand a task to another agent, review first | "handoff the flaky login test" |
+| `mneves-md-renderers` | build repeatable HTML, Word and PDF exports from Markdown | "write a renderer for my Markdown reports" |
 | `imagegen-frontend-mobile` | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
 | `mneves-chatgpt-search` | improve ChatGPT Search discovery and measure citations/referrals | "improve this site's ChatGPT Search visibility" |
 | `mneves-eli5` | explain a thing to a specific audience | "explain OAuth to my dad" |
@@ -39,6 +40,30 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 | `mneves-ship-deploy` | prepare verified staging, then approve the exact candidate before production | "ship-staging" or "ship-prod" |
 
 ---
+
+## mneves-md-renderers
+
+**What it does.** Helps any agent build a repeatable renderer inside your project. Markdown
+stays authoritative; it produces only the formats you ask for: responsive HTML, editable
+DOCX and/or print-ready PDF. It reuses existing tooling first and supplies Pandoc starter
+templates when needed. HTML and PDF share a design; Word maps that design to document styles.
+
+**When to use it.** You want a reusable project command for reports, proposals, documentation
+or other Markdown files, with content-preservation checks and inspection of the actual pages.
+It does not rewrite or summarize your source or require a specific agent vendor.
+
+**Example** (illustrative).
+
+> Use mneves-md-renderers to build a renderer for docs/report.md. Produce HTML, editable DOCX
+> and PDF with our existing typography. Keep all content and citations. Add a repeatable
+> command, inspect HTML at desktop and mobile widths, and inspect every PDF and DOCX page.
+
+**What you receive.** The requested files, a project-local renderer and regeneration command,
+plus the checks actually run and any unverified format limitations. Pandoc and a PDF engine
+are external tools, not bundled dependencies; existing equivalent tools are fine.
+
+Procedure: [SKILL.md](skills/mneves-md-renderers/SKILL.md).
+Starter commands: [Pandoc recipe](skills/mneves-md-renderers/references/pandoc.md).
 
 ## autoreview
 

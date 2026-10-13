@@ -21,6 +21,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── mneves-eli5/               # Feynman explainer, audience-calibrated
 │   ├── mneves-expert-review/      # Expert-panel review/optimization pass (+ references/)
 │   ├── mneves-handoff/            # Discussion-first handoff prompt for another agent (MIT, adapted)
+│   ├── mneves-md-renderers/       # Project-local Markdown -> HTML, editable DOCX and PDF
 │   ├── mneves-fable-orchestrator/ # Model routing; Codex reference + tools/codex-lane (+ its test)
 │   ├── mneves-superaudit/         # Bounded audit-and-ship pass (+ references/)
 │   ├── mneves-ship-deploy/         # Deploy, prove live, then tag (+ references/, contract check, reference release scripts)
@@ -112,3 +113,13 @@ bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no net
    An adapted third-party skill keeps its upstream name and ships its license and provenance.
 2. Root `README.md` table, a `HOWTO.md` section, the tree above, `VERSION`, `CHANGELOG.md`, README badge; then `tools/scripts/build-site.sh` (CI fails on stale site files).
 3. `npx skills@latest add . --list` shows the new skill; CI green.
+
+## Agent skills
+
+### Issue tracker
+
+Local Markdown specs and tickets in `docs/specs/`. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single context: root `GLOSSARY.md` and relevant `docs/adr/` entries. See `docs/agents/domain.md`.

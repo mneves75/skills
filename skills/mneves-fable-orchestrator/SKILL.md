@@ -48,7 +48,7 @@ plan advisor      = gpt-6-astra, reasoning high (advice and plan review)
 specialist        = gpt-6.1-sol, reasoning xhigh (specialist execution or review)
 ```
 
-Verified against the vendor model lists on 2026-10-04; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-10-12; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file).
 

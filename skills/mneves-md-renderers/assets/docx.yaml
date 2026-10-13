@@ -1,0 +1,6 @@
+from: markdown-raw_html-raw_tex
+to: docx
+standalone: true
+fail-if-warnings: true
+metadata:
+  title: ""

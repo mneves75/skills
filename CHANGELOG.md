@@ -43,6 +43,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   gate that cannot pass becomes one decision packet with named waivers while every other gate
   still runs. The preflight reports a sixth finding, the release contract.
 
+## [1.32.0] - 2026-10-12
+
+### Added
+
+- **`mneves-md-renderers`**: project-local Markdown renderers for HTML, editable DOCX and PDF.
+  Preserves source content across the requested formats. Includes Pandoc
+  defaults, a shared HTML/print stylesheet and template, a smoke fixture, Word style mapping
+  and separate structural/visual acceptance checks. Render only the requested formats.
+- **Agent workflow configuration**: local Markdown issue-tracker and single-context domain
+  documentation for the repository's engineering skills.
+
 ## [1.31.0] - 2026-10-04
 
 ### Changed

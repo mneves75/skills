@@ -17,7 +17,7 @@ blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--line);c
 </head>
 <body>
 <h1>How to use these skills</h1>
-<p>Twelve skills, one install. This page shows what each one does, how to trigger it, and what a
+<p>Thirteen skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the <a href="https://github.com/mneves75/skills/blob/main/README.md">README</a>; for the exact
 procedure an agent follows, open <code>skills/&lt;name&gt;/SKILL.md</code>.</p>
 <h2 id="install-once">Install once</h2>
@@ -50,6 +50,11 @@ also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use 
 <td><code>mneves-handoff</code></td>
 <td>hand a task to another agent, review first</td>
 <td>&quot;handoff the flaky login test&quot;</td>
+</tr>
+<tr>
+<td><code>mneves-md-renderers</code></td>
+<td>build repeatable HTML, Word and PDF exports from Markdown</td>
+<td>&quot;write a renderer for my Markdown reports&quot;</td>
 </tr>
 <tr>
 <td><code>imagegen-frontend-mobile</code></td>
@@ -103,6 +108,25 @@ also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use 
 </tr>
 </tbody></table>
 <hr>
+<h2 id="mneves-md-renderers">mneves-md-renderers</h2>
+<p><strong>What it does.</strong> Helps any agent build a repeatable renderer inside your project. Markdown
+stays authoritative; it produces only the formats you ask for: responsive HTML, editable
+DOCX and/or print-ready PDF. It reuses existing tooling first and supplies Pandoc starter
+templates when needed. HTML and PDF share a design; Word maps that design to document styles.</p>
+<p><strong>When to use it.</strong> You want a reusable project command for reports, proposals, documentation
+or other Markdown files, with content-preservation checks and inspection of the actual pages.
+It does not rewrite or summarize your source or require a specific agent vendor.</p>
+<p><strong>Example</strong> (illustrative).</p>
+<blockquote>
+<p>Use mneves-md-renderers to build a renderer for docs/report.md. Produce HTML, editable DOCX
+and PDF with our existing typography. Keep all content and citations. Add a repeatable
+command, inspect HTML at desktop and mobile widths, and inspect every PDF and DOCX page.</p>
+</blockquote>
+<p><strong>What you receive.</strong> The requested files, a project-local renderer and regeneration command,
+plus the checks actually run and any unverified format limitations. Pandoc and a PDF engine
+are external tools, not bundled dependencies; existing equivalent tools are fine.</p>
+<p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-md-renderers/SKILL.md">SKILL.md</a>.
+Starter commands: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-md-renderers/references/pandoc.md">Pandoc recipe</a>.</p>
 <h2 id="autoreview">autoreview</h2>
 <p><strong>What it does.</strong> Freezes the chosen Git target, scans the outgoing input, runs a reviewer in
 an isolated environment, validates its report, and rejects results if sources changed mid-review.
