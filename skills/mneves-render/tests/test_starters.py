@@ -88,6 +88,7 @@ class StarterAcceptance(unittest.TestCase):
         for kind in formats:
             output = fixture / f"output.{kind}"
             self.run_engine(["pandoc", f"--defaults={kind}.yaml", "--resource-path=.",
+                             f"--metadata=pagetitle:{name}",
                              str(markdown), f"--output={output}"], fixture)
             self.assertTrue(output.is_file() and output.stat().st_size > 0)
             outputs[kind] = output
@@ -199,6 +200,7 @@ class StarterAcceptance(unittest.TestCase):
         before = source.read_bytes()
         for kind, output in outputs.items():
             self.run_engine(["pandoc", f"--defaults={kind}.yaml", "--resource-path=.",
+                             "--metadata=pagetitle:Regeneration",
                              str(source), f"--output={output}"], fixture)
             if kind == "docx" and self.require_office:
                 self.office_preview(output)
@@ -212,10 +214,12 @@ class StarterAcceptance(unittest.TestCase):
         outputs = self.render("negative-inputs", "# Valid local fixture\n", ("html",))
         fixture = outputs["html"].parent
         self.run_engine(["pandoc", "--defaults=html.yaml", "missing-source.md",
+                         "--metadata=pagetitle:Missing source",
                          "--output=missing-source.html"], fixture, expect_success=False)
         source = fixture / "missing-asset.md"
         source.write_text("# Missing asset\n\n![Unavailable](missing.svg)\n", encoding="utf-8")
         self.run_engine(["pandoc", "--defaults=html.yaml", "--resource-path=.",
+                         "--metadata=pagetitle:Missing asset",
                          str(source), "--output=missing-asset.html"], fixture, expect_success=False)
 
     def test_long_plain_token_survives_pdf(self):
