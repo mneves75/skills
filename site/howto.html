@@ -12,16 +12,18 @@ h1,h2,h3{line-height:1.25}h1{font-size:2rem}h2{margin-top:2.5rem;padding-top:1re
 a{color:var(--link)}code{font:0.9em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--code);padding:.1em .3em;border-radius:3px}
 pre{background:var(--code);padding:1rem;overflow-x:auto;border-radius:6px}pre code{background:none;padding:0}
 table{border-collapse:collapse;width:100%;margin:1rem 0;display:block;overflow-x:auto}th,td{text-align:left;padding:.5rem;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:600}
+pre:focus-visible,table:focus-visible{outline:2px solid var(--link);outline-offset:3px}
 blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--line);color:var(--fg)}hr{border:0;border-top:1px solid var(--line);margin:2rem 0}
 </style>
 </head>
 <body>
+<main>
 <h1>How to use these skills</h1>
 <p>Fourteen skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the <a href="https://github.com/mneves75/skills/blob/main/README.md">README</a>; for the exact
 procedure an agent follows, open <code>skills/&lt;name&gt;/SKILL.md</code>.</p>
 <h2 id="install-once">Install once</h2>
-<pre><code class="language-bash">npx skills@latest add mneves75/skills --all -g -y
+<pre tabindex="0"><code class="language-bash">npx skills@latest add mneves75/skills --all -g -y
 </code></pre>
 <p>That links every skill into the agents found on your machine (Claude Code, Codex, Cursor,
 OpenCode, pi and others). Check what got installed with <code>npx skills@latest list</code>. If you
@@ -33,7 +35,7 @@ references to the image provider configured in your agent. Autoreview sends auth
 inputs to the selected review provider after scanning them for credentials.</p>
 <p>A skill is loaded when the agent decides your request matches its <code>description</code>. You can
 also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use the mneves-eli5 skill&quot;.</p>
-<table>
+<table tabindex="0">
 <thead>
 <tr>
 <th>Skill</th>
@@ -125,7 +127,7 @@ AI/agentic/mobile checks when those surfaces exist.</p>
 or AI application, or safe implementation of its confirmed remediation items. Audit
 and plan requests remain read-only; a fix request authorizes its in-scope local patches.</p>
 <p><strong>Illustrative request (Codex):</strong></p>
-<pre><code class="language-text">Use $mneves-security on this repository. Review the entire first-party source,
+<pre tabindex="0"><code class="language-text">Use $mneves-security on this repository. Review the entire first-party source,
 create a detailed remediation plan and fix confirmed local code/config gaps.
 Preserve existing product behavior where safe. Run the documented gates and
 independent verification. Do not merge, change provider settings or deploy.
@@ -179,7 +181,7 @@ challenge the weakest plausible assumption. Metrics identify code to inspect; te
 independent standards/spec review still decide whether the change is correct.</p>
 <p>The autoreview skill includes a portable checksum-verified installer. Obtain approval for
 the destination when required, ensure its directory exists, then run:</p>
-<pre><code class="language-sh">python3 /path/to/autoreview/scripts/install-cccc.py /approved/bin/cccc
+<pre tabindex="0"><code class="language-sh">python3 /path/to/autoreview/scripts/install-cccc.py /approved/bin/cccc
 python3 /path/to/autoreview/scripts/check-cccc.py /approved/bin/cccc
 </code></pre>
 <p>It refuses replacement and does not edit PATH. The pin is maintained only in
@@ -196,7 +198,7 @@ an isolated environment, validates its report, and rejects results if sources ch
 The helper prints its default model and reasoning tier at startup; Codex review has no
 automatic model fallback on account-access failures.</p>
 <p><strong>Example</strong> (illustrative; replace the installed path).</p>
-<pre><code class="language-sh">python3 /path/to/autoreview/scripts/autoreview --mode local --max-priority P3
+<pre tabindex="0"><code class="language-sh">python3 /path/to/autoreview/scripts/autoreview --mode local --max-priority P3
 </code></pre>
 <p>Run from the repository being reviewed. Python 3.11+, Git, TruffleHog, and an authenticated
 supported engine are required. No upstream checkout is required. For committed changes, use
@@ -349,7 +351,7 @@ real browser render, never the builder&#39;s screenshot claim. CLI/API/data: run
 with a positive control (a known-good input that must succeed). Research: the primary source,
 checked for saying what the claim says. Security: an independent audit.</p>
 <p><strong>Example output</strong> (illustrative; a real run needs a second model and an artifact to check).</p>
-<pre><code>Verdict: FAIL
+<pre tabindex="0"><code>Verdict: FAIL
 Builder: claude-fable-5 / Edit, Bash / session 3f2a
 Verifier: gpt-6.1-sol / xhigh reasoning / read-only sandbox / fresh context
 Different model required: yes (touches billing)
@@ -388,7 +390,7 @@ follow-ups reuse the executor&#39;s reasoning instead of restarting from a fresh
 any non-trivial task where the agent has to decide who executes.</p>
 <p><strong>Prerequisites.</strong> The <a href="https://github.com/openai/codex">Codex CLI</a> logged in, <code>python3</code> on
 <code>PATH</code> (lane state is JSON), and <code>codex-lane</code> on your <code>PATH</code>:</p>
-<pre><code class="language-bash">ln -s ~/.agents/skills/mneves-fable-orchestrator/tools/codex-lane ~/bin/codex-lane
+<pre tabindex="0"><code class="language-bash">ln -s ~/.agents/skills/mneves-fable-orchestrator/tools/codex-lane ~/bin/codex-lane
 </code></pre>
 <p>(Adjust the source path to wherever the skill was installed. A lane stores launch arguments,
 not environment, so pass <code>CODEX_HOME</code> on every <code>start</code> and <code>next</code> when you use more than one
@@ -397,11 +399,11 @@ Codex home.)</p>
 <ol>
 <li>The main session writes <code>/tmp/spec.md</code>: goal, acceptance criteria, exact files, the files it
 must not touch (the frontend, which the frontend subagent owns), the test command that must pass.</li>
-<li>It starts a lane:<pre><code class="language-bash">codex-lane start api-rls /tmp/spec.md -- -s workspace-write
+<li>It starts a lane:<pre tabindex="0"><code class="language-bash">codex-lane start api-rls /tmp/spec.md -- -s workspace-write
 </code></pre>
 </li>
 <li>Codex returns; the main session reads the diff and runs the tests itself. One gate fails.</li>
-<li>Instead of a new spec, the failure goes to the same thread:<pre><code class="language-bash">codex-lane next api-rls - &lt; /tmp/gate3-failure.log
+<li>Instead of a new spec, the failure goes to the same thread:<pre tabindex="0"><code class="language-bash">codex-lane next api-rls - &lt; /tmp/gate3-failure.log
 </code></pre>
 </li>
 <li>Green. The main session reviews the final diff like a contributor PR, then closes out.</li>
@@ -431,7 +433,7 @@ locally and uploads nothing.</p>
 <p><strong>Triggers.</strong> &quot;agent readiness&quot;, &quot;why isn&#39;t the agent working well here&quot;, onboarding a repo,
 planning infrastructure work.</p>
 <p><strong>Running the tool.</strong> It assesses the current directory.</p>
-<pre><code class="language-bash">git clone https://github.com/mneves75/skills.git ~/src/skills
+<pre tabindex="0"><code class="language-bash">git clone https://github.com/mneves75/skills.git ~/src/skills
 cd ~/src/skills/tools &amp;&amp; bun install
 
 cd /path/to/your-project
@@ -472,7 +474,7 @@ steps continue without asking again.</p>
 &quot;find slop&quot;, &quot;audit open PRs&quot;, or an end-to-end review → fix → verify → release pass. Not for a
 single bug fix or a one-file change.</p>
 <p><strong>Example</strong> (illustrative). You point it at a repo and pick two items:</p>
-<pre><code>superaudit /path/to/myapp — items 1,2 only
+<pre tabindex="0"><code>superaudit /path/to/myapp — items 1,2 only
 </code></pre>
 <ol>
 <li>It fills the brief with you, then opens <code>agent_planning/superaudit-2026-09-10.md</code> and records
@@ -509,7 +511,7 @@ by git) and come back on an SM-2 schedule, the same algorithm Anki uses.</p>
 about&quot;, &quot;test my understanding&quot;.</p>
 <p><strong>Prerequisite.</strong> Python 3.10+. No packages.</p>
 <p><strong>Four modes.</strong></p>
-<table>
+<table tabindex="0">
 <thead>
 <tr>
 <th>You say</th>
@@ -559,7 +561,7 @@ Session recorded. First review due in one day.</li>
 reschedules: a 5 pushes the card out, anything under 3 resets it.</p>
 <p><strong>Behind the scenes</strong> the agent runs <code>scripts/srs_db.py</code> from the skill&#39;s folder, with your
 project as the working directory. Recorded 2026-08-26 in an empty directory:</p>
-<pre><code>$ python3 scripts/srs_db.py init
+<pre tabindex="0"><code>$ python3 scripts/srs_db.py init
 Initialized SRS database at /tmp/demo/.ai-learn/srs.db
 
 $ python3 scripts/srs_db.py add-card --question &quot;Why does the intent gate run before pattern matching?&quot; \
@@ -608,7 +610,7 @@ gate as a named waiver, and the rollback plan.</p>
 <p><strong>Release contract (optional tooling).</strong> The skill prefers two entry points when a repository
 has them: <code>scripts/release.sh &lt;staging|production&gt;</code> and <code>scripts/verify-live.sh &lt;staging|production&gt;</code>. Check a repository, or every deployable repository in a folder, without
 running any of its code (Python 3.11+):</p>
-<pre><code class="language-bash">python3 skills/mneves-ship-deploy/scripts/release-contract-check.py path/to/repo
+<pre tabindex="0"><code class="language-bash">python3 skills/mneves-ship-deploy/scripts/release-contract-check.py path/to/repo
 python3 skills/mneves-ship-deploy/scripts/release-contract-check.py --fleet path/to/projects
 </code></pre>
 <p><code>skills/mneves-ship-deploy/assets/</code> holds a reference <code>release.sh</code> and <code>verify-live.sh</code> for a
@@ -620,10 +622,10 @@ local gaps using current OpenAI documentation. Search access, training preferenc
 crawler traffic, answer citations and reader referrals stay separate. It preserves privacy,
 authorship and deliberate indexing exclusions; no placement is guaranteed.</p>
 <p><strong>Install only this skill:</strong></p>
-<pre><code class="language-bash">npx skills@latest add mneves75/skills --skill mneves-chatgpt-search -g -y
+<pre tabindex="0"><code class="language-bash">npx skills@latest add mneves75/skills --skill mneves-chatgpt-search -g -y
 </code></pre>
 <p><strong>Illustrative request (Codex):</strong></p>
-<pre><code class="language-text">Use $mneves-chatgpt-search on https://example.com in this repository.
+<pre tabindex="0"><code class="language-text">Use $mneves-chatgpt-search on https://example.com in this repository.
 Audit the deployed site, fix verified local gaps and run its documented gates.
 Preserve existing training and privacy preferences. Do not deploy.
 </code></pre>
@@ -643,7 +645,7 @@ writes and deployments retain the host&#39;s authorization rules.</p>
 <h2 id="pstack-collection">pstack collection</h2>
 <p><a href="https://github.com/mneves75/skills/blob/main/collections/pstack/"><code>collections/pstack</code></a> adds 36 skills from Lauren Tan&#39;s pstack. It is not
 part of the install above:</p>
-<pre><code class="language-bash">npx skills@latest add https://github.com/mneves75/skills/tree/main/collections/pstack/skills
+<pre tabindex="0"><code class="language-bash">npx skills@latest add https://github.com/mneves75/skills/tree/main/collections/pstack/skills
 </code></pre>
 <p>Start with <code>poteto-mode</code> (&quot;poteto mode: add rate limiting to the upload API&quot;); it routes to the
 other pstack workflows. <code>how</code> and <code>why</code> answer &quot;how does X work&quot; and &quot;why is X this way&quot;,
@@ -658,6 +660,7 @@ final verdict before anything is called done. <code>mneves-agent-readiness</code
 on a repo where agents keep failing, and <code>mneves-eli5</code> is for the moment you have to explain
 any of this to someone else. <code>imagegen-frontend-mobile</code> is the image-only path for mobile concepts;
 hand its chosen direction to the relevant implementation workflow when code is required.</p>
+</main>
 <footer style="margin-top:3rem;color:var(--muted);font-size:.875rem">Source: <a href="https://github.com/mneves75/skills/blob/main/HOWTO.md">HOWTO.md</a> · <a href="https://github.com/mneves75/skills">mneves75/skills</a></footer>
 </body>
 </html>

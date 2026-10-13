@@ -73,6 +73,32 @@ def validate_catalog(index, howto, names):
         assert entry['guides'] == [f'howto.html#{name}'], f'{name}: incorrect guide link'
         assert name in guide.ids, f'{name}: guide anchor missing from HOWTO'
 
+class GuideAccessibility(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.main_count = 0
+        self.in_main = False
+        self.scroll_regions = []
+
+    def handle_starttag(self, tag, attrs):
+        if tag == 'main':
+            self.main_count += 1
+            self.in_main = True
+        if tag in ('pre', 'table'):
+            self.scroll_regions.append((tag, dict(attrs).get('tabindex'), self.in_main))
+
+    def handle_endtag(self, tag):
+        if tag == 'main':
+            self.in_main = False
+
+def validate_guide_accessibility(html):
+    guide = GuideAccessibility()
+    guide.feed(html)
+    assert guide.main_count == 1, 'guide must expose exactly one main landmark'
+    assert guide.scroll_regions, 'guide fixture has no code/table scroll containers'
+    assert all(tabindex == '0' and in_main for _, tabindex, in_main in guide.scroll_regions), \
+        'guide code/table scroll containers must be keyboard-focusable within main'
+
 with tempfile.TemporaryDirectory(prefix='skills-build-site-') as scratch:
     target = Path(scratch)
     for name in ('HOWTO.md', 'CHANGELOG.md', 'site/index.html',
@@ -89,6 +115,7 @@ with tempfile.TemporaryDirectory(prefix='skills-build-site-') as scratch:
         assert result.returncode == 0, f'build failed: {result.returncode}'
         html = (target / 'site/howto.html').read_text()
         assert '<h2 id="combining-them">Combining them</h2>' in html, 'HOWTO truncated before its final section'
+        validate_guide_accessibility(html)
         index = (target / 'site/index.html').read_text()
         validate_catalog(index, html, skill_names)
         current = {name: hashlib.sha256((target / name).read_bytes()).hexdigest()
@@ -120,4 +147,16 @@ with tempfile.TemporaryDirectory(prefix='skills-build-site-') as scratch:
             print(f'PASS: reject {label}')
         else:
             raise AssertionError(f'catalog guard accepted {label}')
+    guide_mutants = {
+        'missing main landmark': html.replace('<main>', '<div>', 1).replace('</main>', '</div>', 1),
+        'non-focusable scroll container': html.replace('tabindex="0"', 'tabindex="-1"', 1),
+    }
+    for label, mutant in guide_mutants.items():
+        assert mutant != html, f'{label} mutation did not plant a violation'
+        try:
+            validate_guide_accessibility(mutant)
+        except AssertionError:
+            print(f'PASS: reject {label}')
+        else:
+            raise AssertionError(f'guide accessibility guard accepted {label}')
 PY
