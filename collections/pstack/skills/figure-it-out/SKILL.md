@@ -1,6 +1,6 @@
 ---
 name: figure-it-out
-description: "Design an auditable playbook when no narrower one fits: a large migration, an ambitious multi-part change, or work a human reviews after stepping away. Scales rigor to the task, runs a hypothesis loop, and logs decisions via show-me-your-work. Use for /figure-it-out, 'figure it out', a large migration, or when no narrower playbook applies."
+description: "Design an auditable playbook when no narrower one fits: a large migration, an ambitious multi-part change, or work a human reviews after stepping away. Scales rigor to the task, runs a hypothesis loop, and logs decisions. Use for /figure-it-out or 'figure it out'."
 ---
 
 # Figure it out
@@ -30,7 +30,7 @@ Decompose into atomic, independently-landable units. Sequence riskiest-unknown-f
 - Decide what fans out. Parallelize only across seams, and give each worker its own worktree or branch ([coordination guidance](../poteto-mode/references/engineering-coordination.md)). Don't over-fan.
 - Write the designed phase list down. That list is what the human reviews.
 
-Then execute the design. Add its steps to the todolist as concrete items, after the Phase C entry and before Phase D. Run each under the Phase C loop discipline, and weave the Phase D log through them, a row as each step lands, rather than saving the whole trail for the end.
+Then execute the design. Add its steps to the todolist as concrete items between the Phase C and Phase D entries. Run each under the Phase C loop discipline, and weave the Phase D log through them, a row as each step lands, rather than saving the whole trail for the end.
 
 ## Phase C: Run the loop
 

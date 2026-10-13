@@ -9,9 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **pstack upstream update**: refreshed all 33 collection skills from the owner's fork,
-  incorporating port upstream 0.9.82 and local routing version 0.9.83. Planning may write
-  requested design artifacts; advisory calls stay read-only, and execution panels retain
+- **pstack upstream update**: refreshed all 36 collection skills from the owner's fork,
+  incorporating port upstream 0.9.83 and local routing version 0.9.84. Adds `ketchup`,
+  `thermos` and `thermo-nuclear-review`, review-thread pagination and plan-fence fixes.
+  Planning may write requested design artifacts; advisory calls stay read-only, and execution panels retain
   xhigh reasoning when model diversity is reduced.
 - **Defaults guard controls**: accept a Codex-only model block while retaining a planted
   Claude-seat fixture, so the new routing policy does not silently terminate the controls.

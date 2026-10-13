@@ -11,15 +11,11 @@ On GitHub Copilot, read the [platform mapping](../poteto-mode/references/copilot
 
 Mine the current conversation for durable learnings, then route them into skill edits.
 
-## When to invoke
-
 Invoke when the user says "reflect" or "/reflect". Skip when the conversation is trivial, off-topic, or already covered by an existing skill the parent followed correctly. One-offs are not learnings.
 
-## Process
+## 1. Locate the active transcript
 
-### 1. Locate the active transcript
-
-The parent finds its own transcript file before fanning out. The system prompt names Claude Code's per-project transcripts directory at `~/.claude/projects/<encoded-cwd>/`. Use that path. Do not glob across `~/.claude/projects/`. That crosses workspace boundaries and reads private chats from unrelated projects.
+Before fanning out, find this conversation's transcript in Claude Code's per-project transcripts directory at `~/.claude/projects/<encoded-cwd>/`. Do not glob across `~/.claude/projects/`. That crosses workspace boundaries and reads private chats from unrelated projects.
 
 Run the finder at `skills/reflect/scripts/find-transcript.mjs` under the installed plugin with the projects directory and a fragment of the conversation's opening user prompt:
 
@@ -29,9 +25,9 @@ node <plugin>/skills/reflect/scripts/find-transcript.mjs ~/.claude/projects/<enc
 
 It covers the three layouts (flat `<id>.jsonl`, nested `<id>/<id>.jsonl`, subagent `<parent>/subagents/<child>.jsonl`), newest first, and prints the first path whose opening typed prompt carries the fragment. Do not reimplement the scan by hand: the first line of a transcript is session metadata, not a message, a session that starts with `/clear` or a `!` shell command records that command's wrapper and output as `user` records before the prompt, and files run to several megabytes, so the finder streams each candidate and stops at its first typed `user` record. If it exits 1, write a tight digest of the session and pass that instead. It lists, one line each in turn order, the user's prompts and corrections, the tool calls and their results, and the files touched. It states no diagnosis, verdict, or cause. The reviewers judge the session, not your conclusions about it.
 
-### 2. Spawn three reviewers in parallel
+## 2. Spawn three reviewers in parallel
 
-One message, three `Agent` calls, `subagent_type: "general-purpose"`, with `model` set as below. Reviewers need MCP access for context lookups (tickets, chat threads, observability traces referenced in the transcript). Pick a subagent_type that retains MCP access. The prompt forbids file writes. The parent applies edits.
+One message, three `Agent` calls, `subagent_type: "general-purpose"`. Reviewers need MCP access to look up the tickets, chat threads, and observability traces the transcript references, so pick a subagent_type that retains MCP access. The prompt forbids file writes. The parent applies edits.
 
 Each reviewer and the synthesizer name a role line in `pstack-models.md` and a default in [Models](#models). Set `model` to that line's value, or to the default if the sheet or the line is missing. Leave `model` unset when the value is `auto` or `inherit-parent`. If the `Agent` tool rejects a slug, use the default and say so. If it rejects the default, use the closest valid slug of the same family from its error message.
 
@@ -43,30 +39,30 @@ Each reviewer and the synthesizer name a role line in `pstack-models.md` and a d
 
 Pass each template verbatim, substituting the transcript path or digest where marked. Add nothing beside a transcript path, not even a focus note for a long transcript. Reviewers return findings in the `Agent` response body.
 
-### 3. Synthesize
+## 3. Synthesize
 
-One `Agent` call, `subagent_type: "general-purpose"`, with `model` from the `reflect judgment, divergent, synthesizer` line (default in [Models](#models)). Pick a subagent_type that retains MCP access. The synthesizer's quality check includes spot-verifying citations, which can require MCP access. Use `references/synthesizer.md` verbatim, with each reviewer's full output inlined where marked. The synthesizer returns a structured Accepted / Rejected / Backlog list.
+One `Agent` call, `subagent_type: "general-purpose"`, `model` from the `reflect judgment, divergent, synthesizer` line (default in [Models](#models)). It spot-verifies citations through MCP, so pick a subagent_type that retains MCP access. Pass `references/synthesizer.md` verbatim, with each reviewer's full output inlined where marked. It returns an Accepted / Rejected / Backlog list.
 
-### 4. Structural enforcement check
+## 4. Structural enforcement check
 
 Sanity-check the synthesizer's Accepted list. For any item that would be enforced more reliably by a lint rule, script, metadata flag, or runtime check, move it from Accepted to Backlog. See [verification guidance](../poteto-mode/references/engineering-verification.md).
 
-### 5. Apply
+## 5. Apply
 
 Present the Accepted/Rejected/Backlog result. Apply skill edits when the current request already authorizes them; otherwise ask which proposed edits to apply. Preserve the named scope and do not require a second approval for the same authorized change.
 
 Prepare backlog items locally with their intended tracker and content. Submit them only when the user has authorized that external write and destination; authorization to review or edit skills does not itself authorize tracker submissions.
 
-For each approved Accepted item, follow the Routing field exactly:
+Follow each approved row's Routing exactly:
 
-- Trivial existing-skill edit (a one-line bullet, a tightened sentence, a stale fact corrected): parent does directly.
+- Trivial existing-skill edit (a one-line bullet, a tightened sentence, a stale fact corrected): the parent does it directly.
 - Substantive existing-skill edit (a new section, a new pattern table, more than ~10 lines): hand to the **plugin-dev:skill-development** skill and run its draft / test / iterate loop.
 - `tune description: <skill path>` (the skill exists but didn't trigger when it should have): hand to `plugin-dev:skill-development` and run its description-optimization loop.
 - `new skill via plugin-dev:skill-development: <kebab-name>`: hand creation to `plugin-dev:skill-development`. Do not invent the shape ad hoc.
 
-If your environment ships a SKILL.md validator, run it on every touched skill before declaring done. Skip this step if it doesn't.
+If your environment ships a SKILL.md validator, run it on every touched skill before declaring done.
 
-### 6. Summarize for the user
+## 6. Summarize for the user
 
 Short list, no preamble:
 
