@@ -14,6 +14,12 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.34.0** (2026-10-13): fourteen default skills, adding `mneves-security` with
+  evidence-backed audit, authorized remediation and independent acceptance. The redesigned
+  static catalog groups procedures by job, self-hosts typography and reports clipboard
+  failures truthfully. The separate pstack collection has 36 skills; generation tests
+  compare the catalog with source inventories and check guide landmarks/keyboard focus.
+  Release and public verification evidence is tracked in PRs #13, #14 and #15.
 - **1.31.0** (2026-10-04): pstack `tdd` is test-first by default (fourth local commit in the
   pstack-claude fork; `LOCAL-OVERRIDES.md` §6 there), and links to the fork's retired
   sections were repaired. The fork guards both with `tests/local-overrides.test.mjs`.

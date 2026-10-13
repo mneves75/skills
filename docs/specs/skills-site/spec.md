@@ -148,3 +148,18 @@ mismatch before those two texts were corrected. The guard compares the published
 stated collection quantity with its current source inventory, so future synchronizations
 cannot silently preserve a stale landing count. Version remains 1.34.0 for this
 release closeout; its existing README badge and changelog stay aligned.
+
+## Bounded live acceptance correction
+
+The independent public-page check found that `howto.html` had no main landmark and
+sixteen overflowed code/table regions at 390px could not receive keyboard focus.
+Keep the existing static generator: add native focusability and visible focus to
+its code/table scroll containers and wrap guide content in a main landmark.
+The strongest alternative, JavaScript that focuses only currently overflowing regions,
+adds resize/lifecycle behavior to a static guide; the static fix remains usable without
+scripts, at the cost of focus stops on code/table blocks that fit the current viewport.
+Generation tests must fail before the fix and reject missing-landmark/non-focusable
+output; recheck every frozen release criterion and actual keyboard scrolling after
+the correction is published. This is the verification workflow's one bounded correction.
+
+Keyboard behavior follows [WCAG keyboard guidance](https://www.w3.org/WAI/WCAG22/Understanding/keyboard.html).

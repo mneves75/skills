@@ -30,6 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   planted missing-entry, duplicate-entry and broken-link controls exercise the guard.
 - **Release integration**: reconcile the landing/product collection count with the
   concurrently updated 36-skill pstack inventory; reject stale counts during generation checks.
+- **Guide accessibility**: make generated code/table scroll containers keyboard-focusable
+  with visible focus, and place the guide content in a main landmark. Generation regressions
+  cover both defects found during independent live acceptance.
 
 ## [1.33.0] - 2026-10-13
 
