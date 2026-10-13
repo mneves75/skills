@@ -27,6 +27,14 @@ export function text(value: unknown, label: string): string {
 export const nullableText = (value: unknown, label: string): string | null =>
   value === null ? null : text(value, label);
 
+export function baseRefTargetOid(value: unknown): string | null {
+  if (value === null) return null;
+  const baseRef = object(value, "baseRef");
+  if (baseRef.target === null) return null;
+  const target = object(baseRef.target, "baseRef.target");
+  return nullableText(target.oid, "baseRef.target.oid");
+}
+
 export function oneOf<const V extends readonly string[]>(
   value: unknown,
   values: V,
@@ -50,13 +58,10 @@ export function parseContext(value: unknown): PrContext {
   return { owner, repo, number: parsePrNumber(fields.number) };
 }
 
-export function parseLandingRevision(
-  value: unknown,
-  context?: PrContext
-): LandingRevision {
+export function parseLandingRevision(value: unknown): LandingRevision {
   const fields = object(value, "landing revision");
   return {
-    context: context ?? parseContext(fields.context),
+    context: parseContext(fields.context),
     headRefOid: text(fields.headRefOid, "headRefOid"),
     baseRefName: text(fields.baseRefName, "baseRefName"),
     baseRefOid: text(fields.baseRefOid, "baseRefOid"),

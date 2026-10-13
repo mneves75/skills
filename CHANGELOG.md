@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.33.0] - 2026-10-13
+
+### Added
+
+- **`mneves-render`**: project-local Markdown renderers for HTML, editable DOCX and PDF.
+  Pandoc starters preserve metadata and literal punctuation, share HTML/print styling,
+  guard active content, and constrain long text and oversized figures. Real-engine
+  regressions and CI LibreOffice previews complement structural and visual acceptance.
+- **Agent workflow configuration**: local Markdown issue-tracker and single-context domain
+  documentation for the repository's engineering skills.
+- **`mneves-ship-deploy` release contract**: a read-only conformance checker, reference
+  release/live-verification scripts, planted controls and Cloudflare/VPS deployment guidance.
+
+### Changed
+
+- **pstack upstream update**: refreshed all 33 collection skills from the owner's fork,
+  incorporating port upstream 0.9.82 and local routing version 0.9.83. Planning may write
+  requested design artifacts; advisory calls stay read-only, and execution panels retain
+  xhigh reasoning when model diversity is reduced.
+- **Defaults guard controls**: accept a Codex-only model block while retaining a planted
+  Claude-seat fixture, so the new routing policy does not silently terminate the controls.
+
+- **Codex model routing**: planning and read-only advice use Astra with high reasoning;
+  execution, discovery, frontend work, specialists and code review use Sol with xhigh
+  reasoning. Autoreview no longer falls back to an advisory model on account-access failures.
+- **pstack routing**: regenerated Codex and Pi execution mappings and effort defaults from
+  their owning source. The exported local patch now includes model configuration, generator
+  changes and their tests so rebuilding the collection preserves the routing policy.
+
+- **`mneves-ship-deploy`**: deploys the pushed commit, proves it live, then tags. It used to
+  tag and push the tag before deploying, so a tag could name a build nobody had verified. A
+  gate that cannot pass becomes one decision packet with named waivers while every other gate
+  still runs. The preflight reports a sixth finding, the release contract.
+
+
 ## [1.32.0] - 2026-10-08
 
 ### Added

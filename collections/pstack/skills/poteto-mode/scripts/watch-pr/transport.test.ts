@@ -17,7 +17,7 @@ afterEach(() => {
     rmSync(dir, { recursive: true, force: true });
 });
 
-function run(scenario: string, extra: string[] = []) {
+function run(scenario: string, extra: string[] = [], path?: string) {
   const dir = mkdtempSync(join(tmpdir(), "watch-transport-"));
   directories.push(dir);
   const bin = join(dir, "bin");
@@ -37,8 +37,8 @@ if (scenario === 'slow') {
 const noCi = scenario.startsWith('no-ci');
 const fail = (stderr) => { console.error(stderr); process.exit(1); };
 let value;
-if (args[0] === 'pr' && args[1] === 'view') {
-  value = { headRefOid: 'head', baseRefOid: 'base', mergeable: 'MERGEABLE', mergeStateStatus: scenario === 'no-ci-blocked' ? 'BLOCKED' : 'CLEAN', reviewDecision: noCi ? '' : 'APPROVED', headRefName: 'feature', baseRefName: 'main', state: 'OPEN', mergedAt: null, isDraft: false };
+if (args.some(a => a.includes('query PullRequestFacts'))) {
+  value = { data: { repository: { pullRequest: { headRefOid: 'head', baseRef: { target: { oid: 'base' } }, mergeable: 'MERGEABLE', mergeStateStatus: scenario === 'no-ci-blocked' ? 'BLOCKED' : 'CLEAN', reviewDecision: noCi ? null : 'APPROVED', headRefName: 'feature', baseRefName: 'main', state: 'OPEN', mergedAt: null, isDraft: false } } } };
 } else if (args[0] === 'pr' && args[1] === 'checks') {
   if (scenario === 'no-ci-unauthorized') fail('HTTP 401: Bad credentials (https://api.github.com/graphql)');
   if (noCi) fail("no checks reported on the 'feature' branch");
@@ -50,6 +50,8 @@ if (args[0] === 'pr' && args[1] === 'view') {
   value = { data: { repository: { pullRequest: { commits: { nodes: [{ commit: { oid: 'head', statusCheckRollup: null } }] } } } } };
 } else if (args[0] === 'pr' && args[1] === 'list') {
   value = [{ number: 1, headRefName: 'main', baseRefName: 'main', headRepository: { name: 'repo', nameWithOwner: 'fork/repo' }, headRepositoryOwner: { login: 'fork' } }];
+} else if (args[0] === 'repo' && args[1] === 'view') {
+  value = { defaultBranchRef: { name: 'main' } };
 } else if (args.some(a => a.includes('query ReviewThreads'))) {
   const after = args.find(a => a.startsWith('after='));
   const thread = (n, resolved) => ({ id: 't' + n, isResolved: resolved, comments: { nodes: [] } });
@@ -79,9 +81,9 @@ console.log(JSON.stringify(value));
     [entry, "--owner", "owner", "--repo", "repo", "--pr", "1", ...extra],
     {
       encoding: "utf8",
-      timeout: 3000,
+      timeout: 6000,
       env: {
-        PATH: `${bin}:${process.env.PATH}`,
+        PATH: path ?? `${bin}:${process.env.PATH}`,
         WATCH_FIXTURE: scenario,
         WATCH_CALLS: callsFile,
         WATCH_PID: pidFile,
@@ -131,35 +133,47 @@ it("keeps a fork main branch distinct from destination main during stack discove
   });
 });
 
+const verdicts = (stdout: string): unknown[] =>
+  stdout
+    .trim()
+    .split("\n")
+    .map((line) => JSON.parse(line) as unknown);
+
 // The no-ci fixtures replay what gh returned for a mergeable PR in a repository
 // with no checks configured: `gh pr checks` exits 1 with "no checks reported"
 // and the head commit's statusCheckRollup is null.
-it("finishes a status-only pass for a clean PR with no checks configured", () => {
+it("reports a first sighting of no checks on a status-only pass", () => {
   const result = run("no-ci", ["--status-only", "--max-query-errors", "1"]);
   expect(result.status).toBe(0);
   expect(JSON.parse(result.stdout.trim())).toMatchObject({
     kind: "STATUS",
     terminal: true,
-    rows: [{ kind: "open", ci: { kind: "ci-none" } }],
+    rows: [{ kind: "open", ci: { kind: "ci-unreported" } }],
   });
 });
 
-it("reports a clean PR with no checks configured as READY", () => {
-  const result = run("no-ci", ["--max-query-errors", "1"]);
-  expect(result.status).toBe(0);
-  expect(JSON.parse(result.stdout.trim())).toMatchObject({
-    kind: "READY",
-    scope: { pr: { kind: "ready-pr", proof: { ci: { kind: "ci-none" } } } },
-  });
-});
-
-it("stops at the merge gate when GitHub blocks a PR that has no checks", () => {
-  const result = run("no-ci-blocked", ["--max-query-errors", "1"]);
-  expect(result.status).toBe(6);
-  expect(JSON.parse(result.stdout.trim())).toMatchObject({
-    kind: "BLOCKER",
-    blocker: { kind: "merge-gate", reason: "merge-blocked" },
-  });
+// Confirming no checks takes 60 seconds of wall time, so a test on the real
+// clock can only show the wait. A loaded machine fits fewer polls into the
+// deadline, so this asserts what each poll said and not how many there were.
+it("keeps a PR with no checks waiting through short-interval polls until the deadline", () => {
+  for (const scenario of ["no-ci", "no-ci-blocked"]) {
+    const result = run(scenario, [
+      "--max-query-errors",
+      "1",
+      "--interval",
+      "0.05",
+      "--timeout",
+      "2",
+    ]);
+    expect(result.status).toBe(5);
+    const emitted = verdicts(result.stdout);
+    for (const wait of emitted.slice(0, -1))
+      expect(wait).toMatchObject({
+        kind: "WAITING",
+        reason: { kind: "checks-unreported" },
+      });
+    expect(emitted.at(-1)).toMatchObject({ kind: "TIMEOUT" });
+  }
 });
 
 it("fails closed when the check queries fail instead of reporting no checks", () => {
@@ -171,6 +185,20 @@ it("fails closed when the check queries fail instead of reporting no checks", ()
       blocker: { kind: "status-query" },
     });
   }
+});
+
+it("exits 7 with a JSON verdict when gh is not on PATH", () => {
+  const result = run("missing-gh", [], "/nonexistent");
+  expect(result.status).toBe(7);
+  expect(JSON.parse(result.stdout.trim())).toMatchObject({
+    kind: "BLOCKER",
+    exitCode: 7,
+    blocker: {
+      kind: "status-query",
+      failures: 1,
+      failure: { kind: "spawn-failed", retryable: false },
+    },
+  });
 });
 
 it("cancels an in-flight command at the CLI deadline", () => {

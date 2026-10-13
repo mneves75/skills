@@ -7,6 +7,7 @@ import {
   readdir,
   rename,
   rm,
+  symlink,
   writeFile,
 } from "node:fs/promises";
 import { realpathSync } from "node:fs";
@@ -165,6 +166,100 @@ function runCli(
   };
 }
 
+async function plantStaleLock(directory: string): Promise<number> {
+  const exited = Bun.spawn(["true"]);
+  await exited.exited;
+  await writeFile(join(directory, ".orch.lock"), `${exited.pid}\n`);
+  return exited.pid;
+}
+
+function spawnWriter({
+  directory,
+  flags,
+  name,
+  force = false,
+  before = "",
+  atLockUnlink = "",
+  patch = "",
+  killAfterLockCall = 0,
+}: {
+  directory: string;
+  flags: string;
+  name: string;
+  force?: boolean;
+  before?: string;
+  atLockUnlink?: string;
+  patch?: string;
+  killAfterLockCall?: number;
+}) {
+  const script = `
+const { existsSync, rmSync, writeFileSync } = require("node:fs");
+const promises = require("node:fs/promises");
+const flag = (suffix) => ${JSON.stringify(`${flags}/${name}.`)} + suffix;
+const peer = (suffix) => existsSync(${JSON.stringify(`${flags}/`)} + suffix);
+const lock = ${JSON.stringify(join(directory, ".orch.lock"))};
+const spin = (ready) => {
+  const deadline = Date.now() + 4000;
+  while (!ready()) {
+    if (Date.now() > deadline) throw new Error("barrier timeout");
+  }
+};
+const unlink = promises.unlink;
+let reached = false;
+promises.unlink = async (path) => {
+  if (!reached && path === lock) {
+    reached = true;
+    ${atLockUnlink}
+  }
+  return unlink(path);
+};
+${patch}
+let lockCalls = 0;
+for (const [call, run] of Object.entries(promises)) {
+  if (typeof run !== "function") continue;
+  promises[call] = async (...args) => {
+    try {
+      return await run(...args);
+    } finally {
+      if (args.slice(0, 2).some((path) => String(path).startsWith(lock))) {
+        lockCalls += 1;
+        if (lockCalls === ${killAfterLockCall}) process.kill(process.pid, "SIGKILL");
+      }
+    }
+  };
+}
+const { openStore } = await import(${JSON.stringify(join(import.meta.dir, "store.ts"))});
+const store = openStore(${JSON.stringify(directory)}, { force: ${force} });
+${before}
+try {
+  await store.units.add({ id: "${name}-unit", track: "race" });
+  writeFileSync(flag("held"), "");
+} catch (error) {
+  writeFileSync(flag("refused"), error.message);
+}
+await store.close();
+`;
+  return Bun.spawn([process.execPath, "-e", script], { stderr: "pipe" });
+}
+
+async function readFlags(
+  flags: string
+): Promise<Readonly<Record<string, string>>> {
+  const entries = await Promise.all(
+    (await readdir(flags)).map(async (name) => [
+      name,
+      await readFile(join(flags, name), "utf8"),
+    ])
+  );
+  return Object.fromEntries(entries);
+}
+
+async function lockFiles(directory: string): Promise<readonly string[]> {
+  return (await readdir(directory))
+    .filter((name) => name.startsWith(".orch.lock"))
+    .sort();
+}
+
 afterEach(async () => {
   for (const store of handles.splice(0).reverse()) {
     await store.close();
@@ -219,7 +314,7 @@ describe("Store", () => {
     ).toMatchObject({ id: "u1", state: "pending" });
     expect(
       await store.units.add({ id: "=SUM(A1)", track: "+build" })
-    ).toMatchObject({ id: "'=SUM(A1)", track: "'+build" });
+    ).toMatchObject({ id: "=SUM(A1)", track: "+build" });
 
     const updated = await store.units.set({
       id: "u1",
@@ -276,7 +371,7 @@ describe("Store", () => {
       sha: "abc123",
       verdict: "unit-test-verified",
       evidence: "reports/verify.md",
-      verifier: "sol",
+      verifier: "opus",
     });
     expect(await store.ledger.check({ pr: 184530, sha: "abc123" })).toEqual(
       recorded
@@ -341,7 +436,398 @@ describe("Store", () => {
     ).toMatchObject({ id: "u1" });
     expect(stale).toEqual([String(exited.pid)]);
     await recovered.close();
-    expect(await readdir(directory)).not.toContain(".orch.lock");
+    expect(
+      (await readdir(directory)).filter((name) =>
+        name.startsWith(".orch.lock")
+      )
+    ).toEqual([]);
+  });
+
+  it("lets only one of two writers racing for a stale lock replace it", async () => {
+    const { directory, store } = await initializedStore();
+    await store.close();
+    const exited = Bun.spawn(["true"]);
+    await exited.exited;
+    await writeFile(join(directory, ".orch.lock"), `${exited.pid}\n`);
+    const flags = await makeDirectory();
+
+    const worker = ({
+      name,
+      beforeTakeover,
+      beforeClose,
+    }: {
+      name: string;
+      beforeTakeover: string;
+      beforeClose: string;
+    }) => `
+const { openStore } = await import(${JSON.stringify(join(import.meta.dir, "store.ts"))});
+const { existsSync, readFileSync, writeFileSync } = await import("node:fs");
+const flag = (suffix) => ${JSON.stringify(`${flags}/`)} + suffix;
+const spin = (ready) => {
+  const deadline = Date.now() + 5000;
+  while (!ready()) {
+    if (Date.now() > deadline) throw new Error("barrier timeout");
+  }
+};
+const lockHolds = (pid) => {
+  try {
+    return readFileSync(${JSON.stringify(join(directory, ".orch.lock"))}, "utf8").trim() === pid;
+  } catch {
+    return false;
+  }
+};
+const store = openStore(${JSON.stringify(directory)}, {
+  onStaleLock: () => {
+    writeFileSync(flag("${name}.saw-stale"), "");
+    ${beforeTakeover}
+  },
+});
+writeFileSync(flag("${name}.pid"), String(process.pid));
+try {
+  await store.units.add({ id: "${name}-unit", track: "race" });
+  writeFileSync(flag("${name}.held"), "");
+} catch (error) {
+  writeFileSync(flag("${name}.refused"), error.message);
+}
+${beforeClose}
+await store.close();
+`;
+    const run = (script: string) =>
+      Bun.spawn([process.execPath, "-e", script], { stderr: "pipe" });
+    const a = run(
+      worker({
+        name: "A",
+        beforeTakeover: `spin(() => existsSync(flag("B.saw-stale")));`,
+        beforeClose: `spin(() => existsSync(flag("B.held")) || existsSync(flag("B.refused")));`,
+      })
+    );
+    const b = run(
+      worker({
+        name: "B",
+        beforeTakeover: `spin(() => existsSync(flag("A.saw-stale")));
+    spin(() => lockHolds(readFileSync(flag("A.pid"), "utf8")));`,
+        beforeClose: "",
+      })
+    );
+    expect(await Promise.all([a.exited, b.exited])).toEqual([0, 0]);
+    expect(await new Response(a.stderr).text()).toBe("");
+    expect(await new Response(b.stderr).text()).toBe("");
+
+    const outcomes = (await readdir(flags))
+      .filter((name) => /\.(held|refused)$/.test(name))
+      .sort();
+    expect(outcomes).toEqual(["A.held", "B.refused"]);
+    expect(await readFile(join(flags, "B.refused"), "utf8")).toMatch(
+      /^store lock held by pid /
+    );
+    expect(await readFile(join(directory, "units.tsv"), "utf8")).toBe(
+      "id\ttrack\tstate\tbranch\tpr\tsha\tbrief\nA-unit\trace\tpending\t\t\t\t\n"
+    );
+    expect(
+      (await readdir(directory)).filter((name) =>
+        name.startsWith(".orch.lock")
+      )
+    ).toEqual([]);
+  });
+
+  it("refuses a stale lock another writer is replacing, forced or not", async () => {
+    const { directory, store } = await initializedStore();
+    await store.close();
+    const stale = await plantStaleLock(directory);
+    await mkdir(join(directory, ".orch.lock.takeover"));
+    await writeFile(
+      join(directory, ".orch.lock.takeover", String(process.pid)),
+      ""
+    );
+
+    for (const force of [false, true]) {
+      await expect(
+        useStore(directory, { force }).units.add({ id: "u1", track: "build" })
+      ).rejects.toThrow(
+        `store lock held by pid ${stale} is being replaced by another writer; retry`
+      );
+    }
+    expect(await lockFiles(directory)).toEqual([
+      ".orch.lock",
+      ".orch.lock.takeover",
+    ]);
+  });
+
+  it("refuses a forced writer that arrives while another writer is replacing a stale lock", async () => {
+    const { directory, store } = await initializedStore();
+    await store.close();
+    const stale = await plantStaleLock(directory);
+    const flags = await makeDirectory();
+
+    const a = spawnWriter({
+      directory,
+      flags,
+      name: "A",
+      atLockUnlink: `writeFileSync(flag("replacing"), "");
+    spin(() => peer("F.held") || peer("F.refused"));`,
+    });
+    const f = spawnWriter({
+      directory,
+      flags,
+      name: "F",
+      force: true,
+      before: `spin(() => peer("A.replacing"));`,
+    });
+    expect(await Promise.all([a.exited, f.exited])).toEqual([0, 0]);
+    expect(await new Response(a.stderr).text()).toBe("");
+    expect(await new Response(f.stderr).text()).toBe("");
+
+    expect(await readFlags(flags)).toEqual({
+      "A.replacing": "",
+      "A.held": "",
+      "F.refused": `store lock held by pid ${stale} is being replaced by another writer; retry`,
+    });
+    expect(await readFile(join(directory, "units.tsv"), "utf8")).toBe(
+      "id\ttrack\tstate\tbranch\tpr\tsha\tbrief\nA-unit\trace\tpending\t\t\t\t\n"
+    );
+    expect(await lockFiles(directory)).toEqual([]);
+  });
+
+  it("refuses a forced writer that arrives while the holder's release is between its read and its unlink", async () => {
+    const { directory, store } = await initializedStore();
+    await store.close();
+    const flags = await makeDirectory();
+
+    const a = spawnWriter({
+      directory,
+      flags,
+      name: "A",
+      atLockUnlink: `writeFileSync(flag("releasing"), "");
+    spin(() => peer("F.held") || peer("F.refused"));`,
+    });
+    const f = spawnWriter({
+      directory,
+      flags,
+      name: "F",
+      force: true,
+      before: `spin(() => peer("A.releasing"));`,
+    });
+    expect(await Promise.all([a.exited, f.exited])).toEqual([0, 0]);
+    expect(await new Response(a.stderr).text()).toBe("");
+    expect(await new Response(f.stderr).text()).toBe("");
+
+    expect(await readFlags(flags)).toEqual({
+      "A.releasing": "",
+      "A.held": "",
+      "F.refused": `store lock held by pid ${a.pid} is being replaced by another writer; retry`,
+    });
+    expect(await readFile(join(directory, "units.tsv"), "utf8")).toBe(
+      "id\ttrack\tstate\tbranch\tpr\tsha\tbrief\nA-unit\trace\tpending\t\t\t\t\n"
+    );
+    expect(await lockFiles(directory)).toEqual([]);
+  });
+
+  it("replaces a stale lock after a writer was killed while replacing it", async () => {
+    const { directory, store } = await initializedStore();
+    await store.close();
+    await plantStaleLock(directory);
+
+    const killed = spawnWriter({
+      directory,
+      flags: await makeDirectory(),
+      name: "A",
+      atLockUnlink: `process.kill(process.pid, "SIGKILL");`,
+    });
+    await killed.exited;
+    expect(killed.signalCode).toBe("SIGKILL");
+    expect(await lockFiles(directory)).toEqual([
+      ".orch.lock",
+      ".orch.lock.takeover",
+    ]);
+
+    const recovered = useStore(directory);
+    expect(
+      await recovered.units.add({ id: "u1", track: "build" })
+    ).toMatchObject({ id: "u1" });
+    await recovered.close();
+    expect(await lockFiles(directory)).toEqual([]);
+  });
+
+  it("leaves a live claim alone when a writer that saw only a dead claimant resumes", async () => {
+    const { directory, store } = await initializedStore();
+    await store.close();
+    const stale = await plantStaleLock(directory);
+    await mkdir(join(directory, ".orch.lock.takeover"));
+    await writeFile(join(directory, ".orch.lock.takeover", String(stale)), "");
+    const flags = await makeDirectory();
+
+    const b = spawnWriter({
+      directory,
+      flags,
+      name: "B",
+      patch: `const { readdir } = promises;
+promises.readdir = async (path) => {
+  const claimants = await readdir(path);
+  if (path === lock + ".takeover") {
+    writeFileSync(flag("saw-dead-claimant"), "");
+    spin(() => peer("C.replacing"));
+  }
+  return claimants;
+};`,
+    });
+    const c = spawnWriter({
+      directory,
+      flags,
+      name: "C",
+      before: `spin(() => peer("B.saw-dead-claimant"));`,
+      atLockUnlink: `writeFileSync(flag("replacing"), "");
+    spin(() => peer("B.held") || peer("B.refused"));`,
+    });
+    expect(await Promise.all([b.exited, c.exited])).toEqual([0, 0]);
+    expect(await new Response(b.stderr).text()).toBe("");
+    expect(await new Response(c.stderr).text()).toBe("");
+
+    expect(await readFlags(flags)).toEqual({
+      "B.saw-dead-claimant": "",
+      "B.refused": `store lock held by pid ${stale} is being replaced by another writer; retry`,
+      "C.replacing": "",
+      "C.held": "",
+    });
+    expect(await readFile(join(directory, "units.tsv"), "utf8")).toBe(
+      "id\ttrack\tstate\tbranch\tpr\tsha\tbrief\nC-unit\trace\tpending\t\t\t\t\n"
+    );
+    expect(await lockFiles(directory)).toEqual([]);
+  });
+
+  it("replaces a stale lock that disappears before it is removed", async () => {
+    const { directory, store } = await initializedStore();
+    await store.close();
+    await plantStaleLock(directory);
+    const flags = await makeDirectory();
+
+    const writer = spawnWriter({
+      directory,
+      flags,
+      name: "A",
+      atLockUnlink: `rmSync(lock);
+    writeFileSync(flag("lock-gone"), "");`,
+    });
+    expect(await writer.exited).toBe(0);
+    expect(await new Response(writer.stderr).text()).toBe("");
+    expect(await readFlags(flags)).toEqual({ "A.held": "", "A.lock-gone": "" });
+    expect(await lockFiles(directory)).toEqual([]);
+  });
+
+  it.each([
+    ["no lock", false],
+    ["a stale lock", true],
+  ])(
+    "lets the next writer in after a writer that found %s is killed at any step of taking or releasing it",
+    async (_found, stale) => {
+      const { directory, store } = await initializedStore();
+      await store.close();
+      const flags = await makeDirectory();
+
+      let kills = 0;
+      for (;;) {
+        if (stale) {
+          await plantStaleLock(directory);
+        }
+        const writer = spawnWriter({
+          directory,
+          flags,
+          name: `w${kills}`,
+          killAfterLockCall: kills + 1,
+        });
+        await writer.exited;
+        if (writer.signalCode !== "SIGKILL") {
+          expect(await new Response(writer.stderr).text()).toBe("");
+          expect(writer.exitCode).toBe(0);
+          break;
+        }
+        kills += 1;
+        const id = `after-kill-${kills}`;
+        const next = useStore(directory);
+        expect(await next.units.add({ id, track: "build" })).toMatchObject({
+          id,
+        });
+        await next.close();
+      }
+      expect(kills).toBeGreaterThan(2);
+    },
+    60_000
+  );
+
+  it("takes the lock with an exclusive open where hard links are unsupported", async () => {
+    const { directory, store } = await initializedStore();
+    await store.close();
+    const flags = await makeDirectory();
+    const lock = join(directory, ".orch.lock");
+    const patch = `promises.link = async () => {
+  throw Object.assign(new Error("no hard links"), { code: "ENOTSUP" });
+};`;
+
+    await writeFile(lock, `${process.pid}\n`);
+    const blocked = spawnWriter({ directory, flags, name: "B", patch });
+    expect(await blocked.exited).toBe(0);
+    expect(await readFlags(flags)).toEqual({
+      "B.refused": `store lock held by pid ${process.pid}`,
+    });
+    expect(await readFile(lock, "utf8")).toBe(`${process.pid}\n`);
+
+    await rm(lock);
+    const writer = spawnWriter({ directory, flags, name: "A", patch });
+    expect(await writer.exited).toBe(0);
+    expect(await new Response(writer.stderr).text()).toBe("");
+    expect(await readFlags(flags)).toMatchObject({ "A.held": "" });
+    expect(await lockFiles(directory)).toEqual([]);
+  });
+
+  it.each([
+    ["no lock", false],
+    ["a stale lock", true],
+  ])("takes the lock when it finds %s and the writer that beats it to the create releases before its pid is read", async (_found, stale) => {
+    const { directory, store } = await initializedStore();
+    await store.close();
+    if (stale) {
+      await plantStaleLock(directory);
+    }
+    const flags = await makeDirectory();
+
+    const writer = spawnWriter({
+      directory,
+      flags,
+      name: "A",
+      patch: `const { link, readFile } = promises;
+let rival = "absent";
+promises.link = async (from, to) => {
+  if (rival === "absent" && !existsSync(lock)) {
+    rival = "holding";
+    writeFileSync(lock, "1\\n");
+  }
+  return link(from, to);
+};
+promises.readFile = async (path, ...rest) => {
+  if (rival === "holding" && path === lock) {
+    rival = "released";
+    rmSync(lock);
+    writeFileSync(flag("rival-released"), "");
+  }
+  return readFile(path, ...rest);
+};`,
+    });
+    expect(await writer.exited).toBe(0);
+    expect(await new Response(writer.stderr).text()).toBe("");
+    expect(await readFlags(flags)).toEqual({
+      "A.rival-released": "",
+      "A.held": "",
+    });
+    expect(await lockFiles(directory)).toEqual([]);
+  });
+
+  it("reports a lock it can never read as held by an unknown pid", async () => {
+    const { directory, store } = await initializedStore();
+    await store.close();
+    await symlink(join(directory, "missing"), join(directory, ".orch.lock"));
+
+    await expect(
+      useStore(directory).units.add({ id: "u1", track: "build" })
+    ).rejects.toThrow("store lock held by pid unknown");
   });
 
   it("blocks a writer and steals the pid lock only with force", async () => {
@@ -472,6 +958,57 @@ describe("Store", () => {
     });
   });
 
+  it("pins a branch head when a same-named tag points to another commit", async () => {
+    const { directory, store } = await initializedStore();
+    const stack = await makeGitStack(directory);
+    git({
+      repo: stack.repo,
+      args: ["tag", "stack/open", stack.mergedSha],
+    });
+
+    await withFakeGt({
+      directory,
+      output: "◯ main\n◉ stack/open (current)\n",
+      operation: async () => {
+        const frontier = await store.frontier.set({ repo: stack.repo });
+        expect(frontier.prs).toEqual([
+          {
+            pr: 11,
+            branches: "stack/open",
+            sha: stack.openSha,
+            state: "OPEN",
+          },
+        ]);
+        expect(await store.frontier.show()).toEqual(frontier);
+      },
+    });
+  });
+
+  it("rejects a tag without its branch and preserves the saved frontier", async () => {
+    const { directory, store } = await initializedStore();
+    const stack = await makeGitStack(directory);
+
+    await withFakeGt({
+      directory,
+      output: "◯ main\n◉ stack/open (current)\n",
+      operation: async () => {
+        const before = await store.frontier.set({ repo: stack.repo });
+        git({
+          repo: stack.repo,
+          args: ["tag", "stack/open", stack.openSha],
+        });
+        git({ repo: stack.repo, args: ["checkout", "main"] });
+        git({ repo: stack.repo, args: ["branch", "-D", "stack/open"] });
+
+        await expect(
+          store.frontier.set({ repo: stack.repo })
+        ).rejects.toThrow("git rev-parse");
+        expect(await store.frontier.show()).toEqual(before);
+        expect(before.generation).toBe(1);
+      },
+    });
+  });
+
   it("rejects unparseable Graphite output loudly", async () => {
     const { directory, store } = await initializedStore();
     const stack = await makeGitStack(directory);
@@ -495,7 +1032,9 @@ describe("Store", () => {
 
     await withFakeGt({
       directory,
-      output: "\u001b[2m◯ main\u001b[0m\n\u001b[32m◉ stack/open\u001b[39m \u001b[2m(current)\u001b[22m\n",
+      output:
+        "\u001b[2m◯ main\u001b[0m\n" +
+        "\u001b[38:5:2m◉ \u001b]8;;https://example.test/stack\u0007stack/open\u001b]8;;\u0007\u001b[39m \u001b[2m(current)\u001b[22m\n",
       operation: async () => {
         expect(
           (await store.frontier.set({ repo: stack.repo })).prs
@@ -703,4 +1242,100 @@ fi
     const status = await readFile(join(directory, "status.md"), "utf8");
     expect(status).toContain("| a b\\|c | 7 | cafe f00d | OPEN |");
   });
+
+  it("round-trips cells that start with a spreadsheet formula or quote character", async () => {
+    const { directory, store } = await initializedStore();
+    await store.units.add({ id: "-hotfix", track: "build", brief: "'quoted" });
+    const set = await store.units.set({
+      id: "-hotfix",
+      state: "in-flight",
+      branch: "@me/feat",
+    });
+    expect(set).toMatchObject({
+      id: "-hotfix",
+      branch: "@me/feat",
+      brief: "'quoted",
+    });
+    expect(await store.units.get("-hotfix")).toEqual(set);
+    expect(await readFile(join(directory, "units.tsv"), "utf8")).toBe(
+      "id\ttrack\tstate\tbranch\tpr\tsha\tbrief\n'-hotfix\tbuild\tin-flight\t'@me/feat\t\t\t''quoted\n"
+    );
+  });
+
+  it("round-trips inbox pointers that start with a spreadsheet formula or quote character", async () => {
+    const { directory, store } = await initializedStore();
+    const { filename, pointer } = await store.inbox.push({
+      agent: "@bot",
+      unit: "-hotfix",
+      status: "=done",
+      report: "'quoted",
+    });
+    expect(pointer).toMatchObject({
+      agent: "@bot",
+      unit: "-hotfix",
+      status: "=done",
+      report: "'quoted",
+    });
+    expect(await store.inbox.peek()).toEqual([pointer]);
+    expect(await readFile(join(directory, "inbox", filename), "utf8")).toBe(
+      `${pointer.ts}\t'@bot\t'-hotfix\t'=done\t''quoted\n`
+    );
+  });
+
+  it("keeps a leading quote in rows written before cells were unquoted on read", async () => {
+    const { directory, store } = await initializedStore();
+    await writeFile(
+      join(directory, "units.tsv"),
+      "id\ttrack\tstate\tbranch\tpr\tsha\tbrief\n'=x\tt\tpending\t\t\t\t'quoted brief\n'foo\tt\tpending\t\t\t\t\nfoo\tt\tpending\t\t\t\t\n"
+    );
+    await writeFile(
+      join(directory, "ledger.tsv"),
+      "pr\tsha\tverdict\tevidence\tverifier\tts\n7\tabc\tunit-test-verified\t'bun test' passed\t\t2026-01-01T00:00:00.000Z\n"
+    );
+
+    const units = [
+      { id: "=x", brief: "'quoted brief" },
+      { id: "'foo", brief: "" },
+      { id: "foo", brief: "" },
+    ];
+    expect(await store.units.list()).toMatchObject(units);
+    expect(await store.ledger.check({ pr: 7, sha: "abc" })).toMatchObject({
+      evidence: "'bun test' passed",
+    });
+
+    await store.units.set({ id: "'foo", state: "done" });
+    expect(await store.units.list()).toMatchObject(units);
+  });
+
+  it.each([
+    ["gt log short --stack --reverse", ""],
+    [
+      "gt info feat",
+      `if [ "$2" = log ]; then printf '◯ main\\n◉ feat\\n'; exit 0; fi\n`,
+    ],
+  ])(
+    "fails a frontier set when %s hangs and ignores SIGTERM",
+    async (call, answerLog) => {
+      const directory = await makeDirectory();
+      // On a saturated machine one start of the fake gt has taken over a
+      // second, and the gt log call before a hung gt info must fit the budget.
+      const store = useStore(directory, {
+        gt: fakeGtPath(directory),
+        gtTimeoutMs: 2000,
+      });
+      await store.init();
+      await mkdir(join(directory, "bin"));
+      await writeFile(
+        fakeGtPath(directory),
+        `#!/usr/bin/env bash\n${answerLog}trap '' TERM\nexec sleep 20\n`,
+        { mode: 0o755 }
+      );
+      const started = Date.now();
+      await expect(store.frontier.set({ repo: directory })).rejects.toThrow(
+        new RegExp(`^${call} failed: .*ETIMEDOUT`)
+      );
+      expect(Date.now() - started).toBeLessThan(10_000);
+    },
+    30_000
+  );
 });

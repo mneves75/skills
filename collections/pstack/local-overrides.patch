@@ -1,8 +1,64 @@
+diff --git a/plugins/pstack/models.json b/plugins/pstack/models.json
+index e42318b..0093092 100644
+--- a/plugins/pstack/models.json
++++ b/plugins/pstack/models.json
+@@ -2,11 +2,11 @@
+   "tiers": {
+     "default": "opus",
+     "strongest": "fable",
+-    "panel": ["opus", "fable", "sonnet", "haiku"]
++    "panel": ["opus", "fable"]
+   },
+   "efforts": ["low", "medium", "high", "xhigh", "max"],
+-  "defaultEffort": "session",
+-  "available": ["opus", "fable", "sonnet", "haiku"],
++  "defaultEffort": "xhigh",
++  "available": ["opus", "fable"],
+   "roles": [
+     { "role": "feature, refactoring", "models": "default", "skill": "poteto-mode" },
+     { "role": "bug-fix", "models": "strongest", "skill": "poteto-mode" },
+@@ -27,30 +27,24 @@
+     { "role": "interrogate reviewers", "models": "panel", "skill": "interrogate" }
+   ],
+   "codex": {
+-    "default": "gpt-6-sol",
+-    "strongest": "gpt-6-astra",
+-    "panel": ["gpt-6-astra", "gpt-6-sol", "gpt-6-luna"]
++    "default": "gpt-6.1-sol",
++    "strongest": "gpt-6.1-sol",
++    "panel": ["gpt-6.1-sol"]
+   },
+   "pi": {
+     "fallback": "anthropic",
+     "models": {
+       "anthropic": {
+         "opus": "anthropic/claude-opus-5-5",
+-        "fable": "anthropic/claude-fable-5-1",
+-        "sonnet": "anthropic/claude-sonnet-5-5",
+-        "haiku": "anthropic/claude-haiku-5-5"
++        "fable": "anthropic/claude-fable-5-1"
+       },
+       "openai": {
+         "opus": "openai/gpt-6.1-sol",
+-        "fable": "openai/gpt-6-astra",
+-        "sonnet": "openai/gpt-6-sol",
+-        "haiku": "openai/gpt-6-luna"
++        "fable": "openai/gpt-6.1-sol"
+       },
+       "openai-codex": {
+         "opus": "openai-codex/gpt-6.1-sol",
+-        "fable": "openai-codex/gpt-6-astra",
+-        "sonnet": "openai-codex/gpt-6-sol",
+-        "haiku": "openai-codex/gpt-6-luna"
++        "fable": "openai-codex/gpt-6.1-sol"
+       }
+     }
+   }
 diff --git a/plugins/pstack/skills/architect/SKILL.md b/plugins/pstack/skills/architect/SKILL.md
-index cefc03c..650c116 100644
+index fa05f77..3ce3b71 100644
 --- a/plugins/pstack/skills/architect/SKILL.md
 +++ b/plugins/pstack/skills/architect/SKILL.md
-@@ -33,7 +33,7 @@ Run the **arena** skill with the design-sketch task and the Phase A grounding ar
+@@ -35,7 +35,7 @@ Run the **arena** skill with the design-sketch task and the Phase A grounding ar
  
  Take the runners from the `architect runners` line in `pstack-models.md`, in place of the `arena runners` line. If the sheet or that line is missing, use the defaults in [Models](#models). Alias and rejected entries follow the runner rules in the **arena** skill's Phase A.
  
@@ -11,7 +67,7 @@ index cefc03c..650c116 100644
  
  Screen every candidate against [`references/design-red-flags.md`](references/design-red-flags.md) before synthesis. Assume the next contributor is an agent that sees only the files it opened, copies the nearest example, and takes the shortest path that compiles. Prefer the design where a change that looks right from one file is right for the whole repo.
  
-@@ -47,7 +47,7 @@ Default: proceed directly to implementation with the synthesized design. No huma
+@@ -49,7 +49,7 @@ Default: proceed directly to implementation with the synthesized design. No huma
  
  Opt in to a checkpoint when the invoker explicitly asks: "/architect with checkpoint," "stop and show me before implementing," or similar. Then surface the synthesized design and pause for sign-off.
  
@@ -20,7 +76,7 @@ index cefc03c..650c116 100644
  
  If the human pushes back on the shape (in a checkpoint or after the fact), treat that as Phase A evidence. Re-ground and re-run Phase B before writing more code.
  
-@@ -63,7 +63,7 @@ For a local deviation that leaves the shared contract intact, record the decisio
+@@ -65,7 +65,7 @@ For a local deviation that leaves the shared contract intact, record the decisio
  
  ## Phase E: Scrap when the architecture is wrong
  
@@ -29,7 +85,7 @@ index cefc03c..650c116 100644
  
  The signal is a *pattern*, not single instances. Tells:
  
-@@ -80,7 +80,7 @@ When you scrap:
+@@ -82,7 +82,7 @@ When you scrap:
  
  1. Re-run the **how** skill over what's been built.
  2. Redesign as if the new constraints had been day-one assumptions, per redesign-from-first-principles.
@@ -38,17 +94,19 @@ index cefc03c..650c116 100644
  4. Return to Phase B and re-run arena.
  
  ## Outputs
-@@ -91,7 +91,7 @@ The caller's usage is written first and the type sketch derived from it. One fil
+@@ -93,8 +93,8 @@ The caller's usage is written first and the type sketch derived from it. One fil
  
  Role defaults, stamped from `plugins/pstack/models.json` (edit there, rerun `tools/generate.mjs`). A matching role line in the `pstack-models.md` override sheet overrides each at runtime; `/setup-pstack` writes it and lists its path per runtime.
  
--- architect runners: `opus`, `fable`, `sonnet`
+-- architect runners: `opus`, `fable`, `sonnet`, `haiku`
 +- architect runners: `opus`, `fable`
  
  ## Reasoning effort
  
+-A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. `session` sets no effort, so the dispatch is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. On Claude Code, a level picks the effort agent from the `subagent_type` you would otherwise use. `pstack:poteto-agent` becomes `subagent_type: "pstack:poteto-agent-<level>"`. `general-purpose`, or no `subagent_type`, becomes `subagent_type: "pstack:effort-<level>"`. The effort agents set only `effort`, so the model you pass still decides the model. On Codex, pass the level as `spawn_agent`'s `reasoning_effort` and keep the usual instructions.
++A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. `session` sets no effort, so the dispatch is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. On Claude Code, a level picks the effort agent from the `subagent_type` you would otherwise use. `pstack:poteto-agent` becomes `subagent_type: "pstack:poteto-agent-<level>"`. `general-purpose`, or no `subagent_type`, becomes `subagent_type: "pstack:effort-<level>"`. The effort agents set only `effort`, so the model you pass still decides the model. On Codex, pass the level as `spawn_agent`'s `reasoning_effort` and keep the usual instructions.
 diff --git a/plugins/pstack/skills/architect/references/runner-prompt.md b/plugins/pstack/skills/architect/references/runner-prompt.md
-index 580ec47..a53edbe 100644
+index b1ad21a..d6743fe 100644
 --- a/plugins/pstack/skills/architect/references/runner-prompt.md
 +++ b/plugins/pstack/skills/architect/references/runner-prompt.md
 @@ -9,12 +9,12 @@ Apply the following discipline. The orchestrator compares candidates on these ax
@@ -68,12 +126,12 @@ index 580ec47..a53edbe 100644
 +- Idempotent state transitions where applicable, per [coordination guidance](../../poteto-mode/references/engineering-coordination.md). Ask what happens if the operation runs twice or crashes halfway.
 +- Short call chains. If tracing the flow needs more than three files, flatten the hierarchy, per [evolution guidance](../../poteto-mode/references/engineering-evolution.md).
  
- You are one of several runners, each on a different model. Produce the best design your model can make. Don't hedge against the others. Differences between candidates are the signal used to pick a base and graft. Converging on a safe-looking middle defeats the exploration.
+ You are one of the parallel runners, each on a different model. Produce the best design your model can make. Don't hedge against the others. Differences between candidates are the signal used to pick a base and graft. Converging on a safe-looking middle defeats the exploration.
 diff --git a/plugins/pstack/skills/arena/SKILL.md b/plugins/pstack/skills/arena/SKILL.md
-index 11f5dcd..d599d71 100644
+index 085bc97..25faf43 100644
 --- a/plugins/pstack/skills/arena/SKILL.md
 +++ b/plugins/pstack/skills/arena/SKILL.md
-@@ -26,8 +26,8 @@ The N candidates will receive the same prompt, so the prompt is the contract.
+@@ -28,8 +28,8 @@ The N candidates will receive the same prompt, so the prompt is the contract.
  
  1. State the artifact each candidate is producing.
  2. Derive the rubric. State what success looks like for *this* task, then turn it into 3-6 concrete gradeable criteria. The rubric is the picker's tool in Phase D. Candidates only see the task.
@@ -84,7 +142,7 @@ index 11f5dcd..d599d71 100644
  
  ## Phase B: Fan out
  
-@@ -47,7 +47,7 @@ Read every candidate end to end before picking.
+@@ -49,7 +49,7 @@ Read every candidate end to end before picking.
  
  Score each candidate against the rubric criterion by criterion, not on holistic feel. Compare against the cross-judge. Agreement on the base confirms the pick. Disagreement means one of you is biased or the rubric was ambiguous. Read both rationales before deciding.
  
@@ -93,7 +151,7 @@ index 11f5dcd..d599d71 100644
  
  Record the pick and the reason in a short synthesis note alongside the base artifact, including the cross-judge's verdict.
  
-@@ -55,7 +55,7 @@ Record the pick and the reason in a short synthesis note alongside the base arti
+@@ -57,7 +57,7 @@ Record the pick and the reason in a short synthesis note alongside the base arti
  
  Walk each losing candidate once more and identify what is worth porting into the base. The signal is usually one or two things per candidate, not most of it.
  
@@ -102,7 +160,7 @@ index 11f5dcd..d599d71 100644
  
  Record what was grafted, from which candidate, and what was rejected and why.
  
-@@ -63,7 +63,7 @@ When N candidates converge on the same shape, that is a strong agreement signal.
+@@ -65,7 +65,7 @@ When N candidates converge on the same shape, that is a strong agreement signal.
  
  ## Phase F: Verify
  
@@ -111,19 +169,21 @@ index 11f5dcd..d599d71 100644
  
  If verification surfaces a problem the arena did not catch, either Phase A was wrong (re-frame and re-run) or one candidate caught it and you missed the graft (go back to Phase E). Don't paper over.
  
-@@ -75,8 +75,8 @@ One synthesized artifact. One short synthesis note alongside, naming the base, t
+@@ -77,9 +77,9 @@ One synthesized artifact. One short synthesis note alongside, naming the base, t
  
  Role defaults, stamped from `plugins/pstack/models.json` (edit there, rerun `tools/generate.mjs`). A matching role line in the `pstack-models.md` override sheet overrides each at runtime; `/setup-pstack` writes it and lists its path per runtime.
  
--- arena runners: `opus`, `fable`, `sonnet`
--- arena cross-judge pool: `opus`, `fable`, `sonnet`
+-- arena runners: `opus`, `fable`, `sonnet`, `haiku`
+-- arena cross-judge pool: `opus`, `fable`, `sonnet`, `haiku`
 +- arena runners: `opus`, `fable`
 +- arena cross-judge pool: `opus`, `fable`
  
  ## Reasoning effort
  
+-A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. `session` sets no effort, so the dispatch is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. On Claude Code, a level picks the effort agent from the `subagent_type` you would otherwise use. `pstack:poteto-agent` becomes `subagent_type: "pstack:poteto-agent-<level>"`. `general-purpose`, or no `subagent_type`, becomes `subagent_type: "pstack:effort-<level>"`. The effort agents set only `effort`, so the model you pass still decides the model. On Codex, pass the level as `spawn_agent`'s `reasoning_effort` and keep the usual instructions.
++A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. `session` sets no effort, so the dispatch is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. On Claude Code, a level picks the effort agent from the `subagent_type` you would otherwise use. `pstack:poteto-agent` becomes `subagent_type: "pstack:poteto-agent-<level>"`. `general-purpose`, or no `subagent_type`, becomes `subagent_type: "pstack:effort-<level>"`. The effort agents set only `effort`, so the model you pass still decides the model. On Codex, pass the level as `spawn_agent`'s `reasoning_effort` and keep the usual instructions.
 diff --git a/plugins/pstack/skills/automate-me/SKILL.md b/plugins/pstack/skills/automate-me/SKILL.md
-index 481a7b5..a3589bd 100644
+index 3b462d8..96f33bc 100644
 --- a/plugins/pstack/skills/automate-me/SKILL.md
 +++ b/plugins/pstack/skills/automate-me/SKILL.md
 @@ -1,6 +1,6 @@
@@ -134,7 +194,7 @@ index 481a7b5..a3589bd 100644
  ---
  
  # Automate me
-@@ -9,7 +9,7 @@ On Codex, read the [platform mapping](../poteto-mode/references/codex-tools.md),
+@@ -11,7 +11,7 @@ On GitHub Copilot, read the [platform mapping](../poteto-mode/references/copilot
  
  A guided flow for turning the user's working conventions into a skill agents will follow. The output is one `-mode` skill tailored to them (e.g. `jay-mode`, `priya-mode`).
  
@@ -143,7 +203,7 @@ index 481a7b5..a3589bd 100644
  
  ## Flow
  
-@@ -75,7 +75,7 @@ Use the **plugin-dev:skill-development** skill to author the skill. Placement:
+@@ -77,7 +77,7 @@ Use the **plugin-dev:skill-development** skill to author the skill. Placement:
  
  ### 5. Iterate on prose
  
@@ -153,10 +213,10 @@ index 481a7b5..a3589bd 100644
  Show the draft to the user and take feedback. Expect multiple iterations. Cut ruthlessly. A mode skill is not a manual.
  
 diff --git a/plugins/pstack/skills/babysit/SKILL.md b/plugins/pstack/skills/babysit/SKILL.md
-index 92854bb..44d7799 100644
+index 1aaa079..ee6bdcd 100644
 --- a/plugins/pstack/skills/babysit/SKILL.md
 +++ b/plugins/pstack/skills/babysit/SKILL.md
-@@ -55,7 +55,7 @@ Inside poteto-mode, the **Babysit** playbook ([`../poteto-mode/playbooks/babysit
+@@ -57,7 +57,7 @@ Inside poteto-mode, the **Babysit** playbook ([`../poteto-mode/playbooks/babysit
  
  - Opening a PR does not start a babysit; inside poteto-mode the Babysit playbook owns the request and starts only when asked.
  - Use `interrogate` before opening if the diff is contested; once open, babysit takes over.
@@ -179,7 +239,7 @@ index d92d20e..deb0e62 100644
  For a quick ballpark the user asked for, one run is enough. Still check questions 4 and 7, and say that it is one run. Skip the rest unless that run looks wrong. A choice between options is never a ballpark.
  
 diff --git a/plugins/pstack/skills/blast-radius/SKILL.md b/plugins/pstack/skills/blast-radius/SKILL.md
-index b44b5e8..9ec72da 100644
+index 8ee5a95..8241838 100644
 --- a/plugins/pstack/skills/blast-radius/SKILL.md
 +++ b/plugins/pstack/skills/blast-radius/SKILL.md
 @@ -44,6 +44,6 @@ Step 4 is usually one small script that imports the same library the app ships a
@@ -243,31 +303,48 @@ index 30cc95c..08e6740 100644
 +Check the whole against the Phase A predicate on the real product, not just the harness. Encode any recurring correction as a gate, a lint rule, a check, or a script ([verification guidance](../poteto-mode/references/engineering-verification.md)).
  
  **Reply:** the playbook you designed, the rigor level and why, the decision-trail path, what's verified against the predicate, and what's still open.
+diff --git a/plugins/pstack/skills/how/SKILL.md b/plugins/pstack/skills/how/SKILL.md
+index d373f90..ffa3c97 100644
+--- a/plugins/pstack/skills/how/SKILL.md
++++ b/plugins/pstack/skills/how/SKILL.md
+@@ -69,4 +69,4 @@ Role defaults, stamped from `plugins/pstack/models.json` (edit there, rerun `too
+ 
+ ## Reasoning effort
+ 
+-A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. `session` sets no effort, so the dispatch is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. On Claude Code, a level picks the effort agent from the `subagent_type` you would otherwise use. `pstack:poteto-agent` becomes `subagent_type: "pstack:poteto-agent-<level>"`. `general-purpose`, or no `subagent_type`, becomes `subagent_type: "pstack:effort-<level>"`. The effort agents set only `effort`, so the model you pass still decides the model. On Codex, pass the level as `spawn_agent`'s `reasoning_effort` and keep the usual instructions.
++A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. `session` sets no effort, so the dispatch is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. On Claude Code, a level picks the effort agent from the `subagent_type` you would otherwise use. `pstack:poteto-agent` becomes `subagent_type: "pstack:poteto-agent-<level>"`. `general-purpose`, or no `subagent_type`, becomes `subagent_type: "pstack:effort-<level>"`. The effort agents set only `effort`, so the model you pass still decides the model. On Codex, pass the level as `spawn_agent`'s `reasoning_effort` and keep the usual instructions.
 diff --git a/plugins/pstack/skills/interrogate/SKILL.md b/plugins/pstack/skills/interrogate/SKILL.md
-index 808d21f..af49932 100644
+index e258bdb..dd76587 100644
 --- a/plugins/pstack/skills/interrogate/SKILL.md
 +++ b/plugins/pstack/skills/interrogate/SKILL.md
-@@ -40,14 +40,13 @@ Launch all reviewers in a single message using the `Agent` tool. Use the `interr
+@@ -42,15 +42,13 @@ Launch all reviewers in a single message using the `Agent` tool. Use the `interr
  |----------|---------------|
  | Reviewer A | `opus` |
  | Reviewer B | `fable` |
 -| Reviewer C | `sonnet` |
+-| Reviewer D | `haiku` |
  
  For each reviewer:
  - `subagent_type`: `general-purpose`
  - `model`: the configured `interrogate reviewers` entry, or the table default with no configured line. For an `auto` or `inherit-parent` entry, omit `model` so that reviewer runs on the parent model.
  - `readonly`: `true`
  
--If the `Agent` tool rejects a configured entry, run that reviewer on the table default of its family and say so. Families go by model name, such as Opus, Fable, or Sonnet. With no family match, use Reviewer A's default. If it rejects a table default, check the valid slugs in the `Agent` tool's error message, pick the closest equivalent (prefer the highest-reasoning tier of the same family), spawn with it, and open a separate PR to update the default table. Do not block the review on the slug issue. Never treat an alias entry as a rejected slug or apply either fallback to it.
-+If the `Agent` tool rejects a configured entry, run that reviewer on the table default of its family and say so. Families go by model name, such as Opus or Fable. With no family match, use Reviewer A's default. If it rejects a table default, check the valid slugs in the `Agent` tool's error message, pick the closest equivalent (prefer the highest-reasoning tier of the same family), spawn with it, and open a separate PR to update the default table. Do not block the review on the slug issue. Never treat an alias entry as a rejected slug or apply either fallback to it.
+-If the `Agent` tool rejects a configured entry, run that reviewer on the table default of its family and say so. Families go by model name, such as Opus, Fable, or Sonnet. With no family match, use Reviewer A's default. If it rejects a table default, check the valid slugs in the `Agent` tool's error message, pick the closest equivalent (prefer the same family and reasoning tier), spawn with it, and open a separate PR to update the default table. Do not block the review on the slug issue. Never treat an alias entry as a rejected slug or apply either fallback to it.
++If the `Agent` tool rejects a configured entry, run that reviewer on the table default of its family and say so. Families go by model name, such as Opus or Fable. With no family match, use Reviewer A's default. If it rejects a table default, check the valid slugs in the `Agent` tool's error message, pick the closest equivalent (prefer the same family and reasoning tier), spawn with it, and open a separate PR to update the default table. Do not block the review on the slug issue. Never treat an alias entry as a rejected slug or apply either fallback to it.
  
  Read `references/reviewer-prompt.md` and fill in the template with:
  1. The stated intent
+@@ -115,4 +113,4 @@ Present the verdict in this structure:
+ 
+ ## Reasoning effort
+ 
+-A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. `session` sets no effort, so the dispatch is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. On Claude Code, a level picks the effort agent from the `subagent_type` you would otherwise use. `pstack:poteto-agent` becomes `subagent_type: "pstack:poteto-agent-<level>"`. `general-purpose`, or no `subagent_type`, becomes `subagent_type: "pstack:effort-<level>"`. The effort agents set only `effort`, so the model you pass still decides the model. On Codex, pass the level as `spawn_agent`'s `reasoning_effort` and keep the usual instructions.
++A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. `session` sets no effort, so the dispatch is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. On Claude Code, a level picks the effort agent from the `subagent_type` you would otherwise use. `pstack:poteto-agent` becomes `subagent_type: "pstack:poteto-agent-<level>"`. `general-purpose`, or no `subagent_type`, becomes `subagent_type: "pstack:effort-<level>"`. The effort agents set only `effort`, so the model you pass still decides the model. On Codex, pass the level as `spawn_agent`'s `reasoning_effort` and keep the usual instructions.
 diff --git a/plugins/pstack/skills/no-comments/SKILL.md b/plugins/pstack/skills/no-comments/SKILL.md
-index bc94d6d..5eb3450 100644
+index 9880b1d..3ba82d8 100644
 --- a/plugins/pstack/skills/no-comments/SKILL.md
 +++ b/plugins/pstack/skills/no-comments/SKILL.md
-@@ -20,6 +20,6 @@ Use the caller's files or diff. Otherwise use the current diff against the base
+@@ -22,6 +22,6 @@ Use the caller's files or diff. Otherwise use the current diff against the base
  1. Spawn an `Agent` with `subagent_type: "pstack:comment-sicko"`. Pass the scope. Do not restate its rules.
  2. Inspect its report and diff. Reject application-code edits, scope escapes, exception-protected deletions, misstated `MUST KILL` reasons, and flags that treat kept intentional code as guilty. Reshape flags on our-code surprises stay actionable. Do not restore those comments. A keep survives only with proof it is about something we cannot change. Audit missed scoped lint and TypeScript suppressions. Correctness or safety suppressions stay actionable `MUST KILL`s. Restore deletions only with exact exceptions and scoped proof. Before accepting thin `IMPORTANT` or `do not remove` kills or keeps, run `/how` or `/why` on their symbol. If a kill is ambiguous, do not restore. If a keep is refuted or still ambiguous, delete it. Revert and rerun one rejected report with the failure named. Reject a second, report it open, and fail `/no-comments`.
  3. Fix trivial accepted flags directly by deleting a dead path, dropping a parameter, or using the real API. If any fix needs a shape, run `/architect` once for the accepted set and surrounding code. Stop at the sketch. Architect shapes. Step 4 implements.
@@ -276,8 +353,81 @@ index bc94d6d..5eb3450 100644
 +4. Implement the smallest root-cause fix in scope. Remove every named workaround. If the root cause is out of scope, land the smallest in-scope fix and report the rest open. The [verification guidance](../poteto-mode/references/engineering-verification.md) and [evolution guidance](../poteto-mode/references/engineering-evolution.md) guide intent only. Neither authorizes widening the fence nor fixing instances outside it. Never bolt on symptom guards.
 +5. For a comment asserting a constraint, verify its purpose and owner. If an authorized in-scope type, runtime check, test, or lint can enforce the same constraint, implement and verify that replacement before deleting the comment. If the replacement needs a new decision or exceeds scope, preserve the comment and report the open constraint. Prior authorization for that exact change remains valid.
  6. Report the deletion count, restored comments, reruns, architect sketch, fixes, encoding offers, encodings, unenforced constraints, and other open work.
+diff --git a/plugins/pstack/skills/poteto-help/SKILL.md b/plugins/pstack/skills/poteto-help/SKILL.md
+index c1ef785..5f934bb 100644
+--- a/plugins/pstack/skills/poteto-help/SKILL.md
++++ b/plugins/pstack/skills/poteto-help/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: poteto-help
+-description: Guides users through pstack setup, /poteto-mode, and picking the skill, playbook, or principle for a task. Type /poteto-help with a question.
++description: Guides users through pstack setup, /poteto-mode, and picking the skill or playbook for a task. Type /poteto-help with a question.
+ ---
+ 
+ # Poteto help
+@@ -66,7 +66,6 @@ The default answer is `/poteto-mode`, which runs most of the others when its ste
+ | Fix a bug test-first when a cheap local test exists | [`/tdd`](../tdd/SKILL.md) |
+ | Apply TypeScript rules to `.ts` or `.tsx` work | [`/typescript-best-practices`](../typescript-best-practices/SKILL.md) |
+ | Strip comments before review, using a reviewer that didn't write them | [`/no-comments`](../no-comments/SKILL.md) |
+-| Clean AI tells out of prose | [`/unslop`](../unslop/SKILL.md) |
+ | Write docs, an RFC, a README, a PR description, or a commit message to a standard | [`/technical-writing`](../technical-writing/SKILL.md) |
+ | Hear the last reply again in plain words | [`/bro`](../bro/SKILL.md) |
+ | Give agents a scripted way to drive the app and prove behavior | [`/create-verification-skill`](../create-verification-skill/SKILL.md) |
+@@ -80,7 +79,7 @@ The default answer is `/poteto-mode`, which runs most of the others when its ste
+ | Stop agents from repeating the same mistakes in this repo | [`/correct`](../correct/SKILL.md) |
+ | Find their way around pstack | `/poteto-help` |
+ 
+-If a skill directory next to this one is missing from the table, read its frontmatter and route by its description. The `principle-*` directories are covered under principles below.
++If a skill directory next to this one is missing from the table, read its frontmatter and route by its description.
+ 
+ Close calls:
+ 
+@@ -93,11 +92,11 @@ Close calls:
+ 
+ Not in pstack:
+ 
+-- The Cursor driver skills have no port. The driver policy in poteto-mode's Non-negotiables names the Claude Code equivalents, the `run` skill and a project `verify` skill.
++- The Cursor driver skills have no port. The driver rule in poteto-mode's [Task routing](../poteto-mode/SKILL.md#task-routing) names the Claude Code equivalents, the `run` skill and a project `verify` skill.
+ - `/loop` is a Claude Code bundled skill, and the **plugin-dev:skill-development** skill is Claude Code's skill-authoring guidance.
+ - pstack has no orchestrate skill. Orchestrate is a `/poteto-mode` playbook. If the slash menu shows an orchestrate command, another plugin provides it.
+ 
+-## Playbooks and principles
++## Playbooks and engineering guidance
+ 
+ Playbooks are step lists inside `/poteto-mode`, not skills, so they have no slash command. Inside `/poteto-mode`, describing the task picks one, and these phrases name one directly:
+ 
+@@ -112,7 +111,7 @@ Without `/poteto-mode`, a phrase such as "babysit this pr" can start pstack's st
+ 
+ pstack has no planning skill. Claude Code's plan mode works alongside it. For work that spans phases or stacked PRs, asking `/poteto-mode` for a plan runs the [Multi-phase plan playbook](../poteto-mode/playbooks/multi-phase-plan.md), which writes the plan and doesn't implement it. For a design question, the Prototype playbook or `/architect` settles it in code first.
+ 
+-Principles are one-rule skills that `/poteto-mode` reads and cites in its replies. The user rarely invokes one. They steer with the names instead, as in "apply prove it works. show me the real output." On Claude Code the `principle-*` leaves are hidden from the slash menu and `/poteto-mode` reads them by path; other runtimes may list them in their skill picker. The [Principles index](../poteto-mode/SKILL.md#principles) lists them.
++This port has no principle skills. `/poteto-mode` reads the conditional [engineering guidance](../poteto-mode/SKILL.md#conditional-engineering-guidance) documents under `poteto-mode/references/engineering-*.md` when a task needs them. The user steers by naming the rule, as in "prove it works. show me the real output."
+ 
+ ## Fix a run that went wrong
+ 
+@@ -125,7 +124,7 @@ Principles are one-rule skills that `/poteto-mode` reads and cites in its replie
+ | A skill didn't load on its own | Read its description and the current runtime's skill-loading instructions. Invoke it explicitly when needed; `/poteto-mode` doesn't run every skill. |
+ | Parallel agents overwrote each other | Give each agent its own worktree. |
+ | An overnight run moved but finished nothing | Read [Autonomous run](../poteto-mode/playbooks/autonomous-run.md) and the current runtime's wake mechanism. For a queue, read the selected Autopilot playbook above. Give the run a check that can pass or fail. |
+-| The reply claims success from a green build | Ask for the real command, flow, stored value, or profile. That's the prove-it-works principle. |
++| The reply claims success from a green build | Ask for the real command, flow, stored value, or profile. That's the prove-it-works rule in the [verification guidance](../poteto-mode/references/engineering-verification.md). |
+ 
+ For a run that drifts, [`references/prompting.md`](references/prompting.md) has one-line steers, and [`references/recipes.md`](references/recipes.md) has prompts to adapt.
+ 
+diff --git a/plugins/pstack/skills/poteto-help/references/prompting.md b/plugins/pstack/skills/poteto-help/references/prompting.md
+index 6b72b2e..5c37f61 100644
+--- a/plugins/pstack/skills/poteto-help/references/prompting.md
++++ b/plugins/pstack/skills/poteto-help/references/prompting.md
+@@ -47,5 +47,5 @@ A prompt states the intent and the check for done. The playbook supplies the ste
+ ## Steer in one line
+ 
+ - Restate the goal: "i said the goal is to repro. i did not ask for a fix yet."
+-- Name the principle: "apply prove it works. show me the real output, not the build log."
+-- A principle name works because the agent already read the rule. Its reply names the decision the rule changed.
++- Name the rule: "apply prove it works. show me the real output, not the build log."
++- A rule name works because the agent already read the engineering guidance. Its reply names the decision the rule changed.
 diff --git a/plugins/pstack/skills/poteto-mode/SKILL.md b/plugins/pstack/skills/poteto-mode/SKILL.md
-index 3cd6a92..f16b182 100644
+index cb8b35a..6b2fd86 100644
 --- a/plugins/pstack/skills/poteto-mode/SKILL.md
 +++ b/plugins/pstack/skills/poteto-mode/SKILL.md
 @@ -1,6 +1,7 @@
@@ -291,7 +441,7 @@ index 3cd6a92..f16b182 100644
  # Poteto mode
 @@ -11,81 +12,44 @@ These skills use Claude Code tool names (the `Skill` tool, the `Agent` tool, `As
  
- Use the session's task-tracking tools for the todolist. On Claude Code these are `TaskCreate` and `TaskUpdate`, or `TodoWrite` when configured. Availability depends on the model; `CLAUDE_CODE_ENABLE_TODO_TOOLS=1` enables them through the environment or a project's `.claude/settings.local.json` `env` block. See the [task-tool documentation](https://code.claude.com/docs/en/tools-reference#task-tool-availability). If no task-tracking tool is available, keep an uncommitted `todo.md` Markdown checklist in the work dir, next to the decision trail, with the playbook steps verbatim and each `skip: <reason>` line.
+ Use the session's task-tracking tools for the todolist. On Claude Code these are `TaskCreate` and `TaskUpdate`, or `TodoWrite` when configured. Availability depends on the model; `CLAUDE_CODE_ENABLE_TODO_TOOLS=1` enables them through the environment or a project's `.claude/settings.local.json` `env` block. See the [task-tool documentation](https://code.claude.com/docs/en/tools-reference#task-tool-availability). If no task-tracking tool is available, keep an uncommitted `todo.md` Markdown checklist in the work dir, next to the decision trail, with the playbook steps verbatim and each `skip: <reason>` line. When several sessions share the checkout, name it `.audit/<task-slug>.todo.md`, beside that session's `.audit/<task-slug>.tsv` trail, so they never write one file.
  
 -## Non-negotiables
 -
@@ -329,7 +479,7 @@ index 3cd6a92..f16b182 100644
 -- **Laziness Protocol** (**principle-laziness-protocol**). Refactoring, sizing a diff, or tempted to add abstractions, layers, or signal threading. Bias to deletion and the smallest change that solves the problem.
 -- **Foundational Thinking** (**principle-foundational-thinking**). Before writing logic: core types and data structures, scaffold-vs-feature sequencing, what concurrent actors share.
 -- **Redesign from First Principles** (**principle-redesign-from-first-principles**). Integrating a new requirement into an existing design. Redesign as if it had been foundational from day one.
--- **Attack the Premise** (**principle-attack-the-premise**). Repeated fixes share an assumption and fail. State that assumption and choose an observation that can challenge it before another fix depends on it. Count work per actor when the hypothesis concerns uneven assignment.
+-- **Attack the Premise** (**principle-attack-the-premise**). Two or more fixes that share one premise have failed the same gate. Take a census of which actors hold the imbalance before the next fix, then question the premise instead of writing another fix that assumes it.
 -- **Subtract Before You Add** (**principle-subtract-before-you-add**). Sequencing an addition, refactor, or rewrite. Remove dead weight first, then build on the simpler base.
 -- **Minimize Reader Load** (**principle-minimize-reader-load**). Reviewing or shaping code that's hard to trace. Count layers and hidden state, collapse one-caller wrappers, shrink mutable scope.
 -- **Outcome-Oriented Execution** (**principle-outcome-oriented-execution**). Planned rewrites and migrations with explicit phase boundaries. Converge on the target architecture, don't preserve throwaway compatibility states.
@@ -351,7 +501,7 @@ index 3cd6a92..f16b182 100644
 -- **Prove It Works** (**principle-prove-it-works**). After a task, before declaring done. Verify against the real artifact, not a proxy or "it compiles".
 -- **Fix Root Causes** (**principle-fix-root-causes**). Debugging. Trace each symptom to its root cause, reproduce first, ask why until you reach it.
 -- **Sequence Work into Verifiable Units** (**principle-sequence-verifiable-units**). Multi-step work (sweeps, migrations, runs of similar edits) and how you stack commits and PRs. Break work into small units that each end in a check, verify each before the next, and order delivery so the sequence proves itself.
--- **Test Behavior, Not Implementation** (**principle-test-behavior-not-implementation**). Writing, changing, or keeping a test. Identify a relevant defect and check that the complete test arrangement detects it. Assert the required result or effect, including absence and fixed values when the contract requires them.
+-- **Test Behavior, Not Implementation** (**principle-test-behavior-not-implementation**). Writing, changing, or keeping a test. Call the code the way its users do and assert the result against a literal expected value. If the test would still pass when every imported function returns `undefined`, rewrite the assertion or delete the test.
 -- **Explain the Number** (**principle-explain-the-number**). Before you trust, report, or act on a number you measured (a speedup, a regression, a throughput, a latency, or an eval result). Find what limits it, and rule out that it measured something other than the work you think.
 -
 -**Delegation**
@@ -405,7 +555,7 @@ index 3cd6a92..f16b182 100644
  
  **Session overrides:** "Don't stop" / "going to bed" / "run until done" / "be fully autonomous" → keep going.
  
-@@ -103,17 +67,13 @@ You own every subagent's work. Review the diff and write your own summary, don't
+@@ -105,17 +69,13 @@ You own every subagent's work. Review the diff and write your own summary, don't
  
  ## Writing the reply
  
@@ -430,7 +580,7 @@ index 3cd6a92..f16b182 100644
  
  ## Comments
  
-@@ -121,7 +81,7 @@ Comments follow the same rule as the reply. Write them clean as you go. Keep a c
+@@ -123,7 +83,7 @@ Comments follow the same rule as the reply. Write them clean as you go. Keep a c
  
  ## Playbooks
  
@@ -439,6 +589,12 @@ index 3cd6a92..f16b182 100644
  
  A large or cross-cutting effort (a migration across many call sites, an ambitious multi-part change), or work the user steps away from to trust later, routes to the **figure-it-out** skill even when a narrower playbook like Feature fits. Use **figure-it-out** whenever no bundled playbook fits. It designs a bespoke, rigorous playbook for the task. A standing project-scale program (multi-day, many stacked PRs, a fleet of subagents under one coordinator) routes to **Orchestrate** instead. figure-it-out designs one bespoke run, orchestrate runs the program.
  
+@@ -166,4 +126,4 @@ Role defaults, stamped from `plugins/pstack/models.json` (edit there, rerun `too
+ 
+ ## Reasoning effort
+ 
+-A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. `session` sets no effort, so the dispatch is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. On Claude Code, a level picks the effort agent from the `subagent_type` you would otherwise use. `pstack:poteto-agent` becomes `subagent_type: "pstack:poteto-agent-<level>"`. `general-purpose`, or no `subagent_type`, becomes `subagent_type: "pstack:effort-<level>"`. The effort agents set only `effort`, so the model you pass still decides the model. On Codex, pass the level as `spawn_agent`'s `reasoning_effort` and keep the usual instructions.
++A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. `session` sets no effort, so the dispatch is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. On Claude Code, a level picks the effort agent from the `subagent_type` you would otherwise use. `pstack:poteto-agent` becomes `subagent_type: "pstack:poteto-agent-<level>"`. `general-purpose`, or no `subagent_type`, becomes `subagent_type: "pstack:effort-<level>"`. The effort agents set only `effort`, so the model you pass still decides the model. On Codex, pass the level as `spawn_agent`'s `reasoning_effort` and keep the usual instructions.
 diff --git a/plugins/pstack/skills/poteto-mode/playbooks/authoring-a-skill.md b/plugins/pstack/skills/poteto-mode/playbooks/authoring-a-skill.md
 index f4ea028..075480b 100644
 --- a/plugins/pstack/skills/poteto-mode/playbooks/authoring-a-skill.md
@@ -465,7 +621,7 @@ index 3bd1fef..394017d 100644
  5. Checkpoint every iteration via the **show-me-your-work** skill, a row for what changed and whether the predicate moved.
  6. Stop when the predicate is met. A plateau is not a stop, so keep going and pivot your approach to push past it. Surface a genuine dead end rather than spinning, and never relax the predicate to declare victory.
 diff --git a/plugins/pstack/skills/poteto-mode/playbooks/autopilot-full.md b/plugins/pstack/skills/poteto-mode/playbooks/autopilot-full.md
-index 4c581d6..8587f1a 100644
+index 7ea1315..c31c035 100644
 --- a/plugins/pstack/skills/poteto-mode/playbooks/autopilot-full.md
 +++ b/plugins/pstack/skills/poteto-mode/playbooks/autopilot-full.md
 @@ -1,11 +1,11 @@
@@ -476,11 +632,11 @@ index 4c581d6..8587f1a 100644
  
  **You own the verdicts, never the PRs. One owner runs each PR from build to merge-ready, and nothing merges without both your clean swarm verdict and the operator's explicit merge click.** For "autopilot this queue", "full autopilot", and one-owner-per-PR programs. Orchestrate runs a standing program whose coordinator lands verified work itself and whose workers never merge. Here each PR's owner carries the whole lifecycle up to merge-ready, the operator clicks the merge, and the root keeps only verification, countersigns, and audits.
  
- 1. **Mark the operator's items and honor state-then-wait.** Items the operator names stay with the operator. The operator reviews and clicks, and no owner merges one. When the operator asks for the protocol or the plan to be stated, deliver the statement and stop. Execution starts only on the operator's explicit go. On that go, write the full program objective into the standing orders and restate it in your todolist. That objective stands across turns until the queue is done.
+ 1. **Mark the operator's items and honor state-then-wait.** Items the operator names stay with the operator. The operator reviews and clicks, and no owner merges one. When the operator asks for the protocol or the plan to be stated, deliver the statement and stop. Execution starts only on the operator's explicit go. On that go, write the full program objective into the standing orders and restate it in your todolist. That objective stands across turns until the queue is done. Before the first owner starts, tell the operator the size of the program, meaning the number of owners, the verifier lanes in the first round, and the ceiling of two fix-forwards per PR from step 4. A program of more than three owners waits for the operator's go on that size, unless the operator's request already named it.
 -2. **Spawn one owner per PR with the full lifecycle and an early trail.** Resolve the forge once for the program. GitHub CLI (`gh`) is the default. If `command -v origin` succeeds and Origin can resolve the repository, use `origin pr ...` for PR create, edit, view, watch, and merge operations. Otherwise stay on `gh` and record the fallback. Never require Graphite (`gt`). One background subagent per PR, in its own worktree, owns build, the first push, a ready PR, self-proof on the real artifact (the **prove-it-works** principle skill), skeptical review-bot triage per `../references/bugbot-triage.md`, a slop-strip (the **deslop** skill, `/deslop`), `/no-comments` (the **no-comments** skill), a rebase onto current trunk, and the babysit loop to green (`playbooks/babysit.md`). Within about 15 minutes, every owner starts a `decisions.tsv` trail per the **show-me-your-work** skill, pushes its first branch snapshot, and opens the PR ready, never draft. After that, the owner pushes its branch again after every verifiable unit (hooks on, a WIP commit is fine). Open the PR before self-proof so the URL, decisions, and checks form a durable trail. Keep `decisions.tsv` uncommitted and return it with the reports. As soon as a subagent starts, the owner adds its ID, expected runtime (at least the longest past run of that kind), and state to a `children.tsv` kept the same way. The owner does the first rebase before the code-ready report and babysit, whether or not trunk has drifted. In fix rounds, the owner keeps that merge base. The owner rebases again only at merge prep (step 5), on a `git merge-tree` conflict with trunk, or on a CI failure that comes from a change on trunk. When the shipped code is final, after the slop-strip and `/no-comments`, it reports the code-ready head SHA. It also reports the SHA of each later push that changes the patch. Self-proof, CI, and babysit then run in parallel with the swarm. The owner reports merge-ready with the head SHA when self-proof, CI, and babysit finish. Before a push that starts a round, run the pre-review checks that the repo's CLAUDE.md files and rules name for the touched paths. Run them on the committed head. A hook pass is not proof. To publish each rebase, push the owner's own branch with `git push --force-with-lease` after an `ls-remote` check. Never force-push a shared branch. The owner drives to merge-ready and stops there. No owner runs the merge. Step 4 gates the verdict and step 5 hands the merge to the operator.
 +2. **Spawn one owner per PR with the full lifecycle and an early trail.** Resolve the forge once for the program. GitHub CLI (`gh`) is the default. If `command -v origin` succeeds and Origin can resolve the repository, use `origin pr ...` for PR create, edit, view, watch, and merge operations. Otherwise stay on `gh` and record the fallback. Never require Graphite (`gt`). One background subagent per PR, in its own worktree, owns build, the first push, a ready PR, self-proof on the real artifact ([verification guidance](../references/engineering-verification.md)), skeptical review-bot triage per `../references/bugbot-triage.md`, a slop-strip (the **deslop** skill, `/deslop`), `/no-comments` (the **no-comments** skill), a rebase onto current trunk, and the babysit loop to green (`playbooks/babysit.md`). Within about 15 minutes, every owner starts a `decisions.tsv` trail per the **show-me-your-work** skill, pushes its first branch snapshot, and opens the PR ready, never draft. After that, the owner pushes its branch again after every verifiable unit (hooks on, a WIP commit is fine). Open the PR before self-proof so the URL, decisions, and checks form a durable trail. Keep `decisions.tsv` uncommitted and return it with the reports. As soon as a subagent starts, the owner adds its ID, expected runtime (at least the longest past run of that kind), and state to a `children.tsv` kept the same way. The owner does the first rebase before the code-ready report and babysit, whether or not trunk has drifted. In fix rounds, the owner keeps that merge base. The owner rebases again only at merge prep (step 5), on a `git merge-tree` conflict with trunk, or on a CI failure that comes from a change on trunk. When the shipped code is final, after the slop-strip and `/no-comments`, it reports the code-ready head SHA. It also reports the SHA of each later push that changes the patch. Self-proof, CI, and babysit then run in parallel with the swarm. The owner reports merge-ready with the head SHA when self-proof, CI, and babysit finish. Before a push that starts a round, run the pre-review checks that the repo's CLAUDE.md files and rules name for the touched paths. Run them on the committed head. A hook pass is not proof. To publish each rebase, push the owner's own branch with `git push --force-with-lease` after an `ls-remote` check. Never force-push a shared branch. The owner drives to merge-ready and stops there. No owner runs the merge. Step 4 gates the verdict and step 5 hands the merge to the operator.
  3. **Run owners in true parallel and never stack.** Many owners at once when PRs are self-contained: one writer per branch, disjoint files, cross-PR drift absorbed by rebase. Only genuinely overlapping work serializes. Self-contained PRs branch straight off main, and sequenced work is merge-then-branch. One exception: an owner that must split a genuinely dependent change may hold a short private base-branch stack.
- 4. **Swarm-verify every round before its merge.** A round starts at the owner's code-ready head SHA and at each later push that changes the PR's patch. At that SHA, fan out parallel independent verifiers per the **swarm** skill and aggregate to one verdict. The merge needs a clean verdict from the round whose patch matches the merge-ready head. Audit the receipts in the merge-ready report before the verdict. The lanes: re-run the gates at that SHA. Prove the load-bearing behavior live on the real surface the change touches through the driver skill. Audit the diff, distrusting the PR body. Run the audit as two or more review lanes with the full brief. Give each lane one main focus, such as consumer parity with trunk, lifetimes and races, or data and config safety. **Regression lane against trunk.** Run the same load-bearing scenario on current trunk. If trunk does not have the feature, record that fact and gate the behavior the diff adds plus the end state the user waits for instead of pretending trunk can produce it. The live lane is the floor, and a verdict without it is not clean. No merge without the root's clean verdict. When the lanes return, send every proven finding against the PR to the owner in one fix-forward. A defect that a lane filed as a note is a finding. For each behavior finding, ask for a red test that covers every site with the same defect. Where no test can show the defect, ask for a repro receipt instead. Add that defect to the next round's review brief. The new head gets a fresh swarm and a fresh verdict, except for lane results that stay valid under the patch-id rule in `playbooks/shipping.md`.
+ 4. **Swarm-verify every round before its merge.** A round starts at the owner's code-ready head SHA and at each later push that changes the PR's patch. At that SHA, fan out parallel independent verifiers per the **swarm** skill and aggregate to one verdict. The merge needs a clean verdict from the round whose patch matches the merge-ready head. Audit the receipts in the merge-ready report before the verdict. The lanes: re-run the gates at that SHA. Prove the load-bearing behavior live on the real surface the change touches through the driver skill. Audit the diff, distrusting the PR body. Run the audit as two or more review lanes with the full brief. Give each lane one main focus, such as consumer parity with trunk, lifetimes and races, or data and config safety. **Regression lane against trunk.** Run the same load-bearing scenario on current trunk. If trunk does not have the feature, record that fact and gate the behavior the diff adds plus the end state the user waits for instead of pretending trunk can produce it. The live lane is the floor, and a verdict without it is not clean. No merge without the root's clean verdict. When the lanes return, sort every proven finding before anything goes to the owner. A defect that a lane filed as a note is a finding. A finding blocks the merge only when the diff causes it, which means the PR leaves a behavior worse than trunk has it, or the fix the PR claims does not work. Send the blocking findings to the owner in one fix-forward. A defect that trunk already has is not this PR's to fix. File it as an issue, or list it in the PR body as a declared gap, and do not hold the merge for it. For each blocking behavior finding, ask for a red test that covers every site with the same defect. Where no test can show the defect, ask for a repro receipt instead. Add that defect to the next round's review brief. **Bound the rounds.** Only the first round runs the full swarm. A later round verifies the fix-forward and nothing else. Re-run the gates, re-run on the new head and on trunk the probe that showed each blocking finding, and run one review lane scoped to the fix-forward diff. Lane results from the first round stay valid under the patch-id rule in `playbooks/shipping.md`. No round starts because a verifier could find more. Brief every review lane to report what the diff breaks, not everything wrong in the files it touches, and ask for no mutation or fuzz campaign unless the operator asked for one. Two fix-forwards per PR is the ceiling. When a blocking finding survives the second, stop work on that PR, report it blocked with the finding and its evidence, and let the operator choose another round, a narrower PR, or closing it.
  5. **On a clean verdict the owner hands off, and a fresh owner takes the next item.** The merge-ready head must be freshly rebased onto trunk. Merge prep never comes before a round's lanes start, and it ends with a rebase onto current trunk right before the hand-off. After the merge-prep rebase, the owner reports the new head SHA. CI must pass on that head before the hand-off, and the patch-id rule decides whether the round's verdict still holds. If trunk moves again before the operator merges, the patch-id rule in `playbooks/shipping.md` governs re-verification. A new head invalidates readiness. An unchanged patch-id may preserve substantive review only after checking its applicability to the new base and context. Rerun checks and mergeability. The owner presents the verified merge-ready PR to the operator, with its swarm verdict and pinned SHA, then returns. A fresh owner picks up the next self-contained item from the queue, per poteto-mode's Subagents section. The operator reviews and squash-merges. No owner runs the merge itself. Every item waits for the operator's click, the gate operator-named items always had. The root's clean verdict is a precondition for that click, never a substitute for it.
 diff --git a/plugins/pstack/skills/poteto-mode/playbooks/bug-fix.md b/plugins/pstack/skills/poteto-mode/playbooks/bug-fix.md
 index a243286..43a6025 100644
@@ -502,7 +658,7 @@ index a243286..43a6025 100644
  
  **Reply:** what was broken, root cause, fix, how you verified. Quote the decisive failing and passing output, trimmed to the assertion and the counts.
 diff --git a/plugins/pstack/skills/poteto-mode/playbooks/feature.md b/plugins/pstack/skills/poteto-mode/playbooks/feature.md
-index dcb0ef4..e1579c5 100644
+index f2d0cd4..663e799 100644
 --- a/plugins/pstack/skills/poteto-mode/playbooks/feature.md
 +++ b/plugins/pstack/skills/poteto-mode/playbooks/feature.md
 @@ -7,12 +7,12 @@
@@ -512,8 +668,8 @@ index dcb0ef4..e1579c5 100644
 -   - **Shared mutable state.** Default to splitting the target (the **separate-before-serializing-shared-state** principle skill). Serialize only for real invariants.
 +   - **Shared mutable state.** Default to splitting the target ([coordination guidance](../references/engineering-coordination.md)). Serialize only for real invariants.
     - **Smallest safe decomposition.** If one worker is best, name why.
--4. Delegate code-writing to a subagent using your configured feature model (default in poteto-mode's Models section) with a specific scope (file paths, named data shape and its organizing structure per **principle-model-the-domain**, a state machine over scattered booleans, a table/registry over branching, a typed model over repeated shape assumptions, chosen before the delegate writes logic, and success criteria). When the implementation admits multiple valid shapes (error handling, abstraction layer, test structure), delegate via the **arena** skill instead so the runners surface the alternatives and the cross-judge guards the pick. Mandatory: no skip-with-reason escape, and Laziness Protocol does not override it (the gain is review separation, not lines saved). A subagent forbidden to spawn satisfies this by owning the diff directly with the same review separation. No "standing by" reply that waits on a nested agent. **Give every file-writing delegate its own worktree** (spawn it with `isolation: "worktree"`, or hand it an exclusive branch), and do not write files or run a suite in a worktree a delegate still holds. Fencing a file in the brief's prose is not a lock (**principle-separate-before-serializing-shared-state**). Comments per **Comments**. Surgical edits, re-ground against the source for upstream-derived files. Port shared-primitive improvements to all consumers and verify each. Commit liberally.
-+4. Delegate code-writing to a subagent using your configured feature model (default in poteto-mode's Models section) with a specific scope (file paths, named data shape and its organizing structure per [design guidance](../references/engineering-design.md), a state machine over scattered booleans, a table/registry over branching, a typed model over repeated shape assumptions, chosen before the delegate writes logic, and success criteria). When the implementation admits multiple valid shapes (error handling, abstraction layer, test structure), delegate via the **arena** skill instead so the runners surface the alternatives and the cross-judge guards the pick. Mandatory: no skip-with-reason escape, and the smallest-change rule in [evolution guidance](../references/engineering-evolution.md) does not override it (the gain is review separation, not lines saved). A subagent forbidden to spawn satisfies this by owning the diff directly with the same review separation. No "standing by" reply that waits on a nested agent. **Give every file-writing delegate its own worktree** (spawn it with `isolation: "worktree"`, or hand it an exclusive branch), and do not write files or run a suite in a worktree a delegate still holds. Fencing a file in the brief's prose is not a lock ([coordination guidance](../references/engineering-coordination.md)). Comments per **Comments**. Surgical edits, re-ground against the source for upstream-derived files. Port shared-primitive improvements to all consumers and verify each. Commit liberally.
+-4. Delegate code-writing to a subagent using your configured feature model (default in poteto-mode's Models section) with a specific scope (file paths, named data shape and its organizing structure per **principle-model-the-domain**, a state machine over scattered booleans, a table/registry over branching, a typed model over repeated shape assumptions, chosen before the delegate writes logic, and success criteria). When the implementation admits multiple valid shapes (error handling, abstraction layer, test structure), delegate via the **arena** skill instead so the runners surface the alternatives and the cross-judge guards the pick. Mandatory: no skip-with-reason escape, and Laziness Protocol does not override it (the gain is review separation, not lines saved). A subagent forbidden to spawn satisfies this by owning the diff directly with the same review separation. No "standing by" reply that waits on a nested agent. **Give every file-writing delegate its own worktree** (spawn it with `isolation: "worktree"`, or hand it an exclusive branch), and do not write files or run a suite in a worktree a delegate still holds. On Claude Code, `isolation: "worktree"` branches from the remote default branch unless the `worktree.baseRef` setting is `"head"`. When the delegate builds on commits the default branch lacks, commit them, create its worktree with `git worktree add <path> -b <delegate-branch> HEAD`, and name that base commit in the brief. Fencing a file in the brief's prose is not a lock (**principle-separate-before-serializing-shared-state**). Comments per **Comments**. Surgical edits, re-ground against the source for upstream-derived files. Port shared-primitive improvements to all consumers and verify each. Commit liberally.
++4. Delegate code-writing to a subagent using your configured feature model (default in poteto-mode's Models section) with a specific scope (file paths, named data shape and its organizing structure per [design guidance](../references/engineering-design.md), a state machine over scattered booleans, a table/registry over branching, a typed model over repeated shape assumptions, chosen before the delegate writes logic, and success criteria). When the implementation admits multiple valid shapes (error handling, abstraction layer, test structure), delegate via the **arena** skill instead so the runners surface the alternatives and the cross-judge guards the pick. Mandatory: no skip-with-reason escape, and the smallest-change rule in [evolution guidance](../references/engineering-evolution.md) does not override it (the gain is review separation, not lines saved). A subagent forbidden to spawn satisfies this by owning the diff directly with the same review separation. No "standing by" reply that waits on a nested agent. **Give every file-writing delegate its own worktree** (spawn it with `isolation: "worktree"`, or hand it an exclusive branch), and do not write files or run a suite in a worktree a delegate still holds. On Claude Code, `isolation: "worktree"` branches from the remote default branch unless the `worktree.baseRef` setting is `"head"`. When the delegate builds on commits the default branch lacks, commit them, create its worktree with `git worktree add <path> -b <delegate-branch> HEAD`, and name that base commit in the brief. Fencing a file in the brief's prose is not a lock ([coordination guidance](../references/engineering-coordination.md)). Comments per **Comments**. Surgical edits, re-ground against the source for upstream-derived files. Port shared-primitive improvements to all consumers and verify each. Commit liberally.
  5. Verify on the matching surface. "Inconclusive" or wrong-surface is not a pass. Flag it.
  6. Rebase into small, ordered commits. Stack follow-ups.
 -   Use the **sequence-verifiable-units** principle skill, building, verifying, and committing each small unit before the next.
@@ -733,7 +889,7 @@ index 9ac2af7..d551e13 100644
  
  **Reply:** where the prior agent stopped, what you inherited vs redid (ideally nothing redone), the resume point, and the outcome.
 diff --git a/plugins/pstack/skills/poteto-mode/playbooks/shipping.md b/plugins/pstack/skills/poteto-mode/playbooks/shipping.md
-index 3c73735..69d65a1 100644
+index 1784011..acbd1a4 100644
 --- a/plugins/pstack/skills/poteto-mode/playbooks/shipping.md
 +++ b/plugins/pstack/skills/poteto-mode/playbooks/shipping.md
 @@ -1,6 +1,6 @@
@@ -771,7 +927,7 @@ index 0d356e4..1ea9a21 100644
  5. Run **Opening a PR** per component or per safe batch.
  
 diff --git a/plugins/pstack/skills/poteto-mode/playbooks/worktree-cleanup.md b/plugins/pstack/skills/poteto-mode/playbooks/worktree-cleanup.md
-index 09745bf..5956f7e 100644
+index 89431dd..c45b9a7 100644
 --- a/plugins/pstack/skills/poteto-mode/playbooks/worktree-cleanup.md
 +++ b/plugins/pstack/skills/poteto-mode/playbooks/worktree-cleanup.md
 @@ -2,9 +2,9 @@
@@ -784,14 +940,28 @@ index 09745bf..5956f7e 100644
 +1. Snapshot and audit. Record `df -h /`, then run `skills/poteto-mode/scripts/worktree-audit.mjs` under the installed plugin ([verification guidance](../references/engineering-verification.md)). It reads paths from `git worktree list`, never hand-typed, since a hand-typed `myrepo-worktrees/x` misses one that lives at `.worktrees/myrepo/x` ([verification guidance](../references/engineering-verification.md)). It classifies each worktree by size, age, merge state, uncommitted work, PR state, and the newest chat that touched it, then suggests a bucket. The transcript scan is slow, so background it.
 +2. The bucket is advice, not permission. The pinned and active chats are the real artifact ([verification guidance](../references/engineering-verification.md)). Get that set from the user or your own session list and cross-check every candidate. The lever has marked `safe` a worktree the user had pinned, so the pinned set wins.
 +3. Verify usage before deleting. For every `verify-recent-chat` row, or anything you doubt, fan subagents out to read the transcripts and report whether the chat is pinned or ongoing and which worktrees it touches ([coordination guidance](../references/engineering-coordination.md), transcripts are bulk). A pinned chat spawns arena and repro trees into sibling worktrees via background subagents, and those are in use even when their names never hit the session list.
- 4. Pause on irreversible loss. `wip:N` is N tracked uncommitted edits. Show the diff and get a decision first, since removing a clean worktree is recoverable from its branch but uncommitted work is gone. `scratch:N` is untracked throwaway, safe to drop, but name the files. Per Autonomy, clean and merged and not-in-use proceeds. `wip` and in-use pause.
- 5. Prune the confirmed set. Per path, `git worktree remove --force <path>`. If the dir survives on ignored build artifacts, `rm -rf` it, then `git worktree prune`. Branch refs survive, so no commits are lost. Confirm with `df -h /` and re-list.
+ 4. Pause on irreversible loss. `wip:N` is N tracked paths with uncommitted changes and `untracked:N` is N files git has never seen. A worktree with both prints both, as in `wip:1,untracked:5`. A clean worktree is recoverable from its branch. Either kind of uncommitted work is gone once the directory goes, so list it with the call the audit counted from, `git -C <path> status --porcelain --untracked-files=all --ignore-submodules=none`, show the diff from `git -C <path> diff HEAD --ignore-submodules=none --submodule=log`, and get a decision first. Each status line is work at stake, and an empty diff never means there is none. A diff leaves out every untracked file, and a plain `git diff` can leave out a submodule. A `wip` line that names a submodule stands for files changed or added inside it, or for commits made there. Run the same status call inside the submodule to list those files. `hold-locked` means another tool or agent locked the tree, with its reason in the LOCKED column. `git worktree remove` refuses a locked tree, so do not `rm -rf` around it. Per Autonomy, clean and merged and not-in-use proceeds. `wip`, `untracked`, locked, and in-use pause.
+ 5. Prune the confirmed set. Per path, `git worktree remove --force <path>`. If the dir survives on ignored build artifacts, `rm -rf` it, then `git worktree prune`. Branch refs survive, so commits on the worktree's branch are kept. Commits made inside a submodule are stored with the worktree and go with it. Confirm with `df -h /` and re-list.
  6. Simulators and other reclaimers. Simulators are usually the next-biggest win. `xcrun simctl --set testing delete all` (XCTestDevices clones), `xcrun simctl delete unavailable`, and `xcrun simctl runtime list` then `runtime delete <id>` for old runtimes. More when needed: Xcode `DerivedData` and `iOS DeviceSupport`, your editor's application-support caches, `~/.claude/shell-snapshots/` and old `~/.claude/projects/` transcripts (keep the recent ones the **recall** skill and Session pickup read), package caches (pnpm, uv, brew, yarn). Clear only caches the user has not said to keep.
 diff --git a/plugins/pstack/skills/poteto-mode/references/codex-tools.md b/plugins/pstack/skills/poteto-mode/references/codex-tools.md
-index 96d1778..494d2c9 100644
+index e867652..86bd8d4 100644
 --- a/plugins/pstack/skills/poteto-mode/references/codex-tools.md
 +++ b/plugins/pstack/skills/poteto-mode/references/codex-tools.md
-@@ -58,7 +58,7 @@ A skills-only installation does not include plugin hooks. Request `poteto-mode`
+@@ -46,9 +46,10 @@ poteto-mode's Subagents section sets Claude-specific defaults (`subagent_type: "
+ 
+ Skills name Claude defaults (a single-role default for code/prose/judgment plus a diverse-model panel for diverse-model panels; each model-consuming skill lists its own in a Models section). These slugs do not resolve on Codex. Substitute your configured Codex models:
+ 
+-- Single-model roles: your primary Codex model (for example `gpt-6-sol`).
+-- Roles that default to the strongest Claude model (`bug-fix`, `perf-issue`, `hillclimb`, `strongest judgment`): your strongest Codex model (for example `gpt-6-astra`).
+-- Diverse-model panels (`arena`, `architect`, `interrogate`, `how` critics, `reflect`): the adversarial signal comes from model diversity, so use the distinct Codex models available to you. A good default panel on ChatGPT is `gpt-6-astra`, `gpt-6-sol`, `gpt-6-luna`. If only one model family is reachable, vary reasoning effort and note in the verdict that diversity was reduced.
++- Single-model execution roles: `gpt-6.1-sol` at `xhigh` reasoning.
++- Roles that default to the strongest Claude model (`bug-fix`, `perf-issue`, `hillclimb`, `strongest judgment`): `gpt-6.1-sol` at `xhigh` reasoning.
++- Execution and review panels (`arena`, `interrogate`, `how` critics, `reflect`): use `gpt-6.1-sol` at `xhigh` reasoning. Note reduced model diversity when every participant uses the same model; independent contexts do not provide cross-model independence.
++- Planning (`architect`) and read-only advice: select the host's dedicated planning/advisor route and its effort, rather than an execution alias. Never use that route for implementation or code review.
+ 
+ `/setup-pstack` writes the configured model list. On Codex, set it to your Codex model slugs.
+ 
+@@ -60,7 +61,7 @@ A skills-only installation does not include plugin hooks. Request `poteto-mode`
  
  ## Driver and bundled skills pstack references
  
@@ -800,6 +970,28 @@ index 96d1778..494d2c9 100644
  
  | Skill or driver named in pstack | On Codex |
  |---------------------------------|----------|
+diff --git a/plugins/pstack/skills/poteto-mode/references/copilot-tools.md b/plugins/pstack/skills/poteto-mode/references/copilot-tools.md
+index 06edb3d..c4ec5d8 100644
+--- a/plugins/pstack/skills/poteto-mode/references/copilot-tools.md
++++ b/plugins/pstack/skills/poteto-mode/references/copilot-tools.md
+@@ -50,7 +50,7 @@ Skills name Claude Code model aliases in their Models sections. Those aliases ar
+ 
+ `setup-pstack` lists the models from the `model` enum of the `task` tool and writes only IDs it saw there. After it writes the sheet, it runs its `check-sheet.sh` script, which applies the hook's checks.
+ 
+-Run `setup-pstack`, and the parent session that orchestrates a panel, on a model at least as strong as gpt-5.4-mini or a Sonnet-class Claude model. On a Haiku-class model, setup picked models the user never chose in about half of the smoke runs.
++Run `setup-pstack`, and the parent session that orchestrates a panel, on a model at least as strong as gpt-5.4-mini or an Opus-class Claude model. On a weaker model, setup picked models the user never chose in about half of the smoke runs.
+ 
+ ## Session routing hook
+ 
+@@ -94,7 +94,7 @@ In poteto-mode's playbooks, `eval` reads candidate transcripts from Copilot sess
+ 
+ ## Driver and bundled skills pstack references
+ 
+-The [driver policy](../SKILL.md#non-negotiables) selects the app driver. For skills and drivers named by these workflows, use these Copilot equivalents:
++The [driver policy](../SKILL.md#task-routing) selects the app driver. For skills and drivers named by these workflows, use these Copilot equivalents:
+ 
+ | Skill or driver named in pstack | On GitHub Copilot |
+ |---------------------------------|-------------------|
 diff --git a/plugins/pstack/skills/poteto-mode/references/engineering-coordination.md b/plugins/pstack/skills/poteto-mode/references/engineering-coordination.md
 new file mode 100644
 index 0000000..303cce2
@@ -965,20 +1157,22 @@ index 0000000..1df7b26
 +prevents it reliably. Demonstrate the gate catches the actual violation before
 +adding it. Otherwise retain a short conditional explanation at the owning code.
 diff --git a/plugins/pstack/skills/poteto-mode/references/pi-tools.md b/plugins/pstack/skills/poteto-mode/references/pi-tools.md
-index c969468..9039d59 100644
+index 45dd758..113cbc7 100644
 --- a/plugins/pstack/skills/poteto-mode/references/pi-tools.md
 +++ b/plugins/pstack/skills/poteto-mode/references/pi-tools.md
-@@ -53,12 +53,10 @@ Skills name models by the Claude aliases in their Models sections. On Pi, pass t
+@@ -52,13 +52,11 @@ Skills name models by the Claude aliases in their Models sections. On Pi, pass t
+ | Alias | `anthropic` | `openai` | `openai-codex` |
  | --- | --- | --- | --- |
  | `opus` | `anthropic/claude-opus-5-5` | `openai/gpt-6.1-sol` | `openai-codex/gpt-6.1-sol` |
- | `fable` | `anthropic/claude-fable-5-1` | `openai/gpt-6-astra` | `openai-codex/gpt-6-astra` |
+-| `fable` | `anthropic/claude-fable-5-1` | `openai/gpt-6-astra` | `openai-codex/gpt-6-astra` |
 -| `sonnet` | `anthropic/claude-sonnet-5-5` | `openai/gpt-6-sol` | `openai-codex/gpt-6-sol` |
--| `haiku` | `anthropic/claude-haiku-4-5` | `openai/gpt-6-luna` | `openai-codex/gpt-6-luna` |
+-| `haiku` | `anthropic/claude-haiku-5-5` | `openai/gpt-6-luna` | `openai-codex/gpt-6-luna` |
++| `fable` | `anthropic/claude-fable-5-1` | `openai/gpt-6.1-sol` | `openai-codex/gpt-6.1-sol` |
  
  Pi warns that Anthropic bills Claude used through Pi per token, as extra usage, even on a Claude subscription. Pi shows that warning only in interactive mode, never for the `pi --mode rpc` children the `agent` tool runs.
  
--A `pi models: opus=<provider/id>, sonnet=<provider/id>` line in the Pi override sheet points each alias it names at another Pi model, whatever the session's provider. The `agent` tool also takes a full `provider/id`, passed through unchanged, and `inherit-parent`, `auto`, or no `model` runs the child on the parent's current model. Diverse-model panels (`arena`, `architect`, `interrogate`, `how` critics, `reflect`) stay diverse only while their aliases resolve to distinct models. If one model family is all you can reach, vary the reasoning effort and note in the verdict that diversity was reduced.
-+A `pi models: opus=<provider/id>, fable=<provider/id>` line in the Pi override sheet points each alias it names at another Pi model, whatever the session's provider. The `agent` tool also takes a full `provider/id`, passed through unchanged, and `inherit-parent`, `auto`, or no `model` runs the child on the parent's current model. Diverse-model panels (`arena`, `architect`, `interrogate`, `how` critics, `reflect`) stay diverse only while their aliases resolve to distinct models. If one model family is all you can reach, vary the reasoning effort and note in the verdict that diversity was reduced.
+-A `pi models: opus=<provider/id>, sonnet=<provider/id>` line in the Pi override sheet points each alias it names at another Pi model, whatever the session's provider. Add one when the session's provider has no column above and Pi has no credentials for `anthropic`, because each alias then resolves to an `anthropic/*` ID and the `agent` call fails with `No API key found for anthropic`. The `agent` tool also takes a full `provider/id`, passed through unchanged, and `inherit-parent`, `auto`, or no `model` runs the child on the parent's current model. Diverse-model panels (`arena`, `architect`, `interrogate`, `how` critics, `reflect`) stay diverse only while their aliases resolve to distinct models. If one model family is all you can reach, vary the reasoning effort and note in the verdict that diversity was reduced.
++A `pi models: opus=<provider/id>, fable=<provider/id>` line in the Pi override sheet points each alias it names at another Pi model, whatever the session's provider. Add one when the session's provider has no column above and Pi has no credentials for `anthropic`, because each alias then resolves to an `anthropic/*` ID and the `agent` call fails with `No API key found for anthropic`. The `agent` tool also takes a full `provider/id`, passed through unchanged, and `inherit-parent`, `auto`, or no `model` runs the child on the parent's current model. Planning (`architect`) and read-only advice override the execution aliases: pass the full `provider/id` configured for the host's dedicated planning/advisor route and select `subagent_type: pstack:effort-<level>` for that route's effort. Keep advisory agents read-only; planners may write explicitly requested design or plan artifacts. Never use the planning route for product implementation or code review. Execution and review panels (`arena`, `interrogate`, `how` critics, `reflect`) use `xhigh` reasoning. When their aliases resolve to the same model, report reduced model diversity without changing the configured effort.
  
  `/setup-pstack` writes the configured model list. On Pi, keep the aliases and remap them with `pi models:`.
  
@@ -993,27 +1187,34 @@ index c969468..9039d59 100644
  |---------------------------------|-------|
 diff --git a/plugins/pstack/skills/principle-attack-the-premise/SKILL.md b/plugins/pstack/skills/principle-attack-the-premise/SKILL.md
 deleted file mode 100644
-index adb2776..0000000
+index 78ca084..0000000
 --- a/plugins/pstack/skills/principle-attack-the-premise/SKILL.md
 +++ /dev/null
-@@ -1,17 +0,0 @@
+@@ -1,24 +0,0 @@
 ----
 -name: principle-attack-the-premise
--description: "Apply when repeated fixes sharing an assumption fail. State the assumption and choose an observation that can challenge it before trying another fix that depends on it."
+-description: "Apply when two or more fixes that share one premise have failed the same gate. Take a census of which actors hold the imbalance before the next fix, then question the premise instead of writing another fix that assumes it."
 -user-invocable: false
 ----
 -
--# Attack the premise
+-# Attack the Premise
 -
--When two or more fixes sharing an assumption fail the same gate, write down what they assumed. Before another fix depends on it, choose an observation or experiment that can challenge it.
+-When two or more fixes that share one premise have failed the same gate, suspect the premise, not the fixes.
 -
--Match the experiment to the hypothesis. Two timeout increases may assume requests reach the intended destination. Check the actual destination before increasing the timeout again.
+-**Why:** Each failure under a shared premise is evidence about the premise.
 -
--When the hypothesis concerns uneven allocation, ownership, or assignment, count resources or work per actor. Measure the distribution and trace the assignment per [Fix Root Causes](../principle-fix-root-causes/SKILL.md). Recommend redistribution, rotation, or reassignment only when evidence connects that assignment to the failure. An even distribution weakens the imbalance hypothesis; it does not rule out a shared defect. Every worker can leak at the same rate.
+-**Pattern:**
+-- **Write the premise down.** The premise is the one sentence that every failed fix assumed.
+-- **Take a census before the next fix.** Count the imbalance per actor. The census shows which actors hold the imbalance, not how large it is. Write the census as a rerunnable script per [Build the Lever](../principle-build-the-lever/SKILL.md).
+-- **Read the skew.** If the same few actors hold most of the imbalance on every run, something assigns them that role. Find what assigns the role. That assignment is the next "why" per [Fix Root Causes](../principle-fix-root-causes/SKILL.md).
+-- **Remove the asymmetry instead of compensating for it**, per the [Laziness Protocol](../principle-laziness-protocol/SKILL.md). Rotate the role between actors, randomize the assignment, or move the role, so that no actor holds it on every run. A return path, a shared pool, a batched hand-off, or a periodic rebalance leaves the assignment in place and adds work on every run.
+-- **When the premise is not about actors**, the census becomes a rerunnable check whose result would differ if the premise were false. Two timeout increases assume requests reach the intended destination; log the actual destination before the third.
 -
--Keep a rerunnable experiment when useful, per [Build the Lever](../principle-build-the-lever/SKILL.md). Do not turn this into a mandatory census for unrelated bugs.
+-**Stop:**
+-- Do not start the next fix before the premise is written down and the census exists.
+-- If the census is even across actors, the premise is not the cause. Look for the cause elsewhere and keep the census as evidence.
 -
--This principle questions an assumption about the existing system. [Redesign from First Principles](../principle-redesign-from-first-principles/SKILL.md) rebuilds a design around a new requirement.
+-This principle is distinct from [Redesign from First Principles](../principle-redesign-from-first-principles/SKILL.md), which rebuilds a design around a new requirement. It questions a fact the current design assumes.
 diff --git a/plugins/pstack/skills/principle-boundary-discipline/SKILL.md b/plugins/pstack/skills/principle-boundary-discipline/SKILL.md
 deleted file mode 100644
 index de0c0f4..0000000
@@ -1603,27 +1804,35 @@ index 1342ddd..0000000
 -- When a reference has no novel content, delete it rather than leaving a stub
 diff --git a/plugins/pstack/skills/principle-test-behavior-not-implementation/SKILL.md b/plugins/pstack/skills/principle-test-behavior-not-implementation/SKILL.md
 deleted file mode 100644
-index 9296ac0..0000000
+index 34b070a..0000000
 --- a/plugins/pstack/skills/principle-test-behavior-not-implementation/SKILL.md
 +++ /dev/null
-@@ -1,17 +0,0 @@
+@@ -1,25 +0,0 @@
 ----
 -name: principle-test-behavior-not-implementation
--description: "Apply when you write, change, or keep a test. Identify a relevant defect and check that the test detects it. Assert the required result or observable effect, including absence when the contract requires it."
+-description: "Apply when you write, change, or keep a test. Call the code the way its users do and assert the result they observe against a literal expected value. If the test would still pass when every imported function returns undefined, rewrite the assertion or delete the test."
 -user-invocable: false
 ----
 -
--# Test behavior, not implementation
+-# Test Behavior, Not Implementation
 -
--Before keeping a test, name a relevant defect and determine whether the complete test arrangement detects it. Where practical, introduce that defect temporarily and observe the failure. Exercise the subject through its public interface and check the required result or effect.
+-A test calls the code the way its users do and asserts the result they observe against a literal expected value. A test that asserts which calls the code made, or restates a constant the code contains, does neither.
 -
--- A missing-result experiment helps when the contract requires a result. `toBeDefined` detects a missing result, but accepts the wrong one. Strengthen it to check the particular result when correctness requires one.
--- Keep absence assertions when absence is required. For a denied operation that must send no email, exercise the denial and check the outbox is empty. Temporarily make the denied path send an email and confirm the test fails. An assertion on absence does not require a positive case in the same test.
--- Keep fixed-value checks when the value is an explicit user-facing contract, such as a promised default or instruction. Name that contract and the defect a changed value would cause. Avoid freezing incidental constants or prompt wording with no such contract.
--- Keep comparisons between results when disagreement exposes a real defect. An expected result computed through the same faulty path as the actual result can confirm itself. Use an independent expectation or a relation that the identified defect actually violates.
--- Assess shared setup and the test body together. Calling the subject in `beforeEach` is valid; asserting only untouched fixture data is not.
+-The check: before you keep a test, ask whether it would still pass if every function it imports returned `undefined`. If yes, it observes no behavior and cannot fail for a defect. Rewrite the assertion or delete the test.
 -
--Reject tests that exercise nothing relevant, assert nothing meaningful, or only show that a substitute was called without checking the required effect. Check its payload or resulting state when that establishes the contract. An assertion's syntax alone cannot tell you whether it detects a defect.
+-**Why:** A test that cannot fail for a defect costs CI time and review attention and catches nothing. A constant pin also fails when someone edits the constant or the prompt it restates, so it prevents that edit.
+-
+-**Five shapes that still pass when every imported function returns `undefined`:**
+-
+-- **Weak or no assertion.** No `expect`, or only `toBeDefined`, `toBeTruthy`, `not.toThrow`, `toBeInstanceOf`, `toBeGreaterThan(0)`.
+-- **Mock or absence only.** Only `toHaveBeenCalled`, `not.toHaveBeenCalled`, `toBeUndefined`, `toEqual([])`, `toHaveLength(0)`, `not.toBe(wrongValue)`.
+-- **Self-referential.** The expected value comes from the code under test: `expect(f(a)).toBe(f(a))`, `expect(parsed.url).toBe(buildUrl(...))`.
+-- **Constant pin.** The assertion restates a hand-maintained constant, config default, table row, or prompt string: `expect(LIMITS.maxTools).toBe(8)`, `expect(PROMPT).toContain("You are")`.
+-- **Fixture asserts fixture.** The assertion reads data the test built or a value computed in `beforeEach`, and the subject never runs inside the body.
+-
+-**The fix:** call the subject inside the test body with one concrete input and assert the literal output or the observable effect, `expect(slugify("Hello, World!")).toBe("hello-world")`. For an absence, assert the presence on the other input in the same test. For a constant, test the mechanism that reads it with one input instead of restating the value. For a mock, assert the payload it received or the state after the call, not that it was called. When no such assertion exists, delete the test.
+-
+-**Keep** a test of a relation across a table's rows (a key present in two tables, a parent that exists), and a compile-time check in a `*.test-d.ts` file. Keep an absence-only test when the contract requires the absence and making the subject produce it fails the test: a denied operation must send no email, so temporarily make the denied path send one and watch the test fail. Keep a constant pin when the value is a promise to users, such as a documented default, and name that promise.
 diff --git a/plugins/pstack/skills/principle-type-system-discipline/SKILL.md b/plugins/pstack/skills/principle-type-system-discipline/SKILL.md
 deleted file mode 100644
 index b66c78d..0000000
@@ -1662,10 +1871,10 @@ index b66c78d..0000000
 -- "Is this type duplicating a shape another file owns?" Derive instead.
 -- "Am I strengthening this type to keep an operation total, or just to be more precise?" If nothing would otherwise panic, keep the plain type.
 diff --git a/plugins/pstack/skills/recall/SKILL.md b/plugins/pstack/skills/recall/SKILL.md
-index 42bba7f..b79cdcf 100644
+index c8084cd..3af4e35 100644
 --- a/plugins/pstack/skills/recall/SKILL.md
 +++ b/plugins/pstack/skills/recall/SKILL.md
-@@ -30,6 +30,6 @@ Lead with the capsule, then the thread status, then the problems, then the next
+@@ -32,6 +32,6 @@ Lead with the capsule, then the thread status, then the problems, then the next
  - **Problems.** At most 5, the recurring ones. Include the symptoms users keep reporting and any fix that shipped and was reverted, so the next attempt starts where the last one failed.
  - **Next move.** The single most useful next action, concrete.
  
@@ -1674,10 +1883,10 @@ index 42bba7f..b79cdcf 100644
  
  **Reply:** the brief, to the contract above.
 diff --git a/plugins/pstack/skills/reflect/SKILL.md b/plugins/pstack/skills/reflect/SKILL.md
-index d858f21..19d5ad5 100644
+index 505a9d3..a8a95b2 100644
 --- a/plugins/pstack/skills/reflect/SKILL.md
 +++ b/plugins/pstack/skills/reflect/SKILL.md
-@@ -47,13 +47,13 @@ One `Agent` call, `subagent_type: "general-purpose"`, with `model` from the `ref
+@@ -49,13 +49,13 @@ One `Agent` call, `subagent_type: "general-purpose"`, with `model` from the `ref
  
  ### 4. Structural enforcement check
  
@@ -1694,42 +1903,65 @@ index d858f21..19d5ad5 100644
  
  For each approved Accepted item, follow the Routing field exactly:
  
+@@ -84,4 +84,4 @@ Role defaults, stamped from `plugins/pstack/models.json` (edit there, rerun `too
+ 
+ ## Reasoning effort
+ 
+-A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. `session` sets no effort, so the dispatch is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. On Claude Code, a level picks the effort agent from the `subagent_type` you would otherwise use. `pstack:poteto-agent` becomes `subagent_type: "pstack:poteto-agent-<level>"`. `general-purpose`, or no `subagent_type`, becomes `subagent_type: "pstack:effort-<level>"`. The effort agents set only `effort`, so the model you pass still decides the model. On Codex, pass the level as `spawn_agent`'s `reasoning_effort` and keep the usual instructions.
++A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. `session` sets no effort, so the dispatch is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. On Claude Code, a level picks the effort agent from the `subagent_type` you would otherwise use. `pstack:poteto-agent` becomes `subagent_type: "pstack:poteto-agent-<level>"`. `general-purpose`, or no `subagent_type`, becomes `subagent_type: "pstack:effort-<level>"`. The effort agents set only `effort`, so the model you pass still decides the model. On Codex, pass the level as `spawn_agent`'s `reasoning_effort` and keep the usual instructions.
 diff --git a/plugins/pstack/skills/setup-pstack/SKILL.md b/plugins/pstack/skills/setup-pstack/SKILL.md
-index aee355e..3e59873 100644
+index 6dd8a25..6539035 100644
 --- a/plugins/pstack/skills/setup-pstack/SKILL.md
 +++ b/plugins/pstack/skills/setup-pstack/SKILL.md
-@@ -66,11 +66,11 @@ why investigators: opus
+@@ -70,13 +70,13 @@ why investigators: opus
  why synthesizer: opus
  reflect tooling: opus
  reflect judgment, divergent, synthesizer: opus
--arena runners: opus, fable, sonnet
--arena cross-judge pool: opus, fable, sonnet
+-arena runners: opus, fable, sonnet, haiku
+-arena cross-judge pool: opus, fable, sonnet, haiku
 +arena runners: opus, fable
 +arena cross-judge pool: opus, fable
  swarm workers: opus
--architect runners: opus, fable, sonnet
--interrogate reviewers: opus, fable, sonnet
+-architect runners: opus, fable, sonnet, haiku
+-interrogate reviewers: opus, fable, sonnet, haiku
 +architect runners: opus, fable
 +interrogate reviewers: opus, fable
  
- default effort: session
+-default effort: session
++default effort: xhigh
  session hook: on
-@@ -103,8 +103,8 @@ The role lines are the same everywhere. What differs is the sheet path, how the
+ ```
+ 
+@@ -112,8 +112,8 @@ The role lines are the same everywhere. What differs is the sheet path, how the
  
  Stamped from `plugins/pstack/models.json` (edit there, rerun `tools/generate.mjs`).
  
 -- Available Claude models: `opus`, `fable`, `sonnet`, `haiku`
--- Default panel: `opus`, `fable`, `sonnet`
+-- Default panel: `opus`, `fable`, `sonnet`, `haiku`
 +- Available Claude models: `opus`, `fable`
 +- Default panel: `opus`, `fable`
  - Reasoning effort levels: `low`, `medium`, `high`, `xhigh`, `max`
- - Default reasoning effort: `session`
+-- Default reasoning effort: `session`
++- Default reasoning effort: `xhigh`
  - Single-role default: `opus`
+diff --git a/plugins/pstack/skills/setup-pstack/copilot.md b/plugins/pstack/skills/setup-pstack/copilot.md
+index 49bac87..2aff145 100644
+--- a/plugins/pstack/skills/setup-pstack/copilot.md
++++ b/plugins/pstack/skills/setup-pstack/copilot.md
+@@ -2,7 +2,7 @@
+ 
+ On GitHub Copilot this file replaces the model, effort, and hook questions in steps 1, 3, and 4 of [setup-pstack](SKILL.md), the sheet header in step 6, and step 7. Steps 2, 5, 8, and 9 still apply. pstack ships no Copilot model defaults, so every model in the sheet comes from the user's answers. Never pick a model the user has not chosen, and never write the Claude Code names in [Models](SKILL.md#models) or step 6's values into a Copilot sheet.
+ 
+-Run setup on a model at least as strong as gpt-5.4-mini or a Sonnet-class Claude model. On a Haiku-class model, setup picked models the user never chose in about half of the smoke runs.
++Run setup on a model at least as strong as gpt-5.4-mini or an Opus-class Claude model. On a weaker model, setup picked models the user never chose in about half of the smoke runs.
+ 
+ ## Asking
+ 
 diff --git a/plugins/pstack/skills/show-me-your-work/SKILL.md b/plugins/pstack/skills/show-me-your-work/SKILL.md
-index 1b05c51..19689f5 100644
+index 9adafb6..01b85a3 100644
 --- a/plugins/pstack/skills/show-me-your-work/SKILL.md
 +++ b/plugins/pstack/skills/show-me-your-work/SKILL.md
-@@ -32,7 +32,7 @@ ts	phase	decision	why	evidence	result
+@@ -34,7 +34,7 @@ ts	phase	decision	why	evidence	result
  
  ## Logging a row
  
@@ -1738,7 +1970,7 @@ index 1b05c51..19689f5 100644
  
  Use the helper `scripts/log.sh <logfile> <phase> <decision> <why> <evidence> <result>`. It stamps `ts`, writes the header on first use, strips stray tabs/newlines, and prefixes any cell starting with `=`, `+`, `-`, `@`, or `"` with a single quote. A bare `printf` appending a row works too, but mind those same bytes if cells come from generated or user-supplied text.
  
-@@ -49,7 +49,7 @@ Commit it only when the work is ambitious enough that a reviewer needs the trail
+@@ -51,7 +51,7 @@ Commit it only when the work is ambitious enough that a reviewer needs the trail
  ## Rules
  
  - Append-only. A wrong call gets a new row that supersedes it. Never edit or delete history.
@@ -1747,6 +1979,16 @@ index 1b05c51..19689f5 100644
  
  ## Audit the log against the transcript
  
+diff --git a/plugins/pstack/skills/swarm/SKILL.md b/plugins/pstack/skills/swarm/SKILL.md
+index 1235157..8faa716 100644
+--- a/plugins/pstack/skills/swarm/SKILL.md
++++ b/plugins/pstack/skills/swarm/SKILL.md
+@@ -56,4 +56,4 @@ Role defaults, stamped from `plugins/pstack/models.json` (edit there, rerun `too
+ 
+ ## Reasoning effort
+ 
+-A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. `session` sets no effort, so the dispatch is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. On Claude Code, a level picks the effort agent from the `subagent_type` you would otherwise use. `pstack:poteto-agent` becomes `subagent_type: "pstack:poteto-agent-<level>"`. `general-purpose`, or no `subagent_type`, becomes `subagent_type: "pstack:effort-<level>"`. The effort agents set only `effort`, so the model you pass still decides the model. On Codex, pass the level as `spawn_agent`'s `reasoning_effort` and keep the usual instructions.
++A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. `session` sets no effort, so the dispatch is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. On Claude Code, a level picks the effort agent from the `subagent_type` you would otherwise use. `pstack:poteto-agent` becomes `subagent_type: "pstack:poteto-agent-<level>"`. `general-purpose`, or no `subagent_type`, becomes `subagent_type: "pstack:effort-<level>"`. The effort agents set only `effort`, so the model you pass still decides the model. On Codex, pass the level as `spawn_agent`'s `reasoning_effort` and keep the usual instructions.
 diff --git a/plugins/pstack/skills/tdd/SKILL.md b/plugins/pstack/skills/tdd/SKILL.md
 index 67d9189..b285cd9 100644
 --- a/plugins/pstack/skills/tdd/SKILL.md
@@ -1794,10 +2036,10 @@ index 67d9189..b285cd9 100644
  - If the bug exposes a broader class of failures, first land the focused regression path, then consider additional sibling coverage.
  
 diff --git a/plugins/pstack/skills/teach/SKILL.md b/plugins/pstack/skills/teach/SKILL.md
-index 7c82be6..1bdee39 100644
+index b740e66..032ffda 100644
 --- a/plugins/pstack/skills/teach/SKILL.md
 +++ b/plugins/pstack/skills/teach/SKILL.md
-@@ -17,6 +17,6 @@ Teach sits on top of `how` and `why`. Get your bearings on what the work is and
+@@ -19,6 +19,6 @@ Teach sits on top of `how` and `why`. Get your bearings on what the work is and
  4. Keep it a conversation, not a lecture or a performance. Offer to go deeper or move on, and follow their lead. No quizzes. No pacing theater. Don't print "Pause", don't ask them to say it back, don't announce "the sentence to nail", and don't flag a part as important or hard ("here is the part worth slowing down on", "this is the tricky part", "here is where it gets interesting"). Just say it. When you would pause, stop and let them respond. Running one-shot with no live human, deliver it cleanly and put any offer to go deeper at the end.
  5. Show, don't only tell, and build the picture up diagram by diagram. Open the diff, the code, or the debugger when that is the fastest way to land it. Draw when a picture lands faster than words. For anything with three or more moving parts, do not draw one diagram with all of them at once. Draw a short series instead, where each diagram redraws the last and adds a single part, so the reader watches the system assemble. A single all-at-once diagram, especially one saved for the end, is a reference, not teaching. Concretely, to teach a flow from A to B to C, draw it three times. First A to B. Then redraw and add C. Then redraw and add the return edge or the next piece. Match the medium to the idea, and use both kinds when both help. A mermaid diagram fits a flow or structure where the labels carry the meaning. When the idea is spatial, like layout, overlap, scroll position, or a before and after, reach for the image-generation tool and draw it marker-on-whiteboard style with a few short labels, since image models garble long text. Generate that picture, don't settle for describing it in words. The build-up rule holds for generated images too. A single simple point needs no figure.
  
@@ -1942,3 +2184,131 @@ index 7d14d8c..0000000
 -31. **Prefer the plain word.** "utilize" becomes "use", "leverage" becomes "use", "facilitate" becomes "help", "numerous" becomes "many", "in the event that" becomes "if". The fancier synonym is rarely clearer.
 -32. **Mannered prose.** Metaphor or flourish where a literal phrase exists: aphorisms ("wire it or delete it"), rhetorical fragments for effect, personified code ("the plan holds it"), figurative verbs ("rides along", "stands on"), stock framing phrases. "A dial worth turning" becomes "a parameter worth varying". Say what you mean. Rule 26 covers the metaphor nouns.
 -33. **Over-compression.** Dropped articles, verbless fragments, symbol-speak, and abbreviations that make the reader decode instead of read. "Parser rejects bad date → exit 2, no write" becomes "The parser rejects a bad date, exits with code 2, and writes nothing." Write whole sentences with their articles and verbs, and spell out arrows and abbreviations.
+diff --git a/plugins/pstack/skills/why/SKILL.md b/plugins/pstack/skills/why/SKILL.md
+index 7fbe742..741ea62 100644
+--- a/plugins/pstack/skills/why/SKILL.md
++++ b/plugins/pstack/skills/why/SKILL.md
+@@ -169,4 +169,4 @@ Role defaults, stamped from `plugins/pstack/models.json` (edit there, rerun `too
+ 
+ ## Reasoning effort
+ 
+-A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. `session` sets no effort, so the dispatch is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. On Claude Code, a level picks the effort agent from the `subagent_type` you would otherwise use. `pstack:poteto-agent` becomes `subagent_type: "pstack:poteto-agent-<level>"`. `general-purpose`, or no `subagent_type`, becomes `subagent_type: "pstack:effort-<level>"`. The effort agents set only `effort`, so the model you pass still decides the model. On Codex, pass the level as `spawn_agent`'s `reasoning_effort` and keep the usual instructions.
++A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. `session` sets no effort, so the dispatch is the usual one. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. On Claude Code, a level picks the effort agent from the `subagent_type` you would otherwise use. `pstack:poteto-agent` becomes `subagent_type: "pstack:poteto-agent-<level>"`. `general-purpose`, or no `subagent_type`, becomes `subagent_type: "pstack:effort-<level>"`. The effort agents set only `effort`, so the model you pass still decides the model. On Codex, pass the level as `spawn_agent`'s `reasoning_effort` and keep the usual instructions.
+diff --git a/tests/models.test.mjs b/tests/models.test.mjs
+index a17003b..42ba1b9 100644
+--- a/tests/models.test.mjs
++++ b/tests/models.test.mjs
+@@ -17,6 +17,30 @@ const raw = JSON.parse(readFileSync(join(repoRoot, "plugins/pstack/models.json")
+ const models = loadModels();
+ 
+ describe("committed models.json", () => {
++  test("Pi planning uses the dedicated host route instead of execution aliases", () => {
++    const guide = readFileSync(join(skillsDir, "poteto-mode/references/pi-tools.md"), "utf8");
++    expect(guide).toContain("Planning (`architect`) and read-only advice override the execution aliases");
++    expect(guide).toContain("`subagent_type: pstack:effort-<level>`");
++    expect(guide).toContain("planners may write explicitly requested design or plan artifacts");
++    expect(guide).toContain("use `xhigh` reasoning");
++    expect(guide).not.toContain("vary the reasoning effort");
++    expect(guide).not.toContain("Diverse-model panels (`arena`, `architect`");
++  });
++
++  test("execution defaults use Sol xhigh without an advisory model in panels", () => {
++    expect(raw.defaultEffort).toBe("xhigh");
++    expect(raw.codex).toEqual({
++      default: "gpt-6.1-sol",
++      strongest: "gpt-6.1-sol",
++      panel: ["gpt-6.1-sol"],
++    });
++    for (const provider of ["openai", "openai-codex"]) {
++      expect(Object.values(raw.pi.models[provider])).toEqual([
++        `${provider}/gpt-6.1-sol`, `${provider}/gpt-6.1-sol`,
++      ]);
++    }
++  });
++
+   test("the pi block gives every available alias a Pi model on anthropic, openai, and openai-codex", () => {
+     expect(raw.pi.fallback).toBe("anthropic");
+     expect(Object.keys(raw.pi.models).sort()).toEqual(["anthropic", "openai", "openai-codex"]);
+@@ -28,7 +52,8 @@ describe("committed models.json", () => {
+   test("available models are the names the Claude Code Agent tool accepts", () => {
+     // The Agent tool's `model` parameter is an enum of family names; a full ID
+     // such as claude-opus-5-5 is rejected before the subagent starts.
+-    expect([...models.available].sort()).toEqual(["fable", "haiku", "opus", "sonnet"]);
++    // LOCAL-OVERRIDES §1: upstream also lists haiku and sonnet; this machine bans both.
++    expect([...models.available].sort()).toEqual(["fable", "opus"]);
+   });
+ 
+   test("the file stays one row per entry so a role change is a one-line diff", () => {
+@@ -133,8 +158,12 @@ describe("parseModels", () => {
+     expect(parse((p) => (p.pi.extra = 1))).toThrow('models.json: pi names "extra"; its keys are "fallback" and "models"');
+     expect(parse((p) => (p.pi.fallback = "google"))).toThrow('models.json: pi.fallback "google" is not a provider in pi.models');
+     expect(parse((p) => (p.pi.models.openai = "openai/gpt"))).toThrow("models.json: pi.models.openai must be an object");
+-    expect(parse((p) => delete p.pi.models["openai-codex"].haiku)).toThrow(
+-      'models.json: pi.models.openai-codex has no Pi model for "haiku"',
++    expect(parse((p) => delete p.pi.models["openai-codex"].fable)).toThrow(
++      'models.json: pi.models.openai-codex has no Pi model for "fable"',
++    );
++    // LOCAL-OVERRIDES §1: a banned family cannot re-enter through the Pi table.
++    expect(parse((p) => (p.pi.models.anthropic.sonnet = "anthropic/claude-sonnet-5-5"))).toThrow(
++      'models.json: pi.models.anthropic names "sonnet", which is not in available',
+     );
+     expect(parse((p) => (p.pi.models.anthropic.gpt = "anthropic/gpt"))).toThrow(
+       'models.json: pi.models.anthropic names "gpt", which is not in available',
+diff --git a/tools/runtimes.mjs b/tools/runtimes.mjs
+index 3760cf8..6afe7aa 100644
+--- a/tools/runtimes.mjs
++++ b/tools/runtimes.mjs
+@@ -104,13 +104,14 @@ export function codexModelNamesSection(models) {
+     "Skills name Claude defaults (a single-role default for code/prose/judgment plus a diverse-model panel for " +
+     "diverse-model panels; each model-consuming skill lists its own in a Models section). These slugs do not " +
+     "resolve on Codex. Substitute your configured Codex models:\n\n" +
+-    `- Single-model roles: your primary Codex model (for example ${code(models.codex.default)}).\n` +
++    `- Single-model execution roles: ${code(models.codex.default)} at ${code(models.defaultEffort)} reasoning.\n` +
+     `- Roles that default to the strongest Claude model (${strongest.map((r) => code(r.role)).join(", ")}): ` +
+-    `your strongest Codex model (for example ${code(models.codex.strongest)}).\n` +
+-    "- Diverse-model panels (`arena`, `architect`, `interrogate`, `how` critics, `reflect`): the adversarial " +
+-    "signal comes from model diversity, so use the distinct Codex models available to you. A good default panel " +
+-    `on ChatGPT is ${codeList(models.codex.panel)}. If only one model family is reachable, vary reasoning ` +
+-    "effort and note in the verdict that diversity was reduced.\n\n" +
++    `${code(models.codex.strongest)} at ${code(models.defaultEffort)} reasoning.\n` +
++    "- Execution and review panels (`arena`, `interrogate`, `how` critics, `reflect`): use " +
++    `${codeList(models.codex.panel)} at ${code(models.defaultEffort)} reasoning. Note reduced model diversity ` +
++    "when every participant uses the same model; independent contexts do not provide cross-model independence.\n" +
++    "- Planning (`architect`) and read-only advice: select the host's dedicated planning/advisor route and its effort, " +
++    "rather than an execution alias. Never use that route for implementation or code review.\n\n" +
+     "`/setup-pstack` writes the configured model list. On Codex, set it to your Codex model slugs."
+   );
+ }
+@@ -128,15 +129,19 @@ export function piModelNamesSection(models) {
+     table +
+     "\n\nPi warns that Anthropic bills Claude used through Pi per token, as extra usage, even on a Claude subscription. " +
+     "Pi shows that warning only in interactive mode, never for the `pi --mode rpc` children the `agent` tool runs.\n\n" +
+-    "A `pi models: opus=<provider/id>, sonnet=<provider/id>` line in the Pi override sheet points each alias " +
++    "A `pi models: opus=<provider/id>, fable=<provider/id>` line in the Pi override sheet points each alias " +
+     "it names at another Pi model, whatever the session's provider. Add one when the session's provider has no " +
+     `column above and Pi has no credentials for ${code(fallback)}, because each alias then resolves to an ${code(`${fallback}/*`)} ` +
+     `ID and the ${code("agent")} call fails with ${code(`No API key found for ${fallback}`)}. ` +
+     "The `agent` tool also takes a full " +
+     "`provider/id`, passed through unchanged, and `inherit-parent`, `auto`, or no `model` runs the child on the " +
+-    "parent's current model. Diverse-model panels (`arena`, `architect`, `interrogate`, `how` critics, `reflect`) " +
+-    "stay diverse only while their aliases resolve to distinct models. If one model family is all you can reach, " +
+-    "vary the reasoning effort and note in the verdict that diversity was reduced.\n\n" +
++    "parent's current model. Planning (`architect`) and read-only advice override the execution aliases: " +
++    "pass the full `provider/id` configured for the host's dedicated planning/advisor route and select " +
++    "`subagent_type: pstack:effort-<level>` for that route's effort. Keep advisory agents read-only; " +
++    "planners may write explicitly requested design or plan artifacts. Never use the planning route for " +
++    "product implementation or code review. Execution and review panels (`arena`, `interrogate`, `how` critics, `reflect`) " +
++    `use ${code(models.defaultEffort)} reasoning. When their aliases resolve to the same model, report ` +
++    "reduced model diversity without changing the configured effort.\n\n" +
+     "`/setup-pstack` writes the configured model list. On Pi, keep the aliases and remap them with `pi models:`."
+   );
+ }
+@@ -229,7 +234,7 @@ export function copilotModelNamesSection(models) {
+     "`setup-pstack` lists the models from the `model` enum of the `task` tool and writes only IDs it saw there. " +
+     "After it writes the sheet, it runs its `check-sheet.sh` script, which applies the hook's checks.\n\n" +
+     "Run `setup-pstack`, and the parent session that orchestrates a panel, on a model at least as strong as " +
+-    "gpt-5.4-mini or a Sonnet-class Claude model. On a Haiku-class model, setup picked models the user never " +
++    "gpt-5.4-mini or an Opus-class Claude model. On a weaker model, setup picked models the user never " +
+     "chose in about half of the smoke runs."
+   );
+ }

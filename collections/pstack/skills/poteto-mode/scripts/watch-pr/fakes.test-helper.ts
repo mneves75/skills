@@ -15,11 +15,13 @@ import { parsePrNumber } from "./types.ts";
 
 export interface FakeReaderOptions {
   readonly facts?: Partial<Omit<PullRequestFacts, "context">>;
+  readonly factsOnReread?: Partial<Omit<PullRequestFacts, "context">>;
   readonly fastPath?: ChecksFastPath;
   readonly rollupPages?: readonly RollupPage[];
   readonly threads?: readonly ReviewThread[];
   readonly commitRollups?: readonly CommitRollup[];
   readonly openPullRequests?: readonly OpenPullRequest[];
+  readonly defaultBranch?: string;
   readonly origin?: Repository | null;
   readonly current?: PrContext;
 }
@@ -80,6 +82,7 @@ export function fakeReader(
     isDraft: false,
   };
   let page = 0;
+  let reads = 0;
   return {
     calls,
     async originRepo() {
@@ -94,20 +97,27 @@ export function fakeReader(
     },
     async pullRequest(requested) {
       calls.push("pullRequest");
-      return parsePullRequest({ ...defaults, ...options.facts }, requested);
-    },
-    async revision(requested) {
-      calls.push("revision");
-      return {
-        context: requested,
-        baseRefOid: options.facts?.baseRefOid ?? "base",
-        headRefOid: options.facts?.headRefOid ?? "head",
-        baseRefName: options.facts?.baseRefName ?? defaults.baseRefName,
+      reads += 1;
+      const facts = {
+        ...defaults,
+        ...options.facts,
+        ...(reads > 1 ? options.factsOnReread : {}),
       };
+      return parsePullRequest(
+        {
+          ...facts,
+          baseRef: { target: { oid: facts.baseRefOid } },
+        },
+        requested
+      );
     },
     async openPullRequests() {
       calls.push("openPullRequests");
       return options.openPullRequests ?? [];
+    },
+    async defaultBranch() {
+      calls.push("defaultBranch");
+      return options.defaultBranch ?? "main";
     },
     async checksFastPath() {
       calls.push("checksFastPath");
@@ -115,8 +125,9 @@ export function fakeReader(
     },
     async checkRollupPage(_requested, after) {
       calls.push(`checkRollupPage:${after ?? "null"}`);
+      const pages = options.rollupPages ?? [];
       return (
-        options.rollupPages?.[page++] ?? {
+        pages[Math.min(page++, pages.length - 1)] ?? {
           kind: "contexts",
           checks: [],
           endCursor: null,

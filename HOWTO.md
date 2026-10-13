@@ -1,6 +1,6 @@
 # How to use these skills
 
-Twelve skills, one install. This page shows what each one does, how to trigger it, and what a
+Thirteen skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the [README](README.md); for the exact
 procedure an agent follows, open `skills/<name>/SKILL.md`.
 
@@ -27,6 +27,7 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 |---|---|---|
 | `autoreview` | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
 | `mneves-handoff` | hand a task to another agent, review first | "handoff the flaky login test" |
+| `mneves-render` | build repeatable HTML, Word and PDF exports from Markdown | "write a renderer for my Markdown reports" |
 | `imagegen-frontend-mobile` | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
 | `mneves-chatgpt-search` | improve ChatGPT Search discovery and measure citations/referrals | "improve this site's ChatGPT Search visibility" |
 | `mneves-eli5` | explain a thing to a specific audience | "explain OAuth to my dad" |
@@ -39,6 +40,37 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 | `mneves-ship-deploy` | prepare verified staging, then approve the exact candidate before production | "ship-staging" or "ship-prod" |
 
 ---
+
+## mneves-render
+
+**What it does.** Helps any agent build a repeatable renderer inside your project. Markdown
+stays authoritative; it produces only the formats you ask for: responsive HTML, editable
+DOCX and/or print-ready PDF. It reuses existing tooling first and supplies Pandoc starter
+templates when needed. HTML and PDF share a design; Word maps that design to document styles.
+
+**When to use it.** You want a reusable project command for reports, proposals, documentation
+or other Markdown files, with content-preservation checks and inspection of the actual pages.
+It does not rewrite or summarize your source or require a specific agent vendor.
+
+**Example** (illustrative).
+
+> Use mneves-render to build a renderer for docs/report.md. Produce HTML, editable DOCX
+> and PDF with our existing typography. Keep all content and citations. Add a repeatable
+> command, inspect HTML at desktop and mobile widths, and inspect every PDF and DOCX page.
+
+**What you receive.** The requested files, a project-local renderer and regeneration command,
+plus the checks actually run and any unverified format limitations. Pandoc and a PDF engine
+are external tools, not bundled dependencies; existing equivalent tools are fine. The Pandoc
+starters also require Python 3.10+ for their bundled content-policy guard. They preserve
+metadata and literal punctuation; the guard is not a resource sandbox or SVG sanitizer.
+
+**Maintaining the starter.** Run `python3 skills/mneves-render/tests/test_check_ast.py` and
+`python3 skills/mneves-render/tests/test_starters.py`. CI produces LibreOffice previews;
+successful conversion still needs page-by-page visual inspection. Microsoft Word pagination
+and PDF/UA conformance are separate checks, not implied by these tests.
+
+Procedure: [SKILL.md](skills/mneves-render/SKILL.md).
+Starter commands: [Pandoc recipe](skills/mneves-render/references/pandoc.md).
 
 ## autoreview
 
@@ -71,8 +103,8 @@ review continues. See [the full procedure](skills/autoreview/references/complexi
 
 **What it does.** Freezes the chosen Git target, scans the outgoing input, runs a reviewer in
 an isolated environment, validates its report, and rejects results if sources changed mid-review.
-The helper prints its default model and reasoning tier at startup; one retry on the fallback
-is reserved for account-access failures.
+The helper prints its default model and reasoning tier at startup; Codex review has no
+automatic model fallback on account-access failures.
 
 **Example** (illustrative; replace the installed path).
 
@@ -267,7 +299,7 @@ checked for saying what the claim says. Security: an independent audit.
 ```
 Verdict: FAIL
 Builder: claude-fable-5 / Edit, Bash / session 3f2a
-Verifier: gpt-6-astra / xhigh reasoning / read-only sandbox / fresh context
+Verifier: gpt-6.1-sol / xhigh reasoning / read-only sandbox / fresh context
 Different model required: yes (touches billing)
 Different model used: yes
 Criterion 1 — refund endpoint rejects amounts above the original charge: PASS — 3 unit tests + curl with 101% amount returned 422
@@ -294,14 +326,11 @@ the loop ends. Findings map to *fixed*, *disproved* or *blocked*, nothing else.
 ## mneves-fable-orchestrator
 
 **What it does.** Routes non-trivial work across the main session, Codex, and subagents when
-delegation creates independent progress or evidence. In Claude Code the main session is the
-latest Sonnet at `high` with the latest Opus as its advisor, frontend work goes to a subagent on
-the latest Opus, and other Claude subagents run the latest Sonnet at `high`. In Codex the main
-session and ordinary workers use `gpt-6.1-sol` at `medium`; bounded tasks use `gpt-6-luna`
-at `medium`, and difficult execution uses `gpt-6.1-sol` at `high`.
-Routine review uses `gpt-6.1-sol` at `high`, with one access-only fallback to `gpt-6-astra`
-at `high`. An explicit specialist or different-model review uses `gpt-6-astra` at `xhigh`,
-which also advises on the Claude main session's plans. Caller overrides and actual host
+delegation creates independent progress or evidence. Planning and read-only advice use
+`gpt-6-astra` at `high`; all Codex execution, discovery, frontend work, specialist work and
+code review use `gpt-6.1-sol` at `xhigh`. Codex review has no automatic model fallback.
+Other harnesses bind these roles through Codex dispatch when available; the portable defaults
+do not change a running harness's main-session model. Caller overrides and actual host
 configuration take precedence; the skill's Defaults block owns its portable defaults.
 See [usage-efficiency.md](docs/usage-efficiency.md) for compact prompts and measurement limits.
 `codex-lane` keeps one Codex thread alive across rounds so
@@ -536,6 +565,24 @@ Review and deployment integrations are optional. If a named skill is unavailable
 uses the repository's documented equivalent with the same gates, or reports the missing
 capability. Missing staging and failed gates remain blockers.
 
+**Order.** The agent deploys the commit the remote already has, proves it live (served commit,
+health body, one request that must succeed and one that must be refused), and only then tags.
+A gate that cannot pass reaches you once, as a packet: the candidate, the target, each failing
+gate as a named waiver, and the rollback plan.
+
+**Release contract (optional tooling).** The skill prefers two entry points when a repository
+has them: `scripts/release.sh <staging|production>` and `scripts/verify-live.sh
+<staging|production>`. Check a repository, or every deployable repository in a folder, without
+running any of its code (Python 3.11+):
+
+```bash
+python3 skills/mneves-ship-deploy/scripts/release-contract-check.py path/to/repo
+python3 skills/mneves-ship-deploy/scripts/release-contract-check.py --fleet path/to/projects
+```
+
+`skills/mneves-ship-deploy/assets/` holds a reference `release.sh` and `verify-live.sh` for a
+single-Worker project. Copy them into `scripts/`, fill the placeholders, and adapt.
+
 ---
 
 ## mneves-chatgpt-search
@@ -578,7 +625,7 @@ writes and deployments retain the host's authorization rules.
 
 ## pstack collection
 
-[`collections/pstack`](collections/pstack/) adds 32 skills from Lauren Tan's pstack. It is not
+[`collections/pstack`](collections/pstack/) adds 33 skills from Lauren Tan's pstack. It is not
 part of the install above:
 
 ```bash

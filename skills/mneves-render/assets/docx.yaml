@@ -1,0 +1,6 @@
+from: markdown-smart-raw_html-raw_tex
+to: docx
+standalone: true
+fail-if-warnings: true
+filters:
+  - scripts/check_ast.py
