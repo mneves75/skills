@@ -14,6 +14,8 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import xml.etree.ElementTree as ET
+import zipfile
 
 
 SKILL = Path(__file__).resolve().parents[1]
@@ -100,6 +102,16 @@ lang: pt-BR
         self.assertEqual(image["alt"], "Alt café")
         self.assertIn("20", image.get("width", image.get("style", "")))
         self.assertIn("Texto ação", rendered)
+        word_output = self.directory / "delivery.docx"
+        result = self.pandoc(source, word_output)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        with zipfile.ZipFile(word_output) as archive:
+            document = ET.fromstring(archive.read("word/document.xml"))
+            namespace = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+            self.assertEqual(len(list(document.iter(namespace + "drawing"))), 1)
+            media = [name for name in archive.namelist() if name.startswith("word/media/")]
+            self.assertEqual(len(media), 1)
+            self.assertEqual(archive.read(media[0]), PNG)
 
     def test_active_attributes_fail_before_publication_in_both_writers(self):
         sources = [
