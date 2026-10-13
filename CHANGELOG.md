@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   covers successful, denied and unavailable copying.
 - **Catalog verification**: source skills and guide targets must match the landing page;
   planted missing-entry, duplicate-entry and broken-link controls exercise the guard.
+- **Release integration**: reconcile the landing/product collection count with the
+  concurrently updated 36-skill pstack inventory; reject stale counts during generation checks.
 
 ## [1.33.0] - 2026-10-13
 

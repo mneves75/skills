@@ -2,7 +2,8 @@
 
 Status: Implemented and visually reviewed; final branch acceptance tracked in PR #13.
 Requested surface: `https://mneves75.github.io/skills/`, implemented by `site/index.html`.
-Delivery: working-branch PR; production publication is not authorized.
+Original delivery: working-branch PR. The owner separately authorized merging and
+publishing during release closeout on 2026-10-13.
 
 ## Observed problem
 
@@ -136,4 +137,14 @@ inspection identified the site generator, test and GitHub Pages workflow as call
 
 Reviewable captures: [desktop](assets/desktop.png) and [mobile](assets/mobile.png).
 Independent acceptance and final CI results are recorded on the exact PR revision.
-The public URL remains the previous version until an authorized merge publishes Pages.
+Publication is checked against the authorized merge and its Pages workflow.
+
+## Release integration
+
+PR #13 merged as `a50ef5c`, preserving a concurrent pstack synchronization that raised
+the collection inventory from 33 to 36 skills. The landing page and PRODUCT.md carried
+the older count. A regression at the existing generated-site seam reproduced the
+mismatch before those two texts were corrected. The guard compares the published
+stated collection quantity with its current source inventory, so future synchronizations
+cannot silently preserve a stale landing count. Version remains 1.34.0 for this
+release closeout; its existing README badge and changelog stay aligned.

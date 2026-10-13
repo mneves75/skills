@@ -16,6 +16,7 @@ import tempfile
 
 source = Path.cwd()
 skill_names = {path.parent.name for path in (source / 'skills').glob('*/SKILL.md')}
+collection_count = len(list((source / 'collections/pstack/skills').glob('*/SKILL.md')))
 
 class Catalog(HTMLParser):
     def __init__(self):
@@ -24,9 +25,16 @@ class Catalog(HTMLParser):
         self.ids = set()
         self.entry = None
         self.in_name = False
+        self.collection_depth = 0
+        self.collection_text = ''
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
+        if tag == 'div':
+            if self.collection_depth:
+                self.collection_depth += 1
+            elif 'collection' in attrs.get('class', '').split():
+                self.collection_depth = 1
         if attrs.get('id'):
             self.ids.add(attrs['id'])
         if tag == 'article' and 'skill' in attrs.get('class', '').split():
@@ -39,12 +47,16 @@ class Catalog(HTMLParser):
                 self.entry['guides'].append(attrs.get('href'))
 
     def handle_endtag(self, tag):
+        if tag == 'div' and self.collection_depth:
+            self.collection_depth -= 1
         if tag == 'h3':
             self.in_name = False
         if tag == 'article':
             self.entry = None
 
     def handle_data(self, data):
+        if self.collection_depth:
+            self.collection_text += data
         if self.in_name and self.entry is not None:
             self.entry['name'] += data
 
@@ -52,6 +64,8 @@ def validate_catalog(index, howto, names):
     catalog, guide = Catalog(), Catalog()
     catalog.feed(index)
     guide.feed(howto)
+    quantities = re.findall(r'\bcollection of ([0-9]+) engineering workflow skills\b', catalog.collection_text)
+    assert quantities == [str(collection_count)], f'collection count differs from source: {quantities}, expected {collection_count}'
     actual = Counter(entry['name'].strip() for entry in catalog.entries)
     assert actual == Counter({name: 1 for name in names}), f'catalog differs from source skills: {actual}'
     for entry in catalog.entries:
@@ -93,6 +107,10 @@ with tempfile.TemporaryDirectory(prefix='skills-build-site-') as scratch:
         'duplicate entry': index.replace(entry, entry + entry, 1),
         'broken guide': index.replace(first_guide.group(),
                                     'href="howto.html#missing-guide"', 1),
+        'stale collection count': index.replace(f'collection of {collection_count}',
+                                                f'collection of {collection_count - 1}', 1),
+        'hidden collection count': index.replace(f'collection of {collection_count}',
+            f'collection of thirty-three <span hidden>{collection_count}</span>', 1),
     }
     for label, mutant in mutants.items():
         assert mutant != index, f'{label} mutation did not plant a violation'
