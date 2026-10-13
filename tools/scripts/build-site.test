@@ -64,7 +64,7 @@ def validate_catalog(index, howto, names):
     catalog, guide = Catalog(), Catalog()
     catalog.feed(index)
     guide.feed(howto)
-    quantities = re.findall(r'\b[0-9]+\b', catalog.collection_text)
+    quantities = re.findall(r'\bcollection of ([0-9]+) engineering workflow skills\b', catalog.collection_text)
     assert quantities == [str(collection_count)], f'collection count differs from source: {quantities}, expected {collection_count}'
     actual = Counter(entry['name'].strip() for entry in catalog.entries)
     assert actual == Counter({name: 1 for name in names}), f'catalog differs from source skills: {actual}'
@@ -109,6 +109,8 @@ with tempfile.TemporaryDirectory(prefix='skills-build-site-') as scratch:
                                     'href="howto.html#missing-guide"', 1),
         'stale collection count': index.replace(f'collection of {collection_count}',
                                                 f'collection of {collection_count - 1}', 1),
+        'hidden collection count': index.replace(f'collection of {collection_count}',
+            f'collection of thirty-three <span hidden>{collection_count}</span>', 1),
     }
     for label, mutant in mutants.items():
         assert mutant != index, f'{label} mutation did not plant a violation'

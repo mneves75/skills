@@ -145,6 +145,6 @@ PR #13 merged as `a50ef5c`, preserving a concurrent pstack synchronization that 
 the collection inventory from 33 to 36 skills. The landing page and PRODUCT.md carried
 the older count. A regression at the existing generated-site seam reproduced the
 mismatch before those two texts were corrected. The guard compares the published
-collection quantity with its current source inventory, so future synchronizations
+stated collection quantity with its current source inventory, so future synchronizations
 cannot silently preserve a stale landing count. Version remains 1.34.0 for this
 release closeout; its existing README badge and changelog stay aligned.
