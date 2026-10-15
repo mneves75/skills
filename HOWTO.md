@@ -61,7 +61,7 @@ the deploy (`ship-staging`, `ship-prod`, a release script, CI, TestFlight, an ov
 update or a store upload). It
 audits the exact candidate in full: the twelve areas plus 32 launch controls (`SEC-01` to
 `SEC-23`, `CMP-01` to `CMP-09`). It returns a fix plan and a PASS, BLOCK or WAIVED verdict
-for that commit and target. A confirmed Critical or High finding blocks both targets until
+for that commit and target. A confirmed Critical or High finding blocks every target until
 it is fixed, disproved or waived by you by name; for production, every unmet applicable
 launch control and a missing independent acceptance also need your named waiver. One audit
 serves every target of the same commit, a rollback to a gated build needs none, and an urgent

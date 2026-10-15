@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A full security audit now gates every staging and production deploy (`mneves-security`).
   Deploy-gate mode audits the exact candidate in full: all twelve review areas and every
   applicable launch control. It ends in a fix plan and a PASS, BLOCK or WAIVED verdict bound
-  to the commit and target. A confirmed Critical or High finding blocks both targets until it
+  to the audited tree and target. A confirmed Critical or High finding blocks every target until it
   is fixed, disproved or waived by the owner by name; for production, every unmet applicable
   launch control also needs a named waiver. A production deploy of the commit staging already
   passed reuses that audit with fresh advisories and production checks; a rollback to a gated

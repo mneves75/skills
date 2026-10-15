@@ -39,7 +39,7 @@ check, never instructions.
 | UI | `agent-browser` / Argent + real renders | any equivalent independent browser/rendering capability, still real renders + interaction |
 | CLI / API / data | real binary / endpoint / query + positive control | none |
 | Research | primary sources + citation checks | none |
-| Security | `mneves-security` (deploy-gate verdict for a release) | dedicated independent security review + relevant dynamic proof |
+| Security | `mneves-security` (its deploy-gate verdict for any release) | for a release, none; otherwise a dedicated independent security review + relevant dynamic proof |
 
 BLOCKED only when an essential capability is unavailable.
 

@@ -196,12 +196,14 @@ reach shared data or real users. A dev stop is the first target of a release cha
 goes dev, staging, production. This skill gives no deploy a pass without a verdict for
 its exact commit and target.
 
-1. **Freeze the candidate.** Run the gate after every other release change has landed,
-   so it audits the final content. Record repository, full commit SHA, version, unit
-   and target, and bind the verdict to that commit before any push, merge or tag that
-   deploys it. The only change allowed after the audit is release bookkeeping: version
-   strings, changelog and release notes, never runtime configuration. Any other change,
-   this gate's own fixes included, makes a new candidate with a new full audit.
+1. **Freeze the candidate.** Run the gate after every other release change, version and
+   documentation included, has landed, so it audits the final content. Record the
+   repository, version, unit, target and the audited tree hash (`git rev-parse
+   HEAD^{tree}` for committed content, `git write-tree` for staged content). The verdict
+   binds to every commit whose tree equals that hash, so a merge or squash that keeps the
+   tree keeps the verdict; record each deployed commit before any push, merge or tag that
+   deploys it. Any change to the tree, this gate's own fixes included, makes a new
+   candidate with a new full audit.
 2. **Audit in full.** Run Execution steps 1 to 4 over the candidate's entire first-party
    source: all twelve areas and every applicable
    [launch control](references/launch-controls.md). Mark each finding as introduced since
@@ -213,24 +215,28 @@ its exact commit and target.
 4. **Decide.** The gate blocks every target while a confirmed Critical or High finding is
    open, or an area's source could not be inspected. Production also blocks while an
    applicable launch control is not Yes or independent acceptance has not passed. Before
-   a deploy, configuration evidence meets a `runtime` control; for production, so does
-   the same commit's runtime evidence from an earlier target. A fix, disproving evidence
+   a deploy, configuration evidence meets a `runtime` control provisionally (for
+   production, so does the same tree's runtime evidence from an earlier target); the
+   live check after the deploy decides it. A fix, disproving evidence
    or the owner's named waiver (owner, reason, expiry) in the release decision packet
    clears a block. Waivers make the verdict WAIVED; no block makes it PASS. Medium and
    lower findings, and launch-control gaps on dev and staging, go into the plan.
 5. **Record.** Write the verdict record and report as the report reference describes,
-   outside the tracked tree. After each deploy, the runtime checks (headers, cookies,
-   CORS, TLS) join the release's live proof for that target. A failure there fails the
-   release: no tag, then fix forward or roll back by the release procedure.
+   outside the tracked tree. The runtime checks (headers, cookies, CORS, TLS) belong in
+   the project's live proof (its `scripts/verify-live.sh` when it has one), so they run
+   after each deploy and before any tag. A failure there fails the release: no tag, then
+   fix forward or roll back by the release procedure. Each release tag's message records
+   the verdict (`security gate: PASS`, or `WAIVED` with the waived IDs).
 
 Reuse and exemptions:
 
-- One full audit per commit. A later target for the same commit (dev, then staging,
-  then production) reuses it: re-read the advisories, assess the launch controls whose
+- One full audit per tree. A later target for the same tree (dev, then staging, then
+  production) reuses it: re-read the advisories, assess the launch controls whose
   evidence depends on that target's environment, and run its runtime checks.
 - Rolling back needs no new audit when the build passed the gate for that target: its
-  release tag for that target exists, or a gate record names its commit. A rollback to a
-  build that predates the gate needs the owner's named waiver.
+  release tag message records a PASS or WAIVED verdict, or a gate record names its commit.
+  Any other build, including one released before the gate existed, needs the owner's
+  named waiver.
 - An urgent fix may deploy under the owner's named waiver (`gate:audit`). Its full audit
   runs right after the deploy. A Critical or High finding there is the next fix, or the
   owner decides to roll back.
