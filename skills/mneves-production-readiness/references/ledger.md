@@ -108,6 +108,7 @@ these keys, then the waivers array:
 - Timestamps are UTC in exactly the form `YYYY-MM-DDTHH:MM:SSZ`, so they compare as strings.
 - `valid_until` is the earliest of `created_at` plus 24 hours, any waiver expiry and any
   relied-upon evidence expiry.
+- Every object opens with `{` on its own line, and keys are written plainly, without escapes.
 - Each waiver field, like each scalar, sits on its own line: release scripts read the scalars
   and every waiver's `expires`, refuse an expired waiver, and copy the record into the release
   evidence.

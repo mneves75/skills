@@ -281,7 +281,7 @@ for target_case in staging production; do
 done
 
 # ==== Readiness: refusal before installing, building, deploying or making a run directory ====
-for defect in missing symlink directory malformed missing-key schema unit target commit short-sha future expired verdict blockers timestamp single-line duplicate invalid-created invalid-until expired-waiver malformed-waiver inline-waiver scratch-link readiness-link; do
+for defect in missing symlink directory malformed missing-key schema unit target commit short-sha future expired verdict blockers timestamp single-line duplicate invalid-created invalid-until expired-waiver malformed-waiver inline-waiver inline-escaped-waiver escaped-waiver escaped-required scratch-link readiness-link; do
   new_repo "readiness-$defect"
   record="$work/.scratch/readiness/staging.json"
   serve "$STAGING_URL" "$(head_sha)" staging
@@ -315,7 +315,17 @@ for defect in missing symlink directory malformed missing-key schema unit target
       problem='a readiness waiver has expired' ;;
     inline-waiver)
       sed -i.bak 's/"waivers": \[\]/"waivers": [{"control": "BR-02", "owner": "@o", "reason": "r", "expires": "2001-01-01T00:00:00Z"}]/' "$record"
-      problem='waiver fields must sit on their own lines' ;;
+      problem='readiness record objects must open on their own line' ;;
+    inline-escaped-waiver)
+      sed -i.bak 's/"waivers": \[\]/"waivers": [{ "control": "BR-02", "owner": "@o", "reason": "r", "ex\\u0070ires": "2001-01-01T00:00:00Z"}]/' "$record"
+      problem='readiness record objects must open on their own line' ;;
+    escaped-waiver)
+      set_readiness_expiries "$record" 2001-01-01T00:00:00Z 9999-01-01T00:00:00Z
+      sed -i.bak 's/"expires"/"ex\\u0070ires"/g' "$record"
+      problem='readiness record keys must not use escapes' ;;
+    escaped-required)
+      sed -i.bak 's/"verdict"/"ver\\u0064ict"/' "$record"
+      problem='readiness record keys must not use escapes' ;;
     scratch-link) mv "$work/.scratch" "$work/scratch-real"; ln -s "$work/scratch-real" "$work/.scratch"; problem=symlink ;;
     readiness-link) mv "$work/.scratch/readiness" "$work/.scratch/readiness-real"; ln -s "$work/.scratch/readiness-real" "$work/.scratch/readiness"; problem=symlink ;;
     duplicate) sed -i.bak 's/"schema": 1,/"schema": 1,\
@@ -329,6 +339,23 @@ for defect in missing symlink directory malformed missing-key schema unit target
     pass "readiness refuses $defect before build with remediation"
   else fail "readiness refuses $defect before build with remediation (exit $code)" "$out"; fi
 done
+
+new_repo readiness-multiline-waiver
+record="$work/.scratch/readiness/staging.json"
+awk '/"waivers":/ {
+  print "  \"waivers\": ["
+  print "    {"
+  print "      \"control\": \"BR-02\","
+  print "      \"owner\": \"@o\","
+  print "      \"reason\": \"r\","
+  print "      \"expires\": \"9999-01-01T00:00:00Z\""
+  print "    }"
+  print "  ]"
+  next
+} { print }' "$record" > "$record.waivers"
+mv "$record.waivers" "$record"
+serve "$STAGING_URL" "$(head_sha)" staging
+expect "documented multiline waiver permits release" 0 'Released' -- staging
 
 new_repo readiness-reserved
 sed -i.bak 's/GATES="lint=/GATES="readiness=true\

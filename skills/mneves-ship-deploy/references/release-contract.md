@@ -80,8 +80,9 @@ an equivalent review) writes the record for one deployable unit, target and cand
 }
 ```
 
-Each scalar, and each field of each waiver object, sits on its own line, so a shell script reads
-it without a JSON parser; the script refuses a waiver whose `expires` has passed. Timestamps
+Each scalar, and each field of each waiver object, sits on its own line; every object opens with
+`{` on its own line; keys are written without escapes. A shell script therefore reads the record
+without a JSON parser, and it refuses a waiver whose `expires` has passed. Timestamps
 are UTC in exactly the form `YYYY-MM-DDTHH:MM:SSZ` and compare as strings. The gate that writes
 the record keeps `valid_until` within 24 hours of `created_at`; the release script checks only
 that `created_at` is not in the future and `valid_until` has not passed. The record proves that

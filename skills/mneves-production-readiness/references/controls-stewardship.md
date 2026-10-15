@@ -8,7 +8,7 @@ other than its first builder. Several can only be owner-attested.
 ## MNT: maintainability
 
 ### MNT-01 Readable code
-`advisory` · triggers: any source change
+`advisory` · triggers: application code (not stylesheets, assets or documents)
 - Verify: names, structure and comments let a new engineer follow the main flows; formatting,
   linting and type checks run in CI; generated or copied code has an owner.
 - Evidence: source.
@@ -38,13 +38,13 @@ other than its first builder. Several can only be owner-attested.
 - Evidence: source plus the vendors' published support dates.
 
 ### MNT-06 Dead code
-`advisory` · triggers: any source change
+`advisory` · triggers: application code (not stylesheets, assets or documents)
 - Verify: abandoned attempts, unused files, exports, routes, flags and dependencies are removed;
   an unused-code detector runs where the stack has one.
 - Evidence: source.
 
 ### MNT-07 Oversized modules
-`advisory` · triggers: any source change
+`advisory` · triggers: application code (not stylesheets, assets or documents)
 - Verify: files and functions that grew past the project's threshold are split by responsibility;
   report the largest offenders with sizes.
 - Evidence: source.

@@ -253,6 +253,9 @@ readiness_fields() {
       if (line == "") next
       if (first == "") first=line
       last=line
+      if (line ~ /[{][[:space:]]*"/) bad("readiness record objects must open on their own line")
+      key=line; sub(/:.*/, "", key)
+      if (key ~ /"[^"]*\\/) bad("readiness record keys must not use escapes")
       if (line ~ /"expires"/ && line !~ /^"expires"[[:space:]]*:[[:space:]]*"[^"[:cntrl:]]*"[[:space:]]*,?$/)
         bad("waiver fields must sit on their own lines")
       key=line; sub(/^"/, "", key); sub(/".*$/, "", key)

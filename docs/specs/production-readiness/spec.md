@@ -1,6 +1,8 @@
 # Production readiness skill: spec and implementation plan
 
-Status: Rewritten after review; implementation in progress on `feat/production-readiness`.
+Status: Implemented on `feat/production-readiness` (PR #18). Independent acceptance: FAIL at
+`333b07f` on two findings, both fixed afterwards with tests and not re-accepted (see
+"Independent acceptance").
 Base: `579a92a` (origin/main). Version claim: 1.36.0 (`feat/opencode-lane` holds 1.35.0;
 whichever merges second renumbers).
 
@@ -392,6 +394,30 @@ evaluator receives the skill and fixtures, not these expectations.
   about 100 rows forward. The record names `051facfe…` in full. Only the ledger was modified.
 - **P4**: `release-guards.test.sh` passed, with 24 readiness controls seen red before the
   change and green after it.
+
+### Independent acceptance
+
+A different model (Codex, `gpt-6.1-sol`, high effort) verified frozen worktrees against the ten
+criteria. It ran the probes itself before reading the expectations.
+
+- **Round 1 at `07945e1`: FAIL.**
+  - A record that expired during the build or the production confirmation still deployed.
+  - `2026-02-31` was accepted.
+  - Criterion 9 was BLOCKED because CI had not yet run. Criterion 10 was BLOCKED because P2 was
+    not run and the P3 fixture's vague evidence could not show carry-forward.
+  - One correction followed (`333b07f`): a deadline recheck before deploy, and calendar
+    validation with leap years.
+- **Round 2, the single fresh full reverify, at `333b07f`: FAIL.**
+  - Criteria 1-7 passed, and F1 and F2 were confirmed fixed.
+  - Criterion 8 failed: a JSON-escaped waiver key (`"expires"`) bypassed the expiry check.
+  - Criterion 10 failed: the CSS-only probe also reassessed MNT-01, MNT-06 and MNT-07, whose
+    triggers were "any source change".
+  - Criterion 9 was BLOCKED while the Windows CI job was still running.
+- **After the loop.** The verification procedure allows one correction and one reverify, so FAIL
+  stands as the acceptance verdict. Both findings were then fixed:
+  - Escaped keys are refused, with guard tests.
+  - The MNT triggers now name application code, not stylesheets, assets or documents.
+  - These fixes were code-reviewed but not independently re-accepted.
 
 ## Tickets
 
