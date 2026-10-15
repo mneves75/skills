@@ -24,7 +24,7 @@ PY
 trap cleanup EXIT
 python3 - "$LANE" "$TMP" <<'PY'
 # Python 3.10+, standard library only. _profile never launches opencode.
-import contextlib, json, os, pathlib, pwd, shutil, signal, socket, subprocess, sys
+import contextlib, json, os, pathlib, pwd, select, shutil, signal, socket, subprocess, sys
 
 @contextlib.contextmanager
 def home_canary(home, required):
@@ -55,6 +55,12 @@ install = root / 'install'
 for directory in (workspace, lanes, box, outside, install):
     directory.mkdir(mode=0o700, parents=True, exist_ok=True)
 subprocess.run(['git', 'init', '-q', str(workspace)], check=True)
+subprocess.run(['git', '-C', str(workspace), 'config', 'core.hooksPath', '.githooks'], check=True)
+hooks = workspace / '.githooks'
+hooks.mkdir()
+hook = hooks / 'pre-commit'
+hook.write_text('fixture hook, must remain unchanged\n')
+hook_before = hook.read_bytes()
 canary = outside / 'canary'
 canary.write_text('sandbox sibling canary\n')
 home = pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir).resolve()
@@ -78,6 +84,12 @@ def probe(label, command, permitted, profile_path=None):
 probe('workspace write allowed', ['/usr/bin/touch', str(workspace / 'allowed')], True)
 if not (workspace / 'allowed').is_file():
     sys.exit('FAIL: workspace write returned success without creating file')
+try:
+    probe('configured workspace hook write denied',
+          ['/bin/sh', '-c', 'printf overwritten > "$1"', 'probe', str(hook)], False)
+finally:
+    if hook.read_bytes() != hook_before:
+        sys.exit('FAIL: configured hook bytes changed')
 probe('Git directory hook write denied', ['/usr/bin/touch', str(workspace / '.git/hooks/x')], False)
 if (workspace / '.git/hooks/x').exists():
     sys.exit('FAIL: denied Git hook exists')
@@ -176,5 +188,38 @@ preferences = subprocess.run(['/usr/bin/sandbox-exec', '-f', str(profile),
 if len(preferences.stdout) != 0:
     sys.exit(f'FAIL: Finder preferences readable inside sandbox ({len(preferences.stdout)} bytes)')
 print('PASS: Finder preferences returned no data')
+probe('/dev/null write allowed', ['/bin/sh', '-c', 'printf probe > /dev/null'], True)
+master, slave = os.openpty()
+try:
+    slave_path = os.ttyname(slave)
+    os.write(slave, b'control')
+    if not select.select([master], [], [], 2)[0] or os.read(master, 1024) != b'control':
+        sys.exit('FAIL: outside pty positive control')
+    writer = ('import os, sys\n'
+              'fd = os.open(sys.argv[1], os.O_WRONLY | os.O_NOCTTY)\n'
+              'try:\n'
+              '    os.write(fd, b"blocked pty probe")\n'
+              'finally:\n'
+              '    os.close(fd)\n')
+    result = subprocess.run(['/usr/bin/sandbox-exec', '-f', str(profile),
+                             sys.executable, '-c', writer, slave_path],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+    received = len(os.read(master, 1024)) if select.select([master], [], [], .2)[0] else 0
+    if result.returncode == 0 or received != 0:
+        sys.exit(f'FAIL: outside pty write: exit {result.returncode}, {received} bytes received')
+    print('PASS: outside pty write denied, 0 bytes received')
+finally:
+    os.close(master)
+    os.close(slave)
+own_pty = ('import os, select\n'
+           'master, slave = os.openpty()\n'
+           'try:\n'
+           '    os.write(slave, b"own pty")\n'
+           '    if not select.select([master], [], [], 2)[0] or os.read(master, 1024) != b"own pty":\n'
+           '        raise SystemExit("own pty round trip failed")\n'
+           'finally:\n'
+           '    os.close(master)\n'
+           '    os.close(slave)\n')
+probe('own pty write and read allowed', [sys.executable, '-c', own_pty], True)
 print('PASS: real sandbox controls (no model invoked)')
 PY

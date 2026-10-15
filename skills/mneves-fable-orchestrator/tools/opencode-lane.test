@@ -91,6 +91,11 @@ if cmd in ([str(root / 'bin/security'), 'list-keychains'], ['/usr/bin/security',
     print('FAKE PRIVATE KEYCHAIN OUTPUT')
     sys.exit(0 if mode == 'keychain-leak' else 1)
 if cmd[0] == '/bin/sh':
+    hooks_setting = root / 'hooks-path'
+    if hooks_setting.exists() and mode != 'hooks-leak':
+        hooks = hooks_setting.read_text()
+        if cmd[-1] in (hooks, hooks + '/.opencode-lane-selftest'):
+            sys.exit(1)
     if mode != 'git-leak' and (cmd[-1].endswith('/.git') or '/.git/' in cmd[-1]):
         sys.exit(1)
     if mode == 'deny-workspace' and cmd[-1].endswith('.opencode-lane-selftest'):
@@ -334,6 +339,20 @@ try:
         check(rule in profile, f'missing {rule}')
         positions.append(profile.index(rule))
     check(positions == sorted(positions), 'IPC rules reordered')
+    scenario = 'device writes restricted to safe devices and owned ptys'
+    check('(subpath "/dev")' not in profile, 'blanket /dev access restored')
+    device_rules = [
+        '(allow file-write* (literal "/dev/null") (literal "/dev/zero") '
+        '(literal "/dev/dtracehelper") (regex #"^/dev/fd/[0-9]+$"))',
+        '(allow pseudo-tty)',
+        '(allow file-read* file-write* file-ioctl (literal "/dev/ptmx"))',
+        '(allow file-read* file-write* (require-all (regex #"^/dev/ttys[0-9]+$") '
+        '(extension "com.apple.sandbox.pty")))',
+    ]
+    for rule in device_rules:
+        check(rule in profile, f'missing {rule}')
+    check([line for line in profile.splitlines() if 'file-ioctl' in line] == [device_rules[2]],
+          'unexpected blanket device ioctl rule')
     scenario = 'workspace Git entry write deny rule'
     git_rule = f'(deny file-write* (literal "{ws}/.git") (subpath "{ws}/.git"))'
     check(git_rule in profile, 'missing Git entry deny rule')
@@ -358,6 +377,40 @@ try:
     check(pointer.read_bytes() == pointer_before, 'Git pointer changed during append-open self-test')
     (root / 'sandbox-mode').write_text('enforce')
     run('drop', 'linked')
+    scenario = 'effective workspace hooks directory protected each round'
+    hooks = ws / '.githooks'
+    hooks.mkdir()
+    hook = hooks / 'pre-commit'
+    hook.write_text('fixture hook, must remain unchanged\n')
+    (root / 'hooks-path').write_text(str(hooks))
+    subprocess.run(['git', '-C', str(ws), 'config', 'core.hooksPath', '.githooks'], check=True)
+    run('next', 'job', 'refresh hooks protection')
+    hooks_rule = f'(deny file-write* (subpath "{hooks}"))'
+    profile = (lanes / 'job.sb').read_text()
+    check(hooks_rule in profile, 'missing effective hooks directory deny rule')
+    check(profile.index(hooks_rule) > profile.index('(allow file-write*'), 'hooks deny precedes workspace allow')
+    scenario = 'hooks self-test rejects write leakage in rounds and exec'
+    (root / 'sandbox-mode').write_text('hooks-leak')
+    refused(['next', 'job', 'blocked'], 'sandbox self-test failed: Git hooks write allowed')
+    refused(['exec', 'job', '--', '/bin/sh', '-c', ':'], 'sandbox self-test failed: Git hooks write allowed')
+    check(not (hooks / '.opencode-lane-selftest').exists(), 'hooks probe leaked')
+    check(hook.read_text() == 'fixture hook, must remain unchanged\n', 'existing hook changed')
+    scenario = 'exec refreshes protection for missing hooks directory'
+    missing_hooks = ws / 'new-hooks/nested'
+    subprocess.run(['git', '-C', str(ws), 'config', 'core.hooksPath', str(missing_hooks)], check=True)
+    (root / 'hooks-path').write_text(str(missing_hooks))
+    refused(['exec', 'job', '--', '/bin/sh', '-c', ':'], 'sandbox self-test failed: Git hooks write allowed')
+    check(not missing_hooks.parent.exists(), 'mkdir self-test left directories behind')
+    (root / 'sandbox-mode').write_text('enforce')
+    before = len(calls())
+    run('exec', 'job', '--', '/bin/sh', '-c', ':')
+    check(len(calls()) == before, 'exec hooks protection invoked opencode')
+    profile = (lanes / 'job.sb').read_text()
+    check(f'(deny file-write* (subpath "{missing_hooks}"))' in profile, 'exec reused stale hooks directory')
+    subprocess.run(['git', '-C', str(ws), 'config', '--unset', 'core.hooksPath'], check=True)
+    (root / 'hooks-path').unlink()
+    hook.unlink()
+    hooks.rmdir()
     scenario = 'exec command streams, sandbox, environment and exit code'
     gate = bin_dir / 'gate'
     gate.write_text('''#!/usr/bin/env python3

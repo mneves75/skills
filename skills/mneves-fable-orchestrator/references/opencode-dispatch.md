@@ -66,7 +66,9 @@ profile per round and runs the worker under `sandbox-exec`:
   the workspace, the lane's private box, the Git common directory (read-only), the opencode
   install, the real git, and directories you pass with `--allow-read`. Parent directories of
   those are listable, not readable.
-- **Writes** go only to the workspace and the box.
+- **Writes** go only to the workspace and the box, plus `/dev/null`, `/dev/zero`, the process's
+  own descriptors and pseudo-terminals the worker opens itself, so it cannot write into your
+  other terminals.
 - **Keychain and clipboard** services are unreachable.
 - The worker gets a private home and private opencode stores in the box, and an environment
   holding only `PATH`, `LANG`, `TERM`, `PWD` and the box paths. Your sessions, auth, skills and
@@ -83,9 +85,11 @@ profile per round and runs the worker under `sandbox-exec`:
   Keep secrets out of process environments while a lane runs, or isolate the worker under a
   separate macOS user or in a VM.
 - The worker cannot touch Git metadata: writes to the workspace's `.git` entry (a clone's
-  directory or a worktree's pointer file) and to the Git common directory are denied, so it
-  cannot plant hooks or redirect the repository, and it cannot stage or commit. The coordinator
-  commits after acceptance.
+  directory or a worktree's pointer file), to the Git common directory, and to a hooks directory
+  that `core.hooksPath` places inside the workspace are denied, so it cannot plant or change
+  hooks or redirect the repository, and it cannot stage or commit. The coordinator commits after
+  acceptance. Other Git settings that point at files inside the workspace (an `fsmonitor` script,
+  filter or diff drivers) are not protected: review those files in the diff before running git.
 - The environment the worker sees is the lane's allowlist plus the few variables opencode's own
   shell adds (such as `OPENCODE*`, `AGENT`, `SHLVL`).
 
@@ -117,7 +121,7 @@ usually means a toolchain needs `--allow-read`.
 | Records the workspace, its Git top level and common directory at `start`, and checks them again before every round; refuses a second lane on the same workspace. | The harness binds from `$PWD`; two workers would overwrite each other. |
 | Refuses to run when `opencode.json`, `opencode.jsonc` or `.opencode/` exists in the workspace or any ancestor, or `.claude`, `.agents`, `AGENTS.md` or `CLAUDE.md` in any ancestor; exits 5 if the worker created project configuration. | Project configuration outranks the profile and can run code; ancestors leak instructions or abort the harness. |
 | Warms the model catalog with `opencode models` before every round and refuses a model it does not list. | A cold store cannot resolve the model; an ended offer is caught before any call. |
-| Generates the Seatbelt profile and runs a self-test before every round: a workspace write must succeed; a write into the lane's state, a read of its canary and a keychain query must fail. | Containment is proven each time, not assumed. |
+| Generates the Seatbelt profile and runs a self-test before every round and every `exec`: a workspace write must succeed; a write into the lane's state, to the workspace's `.git` entry or to a hooks directory inside the workspace, a read of the lane canary or a home canary, and a keychain query must fail. | Containment is proven each time, not assumed. |
 | Writes a lean profile into the box: no skills, MCP servers or plugins; denies questions, subagents, web tools, Code Mode, outside paths, `.env` reads and common destructive git and `rm` commands. | Fewer tokens and fewer accidents; not the boundary. |
 | Runs the round in its own process group with a first-event timeout and a total timeout (exit 124, no automatic retry). | A silent run may still have had effects. |
 | Replays the model with `--session <id>` on `next`; one writer per lane. | Corrections keep the worker's context. |

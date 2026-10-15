@@ -33,6 +33,10 @@ name collision):
 https://github.com/openclaw/agent-skills/tree/711711b86294673feced9d1cb636b539daf3c218/skills/handoff
 Copyright (c) 2026 openclaw. Distributed under the MIT License included in that skill's directory.
 
+The opencode-lane pseudo-terminal rules (skills/mneves-fable-orchestrator/tools/opencode-lane)
+are adapted from the Seatbelt base policy of the OpenAI Codex CLI (https://github.com/openai/codex),
+Copyright OpenAI, distributed under the Apache License, Version 2.0.
+
 Original repository work is licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at

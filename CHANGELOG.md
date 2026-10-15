@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   load, project configuration and plugins, hot-reloaded permissions, shell rules that `bash -c`
   bypasses), the residual network risk, failure classes, escalation back to the Codex worker and
   the evidence a role binding would need.
-- **Evaluation spec** (`docs/specs/opencode-worker/`): twenty-one reproduced harness hazards and one hypothesis, three
+- **Evaluation spec** (`docs/specs/opencode-worker/`): twenty-three reproduced harness hazards and one hypothesis, three
   adversarial reviews and an auditable four-task benchmark (briefs, hidden tests, grader) against
   the Codex worker.
 - **Glossary**: lane and containment boundary.

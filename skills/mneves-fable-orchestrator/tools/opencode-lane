@@ -275,11 +275,23 @@ def preconditions(state, lane_dir, state_file):
         die(f'project agent configuration refused: {config}')
 
 
+def workspace_hooks(workspace):
+    result = subprocess.run(['git', '-C', workspace, 'rev-parse', '--git-path', 'hooks'],
+                            capture_output=True, text=True)
+    if result.returncode or not result.stdout.rstrip('\n'):
+        die(f'cannot resolve Git hooks directory: {workspace}')
+    hooks = (Path(workspace) / result.stdout.rstrip('\n')).resolve()
+    if hooks.is_relative_to(workspace) and not hooks.is_relative_to(Path(workspace) / '.git'):
+        return hooks
+    return None
+
+
 def profile(state, box, target):
+    hooks = workspace_hooks(state['workspace'])
     roots = [state['workspace'], str(box), state['git_common'], state['opencode_root'],
              state['git_dir'], *state['allow_read']]
     homes = list(dict.fromkeys([account_home(), physical(os.environ['HOME'])]))
-    for path in [*homes, *roots]:
+    for path in [*homes, *roots, *([str(hooks)] if hooks is not None else [])]:
         if not os.path.isabs(path) or any(c in path for c in ('"', '\\', '\n', '\r')):
             die(f'unsafe sandbox path: {path!r}')
     ancestors = sorted({str(parent) for root in roots for parent in Path(root).parents
@@ -305,10 +317,19 @@ def profile(state, box, target):
         f'(allow file-read-data {listings} {reads})',
         '(deny file-write* (subpath "/"))',
         f'(allow file-write* (subpath "{state["workspace"]}") '
-        f'(subpath "{box}") (subpath "/dev"))',
+        f'(subpath "{box}"))',
+        # Device rules adapted from OpenAI Codex's Seatbelt base policy (Apache-2.0).
+        '(allow file-write* (literal "/dev/null") (literal "/dev/zero") '
+        '(literal "/dev/dtracehelper") (regex #"^/dev/fd/[0-9]+$"))',
+        '(allow pseudo-tty)',
+        '(allow file-read* file-write* file-ioctl (literal "/dev/ptmx"))',
+        '(allow file-read* file-write* (require-all (regex #"^/dev/ttys[0-9]+$") '
+        '(extension "com.apple.sandbox.pty")))',
         f'(deny file-write* (literal "{state["workspace"]}/.git") '
-        f'(subpath "{state["workspace"]}/.git"))', '',
+        f'(subpath "{state["workspace"]}/.git"))',
+        *([f'(deny file-write* (subpath "{hooks}"))'] if hooks is not None else []), '',
     ]))
+    return hooks
 
 
 def prepare_box(box):
@@ -319,7 +340,7 @@ def prepare_box(box):
         directory.mkdir(mode=0o700, exist_ok=True)
 
 
-def selftest(state, sandbox, security, profile_path, lane_dir, lane):
+def selftest(state, sandbox, security, profile_path, lane_dir, lane, hooks):
     inside = Path(state['workspace']) / '.opencode-lane-selftest'
     outside = lane_dir / f'{lane}.sbx-probe'
     if os.path.lexists(inside) or os.path.lexists(outside):
@@ -337,6 +358,21 @@ def selftest(state, sandbox, security, profile_path, lane_dir, lane):
     elif git_entry.is_file():
         tests.append(('Git entry write', ': >> "$1"', git_entry, False))
     # A repository subdirectory has no .git entry, so there is nothing to probe.
+    probes = [inside, outside, git_probe]
+    missing_dirs = []
+    if hooks is not None:
+        if hooks.exists():
+            hook_probe = hooks / '.opencode-lane-selftest'
+            if os.path.lexists(hook_probe):
+                die('sandbox self-test failed: Git hooks probe path already exists')
+            probes.append(hook_probe)
+            tests.append(('Git hooks write', 'touch "$1"', hook_probe, False))
+        else:
+            current = hooks
+            while not os.path.lexists(current):
+                missing_dirs.append(current)
+                current = current.parent
+            tests.append(('Git hooks write', 'mkdir -p "$1"', hooks, False))
     try:
         for operation, script, path, must_succeed in tests:
             result = subprocess.run([sandbox, '-f', str(profile_path), '/bin/sh', '-c',
@@ -351,9 +387,12 @@ def selftest(state, sandbox, security, profile_path, lane_dir, lane):
         if result.returncode == 0:
             die('sandbox self-test failed: keychain access allowed')
     finally:
-        for path in (inside, outside, git_probe):
+        for path in probes:
             if os.path.lexists(path):
                 path.unlink()
+        for directory in missing_dirs:
+            if directory.is_dir() and not directory.is_symlink():
+                directory.rmdir()
 
 
 def write_config(box):
@@ -475,8 +514,8 @@ def prepare_sandbox(state, lane_dir, lane, sandbox, security):
     box, profile_path = lane_dir / f'{lane}.box', lane_dir / f'{lane}.sb'
     prepare_box(box)
     atomic_write(lane_dir / f'{lane}.canary', 'opencode-lane private canary\n')
-    profile(state, box, profile_path)
-    selftest(state, sandbox, security, profile_path, lane_dir, lane)
+    hooks = profile(state, box, profile_path)
+    selftest(state, sandbox, security, profile_path, lane_dir, lane, hooks)
     return box, profile_path
 
 

@@ -138,3 +138,16 @@ workspace's `.git` entry (proved by the self-test and by the real sandbox test: 
 pointer append both denied) and adds `opencode-lane exec`, which runs the coordinator's gates
 inside the same sandbox. After the fix, a live round on a real model passed (84 s) and `exec`
 ran a gate in the box and passed the command's exit code through.
+
+### Re-verification
+
+A second verifier on a different model, in a fresh context, rechecked all six criteria from
+scratch plus the Git regression and passed all seven; its mutations, live rounds and hostile
+worker found the `.git` entry protected in both layouts. Its adversarial probe found two more
+gaps: hooks kept in the workspace through `core.hooksPath` (this repository uses `.githooks`)
+and writes into another pty through `/dev`. Both are fixed: the effective hooks directory is
+resolved and write-denied every round, and `/dev` writes are limited to `null`, `zero`, own
+descriptors and pseudo-terminals the worker opens. The real-sandbox test now has 20 checks
+(including a configured hook left byte-identical, an outside pty receiving 0 bytes, and the
+worker's own pty round-trip), and a live round in a worktree of this repository (which sets
+`core.hooksPath`) passed while a sandboxed write to `.githooks/pre-commit` was denied.
