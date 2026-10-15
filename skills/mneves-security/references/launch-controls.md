@@ -2,7 +2,7 @@
 
 Read this in deploy-gate mode and whenever a request asks whether an application is safe to put
 in front of paying customers. These 32 controls are the security, privacy and compliance checks a
-launch needs beyond the twelve review areas in [audit.md](audit.md). Each names the audit area
+launch needs beyond the twelve review areas of the audit reference. Each names the audit area
 that holds its depth. A separately installed production-readiness review, when present, owns
 the operational, data-integrity, billing, product and people checks and imports these rows by ID;
 without it, this skill still covers the security slice completely.
@@ -13,11 +13,13 @@ without it, this skill still covers the security slice completely.
   pays, which contracts, which data). The `applies` note narrows a control. Not applicable needs
   a reason ("no login surface", "no health records and no contract asks for SOC 2"); a control
   that is hard to check is NOT TESTED, never N/A. An undetermined regulated-data question is
-  BLOCKED until the owner answers it.
+  BLOCKED until the owner answers it: a plan item on dev and staging, a named waiver for
+  production.
 - **Evidence.** `source`: source or configuration inspection settles it. `test`: a test or
   local run with synthetic data. `runtime`: the deployed target or provider state. `owner`: a
   document, contract or named person. Source-only evidence never makes a `runtime` or `owner`
-  control Yes.
+  control Yes. Before a deploy, configuration evidence for that target meets a `runtime`
+  control; its live check then joins the release's live proof.
 - **Findings.** A failed control that is exploitable is a finding with severity and
   confidence, recorded once and cited from the row. A missing control is also a finding: name
   what the product lacks and the smallest durable way to add it.
@@ -57,7 +59,7 @@ without it, this skill still covers the security slice completely.
   is time-limited and visible, cannot change credentials or reach the most sensitive actions, and
   writes an audit event for every use. Applies: when impersonation exists. Areas 2 and 11.
   `source`, `test`
-- **SEC-10 Login throttling and lockout.** Login, reset, MFA and signup are throttled per account
+- **SEC-10 Login throttling.** Login, reset, MFA and signup are throttled per account
   and per source, and the limit holds across instances. Escalating delays or a challenge stop
   guessing at scale without letting an attacker lock a real user out. Applies: accounts.
   Areas 3, 9 and 10. `test`

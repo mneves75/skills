@@ -41,9 +41,10 @@ Keep task completion, security readiness and launch approval as separate conclus
 
 ## Gate verdict record
 
-In deploy-gate mode, write the report to `<unit>/.scratch/security-gate/<target>.md` and
-this record next to it as `<target>.json`, where `<unit>` is the deployable unit's
-directory (`.` for a single-unit repository). Confirm with `git check-ignore` that the
+In deploy-gate mode, write the report to `<unit>/.scratch/security-gate/<commit>/<target>.md`
+and this record next to it as `<target>.json`, where `<unit>` is the deployable unit's
+directory (`.` for a single-unit repository) and `<commit>` the full SHA. One folder per
+commit keeps earlier verdicts for reuse and rollback. Confirm with `git check-ignore` that the
 path is ignored; if it is not, write both to the release's evidence location and say
 where. Never commit them into the candidate: that would change the audited commit.
 
@@ -51,10 +52,11 @@ where. Never commit them into the candidate: that would change the audited commi
 {
   "schema": 1,
   "unit": ".",
-  "target": "staging",
+  "target": "production",
   "commit": "<full 40-character SHA>",
-  "verdict": "pass",
+  "verdict": "waived",
   "open_blockers": 0,
+  "blockers": "",
   "independent_acceptance": "pass",
   "reused_from": "",
   "created_at": "2026-10-15T19:00:00Z",
@@ -69,15 +71,20 @@ where. Never commit them into the candidate: that would change the audited commi
 }
 ```
 
-- `target` is `staging` or `production`; `verdict` is `pass`, `block` or `waived`.
+- `target` is `dev`, `staging` or `production`; `verdict` is `pass`, `block` or `waived`.
 - `open_blockers` counts blocks with no fix, disproof or waiver; `verdict` is `block`
   exactly when it is above 0, and `waived` when it is 0 but `waivers` is not empty.
-- `independent_acceptance` is `pass`, `fail` or `blocked`; only `pass` allows `pass`.
+- `blockers` lists the open blocks' IDs, separated by spaces, so the decision packet can
+  name each one; it is empty when `open_blockers` is 0.
+- `independent_acceptance` is `pass`, `fail` or `blocked`. For production only `pass` allows
+  a `pass` verdict; on dev and staging a `blocked` value is a plan item, not a block.
 - `reused_from` names the commit whose full audit this run reused, or stays empty.
 - Each scalar and each waiver field sits on its own line, every object opens with `{` on
   its own line, keys carry no escapes, and timestamps are UTC `YYYY-MM-DDTHH:MM:SSZ`, so a
-  shell script can read the record without a JSON parser. A waiver's `id` is a finding ID
-  or a launch-control ID; its target is the record's own.
+  shell script can read the record without a JSON parser. A waiver's `id` is a finding ID,
+  a launch-control ID, or `gate:<part>` for a gate step (`gate:independent-acceptance`,
+  `gate:audit` for an urgent fix deployed before its audit). The record's commit and
+  target are the waiver's scope, so a waiver object never repeats them.
 
 ## 1. Executive summary
 

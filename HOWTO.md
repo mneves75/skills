@@ -56,15 +56,17 @@ AI/agentic/mobile checks when those surfaces exist.
 or AI application, or safe implementation of its confirmed remediation items. Audit
 and plan requests remain read-only; a fix request authorizes its in-scope local patches.
 
-**Deploy gate.** Every staging or production deploy runs it first, whatever starts the
-deploy (`ship-staging`, `ship-prod`, a release script, CI, TestFlight or a store upload). It
+**Deploy gate.** Every dev-stop, staging or production deploy runs it first, whatever starts
+the deploy (`ship-staging`, `ship-prod`, a release script, CI, TestFlight, an over-the-air
+update or a store upload). It
 audits the exact candidate in full: the twelve areas plus 32 launch controls (`SEC-01` to
 `SEC-23`, `CMP-01` to `CMP-09`). It returns a fix plan and a PASS, BLOCK or WAIVED verdict
 for that commit and target. A confirmed Critical or High finding blocks both targets until
 it is fixed, disproved or waived by you by name; for production, every unmet applicable
-launch control also needs your named waiver. A production deploy of the commit staging
-already passed reuses that audit, a rollback to a gated build needs none, and an urgent fix
-ships under your waiver with its audit right after. The report stays private; public PRs
+launch control and a missing independent acceptance also need your named waiver. One audit
+serves every target of the same commit, a rollback to a gated build needs none, and an urgent
+fix ships under your waiver with its audit right after. Without the skill, a release is
+blocked until it is installed or you waive the gate. The report stays private; public PRs
 and changelogs cite only the verdict and finding IDs.
 
 **Illustrative request (Codex):**
@@ -619,6 +621,8 @@ includes production tags and pushes.
 the authorized reviews and staging verification, presents the candidate, evidence, risks,
 and rollback plan, and waits for your OK before production. "ship-staging" stops after
 verified staging; plain "ship" does not select an environment or authorize deployment.
+When the project documents a dev environment, both modes deploy, prove and tag the same
+commit there first (`vX.Y.Z-alpha<N>`), then staging.
 
 Review and deployment integrations are optional. If a named skill is unavailable, the agent
 uses the repository's documented equivalent with the same gates, or reports the missing

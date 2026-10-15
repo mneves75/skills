@@ -18,8 +18,8 @@ and data exposure over checklist volume. A clean scan does not prove a secure ap
 - **Fix or implement:** make confirmed, minimal, in-scope code/config changes and run
   non-destructive checks. Preserve unrelated edits, behavior and public contracts
   except where the agreed security/correctness fix requires a change.
-- **Deploy gate:** before any staging or production deployment, audit the exact
-  candidate in full and return a PASS, BLOCK or WAIVED verdict with its plan (see
+- **Deploy gate:** before any dev-stop, staging or production deployment, audit the
+  exact candidate in full and return a PASS, BLOCK or WAIVED verdict with its plan (see
   [Deploy gate](#deploy-gate)). Read-only unless the release task also authorizes fixes.
 - **Delivery:** commits, pushes, PRs, tags, staging, store submissions, merges and
   production deployment follow the current task's exact authorization and the host's
@@ -188,44 +188,52 @@ release procedure. Never auto-merge/deploy because an audit report is complete.
 ## Deploy gate
 
 Run this mode before every deployment of an application, service, site or app build to a
-staging or production target, whatever starts it: a release command or script, a CI job,
-a push, merge or tag that deploys, a TestFlight or internal-track upload, or a store
-submission. This skill gives no deploy a pass without a verdict for its exact commit and
-target.
+dev stop, staging or production, whatever starts it: a release command or script, a CI
+job, a push, merge or tag that deploys, a TestFlight or internal-track upload, an
+over-the-air update, or a store submission. Staging is any shared pre-production
+environment; a per-branch preview counts when the project uses it as staging or it can
+reach shared data or real users. A dev stop is the first target of a release chain that
+goes dev, staging, production. This skill gives no deploy a pass without a verdict for
+its exact commit and target.
 
-1. **Freeze the candidate.** Record repository, full commit SHA, version, unit and
-   target. Audit those bytes; any other change makes a new candidate, except the release
-   bookkeeping described under reuse below.
+1. **Freeze the candidate.** Run the gate after every other release change has landed,
+   so it audits the final content. Record repository, full commit SHA, version, unit
+   and target, and bind the verdict to that commit before any push, merge or tag that
+   deploys it. The only change allowed after the audit is release bookkeeping: version
+   strings, changelog and release notes, never runtime configuration. Any other change,
+   this gate's own fixes included, makes a new candidate with a new full audit.
 2. **Audit in full.** Run Execution steps 1 to 4 over the candidate's entire first-party
    source: all twelve areas and every applicable
    [launch control](references/launch-controls.md). Mark each finding as introduced since
    the last gated release or pre-existing. Apply only the fixes the release task
    authorizes (Execution step 5); the rest goes into the plan.
-3. **Review independently** as in Execution step 6. PASS needs independent acceptance;
-   while no independent reviewer is available, the gate blocks until one runs or the
-   owner waives.
-4. **Decide.** Block while a confirmed Critical or High finding is open or a mandatory
-   part of the audit could not run; for production, also while an applicable launch
-   control is not Yes. A fix, disproving evidence or the owner's named waiver (owner,
-   scope, reason, expiry) in the release decision packet clears a block; waivers make the
-   verdict WAIVED, no block makes it PASS. Medium and lower findings, and launch-control
-   gaps on staging, go into the plan without blocking.
+3. **Review independently** as in Execution step 6. Production needs independent
+   acceptance. On dev and staging, an unavailable reviewer is recorded as
+   `gate:independent-acceptance` in the plan and does not block.
+4. **Decide.** The gate blocks every target while a confirmed Critical or High finding is
+   open, or an area's source could not be inspected. Production also blocks while an
+   applicable launch control is not Yes or independent acceptance has not passed. Before
+   a deploy, configuration evidence meets a `runtime` control; for production, so does
+   the same commit's runtime evidence from an earlier target. A fix, disproving evidence
+   or the owner's named waiver (owner, reason, expiry) in the release decision packet
+   clears a block. Waivers make the verdict WAIVED; no block makes it PASS. Medium and
+   lower findings, and launch-control gaps on dev and staging, go into the plan.
 5. **Record.** Write the verdict record and report as the report reference describes,
-   outside the tracked tree. After the deploy, run the runtime checks (headers, cookies,
-   CORS, TLS) against the target as part of the live proof; a failure fails the release.
+   outside the tracked tree. After each deploy, the runtime checks (headers, cookies,
+   CORS, TLS) join the release's live proof for that target. A failure there fails the
+   release: no tag, then fix forward or roll back by the release procedure.
 
 Reuse and exemptions:
 
-- A production deploy of the commit that passed the staging gate reuses that audit:
-  re-read advisories, assess the production-only launch controls and run the runtime
-  checks against production. Any other change needs a new full audit.
-- A release flow may audit the release content before its release commit exists. The
-  audit then binds to the pushed commit when the difference is only release bookkeeping
-  (version, changelog, release notes, documentation; scanned for secrets) and this
-  gate's own fixes, verified as in Execution step 6. Anything else is a new candidate.
-- Rolling back to a build that already passed the gate for that target needs no audit.
-- An urgent fix may deploy under the owner's named waiver; its full audit runs right
-  after the deploy, and the findings follow the same rules.
+- One full audit per commit. A later target for the same commit (dev, then staging,
+  then production) reuses it: re-read the advisories, assess the launch controls whose
+  evidence depends on that target's environment, and run its runtime checks.
+- Rolling back needs no new audit when the build passed the gate for that target: its
+  release tag for that target exists, or a gate record names its commit. A rollback to a
+  build that predates the gate needs the owner's named waiver.
+- An urgent fix may deploy under the owner's named waiver (`gate:audit`). Its full audit
+  runs right after the deploy. A Critical or High finding there is the next fix, or the
+  owner decides to roll back.
 
 The report and record stay private. A public repository's PR, issue, tag, changelog or
 release notes cite only the verdict and finding IDs, never open vulnerability details.
