@@ -1,0 +1,489 @@
+#!/usr/bin/env bash
+# Fake-only end-to-end checks. Never resolves or invokes the host's opencode.
+set -euo pipefail
+umask 077
+LANE="$(cd "$(dirname "$0")" && pwd -P)/opencode-lane"
+TMP="$(mktemp -d)"
+cleanup() {
+  python3 - "$TMP" <<'PY'
+import os, pathlib, shutil, signal, sys
+root = pathlib.Path(sys.argv[1])
+for file in root.glob('*.pid'):
+    try:
+        os.kill(int(file.read_text()), signal.SIGKILL)
+    except (ProcessLookupError, ValueError):
+        pass
+shutil.rmtree(root)
+PY
+}
+trap cleanup EXIT
+mkdir -p "$TMP/bin"
+cat > "$TMP/bin/opencode" <<'PY'
+#!/usr/bin/env python3
+import json, os, pathlib, subprocess, sys, time
+root = pathlib.Path(__file__).resolve().parent.parent
+mode = (root / 'mode').read_text().strip()
+args = sys.argv[1:]
+with (root / 'calls').open('a') as out:
+    out.write(json.dumps(dict(argv=args, stdin=sys.stdin.read(), env=dict(os.environ),
+                              cwd=os.getcwd())) + '\n')
+if args == ['models', '--standalone']:
+    print((root / 'models-list').read_text(), end='', flush=True)
+    if (root / 'models-mode').read_text() == 'slow':
+        time.sleep(40)
+    sys.exit(int((root / 'models-exit').read_text()))
+elif args[:2] == ['session', 'export']:
+    if mode == 'export-write-config':
+        pathlib.Path('opencode.json').write_text('{}')
+    model = 'other-model' if mode == 'wrong-model' else 'fake-model'
+    print(json.dumps({'info': {'model': {'providerID': 'fakeprov', 'id': model}}}))
+elif args[:1] == ['run']:
+    if mode == 'provider-error':
+        message = (root / 'provider-message').read_text()
+        print(json.dumps({'type': 'error', 'error': {'type': 'provider.no-route', 'message': message}}))
+        sys.exit(int((root / 'provider-exit').read_text()))
+    if mode == 'hang':
+        child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(40)'])
+        (root / 'grandchild.pid').write_text(str(child.pid))
+        time.sleep(40)
+    if mode == 'partial':
+        print('{', end='', flush=True)
+        time.sleep(40)
+    session = (root / 'session').read_text().strip()
+    print(json.dumps({'type': 'step_start', 'sessionID': session}), flush=True)
+    if mode == 'slow':
+        time.sleep(40)
+    if mode == 'write-config':
+        pathlib.Path('opencode.json').write_text('{}')
+    if mode != 'no-text':
+        for text in ['hello ', (root / 'text').read_text()]:
+            print(json.dumps({'type': 'text', 'part': {'text': text}}), flush=True)
+    if mode == 'fail':
+        print('fake backend failed', file=sys.stderr)
+        sys.exit(17)
+else:
+    sys.exit('unexpected fake opencode arguments')
+PY
+cat > "$TMP/bin/sandbox" <<'PY'
+#!/usr/bin/env python3
+import json, os, pathlib, sys
+root = pathlib.Path(__file__).resolve().parent.parent
+args = sys.argv[1:]
+assert args[0] == '-f' and pathlib.Path(args[1]).is_file()
+with (root / 'sandbox-calls').open('a') as out:
+    out.write(json.dumps(args) + '\n')
+cmd = args[2:]
+mode = (root / 'sandbox-mode').read_text().strip()
+if cmd == ['/usr/bin/security', 'list-keychains']:
+    print('FAKE PRIVATE KEYCHAIN OUTPUT')
+    sys.exit(0 if mode == 'keychain-leak' else 1)
+if cmd[0] == '/bin/sh':
+    if mode == 'deny-workspace' and cmd[-1].endswith('.opencode-lane-selftest'):
+        sys.exit(1)
+    if mode != 'leak' and cmd[-1].endswith('.sbx-probe'):
+        sys.exit(1)
+    if mode not in ('leak', 'canary-leak') and cmd[-1].endswith('.canary'):
+        sys.exit(1)
+os.execvp(cmd[0], cmd)
+PY
+chmod +x "$TMP/bin/opencode" "$TMP/bin/sandbox"
+python3 - "$LANE" "$TMP" <<'PY'
+# Python 3.10+, standard library only.
+import ast, contextlib, json, os, pathlib, re, shutil, signal, stat, subprocess, sys, time
+
+tool, root = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]).resolve()
+bin_dir = root / 'bin'
+lanes = root / 'lanes'
+ws = root / 'parent' / 'ws'
+ws.mkdir(parents=True)
+subprocess.run(['git', 'init', '-q', str(ws)], check=True)
+env = dict(os.environ, PATH=str(bin_dir) + ':' + os.environ['PATH'],
+           OPENCODE_LANE_DIR=str(lanes), OPENCODE_LANE_SANDBOX_EXEC=str(bin_dir / 'sandbox'),
+           SECRET_TOKEN='x', PWD='/deliberately/wrong')
+spec = root / 'spec'
+spec.write_text('private prompt\nsecond line\n')
+(root / 'mode').write_text('ok')
+(root / 'sandbox-mode').write_text('enforce')
+(root / 'session').write_text('s-123')
+(root / 'text').write_text('world')
+(root / 'calls').touch()
+(root / 'provider-message').write_text('Model unavailable: fakeprov/fake-model')
+(root / 'provider-exit').write_text('1')
+(root / 'models-list').write_text('fakeprov/other-model\n  fakeprov/fake-model  \n')
+(root / 'models-exit').write_text('0')
+(root / 'models-mode').write_text('ok')
+scenario = 'start records session and prints final text'
+
+def check(value, message):
+    if not value:
+        raise AssertionError(f'{scenario}: {message}')
+
+def run(*args, code=0, cwd=ws, input=None, overrides=None):
+    result = subprocess.run(['bash', str(tool), *args], cwd=cwd,
+                            env=env | (overrides or {}), input=input, text=True,
+                            capture_output=True, timeout=12)
+    check(result.returncode == code,
+          f'expected exit {code}, got {result.returncode}: {result.stderr}')
+    return result
+
+def calls():
+    return [json.loads(line) for line in (root / 'calls').read_text().splitlines()]
+
+def start(name='job', **kwargs):
+    return run('start', name, str(spec), '-m', 'fakeprov/fake-model', **kwargs)
+
+def refused(args, message, **kwargs):
+    before = len(calls())
+    result = run(*args, code=2, **kwargs)
+    check(message in result.stderr, f'missing diagnostic {message!r}: {result.stderr}')
+    check(len(calls()) == before, 'model called on refused precondition')
+
+def alive(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    # Linux containers can retain orphan zombies; macOS reaps them via launchd.
+    if sys.platform.startswith('linux'):
+        try:
+            return pathlib.Path(f'/proc/{pid}/stat').read_text().rsplit(')', 1)[1].split()[0] != 'Z'
+        except FileNotFoundError:
+            return False
+    return True
+
+try:
+    result = start()
+    check(result.stdout.strip() == 'hello world', result.stdout)
+    check(run('id', 'job').stdout.strip() == 's-123', 'session not persisted')
+    scenario = 'catalog warmed before run with identical sandbox and environment'
+    check(len(calls()) == 3, 'expected models, run and export')
+    catalog, first, exported = calls()
+    check(catalog['argv'] == ['models', '--standalone'], 'catalog command missing or out of order')
+    check(catalog['stdin'] == '', 'prompt sent to catalog command')
+    check(catalog['env'] == first['env'] == exported['env'], 'catalog environment differs')
+    check(catalog['cwd'] == first['cwd'], 'catalog workspace differs')
+    sandbox_calls = [json.loads(line) for line in (root / 'sandbox-calls').read_text().splitlines()]
+    workers = [call for call in sandbox_calls if call[2] == 'opencode']
+    check([call[3:] for call in workers] == [call['argv'] for call in calls()], 'worker bypassed sandbox')
+    check(all(call[:3] == ['-f', str(lanes / 'job.sb'), 'opencode'] for call in workers),
+          'catalog sandbox prefix differs')
+    scenario = 'prompt only on stdin'
+    check(first['stdin'] == spec.read_text(), 'prompt lost')
+    check(all('private prompt' not in a for a in first['argv']), 'prompt in argv')
+    check(first['argv'] == ['run', '--standalone', '--format', 'json', '-m',
+                            'fakeprov/fake-model', '--title', 'job'], first['argv'])
+    check(exported['argv'] == ['session', 'export', '--standalone', 's-123'], exported['argv'])
+    scenario = 'PWD binding'
+    check(first['env']['PWD'] == str(ws), first['env'].get('PWD'))
+    check(first['cwd'] == str(ws), first['cwd'])
+    scenario = 'environment allowlist'
+    allowed = {'PATH', 'LANG', 'TERM', 'PWD', 'HOME', 'XDG_CONFIG_HOME', 'XDG_DATA_HOME',
+               'XDG_STATE_HOME', 'XDG_CACHE_HOME', 'TMPDIR'}
+    # CPython coerces LC_CTYPE; macOS CoreFoundation adds its encoding variable
+    # even under env -i. These are runtime additions, not caller credentials.
+    runtime = {'LC_CTYPE'} | ({'__CF_USER_TEXT_ENCODING'} if sys.platform == 'darwin' else set())
+    check(set(first['env']) <= allowed | runtime, first['env'].keys())
+    check('SECRET_TOKEN' not in first['env'], 'secret leaked')
+    check(first['env']['TERM'] == 'dumb', 'TERM not bound')
+    box = lanes / 'job.box'
+    for key, suffix in [('HOME', 'home'), ('XDG_CONFIG_HOME', 'config'),
+                        ('XDG_DATA_HOME', 'data'), ('XDG_STATE_HOME', 'state'),
+                        ('XDG_CACHE_HOME', 'cache'), ('TMPDIR', 'tmp')]:
+        check(first['env'][key] == str(box / suffix), key)
+    check(exported['env'] == first['env'], 'export environment differs')
+    scenario = 'profile and permission rules'
+    profile = (lanes / 'job.sb').read_text()
+    for rule in ['(version 1)', '(allow default)', '(deny file-read-data',
+                 '(subpath "/Volumes")', '(subpath "/private/tmp")',
+                 '(subpath "/private/var/folders")', '(deny file-write* (subpath "/"))',
+                 f'(subpath "{ws}")', f'(subpath "{box}")', f'(literal "{ws.parent}")']:
+        check(rule in profile, f'missing {rule}')
+    check('(subpath "/Volumes")' not in profile.split('(allow file-read-data', 1)[1],
+          '/Volumes allowed')
+    check(f'(subpath "{pathlib.Path(os.environ["HOME"]).resolve()}")' in profile,
+          'real home not denied')
+    state = json.loads((lanes / 'job.json').read_text())
+    git_binary = subprocess.check_output(['xcrun', '--find', 'git'], text=True).strip() if \
+        __import__('shutil').which('xcrun') else __import__('shutil').which('git')
+    git_dir = str(pathlib.Path(git_binary).resolve().parent)
+    check(first['env']['PATH'].split(':')[0] == git_dir, 'real git not first on PATH')
+    for key in ['workspace', 'git_top', 'git_common', 'opencode_root', 'git_dir', 'allow_read',
+                'model', 'timeout', 'first_event_timeout']:
+        check(key in state, f'not recorded: {key}')
+    check(state['timeout'] == 1800 and state['first_event_timeout'] == 120, 'wrong defaults')
+    config = json.loads((box / 'config/opencode/opencode.json').read_text())
+    permissions = config['permissions']
+    scenario = 'ordered permission rule array'
+    check(isinstance(permissions, list), 'permissions must be an array')
+    check(all(isinstance(rule, dict) and set(rule) == {'action', 'resource', 'effect'}
+              and rule['effect'] in ('allow', 'deny') for rule in permissions), 'invalid rule shape')
+    expected_rules = [(action, '*') for action in
+                      ['skill', 'question', 'subagent', 'webfetch', 'websearch', 'execute', 'external_directory']]
+    expected_rules += [('read', '*.env'), ('read', '*.env.*')]
+    expected_rules += [('shell', pattern) for pattern in
+                       ['git reset --hard *', 'git clean *', 'git push *', 'git checkout -- *', 'rm -rf *']]
+    check(permissions == [{'action': action, 'resource': resource, 'effect': 'deny'}
+                          for action, resource in expected_rules], 'missing or reordered deny rule')
+    check('plugin' not in config and 'mcp' not in config, 'plugin or MCP configured')
+    check('ask' not in json.dumps(permissions), 'interactive permission')
+    for path in [lanes / 'job.canary', box / 'config/opencode/opencode.json', lanes / 'job.json']:
+        check(stat.S_IMODE(path.stat().st_mode) == 0o600, str(path))
+    check(stat.S_IMODE(lanes.stat().st_mode) == 0o700, 'lane dir not private')
+    scenario = 'Mach service isolation profile'
+    check('(deny mach-lookup (global-name "com.apple.SecurityServer") '
+          '(global-name "com.apple.securityd.xpc") (global-name "com.apple.security.keychain-db") '
+          '(global-name "com.apple.pasteboard.1"))' in profile, 'missing Mach service deny rule')
+    if pathlib.Path('/usr/bin/security').exists():
+        scenario = 'keychain self-test refuses readable search list'
+        (root / 'sandbox-mode').write_text('keychain-leak')
+        before = len(calls())
+        result = run('next', 'job', 'blocked', code=2)
+        check('sandbox self-test failed: keychain access allowed' in result.stderr, result.stderr)
+        check('FAKE PRIVATE' not in result.stdout + result.stderr, 'keychain output exposed')
+        check(len(calls()) == before, 'model called despite readable keychain')
+        (root / 'sandbox-mode').write_text('enforce')
+    scenario = 'next replays session, workspace and model'
+    (root / 'text').write_text('again')
+    run('next', 'job', '-', cwd=root, input='follow-up on stdin')
+    latest = calls()[-2]
+    check(calls()[-3]['argv'] == ['models', '--standalone'], 'next did not refresh catalog')
+    check(calls()[-3]['env'] == latest['env'], 'next catalog environment differs')
+    check(latest['argv'][-2:] == ['--session', 's-123'], latest['argv'])
+    check('fakeprov/fake-model' in latest['argv'], 'model changed')
+    check(latest['stdin'] == 'follow-up on stdin', 'next stdin lost')
+    check(latest['env']['PWD'] == str(ws) and latest['cwd'] == str(ws), 'next cwd changed')
+    scenario = 'management commands and lock contention'
+    check(run('last', 'job').stdout.strip() == 'hello again', 'last differs')
+    log = pathlib.Path(run('log', 'job').stdout.strip())
+    check(log.is_file() and log.name.endswith('.events.jsonl'), 'missing events')
+    listing = run('list').stdout
+    check(all(v in listing for v in ['job', str(ws), 'fakeprov/fake-model']), listing)
+    (lanes / 'job.lock').mkdir()
+    refused(['next', 'job', 'locked'], 'busy')
+    refused(['drop', 'job'], 'busy')
+    (lanes / 'job.lock').rmdir()
+    scenario = 'two lanes on one workspace refused'
+    refused(['start', 'duplicate', str(spec), '-m', 'fakeprov/fake-model'], 'workspace')
+    scenario = 'ancestor project-config refusal'
+    ancestor = ws.parent / '.opencode'
+    ancestor.mkdir()
+    refused(['next', 'job', 'blocked'], str(ancestor))
+    ancestor.rmdir()
+    scenario = 'strict ancestor agent instructions refused'
+    for name in ['.claude', '.agents', 'AGENTS.md', 'CLAUDE.md']:
+        ancestor = ws.parent / name
+        if name.startswith('.'):
+            ancestor.mkdir()
+        else:
+            ancestor.write_text('ancestor instructions')
+        message = (f'agent configuration or instructions in an ancestor of the workspace: {ancestor}; '
+                   'opencode reads every ancestor up to /. Create the worktree outside your home, '
+                   'e.g. git worktree add /tmp/<name>')
+        refused(['next', 'job', 'blocked'], message)
+        ancestor.rmdir() if ancestor.is_dir() else ancestor.unlink()
+    scenario = 'workspace-owned agent instructions allowed'
+    for name in ['AGENTS.md', 'CLAUDE.md']:
+        (ws / name).write_text('repository instructions')
+    for name in ['.claude', '.agents']:
+        (ws / name).mkdir()
+    run('next', 'job', 'use repository instructions')
+    for name in ['AGENTS.md', 'CLAUDE.md']:
+        (ws / name).unlink()
+    for name in ['.claude', '.agents']:
+        (ws / name).rmdir()
+    scenario = 'unoffered catalog model refused before run'
+    (root / 'models-list').write_text('fakeprov/fake-model-extra\nprefix-fakeprov/fake-model\n')
+    before = len(calls())
+    result = run('next', 'job', 'not offered', code=2)
+    check('opencode-lane: model not offered: fakeprov/fake-model' in result.stderr, result.stderr)
+    check([call['argv'] for call in calls()[before:]] == [['models', '--standalone']], 'run called')
+    scenario = 'catalog nonzero exit refused before run'
+    (root / 'models-list').write_text('fakeprov/fake-model\n')
+    (root / 'models-exit').write_text('17')
+    before = len(calls())
+    result = run('next', 'job', 'catalog failed', code=2)
+    check('opencode-lane: model not offered: fakeprov/fake-model' in result.stderr and '17' in result.stderr,
+          result.stderr)
+    check([call['argv'] for call in calls()[before:]] == [['models', '--standalone']], 'run called')
+    (root / 'models-exit').write_text('0')
+    scenario = 'workspace project-config refusal'
+    for name in ['opencode.json', 'opencode.jsonc', '.opencode']:
+        planted = ws / name
+        planted.write_text('{}')
+        refused(['next', 'job', 'blocked'], str(planted))
+        planted.unlink()
+    scenario = 'sandbox-missing refusal'
+    refused(['next', 'job', 'blocked'], 'no supported sandbox on this platform',
+            overrides={'OPENCODE_LANE_SANDBOX_EXEC': str(root / 'absent')})
+    scenario = 'self-test leak refusal'
+    (root / 'sandbox-mode').write_text('leak')
+    refused(['next', 'job', 'blocked'], 'sandbox self-test failed')
+    check(not list(lanes.glob('*.sbx-probe')), 'probe file leaked')
+    check(not (ws / '.opencode-lane-selftest').exists(), 'workspace probe leaked')
+    scenario = 'self-test canary-read leak refusal'
+    (root / 'sandbox-mode').write_text('canary-leak')
+    refused(['next', 'job', 'blocked'], 'sandbox self-test failed: canary read allowed')
+    scenario = 'self-test workspace-write failure'
+    (root / 'sandbox-mode').write_text('deny-workspace')
+    refused(['next', 'job', 'blocked'], 'sandbox self-test failed: workspace write denied')
+    (root / 'sandbox-mode').write_text('enforce')
+    scenario = 'no-text exit and failed-round publication'
+    (root / 'mode').write_text('no-text')
+    run('next', 'job', 'no text', code=3)
+    check(run('last', 'job', code=3).stdout == '', 'stale text printed')
+    check(run('log', 'job').stdout.strip() != str(log), 'failed round not published')
+    scenario = 'model check'
+    (root / 'mode').write_text('wrong-model')
+    result = run('next', 'job', 'wrong model', code=4)
+    check('fakeprov/fake-model' in result.stderr and 'fakeprov/other-model' in result.stderr,
+          'model mismatch does not name both models')
+    check(run('last', 'job').stdout.strip() == 'hello again', 'wrong-model logs lost')
+    scenario = 'post-round config refusal'
+    (root / 'mode').write_text('write-config')
+    result = run('next', 'job', 'write config', code=5)
+    check(str(ws / 'opencode.json') in result.stderr, result.stderr)
+    (ws / 'opencode.json').unlink()
+    scenario = 'post-export config refusal'
+    (root / 'mode').write_text('export-write-config')
+    result = run('next', 'job', 'export writes config', code=5)
+    check(str(ws / 'opencode.json') in result.stderr, result.stderr)
+    (ws / 'opencode.json').unlink()
+    scenario = 'backend exit preserved'
+    (root / 'mode').write_text('fail')
+    run('next', 'job', 'failure', code=17)
+    run('drop', 'job')
+    check(not list(lanes.glob('job.*')), 'drop left lane files')
+    scenario = 'provider error surfaced with backend exit'
+    (root / 'mode').write_text('provider-error')
+    before = len(calls())
+    result = start('provider', code=1)
+    expected = 'opencode-lane: provider error: provider.no-route: Model unavailable: fakeprov/fake-model'
+    check(result.stderr.strip() == expected, result.stderr)
+    check(len(calls()) == before + 2, 'provider failure retried or exported without a session')
+    check(pathlib.Path(run('log', 'provider').stdout.strip()).is_file(), 'provider events lost')
+    run('drop', 'provider')
+    scenario = 'provider error overrides successful backend exit'
+    (root / 'provider-exit').write_text('0')
+    result = start('provider-zero', code=3)
+    check(result.stderr.strip() == expected, result.stderr)
+    run('drop', 'provider-zero')
+    scenario = 'provider error sanitized and bounded'
+    (root / 'provider-message').write_text('bad\n\r\x1b\x00\x7f\x85\u202e' + 'x' * 500)
+    result = start('provider-controls', code=3)
+    diagnostic = result.stderr.removesuffix('\n')
+    check(diagnostic.startswith('opencode-lane: provider error: provider.no-route: bad'), diagnostic)
+    check(len(diagnostic) <= 300 and not any(__import__('unicodedata').category(c).startswith('C')
+                                           for c in diagnostic), 'unbounded or unsafe diagnostic')
+    run('drop', 'provider-controls')
+    scenario = 'catalog total timeout uses first-event budget'
+    (root / 'models-mode').write_text('slow')
+    before = len(calls())
+    started = time.monotonic()
+    result = run('start', 'catalog-timeout', str(spec), '-m', 'fakeprov/fake-model',
+                 '--first-event-timeout', '1', '--timeout', '8', code=2)
+    check(time.monotonic() - started < 5, 'catalog used round timeout instead of first-event budget')
+    check('model not offered: fakeprov/fake-model' in result.stderr and '124' in result.stderr, result.stderr)
+    check([call['argv'] for call in calls()[before:]] == [['models', '--standalone']], 'run called')
+    run('drop', 'catalog-timeout')
+    (root / 'models-mode').write_text('ok')
+    scenario = 'watchdog group kill'
+    (root / 'mode').write_text('hang')
+    before = time.monotonic()
+    run('start', 'hang', str(spec), '-m', 'fakeprov/fake-model', '--timeout', '3',
+        '--first-event-timeout', '1', code=124)
+    check(time.monotonic() - before < 6, 'watchdog too late')
+    pid = int((root / 'grandchild.pid').read_text())
+    deadline = time.monotonic() + 2
+    while alive(pid) and time.monotonic() < deadline:
+        time.sleep(.05)
+    check(not alive(pid), f'grandchild {pid} survived')
+    (root / 'grandchild.pid').unlink()
+    check(pathlib.Path(run('log', 'hang').stdout.strip()).is_file(), 'timeout logs lost')
+    run('drop', 'hang')
+    scenario = 'total timeout after first event'
+    (root / 'mode').write_text('slow')
+    run('start', 'slow', str(spec), '-m', 'fakeprov/fake-model', '--timeout', '1',
+        '--first-event-timeout', '3', code=124)
+    check(run('id', 'slow').stdout.strip() == 's-123', 'timeout session lost')
+    run('drop', 'slow')
+    scenario = 'first-event timeout requires a complete line'
+    (root / 'mode').write_text('partial')
+    run('start', 'partial', str(spec), '-m', 'fakeprov/fake-model', '--timeout', '3',
+        '--first-event-timeout', '1', code=124)
+    run('drop', 'partial')
+    (root / 'mode').write_text('ok')
+    scenario = 'non-Git cwd refused'
+    refused(['start', 'bad', str(spec), '-m', 'fakeprov/fake-model'], 'Git', cwd=root)
+    scenario = 'flags and names rejected'
+    for extra in [[], ['--'], ['-m'], ['-m', 'fakeprov/fake-model', '--unsafe'],
+                  ['-m', 'fakeprov/fake-model', '--timeout', '0'],
+                  ['-m', 'fakeprov/fake-model', '--allow-read', str(root / 'absent')]]:
+        before = len(calls())
+        run('start', 'bad', str(spec), *extra, code=2)
+        check(len(calls()) == before, 'invalid options reached model')
+    for name in ['', '.', '..', '-bad', '.bad', '../escape', 'a/b', 'a b']:
+        refused(['start', name, str(spec), '-m', 'fakeprov/fake-model'], 'lane name')
+    run('list', 'extra', code=2)
+    run('--help')
+    scenario = 'allow-read and stdin start'
+    (root / 'session').write_text('s-custom')
+    extra = root / 'allowed dir'
+    extra.mkdir()
+    run('start', 'stdin', '-', '-m', 'fakeprov/fake-model', '--allow-read', str(extra), input='stdin spec')
+    check(calls()[-2]['stdin'] == 'stdin spec', 'start stdin lost')
+    check(run('id', 'stdin').stdout.strip() == 's-custom', 'session hardcoded')
+    check(f'(subpath "{extra}")' in (lanes / 'stdin.sb').read_text(), 'allow-read missing')
+    run('drop', 'stdin')
+    scenario = 'missing session is retained for diagnosis'
+    (root / 'session').write_text('')
+    start('no-session', code=3)
+    check(pathlib.Path(run('log', 'no-session').stdout.strip()).is_file(), 'missing-session logs lost')
+    run('drop', 'no-session')
+    scenario = 'required sandbox missing fails'
+    sandbox_source = tool.with_name('opencode-lane.sandbox.test').read_text()
+    helper = re.search(r'^require_sandbox\(\) \{\n.*?^\}', sandbox_source, re.M | re.S)
+    check(helper is not None, 'missing isolated sandbox requirement helper')
+    for required, expected_code, expected_message in [('1', 1, 'FAIL: sandbox-exec required'),
+                                                       ('0', 0, 'SKIP: no sandbox-exec')]:
+        result = subprocess.run(['bash', '-c', helper.group() + '\nrequire_sandbox "$1"',
+                                 'probe', str(root / 'missing-sandbox')],
+                                env=env | {'OPENCODE_LANE_REQUIRE_SANDBOX': required},
+                                capture_output=True, text=True)
+        check(result.returncode == expected_code and result.stdout.strip() == expected_message,
+              f'exit {result.returncode}: {result.stdout} {result.stderr}')
+    scenario = 'required sandbox empty-HOME canary and cleanup'
+    blocks = re.findall(r"<<'PY'[^\n]*\n(.*?)\nPY(?:\n|$)", sandbox_source, re.S)
+    functions = [node for block in blocks for node in ast.parse(block).body
+                 if isinstance(node, ast.FunctionDef) and node.name == 'home_canary']
+    check(len(functions) == 1, 'missing isolated home-canary helper')
+    namespace = dict(contextlib=contextlib, pathlib=pathlib, shutil=shutil, subprocess=subprocess)
+    exec(compile(ast.Module(body=functions, type_ignores=[]), 'home-canary-helper', 'exec'), namespace)
+    empty_home = root / 'empty-home'
+    empty_home.mkdir()
+    for interrupt in (False, True):
+        try:
+            with namespace['home_canary'](empty_home, True) as canary:
+                check(canary.is_file() and canary.parent.parent == empty_home, 'canary not under HOME')
+                check(canary.parent.name.startswith('.opencode-lane-test.'), 'wrong temporary directory')
+                if interrupt:
+                    raise RuntimeError('planted check failure')
+        except RuntimeError as error:
+            check(interrupt and str(error) == 'planted check failure', str(error))
+        except SystemExit as error:
+            check(False, f'required HOME fixture refused: {error}')
+        check(not list(empty_home.iterdir()), 'HOME canary directory was not removed')
+    try:
+        with namespace['home_canary'](empty_home, False):
+            check(False, 'optional mode unexpectedly creates a HOME canary')
+    except SystemExit as error:
+        check(str(error) == 'FAIL: no existing regular file under real HOME to test', str(error))
+    existing = empty_home / '.profile'
+    existing.write_text('fixture, preserve me')
+    with namespace['home_canary'](empty_home, True) as canary:
+        check(canary == existing, 'existing HOME file not used')
+    check(existing.read_text() == 'fixture, preserve me', 'existing HOME file changed')
+    print('PASS: all fake-only opencode-lane scenarios')
+except (AssertionError, subprocess.TimeoutExpired) as error:
+    print(f'FAIL: {scenario}: {error}', file=sys.stderr)
+    sys.exit(1)
+PY

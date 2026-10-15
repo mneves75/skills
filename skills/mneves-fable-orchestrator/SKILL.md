@@ -2,7 +2,7 @@
 name: mneves-fable-orchestrator
 description: Route non-trivial work across agents. Use for delegation, parallel work, Codex dispatch, or long-running implementation.
 license: Apache-2.0
-compatibility: Codex dispatch needs the Codex CLI (`codex`) logged in, bash, and python3 on PATH; `tools/codex-lane` is symlinked onto PATH. Without Codex the routing rules still apply to your harness's own subagents.
+compatibility: Codex dispatch needs the Codex CLI (`codex`) logged in, bash, and python3 on PATH; `tools/codex-lane` is symlinked onto PATH. The optional opencode worker trial (`tools/opencode-lane`) needs the opencode CLI and macOS `sandbox-exec`. Without Codex the routing rules still apply to your harness's own subagents.
 ---
 
 # Fable Orchestrator
@@ -48,7 +48,7 @@ plan advisor      = gpt-6-astra, reasoning high (advice and plan review)
 specialist        = gpt-6.1-sol, reasoning xhigh (specialist execution or review)
 ```
 
-Verified against the vendor model lists on 2026-10-13; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-10-15; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file).
 
@@ -83,6 +83,17 @@ personal profile-selecting launcher; it is **not shipped with this skill** — s
 `codex exec` if you do not have it. Read
 [references/codex-dispatch.md](references/codex-dispatch.md) before the first `codex exec` or
 lane command; it owns flag placement, continuity, failure classes, and the optional launcher.
+
+An opt-in trial runs bounded coding tasks through the opencode CLI: `tools/opencode-lane`
+(shipped here) gives the worker a private home and stores, a minimal environment and a lean
+profile, and contains it with a Seatbelt profile it proves by self-test before every round. It
+also checks which model ran. The caller names the model; the lane rebinds no role and never
+reads the user's credentials, so it can use only models the provider offers without an account.
+Use it only in a throwaway worktree outside your home directory whose content may go to the
+model's provider. Read [references/opencode-dispatch.md](references/opencode-dispatch.md) before
+the first
+`opencode-lane` command; it owns the boundary, the enforced behaviors, failure classes,
+escalation back to the Codex worker, and the evidence a role binding would need.
 
 A multi-phase goal that must continue across many rounds needs a driver that survives context
 loss — a lane, a checked-in plan file, or your harness's own long-task mechanism. A long task

@@ -64,10 +64,13 @@ jobs:
         run: bash tools/scripts/sync-pstack.test
 
       - name: Shell syntax
-        run: bash -n skills/mneves-fable-orchestrator/tools/codex-lane skills/mneves-fable-orchestrator/tools/codex-lane.test .githooks/pre-commit .githooks/pre-commit.test tools/scripts/build-site.sh tools/scripts/build-site.test tools/scripts/check-site-copy.sh tools/scripts/check-defaults-block.sh tools/scripts/sync-pstack.sh tools/scripts/sync-pstack.test skills/mneves-ship-deploy/assets/release.sh skills/mneves-ship-deploy/assets/verify-live.sh skills/mneves-ship-deploy/assets/release-guards.test.sh
+        run: bash -n skills/mneves-fable-orchestrator/tools/codex-lane skills/mneves-fable-orchestrator/tools/codex-lane.test skills/mneves-fable-orchestrator/tools/opencode-lane skills/mneves-fable-orchestrator/tools/opencode-lane.test skills/mneves-fable-orchestrator/tools/opencode-lane.sandbox.test .githooks/pre-commit .githooks/pre-commit.test tools/scripts/build-site.sh tools/scripts/build-site.test tools/scripts/check-site-copy.sh tools/scripts/check-defaults-block.sh tools/scripts/sync-pstack.sh tools/scripts/sync-pstack.test skills/mneves-ship-deploy/assets/release.sh skills/mneves-ship-deploy/assets/verify-live.sh skills/mneves-ship-deploy/assets/release-guards.test.sh
 
       - name: codex-lane e2e (fake codex, no provider calls)
         run: bash skills/mneves-fable-orchestrator/tools/codex-lane.test
+
+      - name: opencode-lane e2e (fake opencode and sandbox, no provider calls)
+        run: bash skills/mneves-fable-orchestrator/tools/opencode-lane.test
 
       - name: Landing copy controller syntax
         run: node --check site/copy-command.js
@@ -134,6 +137,17 @@ jobs:
           include-hidden-files: true
           retention-days: 7
           if-no-files-found: error
+
+  opencode-lane-macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: opencode-lane containment (real Seatbelt, no model)
+        env:
+          OPENCODE_LANE_REQUIRE_SANDBOX: "1"
+        run: bash skills/mneves-fable-orchestrator/tools/opencode-lane.sandbox.test
+      - name: opencode-lane e2e on macOS (fake opencode and sandbox)
+        run: bash skills/mneves-fable-orchestrator/tools/opencode-lane.test
 
   autoreview:
     strategy:

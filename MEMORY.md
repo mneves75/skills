@@ -14,6 +14,12 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.35.0** (2026-10-15): `opencode-lane` adds an opt-in, sandboxed opencode worker trial to the
+  orchestrator. No role binding changed: four tasks showed feasibility only, and the spec sets a
+  20-task trial gate. Containment is a lane-generated Seatbelt profile proven by self-test each
+  round, because opencode's own permission rules can be rewritten by the worker. The lane never
+  reads credentials; the evaluated DeepSeek model left the anonymous roster that afternoon, so
+  account support is an open owner decision. Evaluation and evidence: `docs/specs/opencode-worker/`.
 - **1.34.0** (2026-10-13): fourteen default skills, adding `mneves-security` with
   evidence-backed audit, authorized remediation and independent acceptance. The redesigned
   static catalog groups procedures by job, self-hosts typography and reports clipboard
@@ -159,6 +165,15 @@ measure whether a *target* codebase is ready for agents.
 - **Shipped text must work from a stranger's clone.** 1.7.0 baked `~/dev/GUIDELINES-REF` into a
   skill's frontmatter `description:`; every installing agent was told to read a directory only
   the maintainer has. The public-repo scan is: no home paths, no machine layout, no client names.
+
+- **A spawned agent inherits `$PWD`, and some CLIs bind to it, not to the process cwd.** On
+  2026-10-15 a probe launched with `subprocess.run(cwd=probe)` from the main checkout made opencode
+  run a hard reset to `HEAD` in the main checkout (clean, same commit, nothing lost; the reflog
+  shows the entry). Set `PWD` explicitly, and run a destructive probe only after a read-only probe
+  proves the directory.
+- **A guard that loads is not a guard that fires.** The dcg opencode plugin loaded cleanly under
+  opencode v2 and never checked a command, because v2 renamed the shell tool (dcg #547). Prove
+  every guard with a command it must block.
 
 ## Known gaps
 

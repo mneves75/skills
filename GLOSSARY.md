@@ -21,3 +21,10 @@ are produced. Rendering preserves its meaning, facts and structure.
 
 **Rendered deliverable**: An HTML, editable DOCX or PDF document generated from the source
 document and the project's presentation rules.
+
+**Lane**: A named executor session bound to one workspace and one launch policy, so correction
+rounds continue the same conversation instead of starting from a fresh specification.
+
+**Containment boundary**: The mechanism that actually stops a worker from reading or writing
+outside what it was given, such as an operating-system sandbox. Permission rules that the worker
+itself can rewrite are not a containment boundary.

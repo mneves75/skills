@@ -1,0 +1,546 @@
+#!/usr/bin/env bash
+# opencode-lane — a sandboxed, workspace-bound worker session.
+#
+# Usage:
+#   opencode-lane start <lane> <spec-file|-> -m <provider/model> [--allow-read DIR]...
+#                       [--timeout S] [--first-event-timeout S]
+#   opencode-lane next  <lane> <prompt|->
+#   opencode-lane last  <lane>
+#   opencode-lane id    <lane>
+#   opencode-lane log   <lane>
+#   opencode-lane list
+#   opencode-lane drop  <lane>
+#
+# Requires bash, python3 3.10+, git, opencode and a working macOS sandbox-exec.
+# No model default, pass-through flags, unsandboxed mode or automatic retries.
+# Timeout defaults: 1800 seconds total, 120 seconds to the first stdout line.
+# Prompts reach opencode only on stdin. next resumes in the recorded workspace.
+# The workspace should live outside your home directory (for example /tmp/worktree):
+# opencode reads agent configuration and instructions in every ancestor up to /.
+# OPENCODE_LANE_DIR defaults to ~/.local/state/opencode-lane (private, mode 700).
+# OPENCODE_LANE_SANDBOX_EXEC overrides /usr/bin/sandbox-exec for testing.
+# Logs survive failed rounds. drop removes the lane, logs and private stores.
+# Exit: 2 precondition/usage; 3 missing session/text; 4 model mismatch;
+#       5 project config created; 124 watchdog; otherwise opencode's exit code.
+
+set -euo pipefail
+umask 077
+die() { printf 'opencode-lane: %s\n' "$1" >&2; exit 2; }
+usage() {
+  awk 'NR==1{next} /^#/{sub(/^# ?/,""); print; next} {exit}' "$0"
+  exit "${1:-2}"
+}
+[ "${1-}" != '--help' ] || usage 0
+[ "$#" -gt 0 ] || usage
+command -v python3 >/dev/null 2>&1 || die 'python3 not found on PATH'
+SUPERVISOR=""
+cleanup() {
+  if [ -n "$SUPERVISOR" ]; then
+    kill -TERM "$SUPERVISOR" 2>/dev/null || true
+    wait "$SUPERVISOR" 2>/dev/null || true
+  fi
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+# fd 3 preserves the caller's stdin while the heredoc supplies the Python program.
+python3 - "$@" 3<&0 <<'PY' &
+# Python 3.10+, standard library only. The shell's EXIT trap owns this supervisor.
+import contextlib
+import json
+import math
+import os
+from pathlib import Path
+import re
+import selectors
+import shutil
+import signal
+import stat
+import subprocess
+import sys
+import tempfile
+import time
+import unicodedata
+
+
+class Refused(Exception):
+    pass
+
+
+def die(message):
+    raise Refused(message)
+
+
+def physical(path):
+    return str(Path(path).resolve(strict=True))
+
+
+def atomic_write(path, content):
+    fd, temporary = tempfile.mkstemp(prefix='.lane-', dir=path.parent)
+    try:
+        with os.fdopen(fd, 'w') as out:
+            out.write(content)
+            out.flush()
+            os.fsync(out.fileno())
+        os.replace(temporary, path)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def publish(path, state):
+    atomic_write(path, json.dumps(state, indent=2) + '\n')
+
+
+@contextlib.contextmanager
+def locked(path):
+    try:
+        path.mkdir(mode=0o700)
+    except FileExistsError:
+        die(f'busy: another lane operation holds {path}')
+    try:
+        yield
+    finally:
+        path.rmdir()
+
+
+def load(path):
+    if not path.is_file() or path.is_symlink():
+        die(f'unknown lane: {path.stem}')
+    with path.open() as source:
+        value = json.load(source)
+    if not isinstance(value, dict):
+        die(f'invalid lane state: {path}')
+    return value
+
+
+def git_paths(workspace):
+    def git(*args):
+        result = subprocess.run(['git', '-C', workspace, 'rev-parse', *args],
+                                capture_output=True, text=True)
+        if result.returncode:
+            die(f'workspace must be inside a Git work tree: {workspace}')
+        return result.stdout.strip()
+    if git('--is-inside-work-tree') != 'true':
+        die(f'workspace must be inside a Git work tree: {workspace}')
+    return physical(git('--show-toplevel')), physical(Path(workspace) / git('--git-common-dir'))
+
+
+def parse_start(args):
+    if len(args) < 2:
+        die('start requires a spec-file and -m provider/model')
+    prompt_source, options = args[0], args[1:]
+    state = dict(model='', timeout=1800, first_event_timeout=120, allow_read=[])
+    seen = set()
+    while options:
+        flag, *options = options
+        if flag not in ('-m', '--timeout', '--first-event-timeout', '--allow-read'):
+            die(f'unexpected argument: {flag}')
+        if not options:
+            die(f'missing value for {flag}')
+        value, *options = options
+        if flag != '--allow-read' and flag in seen:
+            die(f'duplicate option: {flag}')
+        seen.add(flag)
+        if flag == '-m':
+            if not re.fullmatch(r'[^\s/\x00-\x1f-][^\s/\x00-\x1f]*/[^\s/\x00-\x1f]+', value):
+                die('model must be provider/model')
+            state['model'] = value
+        elif flag == '--allow-read':
+            if not Path(value).is_dir():
+                die(f'--allow-read directory does not exist: {value}')
+            state['allow_read'].append(physical(value))
+        else:
+            try:
+                seconds = float(value)
+            except ValueError:
+                die(f'{flag} must be a positive number of seconds')
+            if not math.isfinite(seconds) or seconds <= 0:
+                die(f'{flag} must be a positive number of seconds')
+            state[flag[2:].replace('-', '_')] = seconds
+    if not state['model']:
+        die('missing required -m provider/model')
+    return prompt_source, state
+
+
+def new_state(state):
+    workspace = physical(os.getcwd())
+    top, common = git_paths(workspace)
+    executable = shutil.which('opencode')
+    if not executable:
+        die('opencode not found on PATH')
+    install = Path(physical(executable)).parent
+    if install.name == 'bin':
+        install = install.parent
+    if shutil.which('xcrun'):
+        result = subprocess.run(['xcrun', '--find', 'git'], capture_output=True, text=True)
+        if result.returncode or not result.stdout.strip():
+            die('cannot resolve real git with xcrun --find git')
+        git = result.stdout.strip()
+    else:
+        git = shutil.which('git')
+    state.update(workspace=workspace, git_top=top, git_common=common,
+                 opencode_root=str(install), git_dir=str(Path(physical(git)).parent),
+                 session_id='', events='')
+    return state
+
+
+CONFIG_NAMES = ('opencode.json', 'opencode.jsonc', '.opencode')
+
+
+def project_config(directory, ancestors=True):
+    current = Path(directory)
+    for parent in [current, *current.parents] if ancestors else [current]:
+        names = CONFIG_NAMES if parent == current else CONFIG_NAMES + ('.claude', '.agents', 'AGENTS.md', 'CLAUDE.md')
+        for name in names:
+            candidate = parent / name
+            if os.path.lexists(candidate):
+                return candidate
+    return None
+
+
+def preconditions(state, lane_dir, state_file, sandbox):
+    if not os.path.isfile(sandbox) or not os.access(sandbox, os.X_OK):
+        die('no supported sandbox on this platform')
+    workspace = state['workspace']
+    for field in ('workspace', 'git_top', 'git_common'):
+        if physical(state[field]) != state[field]:
+            die(f'recorded {field} changed physical path: {state[field]}')
+    if git_paths(workspace) != (state['git_top'], state['git_common']):
+        die(f'workspace Git top level or common directory changed: {workspace}')
+    shared = os.path.commonpath([str(lane_dir), workspace])
+    if shared in (str(lane_dir), workspace):
+        die('lane directory and workspace must not contain each other')
+    for other in lane_dir.glob('*.json'):
+        if other != state_file and load(other).get('workspace') == workspace:
+            die(f'workspace already belongs to lane {other.stem}: {workspace}')
+    config = project_config(workspace)
+    if config:
+        if config.parent != Path(workspace):
+            die(f'agent configuration or instructions in an ancestor of the workspace: {config}; '
+                'opencode reads every ancestor up to /. Create the worktree outside your home, '
+                'e.g. git worktree add /tmp/<name>')
+        die(f'project agent configuration refused: {config}')
+
+
+def profile(state, box, target):
+    roots = [state['workspace'], str(box), state['git_common'], state['opencode_root'],
+             state['git_dir'], *state['allow_read']]
+    home = physical(os.environ['HOME'])
+    for path in [home, *roots]:
+        if not os.path.isabs(path) or any(c in path for c in ('"', '\\', '\n', '\r')):
+            die(f'unsafe sandbox path: {path!r}')
+    ancestors = sorted({str(parent) for root in roots for parent in Path(root).parents
+                        if str(parent) != '/'})
+    listings = ' '.join(f'(literal "{parent}")' for parent in ancestors)
+    reads = ' '.join(f'(subpath "{root}")' for root in dict.fromkeys(roots))
+    atomic_write(target, '\n'.join([
+        '(version 1)', '(allow default)',
+        '(deny mach-lookup (global-name "com.apple.SecurityServer") '
+        '(global-name "com.apple.securityd.xpc") (global-name "com.apple.security.keychain-db") '
+        '(global-name "com.apple.pasteboard.1"))',
+        f'(deny file-read-data (subpath "{home}") (subpath "/Volumes") '
+        '(subpath "/private/tmp") (subpath "/private/var/folders"))',
+        f'(allow file-read-data {listings} {reads})',
+        '(deny file-write* (subpath "/"))',
+        f'(allow file-write* (subpath "{state["workspace"]}") '
+        f'(subpath "{box}") (subpath "/dev"))', '',
+    ]))
+
+
+def prepare_box(box):
+    for relative in ('', 'home', 'config', 'config/opencode', 'data', 'state', 'cache', 'tmp'):
+        directory = box / relative
+        if directory.is_symlink():
+            die(f'private box directory is a symlink: {directory}')
+        directory.mkdir(mode=0o700, exist_ok=True)
+
+
+def selftest(state, sandbox, profile_path, lane_dir, lane):
+    inside = Path(state['workspace']) / '.opencode-lane-selftest'
+    outside = lane_dir / f'{lane}.sbx-probe'
+    if os.path.lexists(inside) or os.path.lexists(outside):
+        die('sandbox self-test failed: probe path already exists')
+    tests = [('workspace write denied', 'touch "$1" && rm "$1"', inside, True),
+             ('outside write allowed', 'touch "$1"', outside, False),
+             ('canary read allowed', 'cat "$1"', lane_dir / f'{lane}.canary', False)]
+    try:
+        for reason, script, path, expected in tests:
+            result = subprocess.run([sandbox, '-f', str(profile_path), '/bin/sh', '-c',
+                                     script, 'selftest', str(path)],
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                    timeout=10)
+            if (result.returncode == 0) != expected:
+                die(f'sandbox self-test failed: {reason}')
+        if Path('/usr/bin/security').exists():
+            result = subprocess.run([sandbox, '-f', str(profile_path), '/usr/bin/security', 'list-keychains'],
+                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+            if result.returncode == 0:
+                die('sandbox self-test failed: keychain access allowed')
+    finally:
+        for path in (inside, outside):
+            if os.path.lexists(path):
+                path.unlink()
+
+
+def write_config(box):
+    permissions = [{'action': action, 'resource': '*', 'effect': 'deny'} for action in
+                   ('skill', 'question', 'subagent', 'webfetch', 'websearch', 'execute', 'external_directory')]
+    permissions += [{'action': 'read', 'resource': pattern, 'effect': 'deny'}
+                    for pattern in ('*.env', '*.env.*')]
+    permissions += [{'action': 'shell', 'resource': pattern, 'effect': 'deny'} for pattern in
+                    ('git reset --hard *', 'git clean *', 'git push *',
+                     'git checkout -- *', 'rm -rf *')]
+    atomic_write(box / 'config/opencode/opencode.json', json.dumps({'permissions': permissions}) + '\n')
+
+
+def worker_command(state, box, sandbox, profile_path):
+    environment = dict(PATH=state['git_dir'] + ':' + os.environ['PATH'],
+                       LANG=os.environ.get('LANG') or 'en_US.UTF-8', TERM='dumb',
+                       PWD=state['workspace'], HOME=str(box / 'home'),
+                       XDG_CONFIG_HOME=str(box / 'config'), XDG_DATA_HOME=str(box / 'data'),
+                       XDG_STATE_HOME=str(box / 'state'), XDG_CACHE_HOME=str(box / 'cache'),
+                       TMPDIR=str(box / 'tmp'))
+    return ['/usr/bin/env', '-i', *[f'{key}={value}' for key, value in environment.items()],
+            sandbox, '-f', str(profile_path), 'opencode']
+
+
+def kill_group(process):
+    # Popen(start_new_session=True) makes this pid our own session/group leader.
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    process.wait()
+
+
+def supervise(command, state, prompt, output, errors, total_timeout):
+    started = time.monotonic()
+    first_line = False
+    with tempfile.TemporaryFile() as source, selectors.DefaultSelector() as selector:
+        source.write(prompt)
+        source.seek(0)
+        process = subprocess.Popen(command, cwd=state['workspace'], stdin=source,
+                                   stdout=subprocess.PIPE, stderr=errors, start_new_session=True)
+        try:
+            selector.register(process.stdout, selectors.EVENT_READ)
+            while selector.get_map() or process.poll() is None:
+                elapsed = time.monotonic() - started
+                if elapsed >= total_timeout or (not first_line and elapsed >= state['first_event_timeout']):
+                    print('opencode-lane: watchdog timeout; process group killed', file=sys.stderr)
+                    return 124
+                for key, _ in selector.select(timeout=min(.05, total_timeout - elapsed)):
+                    chunk = os.read(key.fd, 65536)
+                    if not chunk:
+                        selector.unregister(key.fileobj)
+                    else:
+                        output.write(chunk)
+                        output.flush()
+                        first_line = first_line or b'\n' in chunk
+            return process.wait()
+        finally:
+            kill_group(process)
+            process.stdout.close()
+
+
+def event_result(path):
+    first = True
+    session = ''
+    text = []
+    errors = []
+    with open(path, errors='replace') as events:
+        for line in events:
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            if first:
+                first = False
+                session = event.get('sessionID', '') if isinstance(event, dict) else ''
+            if isinstance(event, dict) and event.get('type') == 'text':
+                part = event.get('part')
+                if isinstance(part, dict) and isinstance(part.get('text'), str):
+                    text.append(part['text'])
+            if isinstance(event, dict) and event.get('type') == 'error':
+                error = event.get('error')
+                error = error if isinstance(error, dict) else {}
+                diagnostic = f'opencode-lane: provider error: {error.get("type", "unknown")}: {error.get("message", "")}'
+                errors.append(''.join(c for c in diagnostic if not unicodedata.category(c).startswith('C'))[:300])
+    if not isinstance(session, str) or not session or session.startswith('-') or any(ord(c) < 32 for c in session):
+        session = ''
+    return session, ''.join(text), errors
+
+
+def round_run(state, state_file, lane_dir, lane, sandbox, prompt, is_start):
+    box, profile_path = lane_dir / f'{lane}.box', lane_dir / f'{lane}.sb'
+    prepare_box(box)
+    atomic_write(lane_dir / f'{lane}.canary', 'opencode-lane private canary\n')
+    profile(state, box, profile_path)
+    selftest(state, sandbox, profile_path, lane_dir, lane)
+    write_config(box)
+    base = worker_command(state, box, sandbox, profile_path)
+    with tempfile.TemporaryFile() as catalog, tempfile.TemporaryFile() as catalog_errors:
+        catalog_result = supervise(base + ['models', '--standalone'], state, b'', catalog,
+                                   catalog_errors, state['first_event_timeout'])
+        catalog.seek(0)
+        offered = any(line.strip() == state['model'].encode() for line in catalog)
+        if catalog_result or not offered:
+            detail = f' (opencode exit {catalog_result})' if catalog_result else ''
+            die(f'model not offered: {state["model"]}{detail}')
+    command = base + ['run', '--standalone', '--format', 'json', '-m', state['model'], '--title', lane]
+    if not is_start:
+        if not state['session_id']:
+            die('lane has no session id; inspect its log and start a new lane')
+        command += ['--session', state['session_id']]
+    stamp = str(time.time_ns())
+    events = lane_dir / f'{lane}.{stamp}.events.jsonl'
+    stderr = lane_dir / f'{lane}.{stamp}.stderr.log'
+    started = time.monotonic()
+    with events.open('xb') as output, stderr.open('xb') as errors:
+        try:
+            result = supervise(command, state, prompt, output, errors, state['timeout'])
+        finally:
+            session, text, provider_errors = event_result(events)
+            if is_start:
+                state['session_id'] = session
+            state['events'] = str(events)
+            publish(state_file, state)
+        if provider_errors:
+            for diagnostic in provider_errors:
+                print(diagnostic, file=sys.stderr)
+            return (result if result > 0 else 128 - result) if result else 3
+        config = project_config(state['workspace'], ancestors=False)
+        if config:
+            print(f'opencode-lane: project agent configuration created: {config}', file=sys.stderr)
+            return 5
+        if result == 124:
+            return result
+        if not state['session_id']:
+            print(f'opencode-lane: first JSON event has no sessionID; logs: {events}', file=sys.stderr)
+            return result or 3
+        with tempfile.TemporaryFile() as exported:
+            export_result = supervise(base + ['session', 'export', '--standalone', state['session_id']],
+                                      state, b'', exported, errors,
+                                      max(0, state['timeout'] - (time.monotonic() - started)))
+            config = project_config(state['workspace'], ancestors=False)
+            if config:
+                print(f'opencode-lane: project agent configuration created: {config}', file=sys.stderr)
+                return 5
+            if export_result:
+                return result or export_result
+            exported.seek(0)
+            try:
+                info = json.load(exported)['info']['model']
+                actual = info['providerID'] + '/' + info['id']
+            except (ValueError, KeyError, TypeError):
+                actual = '<missing model>'
+        if actual != state['model']:
+            print(f'opencode-lane: model mismatch: requested {state["model"]}, got {actual}', file=sys.stderr)
+            return 4
+    if result:
+        return result if result > 0 else 128 - result
+    if not text:
+        print(f'opencode-lane: no final text; logs: {events}', file=sys.stderr)
+        return 3
+    print(text)
+    return 0
+
+
+def drop(lane_dir, lane):
+    # Exact ownership patterns: a lane named a.b must survive dropping a.
+    for suffix in ('json', 'canary', 'sb'):
+        (lane_dir / f'{lane}.{suffix}').unlink(missing_ok=True)
+    pattern = re.compile(re.escape(lane) + r'\.[0-9]+\.(events\.jsonl|stderr\.log)$')
+    for entry in lane_dir.iterdir():
+        if pattern.fullmatch(entry.name):
+            entry.unlink()
+    box = lane_dir / f'{lane}.box'
+    if box.is_symlink():
+        box.unlink()
+    elif box.exists():
+        shutil.rmtree(box)
+
+
+def main():
+    if sys.version_info < (3, 10):
+        die('python3 3.10 or newer is required')
+    command, *args = sys.argv[1:]
+    if command not in ('start', 'next', 'last', 'id', 'log', 'list', 'drop', '_profile'):
+        die(f'unknown command: {command}')
+    lane = '' if command == 'list' else (args[0] if args else '')
+    if command != 'list' and not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]*', lane):
+        die(f'invalid lane name: {lane!r}')
+    expected = 0 if command == 'list' else 2 if command == 'next' else 1
+    if command != 'start' and len(args) != expected:
+        die(f'unexpected or missing arguments for {command}')
+    raw_dir = os.environ.get('OPENCODE_LANE_DIR') or str(Path.home() / '.local/state/opencode-lane')
+    lane_dir = Path(raw_dir).absolute().resolve()
+    lane_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if stat.S_IMODE(lane_dir.stat().st_mode) != 0o700:
+        die(f'lane directory must be mode 700 (no group/other access): {lane_dir}')
+    state_file = lane_dir / f'{lane}.json'
+    if command == 'list':
+        for path in sorted(lane_dir.glob('*.json')):
+            state = load(path)
+            print(f'{path.stem}\t{state["workspace"]}\t{state["model"]}')
+        return 0
+    if command in ('id', 'log', 'last'):
+        state = load(state_file)
+        if command == 'last':
+            text = event_result(state['events'])[1] if state['events'] else ''
+            if not text:
+                return 3
+            print(text)
+        else:
+            print(state['session_id' if command == 'id' else 'events'])
+        return 0
+    with locked(lane_dir / f'{lane}.lock'):
+        if command == 'drop':
+            drop(lane_dir, lane)
+            return 0
+        if command == '_profile':
+            profile(load(state_file), lane_dir / f'{lane}.box', lane_dir / f'{lane}.sb')
+            return 0
+        is_start = command == 'start'
+        sandbox = os.path.abspath(os.environ.get('OPENCODE_LANE_SANDBOX_EXEC') or '/usr/bin/sandbox-exec')
+        # Serialize workspace claims across lane names, then release before the model runs.
+        with locked(lane_dir / '.registry.lock'):
+            if is_start:
+                if os.path.lexists(state_file):
+                    die(f'lane already exists: {lane}')
+                prompt_source, state = parse_start(args[1:])
+                state = new_state(state)
+            else:
+                state = load(state_file)
+                prompt_source = args[1]
+            preconditions(state, lane_dir, state_file, sandbox)
+            if prompt_source == '-':
+                with os.fdopen(os.dup(3), 'rb') as source:
+                    prompt = source.read()
+            elif is_start:
+                prompt = Path(prompt_source).read_bytes()
+            else:
+                prompt = prompt_source.encode()
+            if is_start:
+                with state_file.open('x') as reserved:
+                    json.dump(state, reserved)
+        return round_run(state, state_file, lane_dir, lane, sandbox, prompt, is_start)
+
+
+def interrupted(signum, frame):
+    raise SystemExit(128 + signum)
+
+
+signal.signal(signal.SIGTERM, interrupted)
+signal.signal(signal.SIGINT, interrupted)
+try:
+    sys.exit(main())
+except (Refused, OSError, ValueError, KeyError, TypeError, subprocess.TimeoutExpired) as error:
+    print(f'opencode-lane: {error}', file=sys.stderr)
+    sys.exit(2)
+PY
+SUPERVISOR=$!
+rc=0
+wait "$SUPERVISOR" || rc=$?
+SUPERVISOR=""
+exit "$rc"
