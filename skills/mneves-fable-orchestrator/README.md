@@ -100,7 +100,8 @@ denied, writes only to the workspace) that a self-test proves before every round
 round's process group; and checks the session's model afterwards. macOS only for now; run it
 from a worktree outside your home directory, because opencode reads agent configuration in
 every parent directory.
-`references/opencode-dispatch.md` explains each rule, the residual risk (the network stays open)
+`references/opencode-dispatch.md` explains each rule, the residual risks (the network stays open,
+and other processes' environments stay readable)
 and when to escalate back to the Codex worker.
 
 ## Requirements

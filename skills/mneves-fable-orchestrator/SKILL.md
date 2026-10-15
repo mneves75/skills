@@ -91,9 +91,8 @@ also checks which model ran. The caller names the model; the lane rebinds no rol
 reads the user's credentials, so it can use only models the provider offers without an account.
 Use it only in a throwaway worktree outside your home directory whose content may go to the
 model's provider. Read [references/opencode-dispatch.md](references/opencode-dispatch.md) before
-the first
-`opencode-lane` command; it owns the boundary, the enforced behaviors, failure classes,
-escalation back to the Codex worker, and the evidence a role binding would need.
+the first `opencode-lane` command; it owns the boundary, the enforced behaviors, failure
+classes, escalation back to the Codex worker, and the evidence a role binding would need.
 
 A multi-phase goal that must continue across many rounds needs a driver that survives context
 loss — a lane, a checked-in plan file, or your harness's own long-task mechanism. A long task

@@ -71,8 +71,19 @@ profile per round and runs the worker under `sandbox-exec`:
 - The worker gets a private home and private opencode stores in the box, and an environment
   holding only `PATH`, `LANG`, `TERM`, `PWD` and the box paths. Your sessions, auth, skills and
   MCP servers are invisible to it.
+- **Same-user IPC** is closed where Seatbelt can close it: no signals or process information for
+  other processes, no Unix-socket connections except DNS (so no ssh-agent or Docker socket), no
+  preferences daemon and no Apple Events.
 - The **network stays open**, because the model needs it. Whatever the worker can read, it can
   send; the read rules exist for that reason.
+- **Process environments are not protected.** macOS lets any process read the initial
+  environment and arguments of the same user's other non-Apple processes, and Seatbelt does not
+  mediate it. The lane keeps its own processes' environments to a short allowlist, but a secret
+  exported in your shell or in the coordinating agent's environment is readable by the worker.
+  Keep secrets out of process environments while a lane runs, or isolate the worker under a
+  separate macOS user or in a VM.
+- The worker cannot stage or commit: the Git common directory is read-only to it, so the
+  coordinator commits after acceptance.
 
 Other platforms are refused until a sandbox with the same self-test exists for them. Neither
 `sandbox-exec` nor the lane runs inside another sandbox, such as a sandboxed Codex session: start
@@ -111,8 +122,10 @@ usually means a toolchain needs `--allow-read`.
 
 - **Exit 2 before any model call**: a refused precondition (unsupported platform, not a Git tree,
   workspace moved, agent configuration in the tree or an ancestor, a second lane on the
-  workspace, a failed self-test, a model the catalog does not offer, a bad flag). Read the
-  message.
+  workspace, a failed self-test, a model the catalog does not offer, an empty prompt, a bad
+  flag). A refused `start` releases its name, so retry directly. `busy` names a lock directory:
+  remove it only when no lane run is alive. `corrupt lane state` names a state file to inspect
+  and remove.
 - **Exit 3** or opencode's own code with `provider error` on stderr: the provider failed or
   returned nothing. The no-cost model is intermittently unavailable; retry later, then escalate.
   `opencode-lane log <lane>` holds the events.

@@ -6,6 +6,9 @@ worker for a plan written by another model, and then to build the result.
 
 ## What the reviews changed
 
+- **An independent reviewer's hostile worker found same-user IPC open** (H20): sockets, signals,
+  preferences, Apple Events. The profile now closes them. It also showed that Seatbelt cannot hide
+  other processes' environments (H21), which the docs now state instead of implying isolation.
 - **Live rounds through the built lane changed the outcome.** opencode reads agent configuration in
   every ancestor of the workspace (H18), so worktrees go outside the home. And the provider stopped
   offering the evaluated model to anonymous clients during the day while the signed-in account kept
@@ -79,6 +82,8 @@ worker for a plan written by another model, and then to build the result.
 | H17 | Seatbelt's `allow default` leaves keychain and clipboard services reachable without touching files. | `pbpaste` read 53 bytes outside, 0 under a `mach-lookup` deny; `security list-keychains` failed under it; opencode unaffected. | The profile denies those services and the self-test checks the keychain. |
 | H18 | opencode walks `.claude`, `.agents` and `.opencode` in every ancestor up to `/`, above the repository root, and aborts with `UnexpectedStatus: 500` when a sandbox denies one; unsandboxed it would load their instructions. | `FileSystem.realPath (<home>/dev/.claude)`; the standard install directory `~/.opencode` sits in the home ancestor. | The lane refuses agent configuration or instructions in any strict ancestor; worktrees go outside the home, e.g. under `/tmp`. |
 | H19 | Hypothesis: a cold store may also lose a startup race for the model catalog. | Lane rounds failed in about one second with an empty `kv` table; after `opencode models --standalone` filled `models-dev:catalog` one round answered. This overlapped with H14 and the two effects were not separated. | The warm-up is cheap and doubles as the roster check, so the lane keeps it. |
+| H20 | Seatbelt's `allow default` leaves same-user IPC open: Unix sockets (ssh-agent, Docker), signals to other processes (including the lane supervisor, which defeats the watchdog), process listing, preferences through `cfprefsd`, and Apple Events. | An independent reviewer's hostile fake worker under the real sandbox connected to a socket, killed the supervisor and read 62 KB of Finder preferences. | The profile denies process info for others, Unix-socket connects except DNS, `cfprefsd` and Apple Events, and every signal except to processes in the same sandbox: `(deny signal (target others))` had no effect on a non-Apple victim, and earlier "denied" results came only from Apple binaries, which macOS protects anyway. A live round still ran shell, bun, tsc and git. |
+| H21 | Seatbelt does not mediate `sysctl(KERN_PROCARGS2)`: the initial environment and arguments of any same-user non-Apple process are readable from inside, even with `(deny sysctl-read)`. | A sandboxed child read a planted secret from an unrelated Homebrew Python's environment. | The lane's own processes run with an allowlisted environment; secrets exported in other processes (the user's shell, the coordinator) stay readable. Real isolation needs a separate macOS user or a VM. |
 
 The sandboxed probe with the real model (private home and stores, `env -i`): a write inside the
 workspace succeeded; a write outside, a read of a canary outside, and a read of the real home all
@@ -145,36 +150,47 @@ read can leave the machine; the design therefore limits what it can read.
   `data`, `state`, `cache`, `tmp`. It is the only lane path the worker can read and write.
 
 ### Every round
-1. **Preconditions** (exit 2 on failure, no model call): macOS with `/usr/bin/sandbox-exec`;
-   workspace still at its recorded physical path, still the same Git top level and common
-   directory; no `opencode.json`, `opencode.jsonc` or `.opencode/` in the workspace or any
-   ancestor up to `/`, and none of `.claude`, `.agents`, `AGENTS.md`, `CLAUDE.md` in any strict
-   ancestor; no other live lane bound to the same workspace; the lane directory and the
-   workspace do not contain each other.
+1. **Preconditions** (exit 2 on failure, no model call): macOS (`Darwin`) with
+   `/usr/bin/sandbox-exec` and `/usr/bin/security`; workspace still at its recorded physical path,
+   still the same Git top level and common directory; no `opencode.json`, `opencode.jsonc` or
+   `.opencode/` in the workspace or any ancestor up to `/`, and none of `.claude`, `.agents`,
+   `AGENTS.md`, `CLAUDE.md` in any strict ancestor; no other live lane bound to the same
+   workspace; the lane directory and the workspace do not contain each other. The home directory
+   is the account's (`pwd`), not only `$HOME`.
 2. **Profile** (generated each round from recorded paths):
-   - reads: deny the real home, `/Volumes`, `/private/tmp`, `/private/var/folders`; allow the
-     workspace, the box, the Git common directory, the opencode install root, every
-     `--allow-read` directory, and directory listings (`literal`) of each ancestor of those;
+   - reads: deny the account's home (and `$HOME` when it differs), `/Volumes`, `/private/tmp`,
+     `/private/var/folders`; allow the workspace, the box, the Git common directory, the opencode
+     install root, the real git, every `--allow-read` directory, and directory listings
+     (`literal`) of each ancestor of those;
    - writes: deny everything except the workspace, the box and `/dev`;
    - services: deny `mach-lookup` of the keychain and pasteboard services;
    - network and process execution stay allowed.
 3. **Self-test** under the same profile: a write in the workspace must succeed; a write into the
-   lane state directory, a read of the lane canary and a keychain search-list query must fail.
-   Any other outcome exits 2.
-4. **Run** `sandbox-exec -f <profile> opencode run --standalone --format json -m <model>
+   lane state directory, a read of the lane canary, a read of a home canary kept under the
+   account's home, and a keychain search-list query must fail. Any other outcome exits 2.
+4. **Lean configuration** in the box, an ordered array of deny rules: `skill`, `question`,
+   `subagent`, `webfetch`, `websearch`, `execute`, `external_directory`; `read` of `*.env` and
+   `*.env.*`; `shell` for destructive git commands (hard reset, clean, push, checkout of paths)
+   and recursive forced removal.
+5. **Catalog warm-up**: `opencode models --standalone` under the same environment and sandbox,
+   with its own 120-second cap; the requested model must be listed, else exit 2.
+6. **Run** `sandbox-exec -f <profile> opencode run --standalone --format json -m <model>
    --title <lane>` with the prompt on stdin, `cd` into the workspace, and `env -i` with only
    `PATH`, `LANG`, `TERM=dumb`, `PWD`, `HOME`/`XDG_*`/`TMPDIR` pointing into the box. `PATH` is
    the caller's, with the directory of the real git (`xcrun --find git`, resolved outside the
-   sandbox when available) first. `next` adds `--session <id>`.
-5. **Catalog warm-up**: `opencode models --standalone` under the same environment and sandbox; the
-   requested model must be listed, else exit 2.
-6. **Watchdog**: a python3 (stdlib, 3.10+) supervisor runs the round in its own process group;
-   no event within `--first-event-timeout` (default 120 s) or a round past `--timeout`
-   (default 1800 s) kills the group and exits 124. No automatic retry: an interrupted round may
-   have had effects, so the coordinator decides.
-7. **After the round**: provider `error` events printed to stderr; session id from the first event
-   (start); final text from `text` events (exit 3 if none); `opencode session export --standalone <id>` under the same environment, exit
-   4 if the model differs; exit 5 if agent configuration now exists in the workspace.
+   sandbox) first. `next` adds `--session <id>`. A python3 (stdlib, 3.10+) supervisor runs it in
+   its own process group; no event within `--first-event-timeout` (default 120 s) or a round
+   past `--timeout` (default 1800 s) kills the group and exits 124. No automatic retry: an
+   interrupted round may have had effects, so the coordinator decides.
+7. **After the round**, in this order: exit 5 if the worker created `opencode.json`,
+   `opencode.jsonc`, `.opencode/`, `.claude/` or `.agents/` in the workspace; `opencode session
+   export --standalone <id>` under the same environment, exit 4 if the model differs; provider
+   `error` events printed to stderr (opencode's non-zero code, else 3); exit 3 if there is no
+   final text.
+
+A `start` refused before the model runs (steps 1-5) releases the lane name and the workspace
+claim, so a retry with another model works without `drop`. A lock left by a killed run is named in
+the error together with the directory to remove.
 
 Exit codes: 0, 2 (usage or refused precondition), 3, 4, 5, 124, otherwise opencode's own code.
 Lane names `[A-Za-z0-9._-]`, no leading `-` or `.`; one writer per lane. `drop` deletes the lane's
@@ -182,7 +198,10 @@ state and box (the worker's sessions and snapshots live in the box, so they go w
 
 What this does not do: it does not restrict network destinations, cap disk use inside the
 workspace and box, or prove which endpoint served the model; the session-export check detects
-routing mistakes and is not tamper-proof, since the worker can write its own store.
+routing mistakes and is not tamper-proof, since the worker can write its own store. It does not
+hide the environment and arguments of the user's other processes (H21), and a worker process
+that starts its own session can outlive the round's process-group kill (it stays sandboxed). The
+worker cannot stage or commit (the Git common directory is read-only); the coordinator commits.
 
 ## Trial gate before any role binding
 Bind the bounded-worker role only after a frozen, stratified set of at least 20 representative

@@ -171,6 +171,11 @@ measure whether a *target* codebase is ready for agents.
   run a hard reset to `HEAD` in the main checkout (clean, same commit, nothing lost; the reflog
   shows the entry). Set `PWD` explicitly, and run a destructive probe only after a read-only probe
   proves the directory.
+- **A same-user sandbox on macOS is not isolation.** Seatbelt cannot stop `sysctl(KERN_PROCARGS2)`,
+  so a sandboxed worker reads the initial environment of the user's other non-Apple processes,
+  and `(allow default)` also leaves sockets, signals, preferences and Apple Events open until each
+  is denied. Test containment with a hostile worker, not with a cooperative model: the real model
+  refused the probes.
 - **A guard that loads is not a guard that fires.** The dcg opencode plugin loaded cleanly under
   opencode v2 and never checked a command, because v2 renamed the shell tool (dcg #547). Prove
   every guard with a command it must block.

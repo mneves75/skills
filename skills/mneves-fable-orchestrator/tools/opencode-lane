@@ -18,7 +18,10 @@
 # The workspace should live outside your home directory (for example /tmp/worktree):
 # opencode reads agent configuration and instructions in every ancestor up to /.
 # OPENCODE_LANE_DIR defaults to ~/.local/state/opencode-lane (private, mode 700).
-# OPENCODE_LANE_SANDBOX_EXEC overrides /usr/bin/sandbox-exec for testing.
+# Test seams: OPENCODE_LANE_SANDBOX_EXEC bypasses platform detection;
+# OPENCODE_LANE_SECURITY selects the fake security binary (default /usr/bin/security).
+# OPENCODE_LANE_ACCOUNT_HOME overrides the account home only with that sandbox seam.
+# Internal hook: _profile <lane> is used by opencode-lane.sandbox.test.
 # Logs survive failed rounds. drop removes the lane, logs and private stores.
 # Exit: 2 precondition/usage; 3 missing session/text; 4 model mismatch;
 #       5 project config created; 124 watchdog; otherwise opencode's exit code.
@@ -33,23 +36,21 @@ usage() {
 [ "${1-}" != '--help' ] || usage 0
 [ "$#" -gt 0 ] || usage
 command -v python3 >/dev/null 2>&1 || die 'python3 not found on PATH'
-SUPERVISOR=""
-cleanup() {
-  if [ -n "$SUPERVISOR" ]; then
-    kill -TERM "$SUPERVISOR" 2>/dev/null || true
-    wait "$SUPERVISOR" 2>/dev/null || true
+SUPERVISOR_ENV=()
+for key in PATH HOME LANG LC_ALL TERM TMPDIR ${!OPENCODE_LANE_@}; do
+  if declare -p "$key" >/dev/null 2>&1; then
+    SUPERVISOR_ENV+=("$key=${!key}")
   fi
-}
-trap cleanup EXIT
-trap 'exit 130' INT
-trap 'exit 143' TERM
+done
 # fd 3 preserves the caller's stdin while the heredoc supplies the Python program.
-python3 - "$@" 3<&0 <<'PY' &
-# Python 3.10+, standard library only. The shell's EXIT trap owns this supervisor.
+exec /usr/bin/env -i "${SUPERVISOR_ENV[@]}" python3 - "$@" 3<&0 <<'PY'
+# Python 3.10+, standard library only. This process owns signals and cleanup.
 import contextlib
 import json
 import math
 import os
+import platform
+import pwd
 from pathlib import Path
 import re
 import selectors
@@ -75,29 +76,37 @@ def physical(path):
     return str(Path(path).resolve(strict=True))
 
 
-def atomic_write(path, content):
+def atomic_write(path, content, exclusive=False):
     fd, temporary = tempfile.mkstemp(prefix='.lane-', dir=path.parent)
     try:
         with os.fdopen(fd, 'w') as out:
             out.write(content)
             out.flush()
             os.fsync(out.fileno())
-        os.replace(temporary, path)
+        if exclusive:
+            os.link(temporary, path)
+        else:
+            os.replace(temporary, path)
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
 
 
-def publish(path, state):
-    atomic_write(path, json.dumps(state, indent=2) + '\n')
+def publish(path, state, exclusive=False):
+    atomic_write(path, json.dumps(state, indent=2) + '\n', exclusive=exclusive)
 
 
 @contextlib.contextmanager
-def locked(path):
-    try:
-        path.mkdir(mode=0o700)
-    except FileExistsError:
-        die(f'busy: another lane operation holds {path}')
+def locked(path, wait_seconds=0):
+    deadline = time.monotonic() + wait_seconds
+    while True:
+        try:
+            path.mkdir(mode=0o700)
+            break
+        except FileExistsError:
+            if time.monotonic() >= deadline:
+                die(f'busy: another lane operation holds {path}; if no run is alive, rmdir "{path}"')
+            time.sleep(.05)
     try:
         yield
     finally:
@@ -107,14 +116,19 @@ def locked(path):
 def load(path):
     if not path.is_file() or path.is_symlink():
         die(f'unknown lane: {path.stem}')
-    with path.open() as source:
-        value = json.load(source)
+    try:
+        with path.open() as source:
+            value = json.load(source)
+    except (ValueError, UnicodeError):
+        die(f'corrupt lane state {path}: inspect and remove it')
     if not isinstance(value, dict):
-        die(f'invalid lane state: {path}')
+        die(f'corrupt lane state {path}: inspect and remove it')
     return value
 
 
 def git_paths(workspace):
+    if not shutil.which('git'):
+        die('git not found on PATH')
     def git(*args):
         result = subprocess.run(['git', '-C', workspace, 'rev-parse', *args],
                                 capture_output=True, text=True)
@@ -179,6 +193,8 @@ def new_state(state):
         git = result.stdout.strip()
     else:
         git = shutil.which('git')
+    if not git:
+        die('git not found on PATH')
     state.update(workspace=workspace, git_top=top, git_common=common,
                  opencode_root=str(install), git_dir=str(Path(physical(git)).parent),
                  session_id='', events='')
@@ -199,9 +215,42 @@ def project_config(directory, ancestors=True):
     return None
 
 
-def preconditions(state, lane_dir, state_file, sandbox):
-    if not os.path.isfile(sandbox) or not os.access(sandbox, os.X_OK):
+def sandbox_tools():
+    testing = 'OPENCODE_LANE_SANDBOX_EXEC' in os.environ
+    if not testing and platform.system() != 'Darwin':
         die('no supported sandbox on this platform')
+    sandbox = os.environ.get('OPENCODE_LANE_SANDBOX_EXEC', '/usr/bin/sandbox-exec')
+    security = os.environ.get('OPENCODE_LANE_SECURITY', '/usr/bin/security') if testing else '/usr/bin/security'
+    if any(not os.path.isfile(path) or not os.access(path, os.X_OK) for path in (sandbox, security)):
+        die('no supported sandbox on this platform')
+    return os.path.abspath(sandbox), os.path.abspath(security)
+
+
+def account_home():
+    override = os.environ.get('OPENCODE_LANE_ACCOUNT_HOME') if 'OPENCODE_LANE_SANDBOX_EXEC' in os.environ else None
+    return physical(override or pwd.getpwuid(os.getuid()).pw_dir)
+
+
+def home_canary():
+    home = Path(account_home())
+    directory = home / '.local/state/opencode-lane'
+    directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if not directory.resolve().is_relative_to(home):
+        die(f'home canary directory escapes account home: {directory}')
+    path = directory / '.home-canary'
+    try:
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    except FileExistsError:
+        info = path.lstat()
+        if not stat.S_ISREG(info.st_mode) or stat.S_IMODE(info.st_mode) != 0o600:
+            die(f'home canary must be a regular mode-600 file: {path}')
+    else:
+        with os.fdopen(descriptor, 'w') as output:
+            output.write('opencode-lane private home canary\n')
+    return path
+
+
+def preconditions(state, lane_dir, state_file):
     workspace = state['workspace']
     for field in ('workspace', 'git_top', 'git_common'):
         if physical(state[field]) != state[field]:
@@ -226,20 +275,29 @@ def preconditions(state, lane_dir, state_file, sandbox):
 def profile(state, box, target):
     roots = [state['workspace'], str(box), state['git_common'], state['opencode_root'],
              state['git_dir'], *state['allow_read']]
-    home = physical(os.environ['HOME'])
-    for path in [home, *roots]:
+    homes = list(dict.fromkeys([account_home(), physical(os.environ['HOME'])]))
+    for path in [*homes, *roots]:
         if not os.path.isabs(path) or any(c in path for c in ('"', '\\', '\n', '\r')):
             die(f'unsafe sandbox path: {path!r}')
     ancestors = sorted({str(parent) for root in roots for parent in Path(root).parents
                         if str(parent) != '/'})
     listings = ' '.join(f'(literal "{parent}")' for parent in ancestors)
     reads = ' '.join(f'(subpath "{root}")' for root in dict.fromkeys(roots))
+    home_denials = ' '.join(f'(subpath "{home}")' for home in homes)
     atomic_write(target, '\n'.join([
         '(version 1)', '(allow default)',
         '(deny mach-lookup (global-name "com.apple.SecurityServer") '
         '(global-name "com.apple.securityd.xpc") (global-name "com.apple.security.keychain-db") '
         '(global-name "com.apple.pasteboard.1"))',
-        f'(deny file-read-data (subpath "{home}") (subpath "/Volumes") '
+        '(deny process-info* (target others))',
+        '(deny signal)',
+        '(allow signal (target same-sandbox))',
+        '(deny network-outbound (remote unix-socket))',
+        '(allow network-outbound (remote unix-socket (path-literal "/private/var/run/mDNSResponder")))',
+        '(deny mach-lookup (global-name "com.apple.cfprefsd.daemon") (global-name "com.apple.cfprefsd.agent"))',
+        '(deny appleevent-send)',
+        '(deny mach-lookup (global-name "com.apple.coreservices.appleevents"))',
+        f'(deny file-read-data {home_denials} (subpath "/Volumes") '
         '(subpath "/private/tmp") (subpath "/private/var/folders"))',
         f'(allow file-read-data {listings} {reads})',
         '(deny file-write* (subpath "/"))',
@@ -256,27 +314,28 @@ def prepare_box(box):
         directory.mkdir(mode=0o700, exist_ok=True)
 
 
-def selftest(state, sandbox, profile_path, lane_dir, lane):
+def selftest(state, sandbox, security, profile_path, lane_dir, lane):
     inside = Path(state['workspace']) / '.opencode-lane-selftest'
     outside = lane_dir / f'{lane}.sbx-probe'
     if os.path.lexists(inside) or os.path.lexists(outside):
         die('sandbox self-test failed: probe path already exists')
-    tests = [('workspace write denied', 'touch "$1" && rm "$1"', inside, True),
-             ('outside write allowed', 'touch "$1"', outside, False),
-             ('canary read allowed', 'cat "$1"', lane_dir / f'{lane}.canary', False)]
+    tests = [('workspace write', 'touch "$1" && rm "$1"', inside, True),
+             ('outside write', 'touch "$1"', outside, False),
+             ('canary read', 'cat "$1"', lane_dir / f'{lane}.canary', False),
+             ('home canary read', 'cat "$1"', home_canary(), False)]
     try:
-        for reason, script, path, expected in tests:
+        for operation, script, path, must_succeed in tests:
             result = subprocess.run([sandbox, '-f', str(profile_path), '/bin/sh', '-c',
                                      script, 'selftest', str(path)],
                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                                     timeout=10)
-            if (result.returncode == 0) != expected:
-                die(f'sandbox self-test failed: {reason}')
-        if Path('/usr/bin/security').exists():
-            result = subprocess.run([sandbox, '-f', str(profile_path), '/usr/bin/security', 'list-keychains'],
-                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
-            if result.returncode == 0:
-                die('sandbox self-test failed: keychain access allowed')
+            if (result.returncode == 0) != must_succeed:
+                outcome = 'denied' if must_succeed else 'allowed'
+                die(f'sandbox self-test failed: {operation} {outcome}')
+        result = subprocess.run([sandbox, '-f', str(profile_path), security, 'list-keychains'],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+        if result.returncode == 0:
+            die('sandbox self-test failed: keychain access allowed')
     finally:
         for path in (inside, outside):
             if os.path.lexists(path):
@@ -314,9 +373,11 @@ def kill_group(process):
     process.wait()
 
 
-def supervise(command, state, prompt, output, errors, total_timeout):
+def supervise(command, state, prompt, output, errors, total_timeout, first_event_timeout=None):
     started = time.monotonic()
     first_line = False
+    first_budget = state['first_event_timeout'] if first_event_timeout is None else first_event_timeout
+    exited_at = None
     with tempfile.TemporaryFile() as source, selectors.DefaultSelector() as selector:
         source.write(prompt)
         source.seek(0)
@@ -325,11 +386,16 @@ def supervise(command, state, prompt, output, errors, total_timeout):
         try:
             selector.register(process.stdout, selectors.EVENT_READ)
             while selector.get_map() or process.poll() is None:
-                elapsed = time.monotonic() - started
-                if elapsed >= total_timeout or (not first_line and elapsed >= state['first_event_timeout']):
+                now = time.monotonic()
+                elapsed = now - started
+                if process.poll() is not None:
+                    exited_at = now if exited_at is None else exited_at
+                    if now - exited_at >= 2 or elapsed >= total_timeout:
+                        return process.returncode
+                elif elapsed >= total_timeout or (not first_line and elapsed >= first_budget):
                     print('opencode-lane: watchdog timeout; process group killed', file=sys.stderr)
                     return 124
-                for key, _ in selector.select(timeout=min(.05, total_timeout - elapsed)):
+                for key, _ in selector.select(timeout=max(0, min(.05, total_timeout - elapsed))):
                     chunk = os.read(key.fd, 65536)
                     if not chunk:
                         selector.unregister(key.fileobj)
@@ -368,24 +434,43 @@ def event_result(path):
                 errors.append(''.join(c for c in diagnostic if not unicodedata.category(c).startswith('C'))[:300])
     if not isinstance(session, str) or not session or session.startswith('-') or any(ord(c) < 32 for c in session):
         session = ''
-    return session, ''.join(text), errors
+    return session, '\n'.join(text), errors
 
 
-def round_run(state, state_file, lane_dir, lane, sandbox, prompt, is_start):
+def exit_status(code):
+    return code if code >= 0 else 128 - code
+
+
+ROUND_CONFIG_NAMES = (*CONFIG_NAMES, '.claude', '.agents')
+
+
+def configuration_violation(workspace, before):
+    for name in ROUND_CONFIG_NAMES:
+        path = Path(workspace) / name
+        if name not in before and os.path.lexists(path):
+            print(f'opencode-lane: project agent configuration created: {path}', file=sys.stderr)
+            return 5
+    return 0
+
+
+def round_run(state, state_file, lane_dir, lane, sandbox, security, prompt, is_start):
+    before = {name for name in ROUND_CONFIG_NAMES if os.path.lexists(Path(state['workspace']) / name)}
     box, profile_path = lane_dir / f'{lane}.box', lane_dir / f'{lane}.sb'
     prepare_box(box)
     atomic_write(lane_dir / f'{lane}.canary', 'opencode-lane private canary\n')
     profile(state, box, profile_path)
-    selftest(state, sandbox, profile_path, lane_dir, lane)
+    selftest(state, sandbox, security, profile_path, lane_dir, lane)
     write_config(box)
     base = worker_command(state, box, sandbox, profile_path)
+    deadline = time.monotonic() + state['timeout']
+    warmup_budget = min(120, max(0, deadline - time.monotonic()))
     with tempfile.TemporaryFile() as catalog, tempfile.TemporaryFile() as catalog_errors:
         catalog_result = supervise(base + ['models', '--standalone'], state, b'', catalog,
-                                   catalog_errors, state['first_event_timeout'])
+                                   catalog_errors, warmup_budget, first_event_timeout=warmup_budget)
         catalog.seek(0)
         offered = any(line.strip() == state['model'].encode() for line in catalog)
         if catalog_result or not offered:
-            detail = f' (opencode exit {catalog_result})' if catalog_result else ''
+            detail = f' (opencode exit {exit_status(catalog_result)})' if catalog_result else ''
             die(f'model not offered: {state["model"]}{detail}')
     command = base + ['run', '--standalone', '--format', 'json', '-m', state['model'], '--title', lane]
     if not is_start:
@@ -395,50 +480,49 @@ def round_run(state, state_file, lane_dir, lane, sandbox, prompt, is_start):
     stamp = str(time.time_ns())
     events = lane_dir / f'{lane}.{stamp}.events.jsonl'
     stderr = lane_dir / f'{lane}.{stamp}.stderr.log'
-    started = time.monotonic()
     with events.open('xb') as output, stderr.open('xb') as errors:
         try:
-            result = supervise(command, state, prompt, output, errors, state['timeout'])
+            result = exit_status(supervise(command, state, prompt, output, errors,
+                                           max(0, deadline - time.monotonic())))
         finally:
             session, text, provider_errors = event_result(events)
             if is_start:
                 state['session_id'] = session
             state['events'] = str(events)
             publish(state_file, state)
+        violation = configuration_violation(state['workspace'], before)
+        if violation:
+            return violation
+        export_result = 0
+        if state['session_id']:
+            with tempfile.TemporaryFile() as exported:
+                export_result = exit_status(supervise(
+                    base + ['session', 'export', '--standalone', state['session_id']],
+                    state, b'', exported, errors, max(0, deadline - time.monotonic())))
+                violation = configuration_violation(state['workspace'], before)
+                if violation:
+                    return violation
+                if export_result == 0:
+                    exported.seek(0)
+                    try:
+                        info = json.load(exported)['info']['model']
+                        actual = info['providerID'] + '/' + info['id']
+                    except (ValueError, KeyError, TypeError):
+                        actual = '<missing model>'
+                    if actual != state['model']:
+                        print(f'opencode-lane: model mismatch: requested {state["model"]}, got {actual}', file=sys.stderr)
+                        return 4
         if provider_errors:
             for diagnostic in provider_errors:
                 print(diagnostic, file=sys.stderr)
-            return (result if result > 0 else 128 - result) if result else 3
-        config = project_config(state['workspace'], ancestors=False)
-        if config:
-            print(f'opencode-lane: project agent configuration created: {config}', file=sys.stderr)
-            return 5
-        if result == 124:
-            return result
-        if not state['session_id']:
-            print(f'opencode-lane: first JSON event has no sessionID; logs: {events}', file=sys.stderr)
             return result or 3
-        with tempfile.TemporaryFile() as exported:
-            export_result = supervise(base + ['session', 'export', '--standalone', state['session_id']],
-                                      state, b'', exported, errors,
-                                      max(0, state['timeout'] - (time.monotonic() - started)))
-            config = project_config(state['workspace'], ancestors=False)
-            if config:
-                print(f'opencode-lane: project agent configuration created: {config}', file=sys.stderr)
-                return 5
-            if export_result:
-                return result or export_result
-            exported.seek(0)
-            try:
-                info = json.load(exported)['info']['model']
-                actual = info['providerID'] + '/' + info['id']
-            except (ValueError, KeyError, TypeError):
-                actual = '<missing model>'
-        if actual != state['model']:
-            print(f'opencode-lane: model mismatch: requested {state["model"]}, got {actual}', file=sys.stderr)
-            return 4
     if result:
-        return result if result > 0 else 128 - result
+        return result
+    if export_result:
+        return export_result
+    if not state['session_id']:
+        print(f'opencode-lane: first JSON event has no sessionID; logs: {events}', file=sys.stderr)
+        return 3
     if not text:
         print(f'opencode-lane: no final text; logs: {events}', file=sys.stderr)
         return 3
@@ -446,13 +530,13 @@ def round_run(state, state_file, lane_dir, lane, sandbox, prompt, is_start):
     return 0
 
 
-def drop(lane_dir, lane):
+def drop(lane_dir, lane, remove_logs=True):
     # Exact ownership patterns: a lane named a.b must survive dropping a.
     for suffix in ('json', 'canary', 'sb'):
         (lane_dir / f'{lane}.{suffix}').unlink(missing_ok=True)
     pattern = re.compile(re.escape(lane) + r'\.[0-9]+\.(events\.jsonl|stderr\.log)$')
     for entry in lane_dir.iterdir():
-        if pattern.fullmatch(entry.name):
+        if remove_logs and pattern.fullmatch(entry.name):
             entry.unlink()
     box = lane_dir / f'{lane}.box'
     if box.is_symlink():
@@ -502,18 +586,21 @@ def main():
             profile(load(state_file), lane_dir / f'{lane}.box', lane_dir / f'{lane}.sb')
             return 0
         is_start = command == 'start'
-        sandbox = os.path.abspath(os.environ.get('OPENCODE_LANE_SANDBOX_EXEC') or '/usr/bin/sandbox-exec')
+        sandbox, security = sandbox_tools()
         # Serialize workspace claims across lane names, then release before the model runs.
-        with locked(lane_dir / '.registry.lock'):
+        with locked(lane_dir / '.registry.lock', wait_seconds=30):
             if is_start:
                 if os.path.lexists(state_file):
                     die(f'lane already exists: {lane}')
+                for suffix in ('canary', 'sb', 'box'):
+                    if os.path.lexists(lane_dir / f'{lane}.{suffix}'):
+                        die(f'lane artifacts already exist: {lane}; inspect before drop')
                 prompt_source, state = parse_start(args[1:])
                 state = new_state(state)
             else:
                 state = load(state_file)
                 prompt_source = args[1]
-            preconditions(state, lane_dir, state_file, sandbox)
+            preconditions(state, lane_dir, state_file)
             if prompt_source == '-':
                 with os.fdopen(os.dup(3), 'rb') as source:
                     prompt = source.read()
@@ -521,10 +608,16 @@ def main():
                 prompt = Path(prompt_source).read_bytes()
             else:
                 prompt = prompt_source.encode()
+            if not prompt.strip():
+                die('empty prompt')
             if is_start:
-                with state_file.open('x') as reserved:
-                    json.dump(state, reserved)
-        return round_run(state, state_file, lane_dir, lane, sandbox, prompt, is_start)
+                publish(state_file, state, exclusive=True)
+        try:
+            return round_run(state, state_file, lane_dir, lane, sandbox, security, prompt, is_start)
+        except (Refused, OSError, ValueError, KeyError, TypeError, subprocess.TimeoutExpired):
+            if is_start and not state['events']:
+                drop(lane_dir, lane, remove_logs=False)
+            raise
 
 
 def interrupted(signum, frame):
@@ -539,8 +632,3 @@ except (Refused, OSError, ValueError, KeyError, TypeError, subprocess.TimeoutExp
     print(f'opencode-lane: {error}', file=sys.stderr)
     sys.exit(2)
 PY
-SUPERVISOR=$!
-rc=0
-wait "$SUPERVISOR" || rc=$?
-SUPERVISOR=""
-exit "$rc"

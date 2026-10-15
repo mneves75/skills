@@ -65,3 +65,63 @@ workspace read and write were allowed; no file appeared in the home directory.
 Earlier attempts in the same session returned exit 1 with `provider error: provider.no-route:
 Model unavailable` for the DeepSeek model and exit 2 with `model not offered` once the roster
 check was in place, which is the intended behavior.
+
+## Implementation evidence (the tool itself)
+
+The Codex worker built the tool and both tests from the spec in one lane; the coordinator reran
+every test and accepted each round only after reading the diff. Each mutation below reverted one
+behavior, reran `opencode-lane.test`, saw it fail on the named scenario, and restored the file
+(SHA-256 matched before and after).
+
+| Reverted behavior | Failing scenario |
+|---|---|
+| `PWD` binding | PWD binding |
+| Environment allowlist | Environment allowlist |
+| Ancestor configuration refusal | Ancestor project-config refusal |
+| Missing sandbox refusal | Sandbox-missing refusal |
+| Self-test enforcement | Self-test leak refusal |
+| Process-group kill | Watchdog group kill: grandchild survived |
+| Model check | Model check |
+| Permission array (object form restored) | Ordered permission rule array |
+| Keychain and clipboard service denial | Mach service isolation profile |
+| Keychain self-test | Keychain self-test refuses readable search list |
+| Provider-error handling | Provider error surfaced with backend exit |
+| Required sandbox in CI | Required sandbox missing fails |
+| Empty-home canary fallback | Required sandbox empty-HOME canary and cleanup |
+| Catalog warm-up | Catalog warmed before run with identical sandbox and environment |
+| Ancestor instructions refusal | Strict ancestor agent instructions refused |
+
+Complexity evidence: `cccc` 1.8.0 is installed but supports no shell language, and the
+Python supervisor is embedded in the Bash wrapper, so it analyzed zero files. Status:
+unsupported, no complexity score; tests, the mutation table and the reviews carry the evidence.
+
+### Review rounds after the first commit
+
+Two code reviews (standards, spec) and an independent reviewer with a hostile fake worker under
+the real sandbox found further defects; all were fixed by the Codex worker and re-verified. New
+mutation rows (each reverted fix made `opencode-lane.test` fail on the named scenario):
+
+| Reverted fix | Failing scenario |
+|---|---|
+| After-round order (config before provider error) | Config creation outranks provider error |
+| Refused start releases name and workspace | Refused start releases name/workspace |
+| Catalog warm-up budget | Catalog budget independent of first-event timeout |
+| Platform check without the test seam | Unsupported platform without test seam |
+| Account home plus redirected `HOME` | Account home and redirected HOME both denied |
+| Missing git diagnostic | Missing Git diagnostic |
+| Workspace drift between rounds | Workspace physical-path drift refused |
+| Signal rule (`(target others)` restored) | Same-user IPC profile rules: missing `(deny signal)` |
+| Supervisor environment allowlist | Supervisor and self-test environment sanitized |
+| Waiting registry lock | Six parallel workspaces wait for registry lock |
+| Background child holding stdout | Finished worker with child holding stdout |
+| Corrupt state and atomic reservation | Corrupt-state diagnostic; atomic exclusive reservation |
+| Empty prompts | Empty prompts refused before reservation |
+
+The reviewer's own 26-case harness, adapted to the new self-test seams, passes 24. The two
+remaining cases are deliberate: a corrupt lane state refuses with exit 2 naming the file instead
+of being ignored, and the redirected-home case failed only because the adapted harness overrode
+the account home; the generator itself denies both the account home and a redirected `HOME`. The
+hostile-worker probes under the real sandbox now find the supervisor's environment clean and the
+outside socket, `ps`, preferences, outside reads and writes denied. The real-sandbox test passes
+all thirteen checks, including a denied signal to a non-Apple process and an allowed signal to
+the worker's own child. A final live round on a real model ran shell, bun, tsc and git (214 s).

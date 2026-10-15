@@ -54,7 +54,8 @@ out of the default install, so someone who wants only the `mneves-*` skills does
 repository's own `opencode.json` outranks the user's profile, and a worker that writes that file
 widens its own permissions mid-round. So the lane contains the worker with the operating system:
 a Seatbelt profile that hides the user's home and keeps writes in the workspace, re-proven by a
-self-test before every round. It is an opt-in trial; four good benchmark runs justify trying it,
+self-test before every round. Seatbelt cannot hide other processes' environments, so the docs say
+so instead of claiming full isolation. It is an opt-in trial; four good benchmark runs justify trying it,
 not rebinding a role.
 
 **`mneves-verify` ships no scripts at all.** It is deliberately machinery-free: the whole skill

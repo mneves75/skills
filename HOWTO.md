@@ -435,12 +435,13 @@ opencode has no sandbox, and a worker can rewrite its own permission rules, so t
 it with the operating system. It gives the worker a private home and stores and a minimal
 environment, and refuses a tree that carries opencode configuration. Before every round a
 self-test proves its Seatbelt profile: your home is unreadable and writes outside the workspace
-fail. After the round it exits non-zero if another model ran. The network stays open, so keep
-secrets and customer data out of the worktree. In the evaluation behind it, four small tasks with
+fail. After the round it exits non-zero if another model ran. The network stays open, and macOS
+lets any process read the environment of your other programs, so keep secrets out of the
+worktree and out of exported environment variables while a lane runs. In the evaluation behind it, four small tasks with
 hidden tests, the opencode worker (DeepSeek V4.1 Flash, run on a signed-in account) matched the
 Codex worker. That is feasibility evidence; a role binding needs the larger trial described in
-the reference. On the same day the provider stopped offering that model to anonymous clients, so
-the credential-free lane cannot run it until account support is decided.
+the reference. A model offered only to signed-in accounts cannot run in the credential-free lane;
+the evaluation spec in `docs/specs/opencode-worker/` records when that happened to this one.
 
 **Tips.**
 - One goal per dispatch. A grab-bag spec produces a grab-bag diff.

@@ -24,7 +24,7 @@ PY
 trap cleanup EXIT
 python3 - "$LANE" "$TMP" <<'PY'
 # Python 3.10+, standard library only. _profile never launches opencode.
-import contextlib, json, os, pathlib, shutil, subprocess, sys
+import contextlib, json, os, pathlib, pwd, shutil, signal, socket, subprocess, sys
 
 @contextlib.contextmanager
 def home_canary(home, required):
@@ -57,7 +57,7 @@ for directory in (workspace, lanes, box, outside, install):
 subprocess.run(['git', 'init', '-q', str(workspace)], check=True)
 canary = outside / 'canary'
 canary.write_text('sandbox sibling canary\n')
-home = pathlib.Path(os.environ['HOME']).resolve()
+home = pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir).resolve()
 git = subprocess.check_output(['xcrun', '--find', 'git'], text=True).strip() if \
     shutil.which('xcrun') else shutil.which('git')
 state = dict(workspace=str(workspace), git_common=str(workspace / '.git'),
@@ -106,5 +106,49 @@ clipboard = subprocess.run(['/usr/bin/sandbox-exec', '-f', str(profile), '/usr/b
 if clipboard.returncode == 0 and len(clipboard.stdout) != 0:
     sys.exit(f'FAIL: clipboard readable inside sandbox ({len(clipboard.stdout)} bytes)')
 print('PASS: clipboard denied or empty')
+socket_path = outside / 'ipc.sock'
+with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as listener:
+    listener.bind(str(socket_path))
+    listener.listen(2)
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:
+        client.connect(str(socket_path))
+    accepted, _ = listener.accept()
+    accepted.close()
+    # The client script is readable in the workspace; only the connect is tested.
+    client_script = workspace / 'socket-client.py'
+    client_script.write_text('import socket, sys\n'
+                             'with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as client:\n'
+                             '    client.connect(sys.argv[1])\n')
+    probe('sandbox socket client runtime allowed', [sys.executable, '-c', 'import socket'], True)
+    probe('outside Unix socket connect denied', [sys.executable, str(client_script), str(socket_path)], False)
+subprocess.run(['/bin/kill', '-0', str(os.getpid())], check=True,
+               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+probe('signal to test process denied', ['/bin/kill', '-0', str(os.getpid())], False)
+signal_control = ('import signal, subprocess\n'
+                  'child = subprocess.Popen(["/bin/sleep", "30"])\n'
+                  'child.terminate()\n'
+                  'if child.wait(timeout=5) != -signal.SIGTERM:\n'
+                  '    raise SystemExit("child did not receive SIGTERM")\n'
+                  'print("child SIGTERM delivered")\n')
+with subprocess.Popen(['/usr/bin/sandbox-exec', '-f', str(profile),
+                       sys.executable, '-c', signal_control],
+                      stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, start_new_session=True) as control:
+    try:
+        output, _ = control.communicate(timeout=10)
+        if control.returncode != 0 or output.strip() != b'child SIGTERM delivered':
+            sys.exit(f'FAIL: same-sandbox child SIGTERM: exit {control.returncode}')
+    finally:
+        # This group belongs only to the control, including a child left by a failed signal.
+        try:
+            os.killpg(control.pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+print('PASS: same-sandbox child SIGTERM allowed')
+preferences = subprocess.run(['/usr/bin/sandbox-exec', '-f', str(profile),
+                              '/usr/bin/defaults', 'read', 'com.apple.finder'],
+                             stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, timeout=10)
+if len(preferences.stdout) != 0:
+    sys.exit(f'FAIL: Finder preferences readable inside sandbox ({len(preferences.stdout)} bytes)')
+print('PASS: Finder preferences returned no data')
 print('PASS: real sandbox controls (no model invoked)')
 PY
