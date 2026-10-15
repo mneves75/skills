@@ -48,7 +48,8 @@ commit. One folder per commit keeps earlier verdicts for reuse and rollback; whe
 commit with the same tree deploys (a merge or squash), copy the record to its folder with
 `reused_from` set. Confirm with `git check-ignore` that the
 path is ignored; if it is not, write both to the release's evidence location and say
-where. Never commit them into the candidate: that would change the audited commit.
+where. Never commit them into the candidate: that would change the audited commit. Keep
+them: they prove reuse and rollbacks, so no cleanup routine may delete them.
 
 ```json
 {

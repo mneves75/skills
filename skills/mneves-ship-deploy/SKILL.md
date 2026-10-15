@@ -63,7 +63,7 @@ Report the six findings in one short paragraph before doing anything mutating.
 Run in order, fixing what each surfaces before moving on:
 
 1. `autoreview` — pre-commit code review, when installed; otherwise use the repository's documented independent review gate. Run automatically when its content and destination are already authorized; do not pause for redundant confirmation. Keep the review bounded: one review and one rerun after accepted corrections. Verify findings and apply in-scope corrections automatically. Unresolved actionable findings block the release; report them rather than repeating the same review indefinitely.
-2. **Security gate** (mandatory in both modes) — the separately installed `mneves-security` skill in deploy-gate mode: a full security, privacy and compliance audit with a fix plan and a PASS, BLOCK or WAIVED verdict for the exact commit and each target. Run it last, after steps 1 and 3, the build gates and Phase 2 have landed their changes, so it audits the final release content; it binds by tree hash to the release commit before any push, merge or tag that deploys it, and any later change to the tree is a new candidate with a new audit. Its verdict rules decide what blocks; a block clears only by a fix, disproof, or the owner's named waiver in the decision packet. One audit serves every target of the same tree; production runs the gate's reuse pass before promotion. Its runtime checks belong in `scripts/verify-live.sh` (or the live proof a project uses), so they pass before any tag, and each tag message records the verdict. Without the skill, the release is blocked until it is installed (`npx skills@latest add mneves75/skills --skill mneves-security -g -y`) or the owner waives the gate by name; no other review substitutes for it.
+2. **Security gate** (mandatory in both modes) — the separately installed `mneves-security` skill in deploy-gate mode: a full security, privacy and compliance audit with a fix plan and a PASS, BLOCK or WAIVED verdict for the exact commit and each target. Run it last, after steps 1 and 3, the build gates and Phase 2 have landed their changes, so it audits the final release content; it binds by tree hash to the release commit before any push, merge or tag that deploys it, and any later change to the tree is a new candidate with a new audit. Its verdict rules decide what blocks; a block clears only by a fix, disproof, or the owner's named waiver in the decision packet. One audit serves every target of the same tree; production runs the gate's reuse pass before promotion. Its runtime checks belong in `scripts/verify-live.sh` (or the live proof a project uses), so they pass before any tag, and each tag message records the verdict (`security gate: PASS`, or `WAIVED` with the waived IDs). Without the skill, the release is blocked until it is installed (`npx skills@latest add mneves75/skills --skill mneves-security -g -y`) or the owner waives the gate by name; no other review substitutes for it.
 3. `improve` (deep pass) — read-only survey producing prioritized plans. Land only what is in scope for this release; everything else becomes a named follow-up, not silent work.
 4. If Phase 1 uncovers work too large for this session, use the host's native task/goal facility only when the user requests that workflow; otherwise report the remaining work. Keep it within the authorized release scope.
 
@@ -117,7 +117,7 @@ Order: deploy the pushed commit, prove it live, then tag. A tag names bytes that
 3. **Tag** the verified commit:
 
 ```bash
-git tag -a vX.Y.Z-beta<N> <commit> -m "vX.Y.Z-beta<N> — staging" && git push origin vX.Y.Z-beta<N>
+git tag -a vX.Y.Z-beta<N> <commit> -m "vX.Y.Z-beta<N> — staging; security gate: PASS" && git push origin vX.Y.Z-beta<N>
 ```
 
 `<N>` starts at 1 and increments for each verified staging build of the same target version — `v2.4.0-beta1`, `-beta2`, … A staging attempt that fails its live proof gets no tag: fix, deploy again, prove again. The clean tag `vX.Y.Z` is reserved for production. Never promote an unverified build.
@@ -139,7 +139,7 @@ Enter this phase only after the user's explicit OK for the exact candidate and p
 Same order as staging: deploy the commit staging serves, prove it live with the same assertions, then tag.
 
 ```bash
-git tag -a vX.Y.Z <commit> -m "vX.Y.Z" && git push origin vX.Y.Z
+git tag -a vX.Y.Z <commit> -m "vX.Y.Z; security gate: PASS" && git push origin vX.Y.Z
 ```
 
 Then:

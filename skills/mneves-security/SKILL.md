@@ -235,8 +235,9 @@ Reuse and exemptions:
   evidence depends on that target's environment, and run its runtime checks.
 - Rolling back needs no new audit when the build passed the gate for that target: its
   release tag message records a PASS or WAIVED verdict, or a gate record names its commit.
-  Any other build, including one released before the gate existed, needs the owner's
-  named waiver.
+  A tag whose message lacks the verdict (a release script that writes its own message)
+  proves nothing. Any other build, including one released before the gate existed, needs
+  the owner's named waiver.
 - An urgent fix may deploy under the owner's named waiver (`gate:audit`). Its full audit
   runs right after the deploy. A Critical or High finding there is the next fix, or the
   owner decides to roll back.
