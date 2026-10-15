@@ -65,6 +65,25 @@ treated as absent) then changed the text again:
 20. **Plan shape.** One entry per change listing the IDs it closes, with an index of every open ID;
     the independent check is pending in audits and required before a production record.
 
+The code reviews of the first commit then changed:
+
+21. **References are self-contained.** No reference names another; the shared terms moved to
+    `SKILL.md` (standards review, AGENTS.md one-level rule).
+22. **Rule consistency** (spec review and reviewer agent): fix authority follows the release
+    workflow; a production run after owner waivers writes the record listing them; the
+    independent check also covers active `contract` rows; stake includes uploads and contact
+    lists; the prototype rule says what blocks; always-on rows apply only where they apply;
+    DEL-03 has pre-deploy evidence; waivers name their target; ship-deploy names fallbacks.
+23. **Release script** (reviewer agent's attack tests): a line reader replaces the JSON parser
+    (matching the documented format); impossible calendar dates, expired or inline waivers,
+    symlinked record directories and a gate named `readiness` are refused. The checker requires
+    the refusal before the first deploy, recognizes `grep` as a reader, and drops
+    `readiness_refusal` from cognitive 35 to 7 (cccc 1.8.0).
+24. **Catalog guard.** A script of mine stripped every control heading marker and the damage
+    reached the first commit; `tools/scripts/check-readiness-catalog.py` now fails CI on that and
+    on duplicate IDs, missing tiers or verification lines, preservation-map gaps and a missing
+    catalog version.
+
 Deferred, with reasons: evidence digests (consistency, not truth), per-target release locking,
 CI artifact transfer of records, and a versioned exchange format with the security gate (waiting
 for the parallel session's artifact format).

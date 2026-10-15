@@ -80,8 +80,11 @@ an equivalent review) writes the record for one deployable unit, target and cand
 }
 ```
 
-Each scalar sits on its own line, so a shell script reads it without a JSON parser. Timestamps
-are UTC in exactly the form `YYYY-MM-DDTHH:MM:SSZ` and compare as strings. The record proves that
+Each scalar, and each field of each waiver object, sits on its own line, so a shell script reads
+it without a JSON parser; the script refuses a waiver whose `expires` has passed. Timestamps
+are UTC in exactly the form `YYYY-MM-DDTHH:MM:SSZ` and compare as strings. The gate that writes
+the record keeps `valid_until` within 24 hours of `created_at`; the release script checks only
+that `created_at` is not in the future and `valid_until` has not passed. The record proves that
 the gate ran for these bytes; it does not authorize a deploy, and production still needs the
 owner's approval. Readiness waivers inside the record are the owner's, with expiries.
 
@@ -109,4 +112,4 @@ A waiver names one gate and a reason a reader can check, for example
 `--waive supply-chain=GHSA-xxxx has no patched release`. `release.json` records it. An
 unfixable gate is one waiver request to the owner, sent as soon as it is known, together with
 the candidate, the target and the rollback plan. `readiness` is a waivable gate name even though
-it is not in the gate list.
+it is not in the gate list, so a gate list may not use it.

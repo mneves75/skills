@@ -20,7 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release contract guarantee 11**: a release script that declares `# release-contract: 2` refuses
   to deploy without a valid readiness record for the exact unit, target and commit; `--waive
   readiness=<reason>` is the only bypass. The conformance check reports it (FAIL with the marker,
-  WARN without), and the reference `release.sh` implements it with guard tests.
+  WARN without), and the reference `release.sh` implements it with guard tests. The script
+  reads the record line by line, rejects impossible dates, expired waivers, symlinked record
+  directories and a project gate named `readiness`, and snapshots the record into the evidence.
+- **Readiness catalog guard**: `tools/scripts/check-readiness-catalog.py` checks control
+  headings, tiers, verification lines, unique IDs, the spec's preservation map and the catalog
+  version; CI runs it with fourteen planted violations.
 
 ### Changed
 - **`mneves-ship-deploy`**: Preflight reads the readiness ledger; review runs a provisional

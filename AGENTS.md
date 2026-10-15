@@ -53,6 +53,8 @@ bash .githooks/pre-commit.test          # hook e2e test
 bash skills/mneves-fable-orchestrator/tools/codex-lane.test   # codex-lane e2e against a fake codex (no quota)
 python3 skills/mneves-ship-deploy/scripts/run-tests.py        # release contract check: planted violations, read-only
 bash skills/mneves-ship-deploy/assets/release-guards.test.sh  # reference release guards: throwaway repo, fake wrangler
+python3 tools/scripts/check-readiness-catalog.py  # readiness catalogs and preservation map: read-only
+bash tools/scripts/check-readiness-catalog.test   # planted-violation controls for the readiness catalog guard
 tools/scripts/check-defaults-block.sh   # model ids only inside the orchestrator's Defaults block, with its verified-on date
 bash tools/scripts/check-defaults-block.test   # planted-violation controls for that guard
 bun --bun tools/readiness-check.ts --format=html --output=report.html   # assess cwd

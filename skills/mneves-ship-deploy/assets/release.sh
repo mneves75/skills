@@ -71,6 +71,7 @@ say() { printf '\n==> %s\n' "$*"; }
 bad_usage() { echo "release: $*" >&2; echo "$usage" >&2; exit 2; }
 
 gate_names() { printf '%s\n' "$GATES" | sed -n 's/^\([^=]*\)=.*/\1/p'; }
+if gate_names | grep -qx readiness; then bad_usage "readiness is reserved and cannot appear in GATES"; fi
 
 # ---- Arguments ----
 target="${1:-}"
@@ -235,81 +236,56 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Validate JSON syntax before extracting scalars. This small reader keeps the reference independent
-# of jq or a language runtime; it accepts the documented record and preserves the waivers verbatim.
+# The record contract puts each scalar on its own line. This checks those lines, not JSON syntax.
 readiness_fields() {
   LC_ALL=C awk '
-    function bad(why) { print "malformed JSON or " field ": " why; failed=1; exit 1 }
-    function ws() { while (substr(doc,pos,1) ~ /[ \t\r\n]/ && pos <= length(doc)) pos++ }
-    function string(    start,c) {
-      start=pos++
-      while (pos <= length(doc)) {
-        c=substr(doc,pos++,1)
-        if (c == "\"") return substr(doc,start,pos-start)
-        if (c ~ /[[:cntrl:]]/) bad("control character")
-        if (c == "\\") {
-          c=substr(doc,pos++,1)
-          if (c == "u") {
-            if (substr(doc,pos,4) !~ /^[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]$/) bad("escape")
-            pos+=4
-          } else if (c !~ /^["\\\/bfnrt]$/) bad("escape")
-        }
-      }
-      bad("unterminated string")
+    function bad(why) { print why; failed=1; exit 1 }
+    BEGIN {
+      count=split("schema unit target catalog commit verdict open_blockers created_at valid_until", keys, " ")
+      for (i=1; i<=count; i++) pattern[keys[i]]="^\"[^\"[:cntrl:]]+\"$"
+      pattern["schema"]=pattern["open_blockers"]="^(0|[1-9][0-9]*)$"
+      pattern["catalog"]="^[1-9][0-9]*$"
+      pattern["target"]="^\"(staging|production)\"$"
+      pattern["commit"]="^\"[0-9a-f]+\"$"
     }
-    function value(depth,    c,key,start,raw,ending) {
-      if (depth > 32) bad("nesting too deep")
-      ws(); c=substr(doc,pos,1); start=pos
-      if (c == "\"") { string(); return }
-      if (c == "{" || c == "[") {
-        ending=(c == "{" ? "}" : "]"); pos++; ws()
-        if (substr(doc,pos,1) == ending) { pos++; return }
-        while (1) {
-          if (c == "{") {
-            if (substr(doc,pos,1) != "\"") bad("expected key")
-            key=string(); ws()
-            if (substr(doc,pos++,1) != ":") bad("expected colon")
-            ws()
-          }
-          start=pos
-          if (depth == 0) {
-            field=substr(key,2,length(key)-2)
-            if (!(field in required) && field != "waivers") bad("unknown key")
-            if (seen[field]++) bad("duplicate key")
-          }
-          value(depth+1)
-          if (depth == 0) values[field]=substr(doc,start,pos-start)
-          ws(); raw=substr(doc,pos++,1)
-          if (raw == ending) return
-          if (raw != ",") bad("expected comma")
-          ws()
-        }
+    {
+      line=$0; sub(/^[[:space:]]*/, "", line); sub(/[[:space:]]*$/, "", line)
+      if (line == "") next
+      if (first == "") first=line
+      last=line
+      if (line ~ /"expires"/ && line !~ /^"expires"[[:space:]]*:[[:space:]]*"[^"[:cntrl:]]*"[[:space:]]*,?$/)
+        bad("waiver fields must sit on their own lines")
+      key=line; sub(/^"/, "", key); sub(/".*$/, "", key)
+      if (!(key in pattern) && key != "expires") next
+      if (line !~ ("^\"" key "\"[[:space:]]*:[[:space:]]*")) {
+        if (key == "expires") bad("a readiness waiver has expired (malformed expires)")
+        bad("malformed " key " line")
       }
-      if (match(substr(doc,pos), /^(true|false|null|-?(0|[1-9][0-9]*)(\.[0-9]+)?([eE][+-]?[0-9]+)?)/)) { pos+=RLENGTH; return }
-      bad("invalid value")
+      value=line; sub(/^[^:]*:[[:space:]]*/, "", value); sub(/,$/, "", value); sub(/[[:space:]]*$/, "", value)
+      if (key == "expires") { expiry[++expiries]=value; next }
+      if (seen[key]++) bad("duplicate " key " key")
+      if (value !~ pattern[key]) bad("malformed " key " value")
+      values[key]=value
     }
-    { doc=doc $0 "\n" }
     END {
       if (failed) exit 1
-      count=split("schema unit target catalog commit verdict open_blockers created_at valid_until", keys, " ")
-      for (i=1; i<=count; i++) required[keys[i]]=1
-      pos=1; ws()
-      if (substr(doc,pos,1) != "{") bad("expected record object")
-      value(0); ws()
-      if (pos <= length(doc)) bad("trailing content")
-      for (i=1; i<=count; i++) {
-        field=keys[i]
-        if (!seen[field]) bad("missing key")
-        if (values[field] ~ /[\r\n\t]/) bad("scalar must be on one line")
-      }
+      if (first != "{" || last != "}") bad("record must start with { and end with } on separate lines")
+      for (i=1; i<=count; i++) if (!seen[keys[i]]) bad("missing " keys[i] " key")
       for (i=1; i<=count; i++) print keys[i] "\t" values[keys[i]]
+      for (i=1; i<=expiries; i++) print "expires\t" expiry[i]
     }
   ' "$1"
 }
 readiness_value() { printf '%s\n' "$readiness_data" | awk -F '\t' -v key="$1" '$1 == key { print $2 }'; }
 readiness_error() { readiness_problem="$*"; return 1; }
+readiness_timestamp() {
+  [[ "$1" =~ ^\"[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]Z\"$ ]]
+}
 check_readiness() {
-  local record="$root/$UNIT/.scratch/readiness/$target.json" now created stamp
+  local record="$root/$UNIT/.scratch/readiness/$target.json" now created stamp parent expiry
+  for parent in "$root/$UNIT/.scratch" "$root/$UNIT/.scratch/readiness"; do
+    [ ! -L "$parent" ] || { readiness_error "readiness parent is a symlink: $parent"; return 1; }
+  done
   [ ! -L "$record" ] || { readiness_error "record is a symlink: $record"; return 1; }
   [ -e "$record" ] || { readiness_error "missing record: $record"; return 1; }
   [ -f "$record" ] || { readiness_error "record is not a regular file: $record"; return 1; }
@@ -326,13 +302,21 @@ check_readiness() {
   created="$(readiness_value created_at)"
   readiness_until="$(readiness_value valid_until)"
   for stamp in "created_at=$created" "valid_until=$readiness_until"; do
-    [[ "${stamp#*=}" =~ ^\"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z\"$ ]] || { readiness_error "${stamp%%=*} must be YYYY-MM-DDTHH:MM:SSZ"; return 1; }
+    readiness_timestamp "${stamp#*=}" || { readiness_error "${stamp%%=*} must be YYYY-MM-DDTHH:MM:SSZ with valid ranges"; return 1; }
   done
   created="${created#\"}"; created="${created%\"}"
   readiness_until="${readiness_until#\"}"; readiness_until="${readiness_until%\"}"
   now="$(date -u +%Y-%m-%dT%H:%M:%SZ)" || { readiness_error "cannot read UTC time"; return 1; }
   [[ ! "$created" > "$now" ]] || { readiness_error "created_at is in the future"; return 1; }
   [[ "$readiness_until" > "$now" ]] || { readiness_error "valid_until has expired"; return 1; }
+  while IFS= read -r expiry; do
+    [ -n "$expiry" ] || continue
+    readiness_timestamp "$expiry" || { readiness_error "a readiness waiver has expired (malformed expires)"; return 1; }
+    expiry="${expiry#\"}"; expiry="${expiry%\"}"
+    [[ "$expiry" > "$now" ]] || { readiness_error "a readiness waiver has expired"; return 1; }
+  done << EXPIRIES
+$(readiness_value expires)
+EXPIRIES
 }
 
 readiness_reason="$(waiver_reason readiness)"

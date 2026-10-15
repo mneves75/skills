@@ -20,7 +20,8 @@ evidence for the controls that apply is.
 - **Release workflow** (`mneves-ship-deploy`, or an explicit request for a readiness gate): write
   only the ledger and the readiness record. Commits, pushes and deploys follow that workflow's
   own authority.
-- **Fixing gaps** is a separate, explicitly requested task through the project's test-first
+- **Fixing gaps** needs an explicit request, or a release workflow whose review phase fixes
+  what its gates find (as `mneves-ship-deploy` does), and goes through the project's test-first
   workflow. Security fixes belong to the security review.
 - Never delete data, handle credentials, change provider dashboards, read production records,
   restore into production, rotate keys or contact third parties. Restore drills run only into an
@@ -45,6 +46,18 @@ Read each at the stage that needs it. They are the complete procedure.
   [maintainability and ownership](references/controls-stewardship.md) ·
   [delegated security and compliance](references/controls-security.md).
 - [Sources](references/sources.md): when a verdict depends on a dated fact or edition.
+
+## Terms used by every catalog
+
+- **Tier**: `blocker` (failure loses, corrupts or exposes data or money, or leaves an outage
+  undetected or unrecoverable), `contract` (blocks only when a declared contract or a derived
+  regulation requires it), `advisory` (planned work that never blocks).
+- **Applies**: profile flags derived from evidence, as `gates.md` defines; `live` is the stage,
+  and "with stake" means the product stores customer data, takes money or promises availability.
+- **Triggers**: the paths whose change puts the control into a delta.
+- **Status and evidence**: PASS, FAIL, BLOCKED, NOT TESTED, NOT APPLICABLE or WAIVED, with an
+  evidence scope (source, local, staging, production, owner-attested) as `ledger.md` defines. A
+  row cannot PASS below its control's minimum scope.
 
 ## Sibling skills
 

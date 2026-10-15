@@ -99,7 +99,7 @@ Land the PR only when authorized and when its merge does not bypass the producti
 
 Order: deploy the pushed commit, prove it live, then tag. A tag names bytes that were served and checked.
 
-First bind readiness: run the readiness gate for `staging` on the exact pushed commit you will deploy. It writes `.scratch/readiness/staging.json` in the deployable unit's directory, which `scripts/release.sh` requires (release contract guarantee 11). A `not-ready` staging verdict stops the deploy: fix, push and run the gate again.
+First bind readiness: run the readiness gate for `staging` on the exact pushed commit you will deploy (`mneves-production-readiness` when installed, otherwise the repository's documented readiness review; with neither, report the missing gate in the decision packet, where only the owner can approve `--waive readiness=<reason>`). It writes `.scratch/readiness/staging.json` in the deployable unit's directory, which `scripts/release.sh` requires (release contract guarantee 11). A `not-ready` staging verdict stops the deploy: fix, push and run the gate again.
 
 1. **Deploy** a commit the remote already has. Use `scripts/release.sh staging` when the repository has it (it performs steps 2 and 3 itself, and may require the commit to be the tip of the default branch); otherwise the detected skill or documented command.
 2. **Prove it live.** Run `scripts/verify-live.sh staging` when it exists. Otherwise assert what that script would: the served commit or version equals the candidate; the health response body has its expected fields; one request that must succeed does, and one that must be refused is. Then exercise the flow that changed with `agent-browser` / `/browse` (web) or `argent` (mobile), signed in when the change touches signed-in behavior, and read the logs for new errors. Desktop and mobile are separate targets. A green deploy command is not verification.
@@ -109,7 +109,7 @@ First bind readiness: run the readiness gate for `staging` on the exact pushed c
 git tag -a vX.Y.Z-beta<N> <commit> -m "vX.Y.Z-beta<N> — staging" && git push origin vX.Y.Z-beta<N>
 ```
 
-For `ship-prod`, then run the readiness gate for `production` on the same commit. A production record never reuses the staging one; its verdict and open blockers go into the candidate presented for approval.
+For `ship-prod`, then run the readiness gate for `production` on the same commit, with the same fallback. A production record never reuses the staging one; its verdict and open blockers go into the candidate presented for approval.
 
 `<N>` starts at 1 and increments for each verified staging build of the same target version — `v2.4.0-beta1`, `-beta2`, … A staging attempt that fails its live proof gets no tag: fix, deploy again, prove again. The clean tag `vX.Y.Z` is reserved for production. Never promote an unverified build.
 
@@ -127,7 +127,7 @@ Any repository, commit, version, environment, or target mismatch invalidates the
 
 Enter this phase only after the user's explicit OK for the exact candidate and production target. The production tag and its push are part of this approval boundary.
 
-Same order as staging: deploy the commit staging serves, prove it live with the same assertions, then tag. Deploy only with a valid production readiness record for that commit; if it expired while you waited for approval, run the production gate again and present any change.
+Same order as staging: deploy the commit staging serves, prove it live with the same assertions, then tag. Deploy only with a valid production readiness record for that commit. After the owner grants readiness waivers, or if the record expired while you waited, run the production gate again on the same commit so the record lists the waivers, and present any change.
 
 ```bash
 git tag -a vX.Y.Z <commit> -m "vX.Y.Z" && git push origin vX.Y.Z

@@ -48,7 +48,7 @@ Owners: review @lead · data @lead · delivery and cost @ops · on-call @ops, ba
 | ID | Status | Tier | Evidence (scope, date, commit) | Owner | Next action or waiver |
 |---|---|---|---|---|---|
 | DM-02 | PASS | blocker | local: up and down run for `db/migrations/0012` (2026-10-15, 1a2b3c4) | @lead | — |
-| BR-02 | WAIVED | blocker | none yet | @ops | waiver @founder: first drill booked; expires 2026-11-14 |
+| BR-02 | WAIVED | blocker | none yet | @ops | waiver @founder, production: first drill booked; expires 2026-11-14 |
 
 ## Gate history
 
@@ -90,20 +90,27 @@ these keys, then the waivers array:
   "created_at": "2026-10-15T19:00:00Z",
   "valid_until": "2026-10-16T19:00:00Z",
   "waivers": [
-    {"control": "BR-02", "owner": "@founder", "reason": "first drill booked", "expires": "2026-11-14T00:00:00Z"}
+    {
+      "control": "BR-02",
+      "owner": "@founder",
+      "reason": "first drill booked",
+      "expires": "2026-11-14T00:00:00Z"
+    }
   ]
 }
 ```
 
 - `unit` is `.` or the unit's path relative to the repository root; `target` is `staging` or
   `production`; `commit` is the full 40-character SHA of the candidate.
-- `open_blockers` counts the rows that block under the target's rule in `gates.md` (for
+- `open_blockers` counts the rows that block under the target's gate rule (for
   staging, the FAIL rows in the staging set). `verdict` is `ready` exactly when it is 0; waived
   rows are not open.
 - Timestamps are UTC in exactly the form `YYYY-MM-DDTHH:MM:SSZ`, so they compare as strings.
 - `valid_until` is the earliest of `created_at` plus 24 hours, any waiver expiry and any
   relied-upon evidence expiry.
-- Release scripts read only the scalars. The waivers array is copied into the release evidence.
+- Each waiver field, like each scalar, sits on its own line: release scripts read the scalars
+  and every waiver's `expires`, refuse an expired waiver, and copy the record into the release
+  evidence.
 
 ## Plan
 

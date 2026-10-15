@@ -670,29 +670,38 @@ def rollback(view: list[Line] | None) -> Result:
 PIN_FILES = (".nvmrc", ".node-version", ".bun-version", ".python-version", ".tool-versions")
 
 
+def readiness_failure_branch(candidate: str, following: list[tuple[Line, str]]) -> str:
+    if "||" in candidate:
+        # Negated existence plus || refuses an existing record, not a missing one.
+        if re.search(r"!\s*(?:\[\[?|test)?\s*-[efr]", candidate):
+            return ""
+        branch = candidate.split("||", 1)[1]
+        if (not branch.strip() or branch.rstrip().endswith("\\")) and following:
+            branch += "\n" + following[0][1]
+        return branch
+    if not re.search(r"\bif\s+.*!\s+-[efr]", candidate):
+        return ""
+    branch = candidate.split("then", 1)[-1] if "then" in candidate else ""
+    for _, text in following:
+        if re.search(r"\b(?:fi|else|elif)\b", text):
+            break
+        branch += "\n" + text
+    return branch
+
+
+def readiness_branch_refuses(branch: str) -> bool:
+    return any(first_word(statement) in FAILING_WORDS or
+               re.match(r"(?:exit|return)\s+[1-9][0-9]*\b", statement.lstrip(" {"))
+               for statement in split_statements(branch))
+
+
 def readiness_refusal(code: list[tuple[Line, str]], ref: str, read: re.Pattern) -> Line | None:
     for index, (guard, candidate) in enumerate(code):
         tests_file = re.search(r"-[efr]\s+[\"']?" + ref, candidate)
         if is_message(candidate) or not (tests_file or read.search(candidate)):
             continue
-        if "||" in candidate:
-            # A negated test followed by || refuses an existing record, not a missing one.
-            if re.search(r"!\s*(?:\[\[?|test)?\s*-[efr]", candidate):
-                continue
-            branch = candidate.split("||", 1)[1]
-            if not branch.strip() or branch.rstrip().endswith("\\"):
-                branch += "\n" + (code[index + 1][1] if index + 1 < len(code) else "")
-        elif re.search(r"\bif\s+.*!\s+-[efr]", candidate):
-            branch = candidate.split("then", 1)[-1] if "then" in candidate else ""
-            for _, following in code[index + 1:]:
-                if re.search(r"\b(?:fi|else|elif)\b", following):
-                    break
-                branch += "\n" + following
-        else:
-            continue
-        if any(first_word(statement) in FAILING_WORDS or
-               re.match(r"(?:exit|return)\s+[1-9][0-9]*\b", statement.lstrip(" {"))
-               for statement in split_statements(branch)):
+        branch = readiness_failure_branch(candidate, code[index + 1:])
+        if readiness_branch_refuses(branch):
             return guard
     return None
 
@@ -704,18 +713,20 @@ def readiness(repo: Repo, script: Path | None, view: list[Line] | None) -> Resul
     declared = re.search(r"(?m)^\s*#\s*release-contract:\s*(\d+)\s*$", repo.require(script) or "") if script else None
     version = int(declared.group(1)) if declared else 0
     # Track the path and its assigned variable, then require both a read and a connected refusal.
-    code = [(line, line.text.split(" #", 1)[0]) for line in view]
+    deploy = first_deploy(view)
+    before_deploy = view[:view.index(deploy)] if deploy else view
+    code = [(line, line.text.split(" #", 1)[0]) for line in before_deploy]
     for line, text in code:
         if is_message(text) or ".scratch/readiness/" not in text:
             continue
         assignment = re.search(r"\b([A-Za-z_][A-Za-z0-9_]*)=[\"']?[^\n]*\.scratch/readiness/", text)
         ref = (r"\$\{?" + re.escape(assignment.group(1)) + r"\b\}?" if assignment
                else r"[^\s]*\.scratch/readiness/[^\s]*")
-        read = re.compile(r"\b(?:cat|cp|awk|sed|read)\b[^\n]*" + ref + r"|<\s*[\"']?" + ref)
+        read = re.compile(r"\b(?:cat|cp|grep|awk|sed|read)\b[^\n]*" + ref + r"|<\s*[\"']?" + ref)
         reads_record = any(read.search(candidate) for _, candidate in code if not is_message(candidate))
         guard = readiness_refusal(code, ref, read) if reads_record else None
         if guard:
-            return Result(check_id, PASS, f"{line.where()} reads a readiness record; refusal at {guard.where()}", True)
+            return Result(check_id, PASS, f"{line.where()} reads a readiness record; refusal at {guard.where()} before deploy; function invocation is not proven", True)
     note = "guarantee 11, the readiness record, is not adopted"
     if version >= 2:
         return Result(check_id, FAIL, f"{repo.rel(script)} declares release-contract: {version}, but {note}", True)

@@ -40,8 +40,9 @@ or charges enter the system: a deploy, opening signups, switching payment keys t
 importing customer data. Run the production gate in its `live` form before the launch action,
 even when no code deploys.
 
-**Stake.** A product has stake when it stores customer data (`db` or `accounts`), takes money
-(`payments`) or carries a declared availability promise (`sla`). Controls that apply to "`live`
+**Stake.** A product has stake when it stores customer data (records, accounts, uploaded files
+or contact lists: `db`, `accounts`, `uploads` or `marketing-email`), takes money (`payments`) or
+carries a declared availability promise (`sla`). Controls that apply to "`live`
 with stake" (on-call, recovery plans, paging, load tests and similar) are advisory for a live
 product without stake, such as a static brochure site.
 
@@ -58,12 +59,17 @@ product without stake, such as a static brochure site.
    than its maximum age, the catalog version changed, the stage changes to `live`, or the delta
    cannot be computed.
 2. **Provisional** (a release's review phase): assess the working tree against the target's
-   cursor, plan and fix within authority, and commit ledger changes with the release.
+   cursor and write the plan; the release workflow fixes what its own authority covers and
+   commits ledger changes with the release.
 3. **Binding gate run**, once per target, on the exact candidate (already pushed when the
    repository has a remote): assess the delta from the target's cursor to the candidate plus the
    always-on set, then write the record. A production record always comes from its own run,
    never from renaming a staging record. In a repository that releases the default-branch tip,
    the candidate is the landed commit, so the binding run follows landing.
+
+A production binding run with open blockers produces the decision packet, not a deployable
+record. When the owner grants waivers there, or a record expires while waiting, run the binding
+gate again on the same commit; it lists the waivers and writes the record.
 
 The binding run also updates the target's cursor and gate history in the ledger. That
 bookkeeping does not change the deployed bytes, so the record keeps the candidate's SHA and the
@@ -80,17 +86,18 @@ write the record.
 - If the cursor is an ancestor of the candidate, the delta is the changed paths between them.
   If not (rebase, force push, shallow history), use the paths changed since the merge base and
   reassess every domain they trigger; with no merge base, run a baseline.
+- Controls without triggers (most owner-attested ones) are refreshed by evidence expiry and by
+  baselines, not by deltas.
 - Map each path to domains through the controls' `triggers`. Read a path that no trigger
   classifies and assign it; when unsure, reassess every domain it could affect.
 - Changes to manifests, lockfiles, environment templates, deploy or infrastructure files re-run
   profile detection. A newly applicable control is assessed now.
 - Rows outside the delta carry forward only while their evidence is unexpired and meets the
-  evidence rule in `ledger.md` (a path, a command with its exit status, a dated attestation or a
-  URL). Reassess a row whose evidence is vague or whose cited evidence changed in the delta.
+  evidence rule (a path, a command with its exit status, a dated attestation or a URL). Reassess a row whose evidence is vague or whose cited evidence changed in the delta.
 
 ## Always-on set
 
-Reassessed on every run: SEC-12 (secrets in the delta), SEC-13 (new dependencies and current
+Reassessed on every run where they apply: SEC-12 (secrets in the delta), SEC-13 (new dependencies and current
 advisories), TST-05 (isolated lower environments), DEL-03 (tested before deploy), DEL-04
 (rollback path), DEL-09 (certificate and domain expiry), BR-02 and BR-04 (evidence age), OBS-03
 (external uptime), and the expiry of every waiver and every piece of time-bound evidence.
@@ -111,13 +118,15 @@ the remaining evidence is produced.
   applicable `blocker` row and every active `contract` row is PASS, NOT APPLICABLE with evidence,
   or WAIVED with an unexpired waiver (FAIL, BLOCKED and NOT TESTED block); the always-on set holds
   or is waived; the independent check ran.
-- **`prototype`**: the staging set plus DEL-04 and, with `db`, BR-01. List every other blocker as
-  launch work in the plan.
+- **`prototype`**: the staging set as for staging, plus DEL-04 and, with `db`, BR-01, which
+  block unless PASS or WAIVED. List every other blocker as launch work in the plan.
 
 ## Before and after the deploy
 
 Some evidence exists only after a deploy: OBS-03 green, the served certificate, live DNS and
-email records, the rollback command printed for this version. Before the deploy these rows need
+email records, the rollback command printed for this version, and the `release.json` that DEL-03
+cites (before the deploy, DEL-03 rests on the CI run for the commit or the release script's gate
+list). Before the deploy these rows need
 configuration evidence; the live part joins the release's live proof, and a failure there fails
 the release. On a first deploy there is no previous version: DEL-04 is met by a tested disable
 or teardown path (maintenance switch, feature flag, DNS cutback).
@@ -125,8 +134,9 @@ or teardown path (maintenance switch, feature flag, DNS cutback).
 ## Independent check
 
 Before writing a production record, a fresh-context verifier that did not assess the rows checks
-the evidence for every `blocker` row that became PASS or NOT APPLICABLE since the last production
-record, and every applicability change. At launch this covers every `blocker` row. Use the
+the evidence for every `blocker` and active `contract` row that became PASS or NOT APPLICABLE
+since the last production record, and every applicability change. At launch this covers every
+such row. Use the
 separately installed `mneves-verify` skill when present, otherwise a fresh read-only subagent
 with the rows, the evidence and this rule. If no verifier is available, those rows are BLOCKED
 until a verifier runs or the owner waives them. An audit or provisional assessment lists these
@@ -135,7 +145,7 @@ rows as pending; the check is required only before a production record is writte
 ## Waivers
 
 Only the owner, or a person the owner named, waives. A waiver names the control, owner, reason,
-scope (target and unit) and expiry; the maximum is 90 days, and 72 hours for an incident waiver
+target and expiry (the ledger belongs to one unit, and a record to one unit and target); the maximum is 90 days, and 72 hours for an incident waiver
 covering failures the release repairs. Waivers come from the release's decision packet and are
 written to the ledger and the record. An expired waiver restores the underlying status.
 

@@ -78,13 +78,16 @@ jobs:
       - name: Reference release guards (throwaway repo, fake wrangler, no network)
         run: bash skills/mneves-ship-deploy/assets/release-guards.test.sh
 
+      - name: Readiness catalog (preservation map and planted violations)
+        run: bash tools/scripts/check-readiness-catalog.test
+
       - name: Model ids live only in the orchestrator's Defaults block
         run: |
           bash tools/scripts/check-defaults-block.sh
           bash tools/scripts/check-defaults-block.test
 
       - name: Python syntax
-        run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py skills/mneves-ship-deploy/scripts/release-contract-check.py skills/mneves-ship-deploy/scripts/run-tests.py skills/mneves-ship-deploy/tests/test_release_contract_check.py
+        run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py skills/mneves-ship-deploy/scripts/release-contract-check.py skills/mneves-ship-deploy/scripts/run-tests.py skills/mneves-ship-deploy/tests/test_release_contract_check.py tools/scripts/check-readiness-catalog.py
 
       - name: Verified cccc install and real CLI controls (disposable fixtures)
         run: |

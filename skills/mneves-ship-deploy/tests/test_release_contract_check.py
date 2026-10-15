@@ -185,6 +185,31 @@ class Readiness(Base):
     def test_reference_asset_enforces_readiness(self) -> None:
         self.assertEqual(report_for(self.repo)["release.readiness"]["status"], "PASS")
 
+    def test_refusal_after_deploy_is_not_enforcement(self) -> None:
+        check = self.readiness('# release-contract: 2\nwrangler deploy\n'
+                               'record=".scratch/readiness/staging.json"\n'
+                               'cat "$record" || die "missing"\n')
+        self.assertEqual(check["status"], "FAIL")
+
+    def test_existence_without_a_reader_is_not_enforcement(self) -> None:
+        check = self.readiness('# release-contract: 2\nrecord=".scratch/readiness/staging.json"\n'
+                               '[ -f "$record" ] || die "missing"\nwrangler deploy\n')
+        self.assertEqual(check["status"], "FAIL")
+
+    def test_common_record_readers_before_deploy_pass(self) -> None:
+        for reader in ('cat "$record"', 'read value < "$record"', 'grep -q ready "$record"',
+                       'awk "1" "$record"', 'sed -n 1p "$record"', 'test_read < "$record"'):
+            with self.subTest(reader=reader):
+                check = self.readiness('# release-contract: 2\nrecord=".scratch/readiness/staging.json"\n'
+                                       + reader + ' || die "missing"\nwrangler deploy\n')
+                self.assertEqual(check["status"], "PASS")
+
+    def test_uncalled_functions_are_an_explicit_heuristic_limit(self) -> None:
+        check = self.readiness('check_record() {\nrecord=".scratch/readiness/staging.json"\n'
+                               'cat "$record" || die "missing"\n}\nwrangler deploy\n')
+        self.assertTrue(check["heuristic"])
+        self.assertIn("function invocation is not proven", check["evidence"])
+
 
 class ConformingRepository(Base):
     def test_every_check_is_reported_once_in_order(self) -> None:

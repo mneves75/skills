@@ -204,7 +204,7 @@ release_json() { find "$work/.scratch" -name release.json 2> /dev/null | head -1
 no_tags() { [ -z "$(remote_tags)" ] && [ -z "$(git -C "$work" tag)" ]; }
 
 # ==== Readiness: refusal before installing, building, deploying or making a run directory ====
-for defect in missing symlink directory malformed missing-key schema unit target commit short-sha future expired verdict blockers timestamp missing-comma duplicate; do
+for defect in missing symlink directory malformed missing-key schema unit target commit short-sha future expired verdict blockers timestamp single-line duplicate invalid-created invalid-until expired-waiver malformed-waiver inline-waiver scratch-link readiness-link; do
   new_repo "readiness-$defect"
   record="$work/.scratch/readiness/staging.json"
   serve "$STAGING_URL" "$(head_sha)" staging
@@ -225,7 +225,22 @@ for defect in missing symlink directory malformed missing-key schema unit target
     verdict) sed -i.bak 's/"ready"/"not-ready"/' "$record" ;;
     blockers) sed -i.bak 's/"open_blockers": 0/"open_blockers": 1/' "$record"; problem=open_blockers ;;
     timestamp) sed -i.bak 's/2000-01-01T00:00:00Z/yesterday/' "$record"; problem=created_at ;;
-    missing-comma) sed -i.bak 's/"schema": 1,/"schema": 1/' "$record"; problem=JSON ;;
+    single-line) tr -d '\n' < "$record" > "$record.flat"; mv "$record.flat" "$record"; problem=record ;;
+    invalid-created) sed -i.bak 's/2000-01-01T00:00:00Z/2000-13-45T25:61:61Z/' "$record"; problem=created_at ;;
+    invalid-until) sed -i.bak 's/9999-01-01T00:00:00Z/9999-99-99T99:99:99Z/' "$record"; problem=valid_until ;;
+    expired-waiver | malformed-waiver)
+      expiry=2001-01-01T00:00:00Z
+      [ "$defect" != malformed-waiver ] || expiry=9999-99-99T99:99:99Z
+      awk -v expiry="$expiry" '/"waivers":/ {
+        printf "  \"waivers\": [{\n    \"expires\": \"%s\"\n  }]\n", expiry; next
+      } { print }' "$record" > "$record.waivers"
+      mv "$record.waivers" "$record"
+      problem='a readiness waiver has expired' ;;
+    inline-waiver)
+      sed -i.bak 's/"waivers": \[\]/"waivers": [{"control": "BR-02", "owner": "@o", "reason": "r", "expires": "2001-01-01T00:00:00Z"}]/' "$record"
+      problem='waiver fields must sit on their own lines' ;;
+    scratch-link) mv "$work/.scratch" "$work/scratch-real"; ln -s "$work/scratch-real" "$work/.scratch"; problem=symlink ;;
+    readiness-link) mv "$work/.scratch/readiness" "$work/.scratch/readiness-real"; ln -s "$work/.scratch/readiness-real" "$work/.scratch/readiness"; problem=symlink ;;
     duplicate) sed -i.bak 's/"schema": 1,/"schema": 1,\
   "schema": 1,/' "$record"; problem=schema ;;
   esac
@@ -237,6 +252,18 @@ for defect in missing symlink directory malformed missing-key schema unit target
     pass "readiness refuses $defect before build with remediation"
   else fail "readiness refuses $defect before build with remediation (exit $code)" "$out"; fi
 done
+
+new_repo readiness-reserved
+sed -i.bak 's/GATES="lint=/GATES="readiness=true\
+lint=/' "$work/scripts/release.sh"
+expect "readiness is reserved even when waived" 2 'readiness is reserved' -- staging --check --waive readiness=incident
+check "reserved readiness gate builds nothing" no_build
+
+new_repo readiness-line-format
+record="$work/.scratch/readiness/staging.json"
+sed 's/"schema": 1,/"schema": 1/' "$record" | awk '{ printf "%s\r\n", $0 }' > "$record.lines"
+mv "$record.lines" "$record"
+expect "line reader accepts CRLF and optional commas" 0 'readiness: ready' -- staging --check
 
 new_repo readiness-valid
 serve "$STAGING_URL" "$(head_sha)" staging
