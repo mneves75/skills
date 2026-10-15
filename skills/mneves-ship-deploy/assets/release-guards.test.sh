@@ -28,8 +28,18 @@ export FAKE_ACCOUNT="$ACCOUNT" FAKE_SECRETS="API_TOKEN" FAKE_NODE_VERSION="v22.1
 export VERIFY_LIVE_ATTEMPTS=1 VERIFY_LIVE_DELAY=1
 REAL_CP="$(command -v cp)"
 export REAL_CP FAKE_SWAP_RECORD=""
+REAL_DATE="$(command -v date)"
+export REAL_DATE FAKE_NOW="" FAKE_AFTER_BUILD=""
 
 # ---- Fake programs ----
+cat > "$tmp/bin/date" <<'FAKE'
+#!/bin/bash
+if [ "$*" = '-u +%Y-%m-%dT%H:%M:%SZ' ] && [ -n "$FAKE_NOW" ]; then
+  if [ -n "$FAKE_AFTER_BUILD" ] && [ -f "$FAKE_STATE/build-finished" ]; then
+    echo "$FAKE_AFTER_BUILD"
+  else echo "$FAKE_NOW"; fi
+else "$REAL_DATE" "$@"; fi
+FAKE
 cat > "$tmp/bin/cp" <<'FAKE'
 #!/bin/bash
 "$REAL_CP" "$@" || exit $?
@@ -64,7 +74,9 @@ cat > "$tmp/bin/npm" <<'FAKE'
 echo "npm $*" >> "$FAKE_STATE/calls.log"
 case "$1" in
   --version) echo "10.9.2" ;;
-  run) [ "$2" = "$FAKE_FAIL_GATE" ] && { echo "gate $2 failed" >&2; exit 1; } ;;
+  run)
+    [ "$2" = "$FAKE_FAIL_GATE" ] && { echo "gate $2 failed" >&2; exit 1; }
+    [ "$2" != build ] || touch "$FAKE_STATE/build-finished" ;;
 esac
 exit 0
 FAKE
@@ -140,6 +152,7 @@ new_repo() {
   : > "$FAKE_STATE/calls.log"; rm -f "$FAKE_STATE"/live-* "$FAKE_STATE/count"
   rm -rf "$FAKE_WEB"; mkdir -p "$FAKE_WEB"
   FAKE_SECRETS="API_TOKEN"; FAKE_NODE_VERSION="v22.11.0"; FAKE_FAIL_GATE=""; FAKE_SWAP_RECORD=""
+  FAKE_NOW=""; FAKE_AFTER_BUILD=""; rm -f "$FAKE_STATE/build-finished"
   export FAKE_SECRETS FAKE_NODE_VERSION FAKE_FAIL_GATE
   write_readiness staging
   write_readiness production
@@ -202,6 +215,70 @@ no_build() { ! log_has '^npm (ci|run)' && ! log_has '^wrangler'; }
 # release_json: the evidence file of the last release in $work, or nothing.
 release_json() { find "$work/.scratch" -name release.json 2> /dev/null | head -1 || true; }
 no_tags() { [ -z "$(remote_tags)" ] && [ -z "$(git -C "$work" tag)" ]; }
+
+set_readiness_expiries() {
+  awk -v first="$2" -v last="$3" '/"waivers":/ {
+    printf "  \"waivers\": [\n    {\n      \"expires\": \"%s\"\n    },\n    {\n      \"expires\": \"%s\"\n    }\n  ]\n", first, last
+    next
+  } { print }' "$1" > "$1.waivers"
+  mv "$1.waivers" "$1"
+}
+
+# ==== Calendar validation for every timestamp source ====
+for field in created_at valid_until expires; do
+  for day in 2026-02-31 2026-04-31 2100-02-29 2028-02-29; do
+    new_repo "calendar-$field-$day"
+    record="$work/.scratch/readiness/staging.json"
+    FAKE_NOW=2000-01-01T00:00:00Z
+    if [ "$field" = created_at ]; then FAKE_NOW=2130-01-01T00:00:00Z; fi
+    if [ "$field" = expires ]; then
+      set_readiness_expiries "$record" "${day}T00:00:00Z" 9999-01-01T00:00:00Z
+      problem='a readiness waiver has expired'
+    else
+      sed -i.bak "s/\"$field\": \"[^\"]*\"/\"$field\": \"${day}T00:00:00Z\"/" "$record"
+      problem="$field"
+    fi
+    run staging --dry-run
+    if [ "$day" = 2028-02-29 ]; then
+      if [ "$code" = 0 ]; then pass "calendar accepts $field=$day"
+      else fail "calendar accepts $field=$day (exit $code)" "$out"; fi
+    elif [ "$code" = 1 ] && printf '%s' "$out" | grep -F "$problem" > /dev/null && no_build; then
+      pass "calendar refuses $field=$day before build"
+    else fail "calendar refuses $field=$day before build (exit $code)" "$out"; fi
+  done
+done
+
+# ==== Expiry at the deploy boundary, without waiting for a real clock ====
+for target_case in staging production; do
+  for deadline_case in record boundary waiver-first waiver-last waived; do
+    new_repo "deadline-$target_case-$deadline_case"
+    serve "$STAGING_URL" "$(head_sha)" staging
+    serve "$PRODUCTION_URL" "$(head_sha)" production
+    if [ "$target_case" = production ]; then
+      git -C "$work" tag -a v1.2.3-beta1 -m staged
+      git -C "$work" push -q origin v1.2.3-beta1
+    fi
+    record="$work/.scratch/readiness/$target_case.json"
+    FAKE_NOW=2026-10-15T12:00:01Z
+    FAKE_AFTER_BUILD=2026-10-15T12:00:03Z
+    case "$deadline_case" in
+      record | boundary | waived)
+        sed -i.bak 's/9999-01-01T00:00:00Z/2026-10-15T12:00:02Z/' "$record" ;;
+      waiver-first) set_readiness_expiries "$record" 2026-10-15T12:00:02Z 9999-01-01T00:00:00Z ;;
+      waiver-last) set_readiness_expiries "$record" 9999-01-01T00:00:00Z 2026-10-15T12:00:02Z ;;
+    esac
+    [ "$deadline_case" != boundary ] || FAKE_AFTER_BUILD=2026-10-15T12:00:02Z
+    if [ "$deadline_case" = waived ]; then
+      expect "$target_case waived readiness skips deploy deadline" 0 "Released" -- "$target_case" --yes --waive readiness=incident
+    else
+      run "$target_case" --yes
+      if [ "$code" = 1 ] && printf '%s' "$out" | grep -F 'readiness record expired before deploy; run the readiness gate again' > /dev/null &&
+        log_has '^npm run build$' && no_deploy && [ -z "$(release_json)" ]; then
+        pass "$target_case refuses $deadline_case expiry after build before deploy"
+      else fail "$target_case refuses $deadline_case expiry after build before deploy (exit $code)" "$out"; fi
+    fi
+  done
+done
 
 # ==== Readiness: refusal before installing, building, deploying or making a run directory ====
 for defect in missing symlink directory malformed missing-key schema unit target commit short-sha future expired verdict blockers timestamp single-line duplicate invalid-created invalid-until expired-waiver malformed-waiver inline-waiver scratch-link readiness-link; do

@@ -279,7 +279,17 @@ readiness_fields() {
 readiness_value() { printf '%s\n' "$readiness_data" | awk -F '\t' -v key="$1" '$1 == key { print $2 }'; }
 readiness_error() { readiness_problem="$*"; return 1; }
 readiness_timestamp() {
-  [[ "$1" =~ ^\"[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]Z\"$ ]]
+  local stamp="$1" year month day last_day
+  [[ "$stamp" =~ ^\"[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]Z\"$ ]] || return 1
+  year=$((10#${stamp:1:4})); month="${stamp:6:2}"; day=$((10#${stamp:9:2}))
+  case "$month" in
+    02)
+      last_day=28
+      if (( year % 400 == 0 || (year % 4 == 0 && year % 100 != 0) )); then last_day=29; fi ;;
+    04 | 06 | 09 | 11) last_day=30 ;;
+    *) last_day=31 ;;
+  esac
+  [ "$day" -le "$last_day" ]
 }
 check_readiness() {
   local record="$root/$UNIT/.scratch/readiness/$target.json" now created stamp parent expiry
@@ -309,11 +319,13 @@ check_readiness() {
   now="$(date -u +%Y-%m-%dT%H:%M:%SZ)" || { readiness_error "cannot read UTC time"; return 1; }
   [[ ! "$created" > "$now" ]] || { readiness_error "created_at is in the future"; return 1; }
   [[ "$readiness_until" > "$now" ]] || { readiness_error "valid_until has expired"; return 1; }
+  readiness_deadline="$readiness_until"
   while IFS= read -r expiry; do
     [ -n "$expiry" ] || continue
     readiness_timestamp "$expiry" || { readiness_error "a readiness waiver has expired (malformed expires)"; return 1; }
     expiry="${expiry#\"}"; expiry="${expiry%\"}"
     [[ "$expiry" > "$now" ]] || { readiness_error "a readiness waiver has expired"; return 1; }
+    if [[ "$expiry" < "$readiness_deadline" ]]; then readiness_deadline="$expiry"; fi
   done << EXPIRIES
 $(readiness_value expires)
 EXPIRIES
@@ -415,6 +427,10 @@ fi
 
 # ---- Deploy ----
 say "Deploy $tag ($short) to $target"
+if [ -z "$readiness_reason" ]; then
+  deploy_now="$(date -u +%Y-%m-%dT%H:%M:%SZ)" || die "cannot read UTC time before deploy"
+  [[ "$readiness_deadline" > "$deploy_now" ]] || die "readiness record expired before deploy; run the readiness gate again"
+fi
 wrangler_env deploy --tag "$tag" --message "$tag $short" \
   --var "APP_COMMIT:$commit" --var "APP_VERSION:$version" --var "APP_ENV:$target" 2>&1 | tee "$evidence/deploy.log"
 deployed="$(live_version)" || die "deployed, but cannot read the new version: $(cat "$wrangler_err")"
