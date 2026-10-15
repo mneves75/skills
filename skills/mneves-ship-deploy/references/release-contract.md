@@ -40,8 +40,50 @@ choice: a two-line shell wrapper around an existing script conforms.
 10. **`--check`** prints the plan (target, version, commit, tag, URL) and exits. It builds,
     deploys and tags nothing. It may fetch from the remote and read the live staging page.
 
+11. **Readiness record** (contract version 2). Before building, it reads
+    `<unit>/.scratch/readiness/<target>.json` (`<unit>` is `.` for a single-unit repository; see
+    the format below) and
+    refuses unless the record is a regular file, `schema` is 1, `unit`, `target` and the full
+    `commit` match this release, `verdict` is `ready`, `open_blockers` is 0, `created_at` is not
+    in the future and `valid_until` has not passed. It copies the record into the run's evidence
+    and summarizes it in `release.json`. `--waive readiness=<reason>` skips the check for an
+    unavailable gate or an owner-approved incident repair; control-level gaps are waived inside
+    the record, never with this flag. `--check` prints the readiness status without failing.
+
 Guarantees 1, 2, 5, 6 and 7 are fixed: no flag turns them off. `--dry-run` runs everything up
 to the deploy and publishes nothing.
+
+## Contract version
+
+A release script states the contract it implements with a comment line
+`# release-contract: 2`. Version 2 adds guarantee 11. The conformance check reports a missing
+readiness check as FAIL in a script that declares version 2 and as WARN in one that declares
+nothing, so existing repositories keep passing until they adopt it.
+
+## Readiness record
+
+A production-readiness gate run (the separately installed `mneves-production-readiness` skill, or
+an equivalent review) writes the record for one deployable unit, target and candidate commit:
+
+```json
+{
+  "schema": 1,
+  "unit": ".",
+  "target": "staging",
+  "catalog": 1,
+  "commit": "<full 40-character SHA>",
+  "verdict": "ready",
+  "open_blockers": 0,
+  "created_at": "2026-10-15T19:00:00Z",
+  "valid_until": "2026-10-16T19:00:00Z",
+  "waivers": []
+}
+```
+
+Each scalar sits on its own line, so a shell script reads it without a JSON parser. Timestamps
+are UTC in exactly the form `YYYY-MM-DDTHH:MM:SSZ` and compare as strings. The record proves that
+the gate ran for these bytes; it does not authorize a deploy, and production still needs the
+owner's approval. Readiness waivers inside the record are the owner's, with expiries.
 
 In a public repository, host names, URLs and account ids stay out of the committed scripts:
 they come from an ignored file the scripts read at run time (the reference scripts read
@@ -66,4 +108,5 @@ between deploys, and an agent at the start of a session.
 A waiver names one gate and a reason a reader can check, for example
 `--waive supply-chain=GHSA-xxxx has no patched release`. `release.json` records it. An
 unfixable gate is one waiver request to the owner, sent as soon as it is known, together with
-the candidate, the target and the rollback plan.
+the candidate, the target and the rollback plan. `readiness` is a waivable gate name even though
+it is not in the gate list.

@@ -19,7 +19,7 @@ blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--line);c
 <body>
 <main>
 <h1>How to use these skills</h1>
-<p>Fourteen skills, one install. This page shows what each one does, how to trigger it, and what a
+<p>Fifteen skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the <a href="https://github.com/mneves75/skills/blob/main/README.md">README</a>; for the exact
 procedure an agent follows, open <code>skills/&lt;name&gt;/SKILL.md</code>.</p>
 <h2 id="install-once">Install once</h2>
@@ -62,6 +62,11 @@ also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use 
 <td><code>mneves-security</code></td>
 <td>audit security/privacy, plan remediation and apply authorized safe fixes</td>
 <td>&quot;audit security and privacy; fix confirmed local issues; do not deploy&quot;</td>
+</tr>
+<tr>
+<td><code>mneves-production-readiness</code></td>
+<td>check an app is ready for paying customers before each staging or production deploy</td>
+<td>&quot;is this ready for production? give me the fix plan&quot;</td>
 </tr>
 <tr>
 <td><code>imagegen-frontend-mobile</code></td>
@@ -147,6 +152,43 @@ different-model verifier; when unavailable, the useful report remains available 
 that assurance gate is BLOCKED. The skill provides engineering readiness, not legal
 advice or a promise of complete security. Release actions retain explicit task/host authority.</p>
 <p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-security/SKILL.md">SKILL.md</a>.</p>
+<hr>
+<h2 id="mneves-production-readiness">mneves-production-readiness</h2>
+<p><strong>What it does.</strong> Checks that an app will not lose or corrupt data, charge wrongly, fail
+without anyone noticing, become impossible to undo, or depend on one person. It inspects the
+actual project against 103 controls (data model and migrations, backups and restore, money,
+time and text handling, delivery, queues and integrations, email, cost, monitoring and on-call,
+testing, billing, public API, AI operations, user experience, maintainability and ownership)
+plus 32 security and compliance rows that it takes from <code>mneves-security</code>. It records each
+result with its evidence in a ledger, gives a verdict per target, and writes a fix plan with
+files, steps, owner, acceptance check and rollback for every gap.</p>
+<p><strong>When to use it.</strong> Before an app first serves paying customers, and before each later deploy.
+<code>mneves-ship-deploy</code> runs it for you: an assessment during review, then a binding run on the
+exact commit before the staging deploy and again before production. A standalone request is
+read-only.</p>
+<p><strong>Illustrative request (Claude Code):</strong></p>
+<pre tabindex="0"><code class="language-text">Use the mneves-production-readiness skill on this repository. Run a baseline,
+tell me what blocks a production launch, and give me the detailed fix plan.
+Do not change project files.
+</code></pre>
+<p><strong>How it stays cheap.</strong> A full baseline runs on the first launch and every 90 days. Each
+deploy reassesses only the domains its diff touches, plus a small always-on set: secrets,
+new dependencies, rollback path, certificate expiry and the age of restore evidence. A
+CSS-only change does not re-check billing. Controls that do not apply (a static site has no
+migrations) are marked NOT APPLICABLE with the evidence.</p>
+<p><strong>Evidence.</strong> A control passes only with evidence at its minimum scope: reading the source
+never proves a tested restore, an on-call rotation or a live certificate. Organizational items
+(SOC 2, on-call, ownership of accounts) need a dated owner statement. Before a production
+record, a fresh verifier rechecks every blocker that newly passed. Only you waive a blocker,
+with an expiry; a comment in the code cannot.</p>
+<p><strong>Release contract.</strong> The run writes <code>.scratch/readiness/&lt;target&gt;.json</code>. A release script that
+declares contract version 2 refuses to deploy without a valid record for that exact commit and
+target (see <code>mneves-ship-deploy</code>).</p>
+<p><strong>Prerequisites and limits.</strong> Markdown only; no scanner or network service. <code>mneves-security</code>,
+<code>mneves-ship-deploy</code> and <code>mneves-verify</code> are separately installed; without them it runs reduced
+security fallbacks, binds the record itself, and uses a fresh subagent as verifier. &quot;Ready&quot; means
+the applicable blockers have evidence or your dated waiver, not that the app is risk-free.</p>
+<p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-production-readiness/SKILL.md">SKILL.md</a>.</p>
 <hr>
 <h2 id="mneves-render">mneves-render</h2>
 <p><strong>What it does.</strong> Helps any agent build a repeatable renderer inside your project. Markdown
@@ -618,6 +660,11 @@ python3 skills/mneves-ship-deploy/scripts/release-contract-check.py --fleet path
 </code></pre>
 <p><code>skills/mneves-ship-deploy/assets/</code> holds a reference <code>release.sh</code> and <code>verify-live.sh</code> for a
 single-Worker project. Copy them into <code>scripts/</code>, fill the placeholders, and adapt.</p>
+<p><strong>Readiness gate.</strong> Review runs a production-readiness assessment (<code>mneves-production-readiness</code>
+when installed). Before the staging deploy, and again before production, the agent runs the
+readiness gate on the exact commit. A reference <code>release.sh</code> declares <code># release-contract: 2</code>
+and refuses to deploy without a valid readiness record for that commit and target. Open blockers
+reach you in the same decision packet as failing gates, each as a named waiver with an expiry.</p>
 <hr>
 <h2 id="mneves-chatgpt-search">mneves-chatgpt-search</h2>
 <p><strong>What it does.</strong> Audits a public site&#39;s deployed discovery surface and improves verified

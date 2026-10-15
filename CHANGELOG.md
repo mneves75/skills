@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.36.0] - 2026-10-15
+
+### Added
+- **`mneves-production-readiness`**: gates staging and production deploys on evidence-backed readiness.
+  103 controls cover data model and migrations, backup and restore, money/time/text correctness,
+  delivery, queues and integrations, email, cost, observability and on-call, testing, billing, public
+  API, AI operations, user experience, maintainability and ownership; 32 security and compliance rows
+  delegate to `mneves-security` with fallbacks. A tracked ledger, per-target cursors, a baseline plus
+  per-deploy delta, expiring evidence, an independent check before production records, owner-only
+  waivers and a detailed fix plan. The spec preserves every item of the source checklist.
+- **Release contract guarantee 11**: a release script that declares `# release-contract: 2` refuses
+  to deploy without a valid readiness record for the exact unit, target and commit; `--waive
+  readiness=<reason>` is the only bypass. The conformance check reports it (FAIL with the marker,
+  WARN without), and the reference `release.sh` implements it with guard tests.
+
+### Changed
+- **`mneves-ship-deploy`**: Preflight reads the readiness ledger; review runs a provisional
+  readiness assessment; staging and production each bind a readiness record before deploying.
+- **Catalog and docs**: fifteen skills; README, HOWTO, landing page, glossary and product brief.
+- **Orchestrator Defaults**: model ids re-verified against the vendor model list on 2026-10-15.
+
 ## [1.34.1] - 2026-10-13
 
 ### Changed

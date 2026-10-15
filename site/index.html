@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>mneves75/skills — a clear way forward for coding agents</title>
-<meta name="description" content="Fourteen portable skills for AI coding agents. Choose a procedure for security, review, planning, building, discovery or learning, then install it in the tools you already use.">
+<meta name="description" content="Fifteen portable skills for AI coding agents. Choose a procedure for security, review, planning, building, discovery or learning, then install it in the tools you already use.">
 <meta property="og:title" content="mneves75/skills">
 <meta property="og:description" content="Reusable procedures for deliberate agent work. One install, any tool that reads SKILL.md.">
 <meta property="og:type" content="website">
@@ -92,7 +92,7 @@ h3{font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}
 <main>
 <section class="hero" aria-labelledby="h-hero">
   <h1 id="h-hero">Give your agent a clear way forward.</h1>
-  <div><p class="intro">Fourteen reusable procedures for AI coding agents. From the first plan to independent proof, use them with the tools you already have.</p>
+  <div><p class="intro">Fifteen reusable procedures for AI coding agents. From the first plan to independent proof, use them with the tools you already have.</p>
   <div class="hero-links"><a class="action" href="#skills">Choose a skill</a><a href="howto.html">Read the guide</a></div>
   <p class="compatibility">Claude Code, Codex, Cursor, OpenCode, pi — and any tool that reads <code>SKILL.md</code>.</p></div>
 </section>
@@ -117,6 +117,7 @@ h3{font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}
     <div class="group-title"><h2 id="h-review">Review &amp; verify</h2><p>Challenge assumptions. Check the evidence.</p></div>
     <div class="skill-list">
       <article class="skill new"><h3>mneves-security</h3><p>Audit application security and privacy using current OWASP guidance, plan remediation and apply authorized safe fixes. Adversarial review and independent acceptance distinguish source evidence from deployed controls.</p><p class="example">Try: “audit security and privacy; fix confirmed local issues; do not deploy”</p><span class="release-note">Added in 1.34.0</span><a class="guide" href="howto.html#mneves-security" aria-label="Read the mneves-security guide">Read the guide</a></article>
+      <article class="skill new"><h3>mneves-production-readiness</h3><p>Gate staging and production deploys on evidence: data safety, recovery, money, operations, billing and ownership. A ledger records each control, a verdict per target, and a fix plan for every gap.</p><p class="example">Try: “is this ready for production? give me the fix plan”</p><span class="release-note">Added in 1.36.0</span><a class="guide" href="howto.html#mneves-production-readiness" aria-label="Read the mneves-production-readiness guide">Read the guide</a></article>
       <article class="skill"><h3>autoreview</h3><p>Structured, isolated AI review of a fixed Git target. Ships its helper, security tests and its own engine defaults.</p><p class="example">Try: “use autoreview on my local changes, including P3 findings”</p><a class="guide" href="howto.html#autoreview" aria-label="Read the autoreview guide">Read the guide</a></article>
       <article class="skill"><h3>mneves-verify</h3><p>A fresh context checks frozen criteria against real evidence: tests, renders and the actual binary. PASS, FAIL or BLOCKED; only PASS allows “done.”</p><p class="example">Try: “verify it”, “prove it”, “fix all”</p><a class="guide" href="howto.html#mneves-verify" aria-label="Read the mneves-verify guide">Read the guide</a></article>
       <article class="skill"><h3>mneves-superaudit</h3><p>A bounded audit-and-ship pass: slop, performance, agent DX and PR triage. Falsifiable completion, existing authority and requested stops stay intact.</p><p class="example">Try: “superaudit this repo, items 1 and 2”</p><a class="guide" href="howto.html#mneves-superaudit" aria-label="Read the mneves-superaudit guide">Read the guide</a></article>
@@ -181,10 +182,10 @@ bun --bun /path/to/skills/tools/readiness-check.ts \
   <h2 id="h-log">What changed.</h2>
   <ul class="log">
     <!-- changelog:start -->
+        <li><span class="v">1.36.0<span class="d">2026-10-15</span></span><span><code>mneves-production-readiness</code>: gates staging and production deploys on evidence-backed readiness.</span></li>
         <li><span class="v">1.34.1<span class="d">2026-10-13</span></span><span>Delegation acceptance checks source provenance and actual evidence before accepting claims.</span></li>
         <li><span class="v">1.34.0<span class="d">2026-10-13</span></span><span><code>mneves-security</code>: portable application security/privacy audit, detailed remediation.</span></li>
         <li><span class="v">1.33.0<span class="d">2026-10-13</span></span><span><code>mneves-render</code>: project-local Markdown renderers for HTML, editable DOCX and PDF.</span></li>
-        <li><span class="v">1.32.0<span class="d">2026-10-08</span></span><span><code>autoreview</code> complexity evidence: portable <code>cccc</code> installation with reviewed release.</span></li>
         <!-- changelog:end -->
   </ul>
   <a href="https://github.com/mneves75/skills/blob/main/CHANGELOG.md">Read the full changelog</a>

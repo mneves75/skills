@@ -14,6 +14,13 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.36.0** (2026-10-15): fifteen default skills, adding `mneves-production-readiness`, a deploy
+  gate built from an owner-supplied launch checklist (147 items, 13 roles; preservation table in
+  `docs/specs/production-readiness/spec.md`). Security and compliance rows are delegated to
+  `mneves-security` by failure class, a split chosen while a parallel session held a conflicting
+  owner instruction to put the checklist inside `mneves-security`; the owner decides. Release
+  contract version 2 adds the readiness record (guarantee 11). 1.35.0 belongs to the parallel
+  `feat/opencode-lane` branch; whichever merges second renumbers.
 - **1.34.0** (2026-10-13): fourteen default skills, adding `mneves-security` with
   evidence-backed audit, authorized remediation and independent acceptance. The redesigned
   static catalog groups procedures by job, self-hosts typography and reports clipboard

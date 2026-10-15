@@ -55,8 +55,9 @@ Then establish, without guessing:
    | `docker-compose.yml`, deploy script, VPS host in repo docs | repo's own deploy script; use `vps-setup` for host work only when installed and authorized. Read [references/vps.md](references/vps.md) before the first deploy. |
 5. **Staging environment** — required for both modes. If none exists, say so and ask whether to run beta-tag-only for `ship-staging`; never skip staging and never invent a staging URL.
 6. **Release contract** — `scripts/release.sh` and `scripts/verify-live.sh`, when the repository has them, are the entry points for Phases 4 and 5: start with `scripts/release.sh <target> --check`, which prints the plan and builds, deploys and tags nothing. The checker ships in this skill's own folder, next to this file: run `python3 <skill folder>/scripts/release-contract-check.py <repo>` when Python 3.11+ is available and report each `FAIL`. Read [references/release-contract.md](references/release-contract.md) when an entry point is missing or a check fails.
+7. **Readiness ledger** — the production-readiness ledger (`docs/readiness/ledger.md`, or where the repository docs say), its stage, baseline age and each target's last assessed commit. Without a ledger, the first readiness gate runs a baseline.
 
-Report the six findings in one short paragraph before doing anything mutating.
+Report the seven findings in one short paragraph before doing anything mutating.
 
 ## Phase 1 — Review gates
 
@@ -65,7 +66,8 @@ Run in order, fixing what each surfaces before moving on:
 1. `autoreview` — pre-commit code review, when installed; otherwise use the repository's documented independent review gate. Run automatically when its content and destination are already authorized; do not pause for redundant confirmation. Keep the review bounded: one review and one rerun after accepted corrections. Verify findings and apply in-scope corrections automatically. Unresolved actionable findings block the release; report them rather than repeating the same review indefinitely.
 2. `security-audit` — evidence-based; every finding needs `file:line` + snippet. Block the release on anything exploitable.
 3. `improve` (deep pass) — read-only survey producing prioritized plans. Land only what is in scope for this release; everything else becomes a named follow-up, not silent work.
-4. If Phase 1 uncovers work too large for this session, use the host's native task/goal facility only when the user requests that workflow; otherwise report the remaining work. Keep it within the authorized release scope.
+4. `mneves-production-readiness` — the provisional readiness assessment, when installed; otherwise the repository's documented readiness review. Fix the in-scope blockers it finds, commit ledger changes with the release, and carry the rest of its plan as named follow-ups. It never relaxes another gate; its open production blockers join the decision packet as named waivers.
+5. If Phase 1 uncovers work too large for this session, use the host's native task/goal facility only when the user requests that workflow; otherwise report the remaining work. Keep it within the authorized release scope.
 
 Gates that must be green before Phase 2: build, typecheck, lint, tests. If a gate cannot run here (needs a DB, a device, a paid service), state which one and why, and do not claim it passed. One failing gate is one named waiver in the decision packet; the release still runs every other gate.
 
@@ -97,6 +99,8 @@ Land the PR only when authorized and when its merge does not bypass the producti
 
 Order: deploy the pushed commit, prove it live, then tag. A tag names bytes that were served and checked.
 
+First bind readiness: run the readiness gate for `staging` on the exact pushed commit you will deploy. It writes `.scratch/readiness/staging.json` in the deployable unit's directory, which `scripts/release.sh` requires (release contract guarantee 11). A `not-ready` staging verdict stops the deploy: fix, push and run the gate again.
+
 1. **Deploy** a commit the remote already has. Use `scripts/release.sh staging` when the repository has it (it performs steps 2 and 3 itself, and may require the commit to be the tip of the default branch); otherwise the detected skill or documented command.
 2. **Prove it live.** Run `scripts/verify-live.sh staging` when it exists. Otherwise assert what that script would: the served commit or version equals the candidate; the health response body has its expected fields; one request that must succeed does, and one that must be refused is. Then exercise the flow that changed with `agent-browser` / `/browse` (web) or `argent` (mobile), signed in when the change touches signed-in behavior, and read the logs for new errors. Desktop and mobile are separate targets. A green deploy command is not verification.
 3. **Tag** the verified commit:
@@ -104,6 +108,8 @@ Order: deploy the pushed commit, prove it live, then tag. A tag names bytes that
 ```bash
 git tag -a vX.Y.Z-beta<N> <commit> -m "vX.Y.Z-beta<N> — staging" && git push origin vX.Y.Z-beta<N>
 ```
+
+For `ship-prod`, then run the readiness gate for `production` on the same commit. A production record never reuses the staging one; its verdict and open blockers go into the candidate presented for approval.
 
 `<N>` starts at 1 and increments for each verified staging build of the same target version — `v2.4.0-beta1`, `-beta2`, … A staging attempt that fails its live proof gets no tag: fix, deploy again, prove again. The clean tag `vX.Y.Z` is reserved for production. Never promote an unverified build.
 
@@ -121,7 +127,7 @@ Any repository, commit, version, environment, or target mismatch invalidates the
 
 Enter this phase only after the user's explicit OK for the exact candidate and production target. The production tag and its push are part of this approval boundary.
 
-Same order as staging: deploy the commit staging serves, prove it live with the same assertions, then tag.
+Same order as staging: deploy the commit staging serves, prove it live with the same assertions, then tag. Deploy only with a valid production readiness record for that commit; if it expired while you waited for approval, run the production gate again and present any change.
 
 ```bash
 git tag -a vX.Y.Z <commit> -m "vX.Y.Z" && git push origin vX.Y.Z

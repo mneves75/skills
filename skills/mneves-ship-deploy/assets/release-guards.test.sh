@@ -26,8 +26,18 @@ export FAKE_STATE="$tmp/state" FAKE_WEB="$tmp/web"
 mkdir -p "$tmp/bin" "$FAKE_STATE" "$FAKE_WEB"
 export FAKE_ACCOUNT="$ACCOUNT" FAKE_SECRETS="API_TOKEN" FAKE_NODE_VERSION="v22.11.0" FAKE_FAIL_GATE=""
 export VERIFY_LIVE_ATTEMPTS=1 VERIFY_LIVE_DELAY=1
+REAL_CP="$(command -v cp)"
+export REAL_CP FAKE_SWAP_RECORD=""
 
 # ---- Fake programs ----
+cat > "$tmp/bin/cp" <<'FAKE'
+#!/bin/bash
+"$REAL_CP" "$@" || exit $?
+if [ -n "$FAKE_SWAP_RECORD" ] && [ "$1" -ef "$FAKE_SWAP_RECORD" ]; then
+  "$REAL_CP" "$FAKE_SWAP_RECORD.replacement" "$FAKE_SWAP_RECORD"
+  printf '%s\n' "$2" > "$FAKE_STATE/snapshot-path"
+fi
+FAKE
 cat > "$tmp/bin/wrangler" <<'FAKE'
 #!/bin/bash
 echo "wrangler $*" >> "$FAKE_STATE/calls.log"
@@ -129,11 +139,34 @@ new_repo() {
   )
   : > "$FAKE_STATE/calls.log"; rm -f "$FAKE_STATE"/live-* "$FAKE_STATE/count"
   rm -rf "$FAKE_WEB"; mkdir -p "$FAKE_WEB"
-  FAKE_SECRETS="API_TOKEN"; FAKE_NODE_VERSION="v22.11.0"; FAKE_FAIL_GATE=""
+  FAKE_SECRETS="API_TOKEN"; FAKE_NODE_VERSION="v22.11.0"; FAKE_FAIL_GATE=""; FAKE_SWAP_RECORD=""
   export FAKE_SECRETS FAKE_NODE_VERSION FAKE_FAIL_GATE
+  write_readiness staging
+  write_readiness production
 }
 head_sha() { git -C "$work" rev-parse HEAD; }
-commit_push() { git -C "$work" add -A && git -C "$work" commit -q -m "$1" && git -C "$work" push -q origin main; }
+commit_push() {
+  git -C "$work" add -A && git -C "$work" commit -q -m "$1" && git -C "$work" push -q origin main
+  write_readiness staging
+  write_readiness production
+}
+write_readiness() {
+  mkdir -p "$work/.scratch/readiness"
+  cat > "$work/.scratch/readiness/$1.json" << JSON
+{
+  "schema": 1,
+  "unit": ".",
+  "target": "$1",
+  "catalog": 1,
+  "commit": "$(head_sha)",
+  "verdict": "ready",
+  "open_blockers": 0,
+  "created_at": "2000-01-01T00:00:00Z",
+  "valid_until": "9999-01-01T00:00:00Z",
+  "waivers": []
+}
+JSON
+}
 
 # serve <base url> <commit> <env>: the health page and the two controls of a healthy deployment.
 serve() {
@@ -170,6 +203,94 @@ no_build() { ! log_has '^npm (ci|run)' && ! log_has '^wrangler'; }
 release_json() { find "$work/.scratch" -name release.json 2> /dev/null | head -1 || true; }
 no_tags() { [ -z "$(remote_tags)" ] && [ -z "$(git -C "$work" tag)" ]; }
 
+# ==== Readiness: refusal before installing, building, deploying or making a run directory ====
+for defect in missing symlink directory malformed missing-key schema unit target commit short-sha future expired verdict blockers timestamp missing-comma duplicate; do
+  new_repo "readiness-$defect"
+  record="$work/.scratch/readiness/staging.json"
+  serve "$STAGING_URL" "$(head_sha)" staging
+  problem="$defect"
+  case "$defect" in
+    missing) rm "$record"; problem=missing ;;
+    symlink) mv "$record" "$record.real"; ln -s "$record.real" "$record" ;;
+    directory) rm "$record"; mkdir "$record"; problem=regular ;;
+    malformed) sed -i.bak 's/"schema": 1/"schema": nope/' "$record"; problem=schema ;;
+    missing-key) sed -i.bak '/"catalog"/d' "$record"; problem=catalog ;;
+    schema) sed -i.bak 's/"schema": 1/"schema": 2/' "$record" ;;
+    unit) sed -i.bak 's/"unit": "."/"unit": "app"/' "$record" ;;
+    target) sed -i.bak 's/"target": "staging"/"target": "production"/' "$record" ;;
+    commit) sed -i.bak "s/$(head_sha)/$(printf '%040d' 0)/" "$record" ;;
+    short-sha) sed -i.bak "s/$(head_sha)/$(head_sha | cut -c1-7)/" "$record"; problem=commit ;;
+    future) sed -i.bak 's/2000-01-01/9999-01-01/' "$record"; problem=created_at ;;
+    expired) sed -i.bak 's/9999-01-01/2000-01-01/' "$record"; problem=valid_until ;;
+    verdict) sed -i.bak 's/"ready"/"not-ready"/' "$record" ;;
+    blockers) sed -i.bak 's/"open_blockers": 0/"open_blockers": 1/' "$record"; problem=open_blockers ;;
+    timestamp) sed -i.bak 's/2000-01-01T00:00:00Z/yesterday/' "$record"; problem=created_at ;;
+    missing-comma) sed -i.bak 's/"schema": 1,/"schema": 1/' "$record"; problem=JSON ;;
+    duplicate) sed -i.bak 's/"schema": 1,/"schema": 1,\
+  "schema": 1,/' "$record"; problem=schema ;;
+  esac
+  run staging
+  if [ "$code" = 1 ] && printf '%s' "$out" | grep -F "$problem" > /dev/null &&
+    printf '%s' "$out" | grep -F "run the readiness gate for staging on $(head_sha | cut -c1-7)" > /dev/null &&
+    printf '%s' "$out" | grep -F -- '--waive readiness=<reason>' > /dev/null &&
+    no_build && no_tags && [ ! -e "$work/.scratch/release" ]; then
+    pass "readiness refuses $defect before build with remediation"
+  else fail "readiness refuses $defect before build with remediation (exit $code)" "$out"; fi
+done
+
+new_repo readiness-valid
+serve "$STAGING_URL" "$(head_sha)" staging
+expect "--check reports ready" 0 'readiness: ready (valid until 9999-01-01T00:00:00Z)' -- staging --check
+run staging
+json="$(release_json)"
+if [ "$code" = 0 ] && [ -f "$json" ] &&
+  grep -F '"readiness": {"status": "ready", "record": "readiness.json", "valid_until": "9999-01-01T00:00:00Z"}' "$json" > /dev/null &&
+  cmp "$work/.scratch/readiness/staging.json" "$(dirname "$json")/readiness.json"; then
+  pass "valid readiness deploys and preserves the record and summary"
+else fail "valid readiness deploys and preserves the record and summary" "$out"; fi
+
+new_repo readiness-waived
+rm "$work/.scratch/readiness/staging.json"
+serve "$STAGING_URL" "$(head_sha)" staging
+expect "--check reports NOT READY without failing" 0 'readiness: NOT READY:' -- staging --check
+expect "--check reports WAIVED" 0 'readiness: WAIVED: incident' -- staging --check --waive readiness=incident
+check "readiness --check statuses build nothing" no_build
+run staging --waive readiness=incident
+json="$(release_json)"
+if [ "$code" = 0 ] && [ -f "$json" ] &&
+  printf '%s' "$out" | grep -F 'WAIVED readiness: incident' > /dev/null &&
+  grep -F '"readiness": {"status": "waived", "reason": "incident"}' "$json" > /dev/null &&
+  grep -F '{"gate": "readiness", "reason": "incident"}' "$json" > /dev/null; then
+  pass "readiness waiver deploys without a record and records the reason"
+else fail "readiness waiver deploys without a record and records the reason" "$out"; fi
+
+for initial in ready expired; do
+  new_repo "readiness-snapshot-$initial"
+  serve "$STAGING_URL" "$(head_sha)" staging
+  record="$work/.scratch/readiness/staging.json"
+  cp "$record" "$record.expected"
+  cp "$record" "$record.replacement"
+  if [ "$initial" = ready ]; then
+    sed -i.bak 's/9999-01-01/2000-01-01/' "$record.replacement"
+  else
+    sed -i.bak 's/9999-01-01/2000-01-01/' "$record"
+  fi
+  FAKE_SWAP_RECORD="$record"
+  run staging
+  FAKE_SWAP_RECORD=""
+  json="$(release_json)"
+  if [ "$initial" = ready ]; then
+    if [ "$code" = 0 ] && [ -f "$json" ] &&
+      cmp "$record.expected" "$(dirname "$json")/readiness.json" &&
+      [ -f "$FAKE_STATE/snapshot-path" ] && [ ! -e "$(cat "$FAKE_STATE/snapshot-path")" ]; then
+      pass "readiness validates and preserves the private snapshot despite source replacement"
+    else fail "readiness validates and preserves the private snapshot despite source replacement" "$out"; fi
+  elif [ "$code" = 1 ] && printf '%s' "$out" | grep -F 'valid_until' > /dev/null && no_build &&
+    [ -f "$FAKE_STATE/snapshot-path" ] && [ ! -e "$(cat "$FAKE_STATE/snapshot-path")" ]; then
+    pass "readiness refuses an expired snapshot despite a valid source replacement"
+  else fail "readiness refuses an expired snapshot despite a valid source replacement" "$out"; fi
+done
+
 # ==== Usage and flags ====
 new_repo usage
 expect "no arguments prints usage" 2 "usage:" --
@@ -194,7 +315,7 @@ for line in "target staging" "version 1.2.3" "commit $sha" "url $STAGING_URL"; d
   expect "--check prints '${line%% *}'" 0 "$line" -- staging --check
 done
 check "--check builds nothing and deploys nothing" no_build
-check "--check creates no worktree" test ! -e "$work/.scratch"
+check "--check creates no worktree" test ! -e "$work/.scratch/release"
 git -C "$work" tag v1.2.3-beta1 && git -C "$work" push -q origin v1.2.3-beta1 && git -C "$work" tag -d v1.2.3-beta1 > /dev/null
 expect "the beta number follows the tags origin has" 0 "tag v1.2.3-beta2" -- staging --check
 
@@ -371,12 +492,14 @@ if [ "$code" = 0 ]; then pass "valid retry variables run the release (control)";
 new_repo noproof
 serve "$STAGING_URL" "$(head_sha)" staging
 git -C "$work" rm -q scripts/verify-live.sh && git -C "$work" commit -q -m "drop the proof" && git -C "$work" push -q origin main
+write_readiness staging
 serve "$STAGING_URL" "$(head_sha)" staging
 expect "a commit with no verify-live.sh is refused" 1 "verify-live.sh" -- staging
 check "a missing proof deploys nothing" no_deploy
 check "a missing proof leaves no tag" no_tags
 new_repo noexec
 git -C "$work" update-index --chmod=-x scripts/verify-live.sh && git -C "$work" commit -q -m "not executable" && git -C "$work" push -q origin main
+write_readiness staging
 serve "$STAGING_URL" "$(head_sha)" staging
 expect "a verify-live.sh that is not executable is refused" 1 "executable" -- staging
 check "a non-executable proof deploys nothing" no_deploy
