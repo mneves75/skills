@@ -151,3 +151,18 @@ descriptors and pseudo-terminals the worker opens. The real-sandbox test now has
 (including a configured hook left byte-identical, an outside pty receiving 0 bytes, and the
 worker's own pty round-trip), and a live round in a worktree of this repository (which sets
 `core.hooksPath`) passed while a sandboxed write to `.githooks/pre-commit` was denied.
+
+### The harvest protocol, end to end
+
+Two more focused checks defeated in-place hook protection (renamed parents, symlink swaps, `..`
+segments, a planted repository in a subdirectory workspace, a detached process editing files
+after the round) and read another terminal. The design changed instead of adding rules: the
+coordinator acts only on a harvested patch in a clean worktree (see the spec's threat model and
+criterion A0), the workspace must be the Git top level, and reads of `/Users`, `/private/var/tmp`
+and other terminals are denied. The fake-binary test now runs a hostile round trip (planted hook,
+fsmonitor in a planted bare layout, redirected `.git`, a late background edit): harvest exits 0,
+the patch applies in a fresh worktree, and no planted marker fires; reverting the hardened Git
+flags makes it fire. Live on a real model: a round edited one file and created another, the
+harvested patch contained exactly those two files, it applied with `git apply --index` in a clean
+worktree from the base commit, `bun test` passed there, and the commit ran with the repository's
+own `.githooks`.

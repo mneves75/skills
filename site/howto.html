@@ -424,8 +424,8 @@ agent configuration in every parent directory) whose content may go to the model
 opencode-lane start fix-123 /tmp/spec.md -m &lt;provider/model&gt; --allow-read ~/.bun
 opencode-lane last fix-123                        # the worker&#39;s final report
 opencode-lane next fix-123 - &lt; /tmp/gate.log      # a correction in the same session
-opencode-lane exec fix-123 -- bun test            # rerun a gate inside the same sandbox
-git -c core.hooksPath=/dev/null commit -am &#39;fix: ...&#39;   # after review; hooks checked via exec
+opencode-lane harvest fix-123                     # path of the patch to review
+git worktree add /tmp/clean-123 &lt;base&gt; &amp;&amp; cd /tmp/clean-123 &amp;&amp; git apply --index &lt;patch&gt;
 </code></pre>
 <p>opencode has no sandbox, and a worker can rewrite its own permission rules, so the lane contains
 it with the operating system. It gives the worker a private home and stores and a minimal
@@ -437,7 +437,7 @@ worktree and out of exported environment variables while a lane runs. In the eva
 hidden tests, the opencode worker (DeepSeek V4.1 Flash, run on a signed-in account) matched the
 Codex worker. That is feasibility evidence; a role binding needs the larger trial described in
 the reference. A model offered only to signed-in accounts cannot run in the credential-free lane;
-the evaluation spec in <code>docs/specs/opencode-worker/</code> records when that happened to this one.</p>
+the evaluation spec in <code>docs/specs/opencode-worker/</code> records when that happened to this one. Never run git or gates in the worker&#39;s tree: review the harvested patch, apply it in a clean worktree from the base commit, and run gates and commit there.</p>
 <p><strong>Tips.</strong></p>
 <ul>
 <li>One goal per dispatch. A grab-bag spec produces a grab-bag diff.</li>

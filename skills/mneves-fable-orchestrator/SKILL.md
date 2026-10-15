@@ -87,9 +87,10 @@ lane command; it owns flag placement, continuity, failure classes, and the optio
 An opt-in trial runs bounded coding tasks through the opencode CLI: `tools/opencode-lane`
 (shipped here) gives the worker a private home and stores, a minimal environment and a lean
 profile, and contains it with a Seatbelt profile it proves by self-test before every round. It
-also checks which model ran, and its `exec` runs the coordinator's gates inside the same
-sandbox. The caller names the model; the lane rebinds no role and never
-reads the user's credentials, so it can use only models the provider offers without an account.
+also checks which model ran. Accept its work only through the harvested patch, applied in a
+clean worktree; never run git or gates in the worker's tree. The caller names the model; the lane
+rebinds no role and never reads the user's credentials, so it can use only models the provider
+offers without an account.
 Use it only in a throwaway worktree outside your home directory whose content may go to the
 model's provider. Read [references/opencode-dispatch.md](references/opencode-dispatch.md) before
 the first `opencode-lane` command; it owns the boundary, the enforced behaviors, failure

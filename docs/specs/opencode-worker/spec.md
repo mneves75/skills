@@ -11,8 +11,11 @@ worker for a plan written by another model, and then to build the result.
   writes to the workspace's `.git` entry, and `exec` lets the coordinator run gates sandboxed.
   A fresh re-verification passed and found two more gaps, now closed: hooks kept in the workspace
   through `core.hooksPath` (H23) and writes into the user's other terminals through `/dev` (H24).
-  A focused check of those fixes defeated the hook deny with ordinary layouts and read another
-  terminal (H25); hook changes are now detected as well as denied, and terminal reads are denied.
+  Two focused checks of those fixes defeated in-place hook protection repeatedly (renamed parents,
+  symlink swaps, `..` segments, planted repositories, detached processes) and read another
+  terminal (H25). That ended the deny-rule approach: the coordinator now acts only on a
+  harvested patch in a clean worktree, terminal reads are denied, and reads of `/Users` and
+  `/private/var/tmp` are denied.
 - **An independent reviewer's hostile worker found same-user IPC open** (H20): sockets, signals,
   preferences, Apple Events. The profile now closes them. It also showed that Seatbelt cannot hide
   other processes' environments (H21), which the docs now state instead of implying isolation.
@@ -92,7 +95,7 @@ worker for a plan written by another model, and then to build the result.
 | H20 | Seatbelt's `allow default` leaves same-user IPC open: Unix sockets (ssh-agent, Docker), signals to other processes (including the lane supervisor, which defeats the watchdog), process listing, preferences through `cfprefsd`, and Apple Events. | An independent reviewer's hostile fake worker under the real sandbox connected to a socket, killed the supervisor and read 62 KB of Finder preferences. | The profile denies process info for others, Unix-socket connects except DNS, `cfprefsd` and Apple Events, and every signal except to processes in the same sandbox: `(deny signal (target others))` had no effect on a non-Apple victim, and earlier "denied" results came only from Apple binaries, which macOS protects anyway. A live round still ran shell, bun, tsc and git. |
 | H21 | Seatbelt does not mediate `sysctl(KERN_PROCARGS2)`: the initial environment and arguments of any same-user non-Apple process are readable from inside, even with `(deny sysctl-read)`. | A sandboxed child read a planted secret from an unrelated Homebrew Python's environment. | The lane's own processes run with an allowlisted environment; secrets exported in other processes (the user's shell, the coordinator) stay readable. Real isolation needs a separate macOS user or a VM. |
 | H22 | The worker can make the coordinator run code outside the sandbox: a plain clone's `.git/hooks`, or a worktree's writable `.git` pointer file redirected to a fake Git directory with `core.fsmonitor`, runs on the coordinator's next `git status` or `git commit`; rerunning worker-written tests does the same. | The independent verifier planted both and the coordinator's unsandboxed git commands executed them. | The profile denies writes to the workspace's `.git` entry (directory or file) and the self-test proves it; `opencode-lane exec` runs gates inside the same sandbox. |
-| H23 | Git hooks kept in the workspace through `core.hooksPath` (this repository uses `.githooks`) can be rewritten by the worker and run on the coordinator's next commit. | The re-verification's hostile worker rewrote `.githooks/pre-commit`; the coordinator's commit created the marker. | A focused verification then renamed a parent (`core.hooksPath=scripts/hooks`) or swapped a symlinked `.githooks`, and the hook ran. The lane now denies writes to the hooks directory, every path component down to it and symlinks on the way, fingerprints the whole hooks path before and after every round and `exec` (exit 5 on any change), and the docs make committing with hooks disabled the protocol. |
+| H23 | Git hooks kept in the workspace through `core.hooksPath` (this repository uses `.githooks`) can be rewritten by the worker and run on the coordinator's next commit. | The re-verification's hostile worker rewrote `.githooks/pre-commit`; the coordinator's commit created the marker. | A focused verification then renamed a parent (`core.hooksPath=scripts/hooks`) or swapped a symlinked `.githooks`, and the hook ran. A further check found `..` segments, planted repositories and detached processes. Resolution: the harvest protocol; the coordinator never runs git or gates in the worker's tree, so in-tree hooks are reviewed in the patch instead of protected in place. |
 | H24 | A blanket write allow on `/dev` lets the worker write into the user's other terminals (escape-sequence injection). | 15 bytes reached another pty from inside the sandbox. | Writes under `/dev` are limited to `null`, `zero`, the process's own descriptors and pseudo-terminals the worker opens (rules adapted from the Codex Seatbelt base policy). |
 | H25 | Seatbelt rules that only limit writes leave the user's other terminals readable: the worker read 13 typed bytes from another pty. | Focused verification with a pty pair opened outside the sandbox. | Reads of `/dev/ttys*` are denied except pseudo-terminals the worker opens. |
 
@@ -145,14 +148,31 @@ opencode-lane last  <lane>
 opencode-lane id    <lane>
 opencode-lane log   <lane>
 opencode-lane exec  <lane> [--timeout S] -- <command> [args...]
+opencode-lane harvest <lane>      # write and print the patch path
 opencode-lane list
 opencode-lane drop  <lane>
 ```
 
-Threat model: the worker model and the repository content are untrusted (prompt injection,
-planted configuration). The coordinator, the lane's own state and the owner's files are
-protected. Network access is required for the model and stays open, so whatever the worker can
-read can leave the machine; the design therefore limits what it can read.
+Threat model (the boundary the final verification checks):
+- **Untrusted:** the worker model, everything it writes, every process it starts (including
+  detached ones that outlive a round), and the repository content it reads.
+- **Protected:** the owner's account and files, provided the coordinator follows the harvest
+  protocol: it never runs git, an editor, direnv or a gate in the worker's workspace, and acts
+  only on the harvested patch applied in a clean worktree.
+- **Contained:** writes outside the workspace and box, Git metadata, the keychain, the
+  clipboard, other terminals and same-user IPC (sockets, signals, preferences, Apple Events).
+- **Not protected:** reads outside the deny-list (`allow default` keeps system paths
+  readable by design), other processes' environments and arguments, and the network.
+
+**Harvest protocol.** After every round (and on `opencode-lane harvest <lane>`) the lane writes
+a binary-safe patch of the workspace against the commit recorded at `start` into its state
+directory, which the worker cannot write. It computes the patch with an explicit `GIT_DIR` and
+`GIT_WORK_TREE` from recorded state, a temporary index, no global or system Git configuration,
+`core.fsmonitor=false`, `core.hooksPath=/dev/null`, `safe.bareRepository=explicit`,
+`--no-ext-diff` and `--no-textconv`, so nothing in the workspace can redirect or run Git. The
+coordinator reviews that patch, applies it in a fresh worktree created from the recorded base,
+runs gates there and commits there with the repository's normal hooks; hook changes are visible
+in the patch.
 
 ### Layout
 - `$OPENCODE_LANE_DIR` (default `~/.local/state/opencode-lane`, mode 700) holds, per lane, the
@@ -176,11 +196,11 @@ read can leave the machine; the design therefore limits what it can read.
      (`literal`) of each ancestor of those;
    - writes: deny everything except the workspace, the box, `/dev/null`, `/dev/zero`, the
      process's own descriptors and pseudo-terminals it opens, and then deny the workspace's own
-     `.git` entry (directory or pointer file) and a hooks directory inside the workspace again;
+     `.git` entry (directory or pointer file) again;
    - services: deny `mach-lookup` of the keychain and pasteboard services;
    - network and process execution stay allowed.
 3. **Self-test** under the same profile: a write in the workspace must succeed; a write into the
-   lane state directory, a write to the workspace's `.git` entry or hooks directory, a read of
+   lane state directory, a write to the workspace's `.git` entry, a read of
    the lane canary, a
    read of a home canary kept under the account's home, and a keychain search-list query must
    fail. Any other outcome exits 2.
@@ -202,7 +222,8 @@ read can leave the machine; the design therefore limits what it can read.
    `opencode.jsonc`, `.opencode/`, `.claude/` or `.agents/` in the workspace; `opencode session
    export --standalone <id>` under the same environment, exit 4 if the model differs; provider
    `error` events printed to stderr (opencode's non-zero code, else 3); exit 3 if there is no
-   final text.
+   final text. Then the harvest: a patch against the base commit, written to the lane state
+   directory (see the harvest protocol).
 
 A `start` refused before the model runs (steps 1-5) releases the lane name and the workspace
 claim, so a retry with another model works without `drop`. A lock left by a killed run is named in
@@ -254,6 +275,11 @@ model's own permission rules, and route on evidence, not on price.
    branch and worktrees.
 
 ## Acceptance criteria
+- A0 (frozen for the final verification) A coordinator that follows the harvest protocol never
+  executes code the worker planted: Git hooks (including through `core.hooksPath`, `..` segments
+  or symlink chains), `core.fsmonitor`, a planted repository, a redirected `.git`, or a detached
+  process that keeps changing the workspace after the round. Writes outside the workspace and
+  box, Git metadata writes, keychain, clipboard, other terminals and same-user IPC stay denied.
 - A1 `opencode-lane.test` passes and each listed safety behavior has a scenario that fails when
   that behavior is removed.
 - A2 `opencode-lane.sandbox.test` passes on macOS: workspace write allowed; outside write,

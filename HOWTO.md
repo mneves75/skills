@@ -429,8 +429,8 @@ git worktree add /tmp/wt-fix-123 -b fix/123 && cd /tmp/wt-fix-123
 opencode-lane start fix-123 /tmp/spec.md -m <provider/model> --allow-read ~/.bun
 opencode-lane last fix-123                        # the worker's final report
 opencode-lane next fix-123 - < /tmp/gate.log      # a correction in the same session
-opencode-lane exec fix-123 -- bun test            # rerun a gate inside the same sandbox
-git -c core.hooksPath=/dev/null commit -am 'fix: ...'   # after review; hooks checked via exec
+opencode-lane harvest fix-123                     # path of the patch to review
+git worktree add /tmp/clean-123 <base> && cd /tmp/clean-123 && git apply --index <patch>
 ```
 
 opencode has no sandbox, and a worker can rewrite its own permission rules, so the lane contains
@@ -443,7 +443,7 @@ worktree and out of exported environment variables while a lane runs. In the eva
 hidden tests, the opencode worker (DeepSeek V4.1 Flash, run on a signed-in account) matched the
 Codex worker. That is feasibility evidence; a role binding needs the larger trial described in
 the reference. A model offered only to signed-in accounts cannot run in the credential-free lane;
-the evaluation spec in `docs/specs/opencode-worker/` records when that happened to this one.
+the evaluation spec in `docs/specs/opencode-worker/` records when that happened to this one. Never run git or gates in the worker's tree: review the harvested patch, apply it in a clean worktree from the base commit, and run gates and commit there.
 
 **Tips.**
 - One goal per dispatch. A grab-bag spec produces a grab-bag diff.

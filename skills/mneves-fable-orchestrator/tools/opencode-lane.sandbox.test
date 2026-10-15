@@ -24,7 +24,7 @@ PY
 trap cleanup EXIT
 python3 - "$LANE" "$TMP" <<'PY'
 # Python 3.10+, standard library only. _profile never launches opencode.
-import contextlib, json, os, pathlib, pwd, select, shutil, signal, socket, subprocess, sys, tty
+import contextlib, json, os, pathlib, pwd, select, shutil, signal, socket, subprocess, sys, tempfile, tty
 
 @contextlib.contextmanager
 def home_canary(home, required):
@@ -55,12 +55,6 @@ install = root / 'install'
 for directory in (workspace, lanes, box, outside, install):
     directory.mkdir(mode=0o700, parents=True, exist_ok=True)
 subprocess.run(['git', 'init', '-q', str(workspace)], check=True)
-subprocess.run(['git', '-C', str(workspace), 'config', 'core.hooksPath', '.githooks'], check=True)
-hooks = workspace / '.githooks'
-hooks.mkdir()
-hook = hooks / 'pre-commit'
-hook.write_text('fixture hook, must remain unchanged\n')
-hook_before = hook.read_bytes()
 canary = outside / 'canary'
 canary.write_text('sandbox sibling canary\n')
 home = pathlib.Path(pwd.getpwuid(os.getuid()).pw_dir).resolve()
@@ -84,38 +78,6 @@ def probe(label, command, permitted, profile_path=None):
 probe('workspace write allowed', ['/usr/bin/touch', str(workspace / 'allowed')], True)
 if not (workspace / 'allowed').is_file():
     sys.exit('FAIL: workspace write returned success without creating file')
-try:
-    probe('configured workspace hook write denied',
-          ['/bin/sh', '-c', 'printf overwritten > "$1"', 'probe', str(hook)], False)
-finally:
-    if hook.read_bytes() != hook_before:
-        sys.exit('FAIL: configured hook bytes changed')
-for layout in ('nested', 'symlink'):
-    hook_workspace = root / layout
-    hook_workspace.mkdir()
-    subprocess.run(['git', 'init', '-q', str(hook_workspace)], check=True)
-    relative = 'scripts/hooks' if layout == 'nested' else '.githooks'
-    resolved = hook_workspace / ('scripts/hooks' if layout == 'nested' else 'realhooks')
-    resolved.mkdir(parents=True)
-    (resolved / 'pre-commit').write_text('original hook\n')
-    if layout == 'symlink':
-        (hook_workspace / '.githooks').symlink_to('realhooks')
-    subprocess.run(['git', '-C', str(hook_workspace), 'config', 'core.hooksPath', relative], check=True)
-    (lanes / f'{layout}.box').mkdir(mode=0o700)
-    (lanes / f'{layout}.json').write_text(json.dumps(dict(
-        state, workspace=str(hook_workspace), git_common=str(hook_workspace / '.git'))))
-    subprocess.run(['bash', str(tool), '_profile', layout], check=True,
-                   env=dict(os.environ, OPENCODE_LANE_DIR=str(lanes)))
-    protected = hook_workspace / ('scripts' if layout == 'nested' else '.githooks')
-    hook_profile = lanes / f'{layout}.sb'
-    probe(f'{layout} hooks ancestor rename denied',
-          ['/bin/mv', str(protected), str(hook_workspace / 'moved')], False, hook_profile)
-    if layout == 'symlink':
-        probe('hooks symlink removal denied', ['/bin/rm', str(protected)], False, hook_profile)
-        if not protected.is_symlink() or os.readlink(protected) != 'realhooks':
-            sys.exit('FAIL: hooks symlink changed')
-    if (resolved / 'pre-commit').read_text() != 'original hook\n' or (hook_workspace / 'moved').exists():
-        sys.exit(f'FAIL: {layout} hooks path changed')
 probe('Git directory hook write denied', ['/usr/bin/touch', str(workspace / '.git/hooks/x')], False)
 if (workspace / '.git/hooks/x').exists():
     sys.exit('FAIL: denied Git hook exists')
@@ -145,6 +107,25 @@ if not (linked / 'allowed').is_file():
 probe('outside write denied', ['/usr/bin/touch', str(outside / 'denied')], False)
 if (outside / 'denied').exists():
     sys.exit('FAIL: denied outside file exists')
+with tempfile.TemporaryDirectory(prefix='opencode-lane-', dir='/private/var/tmp') as temporary:
+    shared_tmp_file = pathlib.Path(temporary) / 'canary'
+    shared_tmp_file.write_text('shared temp canary\n')
+    subprocess.run(['/usr/bin/wc', '-c', str(shared_tmp_file)], check=True, stdout=subprocess.DEVNULL)
+    probe('private var tmp read denied', ['/usr/bin/wc', '-c', str(shared_tmp_file)], False)
+with contextlib.ExitStack() as cleanup_shared:
+    shared = pathlib.Path('/Users/Shared')
+    shared_file = next((path for path in shared.iterdir()
+                        if path.is_file() and not path.is_symlink() and os.access(path, os.R_OK)), None) if shared.is_dir() else None
+    if shared_file is None and os.access(shared, os.W_OK):
+        temporary = cleanup_shared.enter_context(tempfile.TemporaryDirectory(prefix='opencode-lane-', dir=shared))
+        shared_file = pathlib.Path(temporary) / 'canary'
+        shared_file.write_text('shared Users canary\n')
+    if shared_file is None:
+        print('SKIP: no readable Users/Shared file and directory not writable')
+    else:
+        subprocess.run(['/usr/bin/wc', '-c', str(shared_file)], check=True, stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL)
+        probe('Users Shared read denied', ['/usr/bin/wc', '-c', str(shared_file)], False)
 # Positive controls establish readable inputs, without exposing their contents.
 with home_canary(home, os.environ.get('OPENCODE_LANE_REQUIRE_SANDBOX') == '1') as home_file:
     subprocess.run(['/usr/bin/wc', '-c', str(home_file)], check=True, stdout=subprocess.DEVNULL,

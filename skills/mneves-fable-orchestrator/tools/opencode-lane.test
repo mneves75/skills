@@ -40,8 +40,8 @@ elif args[:2] == ['session', 'export']:
     model = 'other-model' if mode in ('wrong-model', 'provider-wrong-model') else 'fake-model'
     print(json.dumps({'info': {'model': {'providerID': 'fakeprov', 'id': model}}}))
 elif args[:1] == ['run']:
-    if mode == 'swap-hooks':
-        subprocess.run([sys.executable, str(root / 'attack-hooks.py')], check=True)
+    if mode == 'hostile':
+        subprocess.run([sys.executable, str(root / 'hostile.py')], check=True)
     if mode in ('provider-error', 'provider-config', 'provider-wrong-model'):
         if mode == 'provider-config':
             pathlib.Path('opencode.json').write_text('{}')
@@ -93,11 +93,6 @@ if cmd in ([str(root / 'bin/security'), 'list-keychains'], ['/usr/bin/security',
     print('FAKE PRIVATE KEYCHAIN OUTPUT')
     sys.exit(0 if mode == 'keychain-leak' else 1)
 if cmd[0] == '/bin/sh':
-    hooks_setting = root / 'hooks-path'
-    if hooks_setting.exists() and mode != 'hooks-leak':
-        hooks = hooks_setting.read_text()
-        if cmd[-1] in (hooks, hooks + '/.opencode-lane-selftest'):
-            sys.exit(1)
     if mode != 'git-leak' and (cmd[-1].endswith('/.git') or '/.git/' in cmd[-1]):
         sys.exit(1)
     if mode == 'deny-workspace' and cmd[-1].endswith('.opencode-lane-selftest'):
@@ -115,6 +110,8 @@ python3 - "$LANE" "$TMP" <<'PY'
 # Python 3.10+, standard library only.
 import ast, contextlib, json, os, pathlib, re, shutil, signal, stat, subprocess, sys, time
 
+os.environ['GIT_CONFIG_NOSYSTEM'] = '1'
+os.environ['GIT_CONFIG_GLOBAL'] = '/dev/null'
 tool, root = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]).resolve()
 bin_dir = root / 'bin'
 # Trace the actual supervisor at main() entry; all other Python invocations use
@@ -167,7 +164,13 @@ caller_home.mkdir()
 lanes = root / 'lanes'
 ws = root / 'parent' / 'ws'
 ws.mkdir(parents=True)
-subprocess.run(['git', 'init', '-q', str(ws)], check=True)
+def init_repo(path):
+    subprocess.run(['git', 'init', '-q', str(path)], check=True)
+    subprocess.run(['git', '-C', str(path), '-c', 'user.name=Lane Test',
+                    '-c', 'user.email=lane@example.invalid', '-c', 'core.hooksPath=/dev/null',
+                    '-c', 'commit.gpgSign=false', 'commit', '--allow-empty', '-qm', 'base'], check=True)
+
+init_repo(ws)
 env = dict(os.environ, PATH=str(bin_dir) + ':' + os.environ['PATH'],
            OPENCODE_LANE_DIR=str(lanes), OPENCODE_LANE_SANDBOX_EXEC=str(bin_dir / 'sandbox'),
            OPENCODE_LANE_SECURITY=str(security), OPENCODE_LANE_ACCOUNT_HOME=str(account_home), HOME=str(caller_home),
@@ -230,6 +233,18 @@ try:
     result = start()
     check(result.stdout.strip() == 'hello \nworld', result.stdout)
     check(run('id', 'job').stdout.strip() == 's-123', 'session not persisted')
+    scenario = 'harvest records base and exports empty patch'
+    state = json.loads((lanes / 'job.json').read_text())
+    check(state.get('base') == subprocess.check_output(['git', '-C', str(ws), 'rev-parse', 'HEAD'], text=True).strip(),
+          'base commit not recorded')
+    check(state.get('workspace_git_dir') == str(ws / '.git'), 'absolute Git directory not recorded')
+    patch = pathlib.Path(state['patch'])
+    check(patch.read_bytes() == b'' and stat.S_IMODE(patch.stat().st_mode) == 0o600, 'empty/private patch missing')
+    check(f'opencode-lane: patch: {patch}' in result.stderr and 'no changes' in result.stderr, 'patch diagnostic missing')
+    before = len(calls())
+    harvested = run('harvest', 'job')
+    check(pathlib.Path(harvested.stdout.strip()).read_bytes() == b'', 'manual harvest path missing')
+    check(len(calls()) == before, 'harvest called opencode')
     scenario = 'catalog warmed before run with identical sandbox and environment'
     check(len(calls()) == 3, 'expected models, run and export')
     catalog, first, exported = calls()
@@ -277,6 +292,10 @@ try:
           '/Volumes allowed')
     scenario = 'account home and redirected HOME both denied'
     deny_reads = profile.split('(deny file-read-data', 1)[1].split('(allow file-read-data', 1)[0]
+    scenario = 'shared temporary and Users read denies'
+    check('(subpath "/private/var/tmp")' in deny_reads, 'missing /private/var/tmp read deny')
+    check('(subpath "/Users")' in deny_reads, 'missing /Users read deny')
+    check('(deny file-read* (literal "/dev/console"))' in profile, 'missing console read deny')
     check(f'(subpath "{account_home}")' in deny_reads and f'(subpath "{caller_home}")' in deny_reads,
           'account home or redirected HOME not denied')
     home_canary = account_home / '.local/state/opencode-lane/.home-canary'
@@ -382,112 +401,91 @@ try:
     check(pointer.read_bytes() == pointer_before, 'Git pointer changed during append-open self-test')
     (root / 'sandbox-mode').write_text('enforce')
     run('drop', 'linked')
-    scenario = 'effective workspace hooks directory protected each round'
-    hooks = ws / '.githooks'
-    hooks.mkdir()
-    hook = hooks / 'pre-commit'
-    hook.write_text('fixture hook, must remain unchanged\n')
-    (root / 'hooks-path').write_text(str(hooks))
-    subprocess.run(['git', '-C', str(ws), 'config', 'core.hooksPath', '.githooks'], check=True)
-    run('next', 'job', 'refresh hooks protection')
-    hooks_rule = f'(deny file-write* (subpath "{hooks}"))'
-    profile = (lanes / 'job.sb').read_text()
-    check(hooks_rule in profile, 'missing effective hooks directory deny rule')
-    check(profile.index(hooks_rule) > profile.index('(allow file-write*'), 'hooks deny precedes workspace allow')
-    scenario = 'hooks self-test rejects write leakage in rounds and exec'
-    (root / 'sandbox-mode').write_text('hooks-leak')
-    refused(['next', 'job', 'blocked'], 'sandbox self-test failed: Git hooks write allowed')
-    refused(['exec', 'job', '--', '/bin/sh', '-c', ':'], 'sandbox self-test failed: Git hooks write allowed')
-    check(not (hooks / '.opencode-lane-selftest').exists(), 'hooks probe leaked')
-    check(hook.read_text() == 'fixture hook, must remain unchanged\n', 'existing hook changed')
-    scenario = 'exec refreshes protection for missing hooks directory'
-    missing_hooks = ws / 'new-hooks/nested'
-    subprocess.run(['git', '-C', str(ws), 'config', 'core.hooksPath', str(missing_hooks)], check=True)
-    (root / 'hooks-path').write_text(str(missing_hooks))
-    refused(['exec', 'job', '--', '/bin/sh', '-c', ':'], 'sandbox self-test failed: Git hooks write allowed')
-    check(not missing_hooks.parent.exists(), 'mkdir self-test left directories behind')
-    (root / 'sandbox-mode').write_text('enforce')
-    before = len(calls())
-    run('exec', 'job', '--', '/bin/sh', '-c', ':')
-    check(len(calls()) == before, 'exec hooks protection invoked opencode')
-    profile = (lanes / 'job.sb').read_text()
-    check(f'(deny file-write* (subpath "{missing_hooks}"))' in profile, 'exec reused stale hooks directory')
-    subprocess.run(['git', '-C', str(ws), 'config', '--unset', 'core.hooksPath'], check=True)
-    (root / 'hooks-path').unlink()
-    hook.unlink()
-    hooks.rmdir()
-    attack = root / 'attack-hooks.py'
-    attack.write_text('''import pathlib
+    scenario = 'hostile harvest round-trip uses recorded Git and disables execution'
+    donor, hostile, clean = root / 'donor', root / 'hostile', root / 'clean'
+    init_repo(donor)
+    (donor / 'tracked.txt').write_text('base\n')
+    subprocess.run(['git', '-C', str(donor), 'add', 'tracked.txt'], check=True)
+    subprocess.run(['git', '-C', str(donor), '-c', 'user.name=Lane Test',
+                    '-c', 'user.email=lane@example.invalid', '-c', 'core.hooksPath=/dev/null',
+                    '-c', 'commit.gpgSign=false', 'commit', '-qm', 'tracked base'], check=True)
+    subprocess.run(['git', '-C', str(donor), '-c', 'core.hooksPath=/dev/null',
+                    'worktree', 'add', '--detach', '-q', str(hostile)], check=True)
+    (root / 'hostile.py').write_text(r"""import pathlib, shlex, subprocess, sys
 root = pathlib.Path(__file__).resolve().parent
-if (root / 'sandbox-mode').read_text() == 'swap-leak':
-    layout = (root / 'hooks-layout').read_text()
-    if layout == 'nested':
-        evil = pathlib.Path('evil/hooks')
-        evil.mkdir(parents=True)
-        (evil / 'pre-commit').write_text('worker hook')
-        pathlib.Path('scripts').rename('scripts.old')
-        pathlib.Path('evil').rename('scripts')
-    else:
-        evil = pathlib.Path('evildir')
-        evil.mkdir()
-        (evil / 'pre-commit').write_text('worker hook')
-        pathlib.Path('.githooks').rename('.githooks.old')
-        pathlib.Path('.githooks').symlink_to('evildir')
-''')
-    for layout in ('nested', 'symlink'):
-        (root / 'hooks-layout').write_text(layout)
-        if layout == 'nested':
-            configured = ws / 'scripts/hooks'
-            resolved = configured
-            literals = [ws / 'scripts', configured]
-        else:
-            configured = ws / '.githooks'
-            resolved = ws / 'realhooks'
-            configured.symlink_to('realhooks')
-            literals = [configured, resolved]
-        resolved.mkdir(parents=True)
-        (resolved / 'pre-commit').write_text('original hook')
-        (root / 'hooks-path').write_text(str(resolved))
-        subprocess.run(['git', '-C', str(ws), 'config', 'core.hooksPath', str(configured.relative_to(ws))], check=True)
-        scenario = f'{layout} hooks ancestor and link literal protection'
-        run('next', 'job', 'protect hook location')
-        profile = (lanes / 'job.sb').read_text()
-        write_denies = '\n'.join(line for line in profile.splitlines() if line.startswith('(deny file-write*'))
-        for path in literals:
-            check(f'(literal "{path}")' in write_denies, f'missing ancestor/link literal: {path}')
-        for command in ('round', 'exec'):
-            scenario = f'{layout} hooks swap detected after {command}'
-            (root / 'sandbox-mode').write_text('swap-leak')
-            (root / 'mode').write_text('swap-hooks')
-            before = len(calls())
-            result = run('next', 'job', 'swap hooks', code=5) if command == 'round' else \
-                run('exec', 'job', '--', sys.executable, str(attack), code=5)
-            check(str(configured) in result.stderr and
-                  'Git hooks changed during the round; do not run git in this workspace before reviewing them' in result.stderr,
-                  'missing hooks integrity warning')
-            check(not any(call['argv'][:2] == ['session', 'export'] for call in calls()[before:]),
-                  'model export ran before hooks integrity check')
-            if command == 'exec':
-                check(len(calls()) == before, 'exec invoked opencode')
-            if layout == 'nested':
-                shutil.rmtree(ws / 'scripts')
-                (ws / 'scripts.old').rename(ws / 'scripts')
-            else:
-                configured.unlink()
-                (ws / '.githooks.old').rename(configured)
-                shutil.rmtree(ws / 'evildir')
-        (root / 'sandbox-mode').write_text('enforce')
-        scenario = f'{layout} unchanged hooks allowed through exec'
-        run('exec', 'job', '--', sys.executable, str(attack))
-        check((resolved / 'pre-commit').read_text() == 'original hook', 'enforcing fixture changed hooks')
-        subprocess.run(['git', '-C', str(ws), 'config', '--unset', 'core.hooksPath'], check=True)
-        if layout == 'nested':
-            shutil.rmtree(ws / 'scripts')
-        else:
-            configured.unlink()
-            shutil.rmtree(resolved)
-    (root / 'hooks-path').unlink()
+ws = pathlib.Path.cwd()
+(ws / 'tracked.txt').write_text('worker edit\n')
+(ws / 'new.txt').write_text('new file\n')
+(ws / 'binary.bin').write_bytes(b'\0\xffbinary\0')
+hooks = ws / '.githooks'
+hooks.mkdir()
+script = '#!/bin/sh\ntouch ' + shlex.quote(str(root / 'executed-marker')) + '\n'
+(hooks / 'pre-commit').write_text(script)
+(hooks / 'pre-commit').chmod(0o700)
+planted = ws / 'planted'
+subprocess.run(['git', 'clone', '--bare', '-q', str(root / 'donor'), str(planted)], check=True)
+for key, value in [('core.bare', 'false'), ('core.worktree', str(ws)),
+                   ('core.hooksPath', str(hooks)), ('core.fsmonitor', str(hooks / 'pre-commit'))]:
+    subprocess.run(['git', '--git-dir=' + str(planted), 'config', key, value], check=True)
+(ws / '.git').write_text('gitdir: ' + str(planted) + '\n')
+late = 'import pathlib, time; time.sleep(.5); pathlib.Path("tracked.txt").write_text("late edit\\n")'
+child = subprocess.Popen([sys.executable, '-c', late], start_new_session=True,
+                         stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+(root / 'late.pid').write_text(str(child.pid))
+""")
+    (root / 'mode').write_text('hostile')
+    (root / 'sandbox-mode').write_text('worker-leak')
+    result = start('harvest-hostile', cwd=hostile)
+    record = json.loads((lanes / 'harvest-hostile.json').read_text())
+    check(record['workspace_git_dir'] != str(hostile / '.git'), 'worktree Git directory not anchored')
+    check(pathlib.Path(record['patch']).is_file(), 'automatic hostile harvest missing')
+    before = len(calls())
+    result = run('harvest', 'harvest-hostile', cwd=root)
+    check(len(calls()) == before, 'manual harvest invoked opencode')
+    patch = pathlib.Path(result.stdout.strip())
+    patch_bytes = patch.read_bytes()
+    check(json.loads((lanes / 'harvest-hostile.json').read_text())['patch'] == str(patch),
+          'manual harvest did not publish latest patch')
+    check(b'tracked.txt' in patch_bytes and b'new.txt' in patch_bytes and b'GIT binary patch' in patch_bytes,
+          'tracked/new/binary changes missing')
+    check(b'.githooks/pre-commit' in patch_bytes and b'planted/config' in patch_bytes,
+          'worker hook or planted repository hidden from patch review')
+    check(b'a/.git/' not in patch_bytes and b'b/.git/' not in patch_bytes and
+          b' b/.git\n' not in patch_bytes, 'Git entry transferred')
+    check(not (root / 'executed-marker').exists(), 'harvest executed a planted hook or fsmonitor')
+    check(not list(lanes.glob('.harvest-hostile.index-*')), 'temporary index left behind')
+    subprocess.run(['git', '-C', str(donor), '-c', 'core.hooksPath=/dev/null', 'worktree',
+                    'add', '--detach', '-q', str(clean), record['base']], check=True)
+    subprocess.run(['git', '-C', str(clean), 'apply', '--index', str(patch)], check=True)
+    harvested_text = (clean / 'tracked.txt').read_text()
+    check(harvested_text in ('worker edit\n', 'late edit\n'), 'patch is not a harvest-time snapshot')
+    check((clean / 'new.txt').read_text() == 'new file\n', 'new file failed round-trip')
+    check((clean / 'binary.bin').read_bytes() == b'\0\xffbinary\0', 'binary failed round-trip')
+    subprocess.run(['git', '-C', str(clean), 'status', '--porcelain'], check=True, stdout=subprocess.DEVNULL)
+    subprocess.run(['git', '-C', str(clean), '-c', 'user.name=Lane Test',
+                    '-c', 'user.email=lane@example.invalid', '-c', 'commit.gpgSign=false',
+                    'commit', '-qm', 'probe'], check=True, stdout=subprocess.DEVNULL)
+    deadline = time.monotonic() + 3
+    while (hostile / 'tracked.txt').read_text() != 'late edit\n' and time.monotonic() < deadline:
+        time.sleep(.05)
+    check((hostile / 'tracked.txt').read_text() == 'late edit\n', 'detached writer did not run')
+    check((clean / 'tracked.txt').read_text() == harvested_text and patch.read_bytes() == patch_bytes,
+          'late worker changed clean tree or saved patch')
+    check(not (root / 'executed-marker').exists(), 'clean worktree executed planted code')
+    control = root / 'hook-control'
+    init_repo(control)
+    control_hook = control / '.git/hooks/pre-commit'
+    shutil.copyfile(hostile / '.githooks/pre-commit', control_hook)
+    control_hook.chmod(0o700)
+    subprocess.run(['git', '-C', str(control), '-c', 'user.name=Lane Test',
+                    '-c', 'user.email=lane@example.invalid', '-c', 'commit.gpgSign=false',
+                    '-c', 'core.hooksPath=' + str(control_hook.parent),
+                    'commit', '--allow-empty', '-qm', 'positive control'], check=True)
+    check((root / 'executed-marker').is_file(), 'planted hook positive control did not fire')
+    run('drop', 'harvest-hostile')
+    check(not list(lanes.glob('harvest-hostile.*')), 'drop left harvested patches')
     (root / 'mode').write_text('ok')
+    (root / 'sandbox-mode').write_text('enforce')
     scenario = 'exec command streams, sandbox, environment and exit code'
     gate = bin_dir / 'gate'
     gate.write_text('''#!/usr/bin/env python3
@@ -682,9 +680,13 @@ sys.exit(23)
     (root / 'sandbox-mode').write_text('enforce')
     scenario = 'no-text exit and failed-round publication'
     (root / 'mode').write_text('no-text')
+    previous_patch = json.loads((lanes / 'job.json').read_text())['patch']
     run('next', 'job', 'no text', code=3)
     check(run('last', 'job', code=3).stdout == '', 'stale text printed')
     check(run('log', 'job').stdout.strip() != str(log), 'failed round not published')
+    failed = json.loads((lanes / 'job.json').read_text())
+    check(failed['patch'] != previous_patch and pathlib.Path(failed['patch']).is_file(),
+          'failed session round did not harvest')
     scenario = 'model check'
     (root / 'mode').write_text('wrong-model')
     result = run('next', 'job', 'wrong model', code=4)
@@ -725,19 +727,19 @@ sys.exit(23)
     before = len(calls())
     result = start('provider', code=1)
     expected = 'opencode-lane: provider error: provider.no-route: Model unavailable: fakeprov/fake-model'
-    check(result.stderr.strip() == expected, result.stderr)
+    check(expected in result.stderr.splitlines(), result.stderr)
     check(len(calls()) == before + 2, 'provider failure retried or exported without a session')
     check(pathlib.Path(run('log', 'provider').stdout.strip()).is_file(), 'provider events lost')
     run('drop', 'provider')
     scenario = 'provider error overrides successful backend exit'
     (root / 'provider-exit').write_text('0')
     result = start('provider-zero', code=3)
-    check(result.stderr.strip() == expected, result.stderr)
+    check(expected in result.stderr.splitlines(), result.stderr)
     run('drop', 'provider-zero')
     scenario = 'provider error sanitized and bounded'
     (root / 'provider-message').write_text('bad\n\r\x1b\x00\x7f\x85\u202e' + 'x' * 500)
     result = start('provider-controls', code=3)
-    diagnostic = result.stderr.removesuffix('\n')
+    diagnostic = result.stderr.splitlines()[0]
     check(diagnostic.startswith('opencode-lane: provider error: provider.no-route: bad'), diagnostic)
     check(len(diagnostic) <= 300 and not any(__import__('unicodedata').category(c).startswith('C')
                                            for c in diagnostic), 'unbounded or unsafe diagnostic')
@@ -797,12 +799,18 @@ sys.exit(23)
     check((lanes / 'collision.json').read_text() == '{"workspace":"held"}', 'existing state overwritten or removed')
     (root / 'plant-collision').unlink()
     (lanes / 'collision.json').unlink()
+    scenario = 'workspace must be Git top level'
+    inner = ws / 'inner'
+    inner.mkdir()
+    refused(['start', 'subdir', str(spec), '-m', 'fakeprov/fake-model'],
+            'workspace must be the Git top level', cwd=inner)
+    inner.rmdir()
     scenario = 'Git top level drift refused'
-    outer, inner = root / 'outer', root / 'outer/inner'
-    inner.mkdir(parents=True)
-    subprocess.run(['git', 'init', '-q', str(outer)], check=True)
-    start('git-drift', cwd=inner)
-    subprocess.run(['git', 'init', '-q', str(inner)], check=True)
+    saved = (lanes / 'git-drift.json')
+    start('git-drift')
+    value = json.loads(saved.read_text())
+    value['git_top'] = str(ws.parent)
+    saved.write_text(json.dumps(value))
     refused(['next', 'git-drift', 'changed'], 'Git top level or common directory changed')
     run('drop', 'git-drift')
     scenario = 'parallel distinct workspaces wait for registry lock'
@@ -810,7 +818,7 @@ sys.exit(23)
     (lanes / '.registry.lock').mkdir()
     for index in range(6):
         parallel_ws = root / f'parallel-{index}'
-        subprocess.run(['git', 'init', '-q', str(parallel_ws)], check=True)
+        init_repo(parallel_ws)
         processes.append(subprocess.Popen(['bash', str(tool), 'start', f'parallel-{index}', str(spec),
                                            '-m', 'fakeprov/fake-model'], cwd=parallel_ws, env=env,
                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True))
