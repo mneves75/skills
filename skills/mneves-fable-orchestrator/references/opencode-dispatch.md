@@ -67,8 +67,8 @@ profile per round and runs the worker under `sandbox-exec`:
   install, the real git, and directories you pass with `--allow-read`. Parent directories of
   those are listable, not readable.
 - **Writes** go only to the workspace and the box, plus `/dev/null`, `/dev/zero`, the process's
-  own descriptors and pseudo-terminals the worker opens itself, so it cannot write into your
-  other terminals.
+  own descriptors and pseudo-terminals the worker opens itself, so it can neither write into
+  nor read from your other terminals.
 - **Keychain and clipboard** services are unreachable.
 - The worker gets a private home and private opencode stores in the box, and an environment
   holding only `PATH`, `LANG`, `TERM`, `PWD` and the box paths. Your sessions, auth, skills and
@@ -139,7 +139,8 @@ usually means a toolchain needs `--allow-read`.
   returned nothing. The no-cost model is intermittently unavailable; retry later, then escalate.
   `opencode-lane log <lane>` holds the events.
 - **Exit 4**: another model ran. Do not accept the work.
-- **Exit 5**: the worker created agent configuration. Inspect and delete it before any next round.
+- **Exit 5**: the worker created agent configuration, or something on the Git hooks path changed.
+  Inspect it before any next round and before running git in the workspace.
 - **Exit 124**: a hang or overrun. Check the workspace for partial changes before running again;
   repeated hangs mean the provider is unavailable.
 
@@ -148,7 +149,14 @@ usually means a toolchain needs `--allow-read`.
 Accept as for any delegated work: read the diff first, then rerun the gates yourself, and
 inspect test and guard edits closely. Gates execute code the worker wrote, so run them inside
 the lane's sandbox with `opencode-lane exec <lane> -- <command>` until you have read that code;
-run them unsandboxed only after the diff review. Escalate to the Codex worker with the failure evidence after two failed
+run them unsandboxed only after the diff review.
+
+Commit the worker's output with Git hooks disabled, after running the hooks' checks inside the
+lane: `opencode-lane exec <lane> -- <the hook or its check command>`, then
+`git -c core.hooksPath=/dev/null commit ...`. Hooks often call scripts or package tooling that
+live in the workspace, which the worker could change; the lane denies writes to the hook files
+themselves and exits 5 with "Git hooks changed" if anything on the hooks path changed during a
+round, but it cannot vouch for everything a hook calls. Escalate to the Codex worker with the failure evidence after two failed
 correction rounds, on any exit 4 or 5, or as soon as the task needs judgement the specification
 did not settle. The lane's state, logs and the worker's sessions live in the lane directory;
 `drop` removes them.

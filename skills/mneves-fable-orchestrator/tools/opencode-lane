@@ -49,6 +49,7 @@ done
 exec /usr/bin/env -i "${SUPERVISOR_ENV[@]}" python3 - "$@" 3<&0 <<'PY'
 # Python 3.10+, standard library only. This process owns signals and cleanup.
 import contextlib
+import hashlib
 import json
 import math
 import os
@@ -275,23 +276,100 @@ def preconditions(state, lane_dir, state_file):
         die(f'project agent configuration refused: {config}')
 
 
-def workspace_hooks(workspace):
+def hooks_location(workspace):
+    setting = subprocess.run(['git', '-C', workspace, 'config', '--null', '--get', 'core.hooksPath'],
+                             capture_output=True)
+    if setting.returncode not in (0, 1):
+        die(f'cannot read Git hooks setting: {workspace}')
     result = subprocess.run(['git', '-C', workspace, 'rev-parse', '--git-path', 'hooks'],
                             capture_output=True, text=True)
     if result.returncode or not result.stdout.rstrip('\n'):
         die(f'cannot resolve Git hooks directory: {workspace}')
-    hooks = (Path(workspace) / result.stdout.rstrip('\n')).resolve()
-    if hooks.is_relative_to(workspace) and not hooks.is_relative_to(Path(workspace) / '.git'):
-        return hooks
-    return None
+    configured = Path(os.path.abspath(Path(workspace) / result.stdout.rstrip('\n')))
+    resolved = configured.resolve()
+    start = Path(workspace) if configured.is_relative_to(workspace) else Path(configured.anchor)
+    paths = [start]
+    for part in configured.relative_to(start).parts:
+        paths.append(paths[-1] / part)
+    components, literals = [], set()
+    for path in paths:
+        try:
+            mode = path.lstat().st_mode
+            link = os.readlink(path) if stat.S_ISLNK(mode) else None
+        except FileNotFoundError:
+            mode, link = 0, None
+        components.append((str(path), stat.S_IFMT(mode), link))
+        if path != Path(workspace) and path.is_relative_to(workspace):
+            literals.add(str(path))
+            physical_path = path.resolve()
+            if physical_path != Path(workspace):
+                literals.add(str(physical_path))
+    return dict(raw=os.fsdecode(setting.stdout.removesuffix(b'\0')) if setting.returncode == 0 else None,
+                configured=str(configured), resolved=str(resolved), components=components,
+                literals=sorted(literals))
 
 
-def profile(state, box, target):
-    hooks = workspace_hooks(state['workspace'])
+def hooks_tree_digest(path):
+    records = []
+
+    def visit(parent_fd, name, relative):
+        metadata = os.stat(name, dir_fd=parent_fd, follow_symlinks=False)
+        record = [relative, metadata.st_mode]
+        if stat.S_ISLNK(metadata.st_mode):
+            record.append(os.readlink(name, dir_fd=parent_fd))
+        elif stat.S_ISDIR(metadata.st_mode) or stat.S_ISREG(metadata.st_mode):
+            flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK
+            if stat.S_ISDIR(metadata.st_mode):
+                flags |= os.O_DIRECTORY
+            descriptor = os.open(name, flags, dir_fd=parent_fd)
+            try:
+                opened = os.fstat(descriptor)
+                if (opened.st_dev, opened.st_ino, opened.st_mode) != (
+                        metadata.st_dev, metadata.st_ino, metadata.st_mode):
+                    die(f'Git hooks changed while inspecting: {path}')
+                if stat.S_ISDIR(metadata.st_mode):
+                    for child in sorted(os.listdir(descriptor)):
+                        visit(descriptor, child, f'{relative}/{child}')
+                else:
+                    contents = hashlib.sha256()
+                    while chunk := os.read(descriptor, 65536):
+                        contents.update(chunk)
+                    record.append(contents.hexdigest())
+            finally:
+                os.close(descriptor)
+        records.append(record)
+
+    if not os.path.lexists(path):
+        return None
+    visit(None, path, '.')
+    return hashlib.sha256(json.dumps(sorted(records), ensure_ascii=True).encode()).hexdigest()
+
+
+def hooks_snapshot(workspace):
+    location = hooks_location(workspace)
+    return dict(location, digest=hooks_tree_digest(location['resolved']))
+
+
+def hooks_violation(workspace, before):
+    try:
+        if hooks_snapshot(workspace) == before:
+            return 0
+    except (OSError, ValueError, RuntimeError, Refused):
+        pass  # An unreadable or unresolvable hook location also fails integrity.
+    print(f'opencode-lane: {before["configured"]}: Git hooks changed during the round; '
+          'do not run git in this workspace before reviewing them', file=sys.stderr)
+    return 5
+
+
+def profile(state, box, target, location=None):
+    location = hooks_location(state['workspace']) if location is None else location
+    hooks = Path(location['resolved'])
+    if not hooks.is_relative_to(state['workspace']) or hooks.is_relative_to(Path(state['workspace']) / '.git'):
+        hooks = None
     roots = [state['workspace'], str(box), state['git_common'], state['opencode_root'],
              state['git_dir'], *state['allow_read']]
     homes = list(dict.fromkeys([account_home(), physical(os.environ['HOME'])]))
-    for path in [*homes, *roots, *([str(hooks)] if hooks is not None else [])]:
+    for path in [*homes, *roots, *location['literals'], *([str(hooks)] if hooks is not None else [])]:
         if not os.path.isabs(path) or any(c in path for c in ('"', '\\', '\n', '\r')):
             die(f'unsafe sandbox path: {path!r}')
     ancestors = sorted({str(parent) for root in roots for parent in Path(root).parents
@@ -323,11 +401,13 @@ def profile(state, box, target):
         '(literal "/dev/dtracehelper") (regex #"^/dev/fd/[0-9]+$"))',
         '(allow pseudo-tty)',
         '(allow file-read* file-write* file-ioctl (literal "/dev/ptmx"))',
+        '(deny file-read* (regex #"^/dev/ttys[0-9]+$"))',
         '(allow file-read* file-write* (require-all (regex #"^/dev/ttys[0-9]+$") '
         '(extension "com.apple.sandbox.pty")))',
         f'(deny file-write* (literal "{state["workspace"]}/.git") '
         f'(subpath "{state["workspace"]}/.git"))',
-        *([f'(deny file-write* (subpath "{hooks}"))'] if hooks is not None else []), '',
+        *([f'(deny file-write* (subpath "{hooks}"))'] if hooks is not None else []),
+        *[f'(deny file-write* (literal "{path}"))' for path in location['literals']], '',
     ]))
     return hooks
 
@@ -514,9 +594,10 @@ def prepare_sandbox(state, lane_dir, lane, sandbox, security):
     box, profile_path = lane_dir / f'{lane}.box', lane_dir / f'{lane}.sb'
     prepare_box(box)
     atomic_write(lane_dir / f'{lane}.canary', 'opencode-lane private canary\n')
-    hooks = profile(state, box, profile_path)
+    hooks_before = hooks_snapshot(state['workspace'])
+    hooks = profile(state, box, profile_path, hooks_before)
     selftest(state, sandbox, security, profile_path, lane_dir, lane, hooks)
-    return box, profile_path
+    return box, profile_path, hooks_before
 
 
 def parse_exec(args):
@@ -538,22 +619,23 @@ def parse_exec(args):
 
 def exec_run(state, lane_dir, lane, sandbox, security, args):
     timeout, command = parse_exec(args)
-    box, profile_path = prepare_sandbox(state, lane_dir, lane, sandbox, security)
+    box, profile_path, hooks_before = prepare_sandbox(state, lane_dir, lane, sandbox, security)
     process = subprocess.Popen(sandbox_command(state, box, sandbox, profile_path) + command,
                                cwd=state['workspace'], stdin=3, start_new_session=True)
     try:
         try:
-            return exit_status(process.wait(timeout=timeout))
+            result = exit_status(process.wait(timeout=timeout))
         except subprocess.TimeoutExpired:
             print('opencode-lane: watchdog timeout; process group killed', file=sys.stderr)
-            return 124
+            result = 124
     finally:
         kill_group(process)
+    return hooks_violation(state['workspace'], hooks_before) or result
 
 
 def round_run(state, state_file, lane_dir, lane, sandbox, security, prompt, is_start):
     before = {name for name in ROUND_CONFIG_NAMES if os.path.lexists(Path(state['workspace']) / name)}
-    box, profile_path = prepare_sandbox(state, lane_dir, lane, sandbox, security)
+    box, profile_path, hooks_before = prepare_sandbox(state, lane_dir, lane, sandbox, security)
     write_config(box)
     base = worker_command(state, box, sandbox, profile_path)
     deadline = time.monotonic() + state['timeout']
@@ -563,6 +645,9 @@ def round_run(state, state_file, lane_dir, lane, sandbox, security, prompt, is_s
                                    catalog_errors, warmup_budget, first_event_timeout=warmup_budget)
         catalog.seek(0)
         offered = any(line.strip() == state['model'].encode() for line in catalog)
+        violation = hooks_violation(state['workspace'], hooks_before)
+        if violation:
+            return violation
         if catalog_result or not offered:
             detail = f' (opencode exit {exit_status(catalog_result)})' if catalog_result else ''
             die(f'model not offered: {state["model"]}{detail}')
@@ -584,7 +669,8 @@ def round_run(state, state_file, lane_dir, lane, sandbox, security, prompt, is_s
                 state['session_id'] = session
             state['events'] = str(events)
             publish(state_file, state)
-        violation = configuration_violation(state['workspace'], before)
+        violation = (configuration_violation(state['workspace'], before) or
+                     hooks_violation(state['workspace'], hooks_before))
         if violation:
             return violation
         export_result = 0
@@ -593,7 +679,8 @@ def round_run(state, state_file, lane_dir, lane, sandbox, security, prompt, is_s
                 export_result = exit_status(supervise(
                     base + ['session', 'export', '--standalone', state['session_id']],
                     state, b'', exported, errors, max(0, deadline - time.monotonic())))
-                violation = configuration_violation(state['workspace'], before)
+                violation = (configuration_violation(state['workspace'], before) or
+                             hooks_violation(state['workspace'], hooks_before))
                 if violation:
                     return violation
                 if export_result == 0:

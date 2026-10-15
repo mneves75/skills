@@ -24,7 +24,7 @@ PY
 trap cleanup EXIT
 python3 - "$LANE" "$TMP" <<'PY'
 # Python 3.10+, standard library only. _profile never launches opencode.
-import contextlib, json, os, pathlib, pwd, select, shutil, signal, socket, subprocess, sys
+import contextlib, json, os, pathlib, pwd, select, shutil, signal, socket, subprocess, sys, tty
 
 @contextlib.contextmanager
 def home_canary(home, required):
@@ -90,6 +90,32 @@ try:
 finally:
     if hook.read_bytes() != hook_before:
         sys.exit('FAIL: configured hook bytes changed')
+for layout in ('nested', 'symlink'):
+    hook_workspace = root / layout
+    hook_workspace.mkdir()
+    subprocess.run(['git', 'init', '-q', str(hook_workspace)], check=True)
+    relative = 'scripts/hooks' if layout == 'nested' else '.githooks'
+    resolved = hook_workspace / ('scripts/hooks' if layout == 'nested' else 'realhooks')
+    resolved.mkdir(parents=True)
+    (resolved / 'pre-commit').write_text('original hook\n')
+    if layout == 'symlink':
+        (hook_workspace / '.githooks').symlink_to('realhooks')
+    subprocess.run(['git', '-C', str(hook_workspace), 'config', 'core.hooksPath', relative], check=True)
+    (lanes / f'{layout}.box').mkdir(mode=0o700)
+    (lanes / f'{layout}.json').write_text(json.dumps(dict(
+        state, workspace=str(hook_workspace), git_common=str(hook_workspace / '.git'))))
+    subprocess.run(['bash', str(tool), '_profile', layout], check=True,
+                   env=dict(os.environ, OPENCODE_LANE_DIR=str(lanes)))
+    protected = hook_workspace / ('scripts' if layout == 'nested' else '.githooks')
+    hook_profile = lanes / f'{layout}.sb'
+    probe(f'{layout} hooks ancestor rename denied',
+          ['/bin/mv', str(protected), str(hook_workspace / 'moved')], False, hook_profile)
+    if layout == 'symlink':
+        probe('hooks symlink removal denied', ['/bin/rm', str(protected)], False, hook_profile)
+        if not protected.is_symlink() or os.readlink(protected) != 'realhooks':
+            sys.exit('FAIL: hooks symlink changed')
+    if (resolved / 'pre-commit').read_text() != 'original hook\n' or (hook_workspace / 'moved').exists():
+        sys.exit(f'FAIL: {layout} hooks path changed')
 probe('Git directory hook write denied', ['/usr/bin/touch', str(workspace / '.git/hooks/x')], False)
 if (workspace / '.git/hooks/x').exists():
     sys.exit('FAIL: denied Git hook exists')
@@ -192,6 +218,7 @@ probe('/dev/null write allowed', ['/bin/sh', '-c', 'printf probe > /dev/null'], 
 master, slave = os.openpty()
 try:
     slave_path = os.ttyname(slave)
+    tty.setraw(slave)
     os.write(slave, b'control')
     if not select.select([master], [], [], 2)[0] or os.read(master, 1024) != b'control':
         sys.exit('FAIL: outside pty positive control')
@@ -208,6 +235,27 @@ try:
     if result.returncode == 0 or received != 0:
         sys.exit(f'FAIL: outside pty write: exit {result.returncode}, {received} bytes received')
     print('PASS: outside pty write denied, 0 bytes received')
+    typed = b'outside typed input'
+    os.write(master, typed)
+    if not select.select([slave], [], [], 2)[0]:
+        sys.exit('FAIL: outside pty input positive control')
+    reader = ('import os, sys\n'
+              'try:\n'
+              '    fd = os.open(sys.argv[1], os.O_RDONLY | os.O_NONBLOCK | os.O_NOCTTY)\n'
+              'except PermissionError:\n'
+              '    sys.exit(17)\n'
+              'try:\n'
+              '    os.read(fd, 1024)\n'
+              'finally:\n'
+              '    os.close(fd)\n')
+    result = subprocess.run(['/usr/bin/sandbox-exec', '-f', str(profile),
+                             sys.executable, '-c', reader, slave_path],
+                            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10)
+    if result.returncode != 17:
+        sys.exit(f'FAIL: outside pty read-open not denied: exit {result.returncode}')
+    if not select.select([slave], [], [], 2)[0] or os.read(slave, 1024) != typed:
+        sys.exit('FAIL: outside pty input consumed or changed')
+    print('PASS: outside pty read-open denied, input preserved')
 finally:
     os.close(master)
     os.close(slave)

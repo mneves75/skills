@@ -40,6 +40,8 @@ elif args[:2] == ['session', 'export']:
     model = 'other-model' if mode in ('wrong-model', 'provider-wrong-model') else 'fake-model'
     print(json.dumps({'info': {'model': {'providerID': 'fakeprov', 'id': model}}}))
 elif args[:1] == ['run']:
+    if mode == 'swap-hooks':
+        subprocess.run([sys.executable, str(root / 'attack-hooks.py')], check=True)
     if mode in ('provider-error', 'provider-config', 'provider-wrong-model'):
         if mode == 'provider-config':
             pathlib.Path('opencode.json').write_text('{}')
@@ -346,11 +348,14 @@ try:
         '(literal "/dev/dtracehelper") (regex #"^/dev/fd/[0-9]+$"))',
         '(allow pseudo-tty)',
         '(allow file-read* file-write* file-ioctl (literal "/dev/ptmx"))',
+        '(deny file-read* (regex #"^/dev/ttys[0-9]+$"))',
         '(allow file-read* file-write* (require-all (regex #"^/dev/ttys[0-9]+$") '
         '(extension "com.apple.sandbox.pty")))',
     ]
     for rule in device_rules:
         check(rule in profile, f'missing {rule}')
+    scenario = 'outside tty read deny precedes owned-pty allow'
+    check(profile.index(device_rules[3]) < profile.index(device_rules[4]), 'tty read deny comes after owned-pty allow')
     check([line for line in profile.splitlines() if 'file-ioctl' in line] == [device_rules[2]],
           'unexpected blanket device ioctl rule')
     scenario = 'workspace Git entry write deny rule'
@@ -411,6 +416,78 @@ try:
     (root / 'hooks-path').unlink()
     hook.unlink()
     hooks.rmdir()
+    attack = root / 'attack-hooks.py'
+    attack.write_text('''import pathlib
+root = pathlib.Path(__file__).resolve().parent
+if (root / 'sandbox-mode').read_text() == 'swap-leak':
+    layout = (root / 'hooks-layout').read_text()
+    if layout == 'nested':
+        evil = pathlib.Path('evil/hooks')
+        evil.mkdir(parents=True)
+        (evil / 'pre-commit').write_text('worker hook')
+        pathlib.Path('scripts').rename('scripts.old')
+        pathlib.Path('evil').rename('scripts')
+    else:
+        evil = pathlib.Path('evildir')
+        evil.mkdir()
+        (evil / 'pre-commit').write_text('worker hook')
+        pathlib.Path('.githooks').rename('.githooks.old')
+        pathlib.Path('.githooks').symlink_to('evildir')
+''')
+    for layout in ('nested', 'symlink'):
+        (root / 'hooks-layout').write_text(layout)
+        if layout == 'nested':
+            configured = ws / 'scripts/hooks'
+            resolved = configured
+            literals = [ws / 'scripts', configured]
+        else:
+            configured = ws / '.githooks'
+            resolved = ws / 'realhooks'
+            configured.symlink_to('realhooks')
+            literals = [configured, resolved]
+        resolved.mkdir(parents=True)
+        (resolved / 'pre-commit').write_text('original hook')
+        (root / 'hooks-path').write_text(str(resolved))
+        subprocess.run(['git', '-C', str(ws), 'config', 'core.hooksPath', str(configured.relative_to(ws))], check=True)
+        scenario = f'{layout} hooks ancestor and link literal protection'
+        run('next', 'job', 'protect hook location')
+        profile = (lanes / 'job.sb').read_text()
+        write_denies = '\n'.join(line for line in profile.splitlines() if line.startswith('(deny file-write*'))
+        for path in literals:
+            check(f'(literal "{path}")' in write_denies, f'missing ancestor/link literal: {path}')
+        for command in ('round', 'exec'):
+            scenario = f'{layout} hooks swap detected after {command}'
+            (root / 'sandbox-mode').write_text('swap-leak')
+            (root / 'mode').write_text('swap-hooks')
+            before = len(calls())
+            result = run('next', 'job', 'swap hooks', code=5) if command == 'round' else \
+                run('exec', 'job', '--', sys.executable, str(attack), code=5)
+            check(str(configured) in result.stderr and
+                  'Git hooks changed during the round; do not run git in this workspace before reviewing them' in result.stderr,
+                  'missing hooks integrity warning')
+            check(not any(call['argv'][:2] == ['session', 'export'] for call in calls()[before:]),
+                  'model export ran before hooks integrity check')
+            if command == 'exec':
+                check(len(calls()) == before, 'exec invoked opencode')
+            if layout == 'nested':
+                shutil.rmtree(ws / 'scripts')
+                (ws / 'scripts.old').rename(ws / 'scripts')
+            else:
+                configured.unlink()
+                (ws / '.githooks.old').rename(configured)
+                shutil.rmtree(ws / 'evildir')
+        (root / 'sandbox-mode').write_text('enforce')
+        scenario = f'{layout} unchanged hooks allowed through exec'
+        run('exec', 'job', '--', sys.executable, str(attack))
+        check((resolved / 'pre-commit').read_text() == 'original hook', 'enforcing fixture changed hooks')
+        subprocess.run(['git', '-C', str(ws), 'config', '--unset', 'core.hooksPath'], check=True)
+        if layout == 'nested':
+            shutil.rmtree(ws / 'scripts')
+        else:
+            configured.unlink()
+            shutil.rmtree(resolved)
+    (root / 'hooks-path').unlink()
+    (root / 'mode').write_text('ok')
     scenario = 'exec command streams, sandbox, environment and exit code'
     gate = bin_dir / 'gate'
     gate.write_text('''#!/usr/bin/env python3

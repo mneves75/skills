@@ -430,6 +430,7 @@ opencode-lane start fix-123 /tmp/spec.md -m <provider/model> --allow-read ~/.bun
 opencode-lane last fix-123                        # the worker's final report
 opencode-lane next fix-123 - < /tmp/gate.log      # a correction in the same session
 opencode-lane exec fix-123 -- bun test            # rerun a gate inside the same sandbox
+git -c core.hooksPath=/dev/null commit -am 'fix: ...'   # after review; hooks checked via exec
 ```
 
 opencode has no sandbox, and a worker can rewrite its own permission rules, so the lane contains

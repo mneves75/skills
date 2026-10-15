@@ -425,6 +425,7 @@ opencode-lane start fix-123 /tmp/spec.md -m &lt;provider/model&gt; --allow-read 
 opencode-lane last fix-123                        # the worker&#39;s final report
 opencode-lane next fix-123 - &lt; /tmp/gate.log      # a correction in the same session
 opencode-lane exec fix-123 -- bun test            # rerun a gate inside the same sandbox
+git -c core.hooksPath=/dev/null commit -am &#39;fix: ...&#39;   # after review; hooks checked via exec
 </code></pre>
 <p>opencode has no sandbox, and a worker can rewrite its own permission rules, so the lane contains
 it with the operating system. It gives the worker a private home and stores and a minimal

@@ -177,6 +177,8 @@ measure whether a *target* codebase is ready for agents.
   is denied. Test containment with a hostile worker, not with a cooperative model: the real model
   refused the probes. Containment also has a coordinator side: Git hooks, a redirected `.git`
   pointer and worker-written tests run with full rights the moment the coordinator touches them.
+  Path denies inside a tree the worker can write lose to a rename of a parent or a symlink swap;
+  fingerprint what matters before and after, and make the safe coordinator action the protocol.
 - **A guard that loads is not a guard that fires.** The dcg opencode plugin loaded cleanly under
   opencode v2 and never checked a command, because v2 renamed the shell tool (dcg #547). Prove
   every guard with a command it must block.
