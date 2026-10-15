@@ -125,3 +125,16 @@ hostile-worker probes under the real sandbox now find the supervisor's environme
 outside socket, `ps`, preferences, outside reads and writes denied. The real-sandbox test passes
 all thirteen checks, including a denied signal to a non-Apple process and an allowed signal to
 the worker's own child. A final live round on a real model ran shell, bun, tsc and git (214 s).
+
+### Independent verification
+
+A verifier on a different model (Claude Sonnet 5.5), in a fresh context, checked six frozen
+criteria (fake-test mutations of its own, real sandbox probes, a live start and next on a real
+model, credential-free environment, all gates, docs and a byte-identical site rebuild) and passed
+all six. Its adversarial probe found an escape through the coordinator (H22): a planted
+`.git/hooks` file in a clone, or a worktree's `.git` pointer redirected to a fake Git directory
+with `core.fsmonitor`, ran on the coordinator's next git command. The fix denies writes to the
+workspace's `.git` entry (proved by the self-test and by the real sandbox test: hook write and
+pointer append both denied) and adds `opencode-lane exec`, which runs the coordinator's gates
+inside the same sandbox. After the fix, a live round on a real model passed (84 s) and `exec`
+ran a gate in the box and passed the command's exit code through.

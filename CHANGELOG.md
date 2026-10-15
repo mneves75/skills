@@ -10,12 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.35.0] - 2026-10-15
 
 ### Added
-- **`opencode-lane`** runs bounded coding tasks through the opencode CLI as an opt-in trial. The worker gets a private home and stores, a minimal environment and a lean profile, and a Seatbelt profile (macOS) contains it: your home is unreadable and writes stay in the workspace. A self-test proves that profile before every round. The lane refuses opencode configuration in the tree or its ancestors, bounds silent rounds with a watchdog, continues corrections in the same session and checks which model ran. A fake-binary end-to-end test spends no quota; a real-sandbox test runs on macOS.
+- **`opencode-lane`** runs bounded coding tasks through the opencode CLI as an opt-in trial. The worker gets a private home and stores, a minimal environment and a lean profile, and a Seatbelt profile (macOS) contains it: your home is unreadable and writes stay in the workspace. A self-test proves that profile before every round. The lane refuses opencode configuration in the tree or its ancestors, bounds silent rounds with a watchdog, continues corrections in the same session and checks which model ran. Git metadata is
+  write-denied to the worker, and `exec` runs the coordinator's gates inside the same sandbox. A fake-binary end-to-end test spends no quota; a real-sandbox test runs on macOS.
 - **opencode dispatch reference**: the harness's real boundary (`PWD` binding, global profile
   load, project configuration and plugins, hot-reloaded permissions, shell rules that `bash -c`
   bypasses), the residual network risk, failure classes, escalation back to the Codex worker and
   the evidence a role binding would need.
-- **Evaluation spec** (`docs/specs/opencode-worker/`): twenty reproduced harness hazards and one hypothesis, three
+- **Evaluation spec** (`docs/specs/opencode-worker/`): twenty-one reproduced harness hazards and one hypothesis, three
   adversarial reviews and an auditable four-task benchmark (briefs, hidden tests, grader) against
   the Codex worker.
 - **Glossary**: lane and containment boundary.

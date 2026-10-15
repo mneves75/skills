@@ -91,6 +91,8 @@ if cmd in ([str(root / 'bin/security'), 'list-keychains'], ['/usr/bin/security',
     print('FAKE PRIVATE KEYCHAIN OUTPUT')
     sys.exit(0 if mode == 'keychain-leak' else 1)
 if cmd[0] == '/bin/sh':
+    if mode != 'git-leak' and (cmd[-1].endswith('/.git') or '/.git/' in cmd[-1]):
+        sys.exit(1)
     if mode == 'deny-workspace' and cmd[-1].endswith('.opencode-lane-selftest'):
         sys.exit(1)
     if mode != 'leak' and cmd[-1].endswith('.sbx-probe'):
@@ -332,6 +334,98 @@ try:
         check(rule in profile, f'missing {rule}')
         positions.append(profile.index(rule))
     check(positions == sorted(positions), 'IPC rules reordered')
+    scenario = 'workspace Git entry write deny rule'
+    git_rule = f'(deny file-write* (literal "{ws}/.git") (subpath "{ws}/.git"))'
+    check(git_rule in profile, 'missing Git entry deny rule')
+    check(profile.index(git_rule) > profile.index('(allow file-write*'), 'Git deny precedes workspace allow')
+    scenario = 'Git directory self-test rejects write leakage'
+    (root / 'sandbox-mode').write_text('git-leak')
+    refused(['next', 'job', 'blocked'], 'sandbox self-test failed: Git entry write allowed')
+    check(not (ws / '.git/.opencode-lane-selftest').exists(), 'Git self-test probe leaked')
+    (root / 'sandbox-mode').write_text('enforce')
+    scenario = 'Git pointer self-test rejects append-open leakage'
+    subprocess.run(['git', '-C', str(ws), '-c', 'user.name=Lane Test',
+                    '-c', 'user.email=lane@example.invalid', '-c', 'core.hooksPath=/dev/null',
+                    '-c', 'commit.gpgSign=false', 'commit', '--allow-empty', '-qm', 'fixture'], check=True)
+    linked = root / 'linked'
+    subprocess.run(['git', '-C', str(ws), '-c', 'core.hooksPath=/dev/null',
+                    'worktree', 'add', '--detach', '-q', str(linked)], check=True)
+    start('linked', cwd=linked)
+    pointer = linked / '.git'
+    pointer_before = pointer.read_bytes()
+    (root / 'sandbox-mode').write_text('git-leak')
+    refused(['next', 'linked', 'blocked'], 'sandbox self-test failed: Git entry write allowed')
+    check(pointer.read_bytes() == pointer_before, 'Git pointer changed during append-open self-test')
+    (root / 'sandbox-mode').write_text('enforce')
+    run('drop', 'linked')
+    scenario = 'exec command streams, sandbox, environment and exit code'
+    gate = bin_dir / 'gate'
+    gate.write_text('''#!/usr/bin/env python3
+import json, os, pathlib, subprocess, sys, time
+root = pathlib.Path(__file__).resolve().parent.parent
+record = dict(argv=sys.argv[1:], stdin=sys.stdin.read(), cwd=os.getcwd(), env=dict(os.environ))
+with (root / 'gate-calls').open('a') as out:
+    out.write(json.dumps(record) + '\\n')
+if sys.argv[1:] == ['hang']:
+    child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(40)'])
+    (root / 'exec-child.pid').write_text(str(child.pid))
+    time.sleep(40)
+if sys.argv[1:] == ['quiet']:
+    time.sleep(.2)
+    sys.exit(0)
+print(json.dumps(record))
+print('gate stderr', file=sys.stderr)
+sys.exit(23)
+''')
+    gate.chmod(0o700)
+    before = len(calls())
+    saved = (lanes / 'job.json').read_text()
+    exec_state = json.loads(saved)
+    exec_state.pop('model')
+    exec_state['session_id'] = ''
+    exec_state['first_event_timeout'] = .01
+    (lanes / 'job.json').write_text(json.dumps(exec_state))
+    result = run('exec', 'job', '--', str(gate), 'arg with spaces', '--flag',
+                 input='gate stdin\n', cwd=root, code=23)
+    record = json.loads(result.stdout)
+    check(record['argv'] == ['arg with spaces', '--flag'] and record['stdin'] == 'gate stdin\n', 'exec arguments/stdin lost')
+    check(result.stderr == 'gate stderr\n', 'exec stderr not passed through')
+    check(record['cwd'] == str(ws), 'exec ran outside recorded workspace')
+    scenario = 'exec environment allowlist'
+    check(set(record['env']) <= allowed | runtime, 'unexpected exec environment keys')
+    check('SECRET_TOKEN' not in record['env'], 'exec inherited caller secret')
+    check(record['env'] == first['env'], 'exec environment differs from worker environment')
+    sandbox_calls = [json.loads(line) for line in (root / 'sandbox-calls').read_text().splitlines()]
+    check(sandbox_calls[-1] == ['-f', str(lanes / 'job.sb'), str(gate), 'arg with spaces', '--flag'],
+          'exec bypassed sandbox/profile')
+    scenario = 'exec quiet command has only total timeout'
+    run('exec', 'job', '--timeout', '1', '--', str(gate), 'quiet')
+    scenario = 'exec watchdog kills its process group'
+    run('exec', 'job', '--timeout', '1', '--', str(gate), 'hang', code=124)
+    pid = int((root / 'exec-child.pid').read_text())
+    deadline = time.monotonic() + 2
+    while alive(pid) and time.monotonic() < deadline:
+        time.sleep(.05)
+    check(not alive(pid), 'exec grandchild survived timeout')
+    (root / 'exec-child.pid').unlink()
+    scenario = 'exec refuses preconditions, locks and invalid flags'
+    gate_calls = (root / 'gate-calls').read_text()
+    (ws / 'opencode.json').write_text('{}')
+    refused(['exec', 'job', '--', str(gate)], 'project agent configuration refused')
+    (ws / 'opencode.json').unlink()
+    (lanes / 'job.lock').mkdir()
+    refused(['exec', 'job', '--', str(gate)], 'busy')
+    (lanes / 'job.lock').rmdir()
+    (root / 'sandbox-mode').write_text('git-leak')
+    refused(['exec', 'job', '--', str(gate)], 'sandbox self-test failed: Git entry write allowed')
+    (root / 'sandbox-mode').write_text('enforce')
+    for options in [[], ['--'], [str(gate)], ['--timeout', '0', '--', str(gate)],
+                    ['--timeout', 'nan', '--', str(gate)], ['--unsafe', '--', str(gate)]]:
+        run('exec', 'job', *options, code=2)
+    check((root / 'gate-calls').read_text() == gate_calls, 'refused exec ran command')
+    check(len(calls()) == before, 'exec invoked opencode')
+    check(json.loads((lanes / 'job.json').read_text()) == exec_state, 'exec changed session state')
+    (lanes / 'job.json').write_text(saved)
     if security.exists():
         scenario = 'keychain self-test refuses readable search list'
         (root / 'sandbox-mode').write_text('keychain-leak')

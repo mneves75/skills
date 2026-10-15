@@ -5,6 +5,7 @@
 #   opencode-lane start <lane> <spec-file|-> -m <provider/model> [--allow-read DIR]...
 #                       [--timeout S] [--first-event-timeout S]
 #   opencode-lane next  <lane> <prompt|->
+#   opencode-lane exec  <lane> [--timeout S] -- <command> [args...]
 #   opencode-lane last  <lane>
 #   opencode-lane id    <lane>
 #   opencode-lane log   <lane>
@@ -12,9 +13,11 @@
 #   opencode-lane drop  <lane>
 #
 # Requires bash, python3 3.10+, git, opencode and a working macOS sandbox-exec.
-# No model default, pass-through flags, unsandboxed mode or automatic retries.
+# No model default, model pass-through flags, unsandboxed mode or automatic retries.
 # Timeout defaults: 1800 seconds total, 120 seconds to the first stdout line.
 # Prompts reach opencode only on stdin. next resumes in the recorded workspace.
+# exec reruns gates in that sandbox without opencode, passing all three streams through.
+# exec defaults to a 1800-second total timeout, with no first-event timeout.
 # The workspace should live outside your home directory (for example /tmp/worktree):
 # opencode reads agent configuration and instructions in every ancestor up to /.
 # OPENCODE_LANE_DIR defaults to ~/.local/state/opencode-lane (private, mode 700).
@@ -24,7 +27,7 @@
 # Internal hook: _profile <lane> is used by opencode-lane.sandbox.test.
 # Logs survive failed rounds. drop removes the lane, logs and private stores.
 # Exit: 2 precondition/usage; 3 missing session/text; 4 model mismatch;
-#       5 project config created; 124 watchdog; otherwise opencode's exit code.
+#       5 project config created; 124 watchdog; otherwise the command's exit code.
 
 set -euo pipefail
 umask 077
@@ -302,7 +305,9 @@ def profile(state, box, target):
         f'(allow file-read-data {listings} {reads})',
         '(deny file-write* (subpath "/"))',
         f'(allow file-write* (subpath "{state["workspace"]}") '
-        f'(subpath "{box}") (subpath "/dev"))', '',
+        f'(subpath "{box}") (subpath "/dev"))',
+        f'(deny file-write* (literal "{state["workspace"]}/.git") '
+        f'(subpath "{state["workspace"]}/.git"))', '',
     ]))
 
 
@@ -323,6 +328,15 @@ def selftest(state, sandbox, security, profile_path, lane_dir, lane):
              ('outside write', 'touch "$1"', outside, False),
              ('canary read', 'cat "$1"', lane_dir / f'{lane}.canary', False),
              ('home canary read', 'cat "$1"', home_canary(), False)]
+    git_entry = Path(state['workspace']) / '.git'
+    git_probe = git_entry / '.opencode-lane-selftest'
+    if os.path.lexists(git_probe):
+        die('sandbox self-test failed: Git probe path already exists')
+    if git_entry.is_dir():
+        tests.append(('Git entry write', 'touch "$1"', git_probe, False))
+    elif git_entry.is_file():
+        tests.append(('Git entry write', ': >> "$1"', git_entry, False))
+    # A repository subdirectory has no .git entry, so there is nothing to probe.
     try:
         for operation, script, path, must_succeed in tests:
             result = subprocess.run([sandbox, '-f', str(profile_path), '/bin/sh', '-c',
@@ -337,7 +351,7 @@ def selftest(state, sandbox, security, profile_path, lane_dir, lane):
         if result.returncode == 0:
             die('sandbox self-test failed: keychain access allowed')
     finally:
-        for path in (inside, outside):
+        for path in (inside, outside, git_probe):
             if os.path.lexists(path):
                 path.unlink()
 
@@ -353,7 +367,7 @@ def write_config(box):
     atomic_write(box / 'config/opencode/opencode.json', json.dumps({'permissions': permissions}) + '\n')
 
 
-def worker_command(state, box, sandbox, profile_path):
+def sandbox_command(state, box, sandbox, profile_path):
     environment = dict(PATH=state['git_dir'] + ':' + os.environ['PATH'],
                        LANG=os.environ.get('LANG') or 'en_US.UTF-8', TERM='dumb',
                        PWD=state['workspace'], HOME=str(box / 'home'),
@@ -361,7 +375,11 @@ def worker_command(state, box, sandbox, profile_path):
                        XDG_STATE_HOME=str(box / 'state'), XDG_CACHE_HOME=str(box / 'cache'),
                        TMPDIR=str(box / 'tmp'))
     return ['/usr/bin/env', '-i', *[f'{key}={value}' for key, value in environment.items()],
-            sandbox, '-f', str(profile_path), 'opencode']
+            sandbox, '-f', str(profile_path)]
+
+
+def worker_command(state, box, sandbox, profile_path):
+    return sandbox_command(state, box, sandbox, profile_path) + ['opencode']
 
 
 def kill_group(process):
@@ -453,13 +471,50 @@ def configuration_violation(workspace, before):
     return 0
 
 
-def round_run(state, state_file, lane_dir, lane, sandbox, security, prompt, is_start):
-    before = {name for name in ROUND_CONFIG_NAMES if os.path.lexists(Path(state['workspace']) / name)}
+def prepare_sandbox(state, lane_dir, lane, sandbox, security):
     box, profile_path = lane_dir / f'{lane}.box', lane_dir / f'{lane}.sb'
     prepare_box(box)
     atomic_write(lane_dir / f'{lane}.canary', 'opencode-lane private canary\n')
     profile(state, box, profile_path)
     selftest(state, sandbox, security, profile_path, lane_dir, lane)
+    return box, profile_path
+
+
+def parse_exec(args):
+    timeout = 1800
+    if args[:1] == ['--timeout']:
+        if len(args) < 2:
+            die('missing value for --timeout')
+        try:
+            timeout = float(args[1])
+        except ValueError:
+            die('--timeout must be a positive number of seconds')
+        if not math.isfinite(timeout) or timeout <= 0:
+            die('--timeout must be a positive number of seconds')
+        args = args[2:]
+    if len(args) < 2 or args[0] != '--':
+        die('exec requires [--timeout S] -- command [args...]')
+    return timeout, args[1:]
+
+
+def exec_run(state, lane_dir, lane, sandbox, security, args):
+    timeout, command = parse_exec(args)
+    box, profile_path = prepare_sandbox(state, lane_dir, lane, sandbox, security)
+    process = subprocess.Popen(sandbox_command(state, box, sandbox, profile_path) + command,
+                               cwd=state['workspace'], stdin=3, start_new_session=True)
+    try:
+        try:
+            return exit_status(process.wait(timeout=timeout))
+        except subprocess.TimeoutExpired:
+            print('opencode-lane: watchdog timeout; process group killed', file=sys.stderr)
+            return 124
+    finally:
+        kill_group(process)
+
+
+def round_run(state, state_file, lane_dir, lane, sandbox, security, prompt, is_start):
+    before = {name for name in ROUND_CONFIG_NAMES if os.path.lexists(Path(state['workspace']) / name)}
+    box, profile_path = prepare_sandbox(state, lane_dir, lane, sandbox, security)
     write_config(box)
     base = worker_command(state, box, sandbox, profile_path)
     deadline = time.monotonic() + state['timeout']
@@ -549,13 +604,13 @@ def main():
     if sys.version_info < (3, 10):
         die('python3 3.10 or newer is required')
     command, *args = sys.argv[1:]
-    if command not in ('start', 'next', 'last', 'id', 'log', 'list', 'drop', '_profile'):
+    if command not in ('start', 'next', 'exec', 'last', 'id', 'log', 'list', 'drop', '_profile'):
         die(f'unknown command: {command}')
     lane = '' if command == 'list' else (args[0] if args else '')
     if command != 'list' and not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]*', lane):
         die(f'invalid lane name: {lane!r}')
     expected = 0 if command == 'list' else 2 if command == 'next' else 1
-    if command != 'start' and len(args) != expected:
+    if command not in ('start', 'exec') and len(args) != expected:
         die(f'unexpected or missing arguments for {command}')
     raw_dir = os.environ.get('OPENCODE_LANE_DIR') or str(Path.home() / '.local/state/opencode-lane')
     lane_dir = Path(raw_dir).absolute().resolve()
@@ -587,6 +642,11 @@ def main():
             return 0
         is_start = command == 'start'
         sandbox, security = sandbox_tools()
+        if command == 'exec':
+            state = load(state_file)
+            with locked(lane_dir / '.registry.lock', wait_seconds=30):
+                preconditions(state, lane_dir, state_file)
+            return exec_run(state, lane_dir, lane, sandbox, security, args[1:])
         # Serialize workspace claims across lane names, then release before the model runs.
         with locked(lane_dir / '.registry.lock', wait_seconds=30):
             if is_start:

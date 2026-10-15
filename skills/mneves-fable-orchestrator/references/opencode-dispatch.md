@@ -82,8 +82,12 @@ profile per round and runs the worker under `sandbox-exec`:
   exported in your shell or in the coordinating agent's environment is readable by the worker.
   Keep secrets out of process environments while a lane runs, or isolate the worker under a
   separate macOS user or in a VM.
-- The worker cannot stage or commit: the Git common directory is read-only to it, so the
-  coordinator commits after acceptance.
+- The worker cannot touch Git metadata: writes to the workspace's `.git` entry (a clone's
+  directory or a worktree's pointer file) and to the Git common directory are denied, so it
+  cannot plant hooks or redirect the repository, and it cannot stage or commit. The coordinator
+  commits after acceptance.
+- The environment the worker sees is the lane's allowlist plus the few variables opencode's own
+  shell adds (such as `OPENCODE*`, `AGENT`, `SHLVL`).
 
 Other platforms are refused until a sandbox with the same self-test exists for them. Neither
 `sandbox-exec` nor the lane runs inside another sandbox, such as a sandboxed Codex session: start
@@ -98,6 +102,7 @@ opencode-lane start fix-123 /path/to/spec.md -m <provider/model> \
   --allow-read ~/.bun                               # a toolchain installed under your home
 opencode-lane last fix-123                          # the worker's final report
 opencode-lane next fix-123 - < gate-failure.log     # a correction in the same session
+opencode-lane exec fix-123 -- bun test              # run a gate inside the same sandbox
 opencode-lane drop fix-123
 ```
 
@@ -136,8 +141,10 @@ usually means a toolchain needs `--allow-read`.
 
 ## Acceptance and escalation
 
-Accept as for any delegated work: read the diff, rerun the gates yourself, inspect test and
-guard edits closely. Escalate to the Codex worker with the failure evidence after two failed
+Accept as for any delegated work: read the diff first, then rerun the gates yourself, and
+inspect test and guard edits closely. Gates execute code the worker wrote, so run them inside
+the lane's sandbox with `opencode-lane exec <lane> -- <command>` until you have read that code;
+run them unsandboxed only after the diff review. Escalate to the Codex worker with the failure evidence after two failed
 correction rounds, on any exit 4 or 5, or as soon as the task needs judgement the specification
 did not settle. The lane's state, logs and the worker's sessions live in the lane directory;
 `drop` removes them.

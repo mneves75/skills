@@ -6,6 +6,9 @@ worker for a plan written by another model, and then to build the result.
 
 ## What the reviews changed
 
+- **The independent verifier found an escape through the coordinator** (H22): Git hooks or a
+  redirected `.git` pointer ran on the coordinator's next git command. The profile now denies
+  writes to the workspace's `.git` entry, and `exec` lets the coordinator run gates sandboxed.
 - **An independent reviewer's hostile worker found same-user IPC open** (H20): sockets, signals,
   preferences, Apple Events. The profile now closes them. It also showed that Seatbelt cannot hide
   other processes' environments (H21), which the docs now state instead of implying isolation.
@@ -84,6 +87,7 @@ worker for a plan written by another model, and then to build the result.
 | H19 | Hypothesis: a cold store may also lose a startup race for the model catalog. | Lane rounds failed in about one second with an empty `kv` table; after `opencode models --standalone` filled `models-dev:catalog` one round answered. This overlapped with H14 and the two effects were not separated. | The warm-up is cheap and doubles as the roster check, so the lane keeps it. |
 | H20 | Seatbelt's `allow default` leaves same-user IPC open: Unix sockets (ssh-agent, Docker), signals to other processes (including the lane supervisor, which defeats the watchdog), process listing, preferences through `cfprefsd`, and Apple Events. | An independent reviewer's hostile fake worker under the real sandbox connected to a socket, killed the supervisor and read 62 KB of Finder preferences. | The profile denies process info for others, Unix-socket connects except DNS, `cfprefsd` and Apple Events, and every signal except to processes in the same sandbox: `(deny signal (target others))` had no effect on a non-Apple victim, and earlier "denied" results came only from Apple binaries, which macOS protects anyway. A live round still ran shell, bun, tsc and git. |
 | H21 | Seatbelt does not mediate `sysctl(KERN_PROCARGS2)`: the initial environment and arguments of any same-user non-Apple process are readable from inside, even with `(deny sysctl-read)`. | A sandboxed child read a planted secret from an unrelated Homebrew Python's environment. | The lane's own processes run with an allowlisted environment; secrets exported in other processes (the user's shell, the coordinator) stay readable. Real isolation needs a separate macOS user or a VM. |
+| H22 | The worker can make the coordinator run code outside the sandbox: a plain clone's `.git/hooks`, or a worktree's writable `.git` pointer file redirected to a fake Git directory with `core.fsmonitor`, runs on the coordinator's next `git status` or `git commit`; rerunning worker-written tests does the same. | The independent verifier planted both and the coordinator's unsandboxed git commands executed them. | The profile denies writes to the workspace's `.git` entry (directory or file) and the self-test proves it; `opencode-lane exec` runs gates inside the same sandbox. |
 
 The sandboxed probe with the real model (private home and stores, `env -i`): a write inside the
 workspace succeeded; a write outside, a read of a canary outside, and a read of the real home all
@@ -133,6 +137,7 @@ opencode-lane next  <lane> <prompt|->
 opencode-lane last  <lane>
 opencode-lane id    <lane>
 opencode-lane log   <lane>
+opencode-lane exec  <lane> [--timeout S] -- <command> [args...]
 opencode-lane list
 opencode-lane drop  <lane>
 ```
@@ -162,12 +167,14 @@ read can leave the machine; the design therefore limits what it can read.
      `/private/var/folders`; allow the workspace, the box, the Git common directory, the opencode
      install root, the real git, every `--allow-read` directory, and directory listings
      (`literal`) of each ancestor of those;
-   - writes: deny everything except the workspace, the box and `/dev`;
+   - writes: deny everything except the workspace, the box and `/dev`, and then deny the
+     workspace's own `.git` entry (directory or pointer file) again;
    - services: deny `mach-lookup` of the keychain and pasteboard services;
    - network and process execution stay allowed.
 3. **Self-test** under the same profile: a write in the workspace must succeed; a write into the
-   lane state directory, a read of the lane canary, a read of a home canary kept under the
-   account's home, and a keychain search-list query must fail. Any other outcome exits 2.
+   lane state directory, a write to the workspace's `.git` entry, a read of the lane canary, a
+   read of a home canary kept under the account's home, and a keychain search-list query must
+   fail. Any other outcome exits 2.
 4. **Lean configuration** in the box, an ordered array of deny rules: `skill`, `question`,
    `subagent`, `webfetch`, `websearch`, `execute`, `external_directory`; `read` of `*.env` and
    `*.env.*`; `shell` for destructive git commands (hard reset, clean, push, checkout of paths)
@@ -201,7 +208,9 @@ workspace and box, or prove which endpoint served the model; the session-export 
 routing mistakes and is not tamper-proof, since the worker can write its own store. It does not
 hide the environment and arguments of the user's other processes (H21), and a worker process
 that starts its own session can outlive the round's process-group kill (it stays sandboxed). The
-worker cannot stage or commit (the Git common directory is read-only); the coordinator commits.
+worker cannot stage or commit (the `.git` entry and the Git common directory are read-only);
+the coordinator commits. Code the worker wrote (tests, scripts) runs with the coordinator's full
+rights if the coordinator runs it outside the sandbox; `opencode-lane exec` runs it inside.
 
 ## Trial gate before any role binding
 Bind the bounded-worker role only after a frozen, stratified set of at least 20 representative
