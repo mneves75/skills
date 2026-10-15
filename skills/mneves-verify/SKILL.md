@@ -58,7 +58,7 @@ Prefer the named tool when it is available; fall back only on capability.
 | UI | An independent browser/rendering capability driving real renders and interaction — never the builder's screenshot claim | any equivalent tool (agent-browser, Playwright, Argent, …); the requirement is a real render you drove, not which tool drove it |
 | CLI / API / data | run the real binary / endpoint / query + a **positive control** (a known-good input that must succeed), inside the sandbox | none |
 | Research | authoritative primary sources + citation checks (does the source say what the claim says) | none |
-| Security | A dedicated independent security review plus relevant dynamic proof (a security-audit skill if you have one) | none |
+| Security | A dedicated independent security review plus relevant dynamic proof (the separately installed `mneves-security` skill when present; for a staging or production release, its deploy-gate verdict for the exact commit) | none |
 
 BLOCKED only when an essential capability is unavailable (e.g., no independent verifier, no
 sandbox for a required run, no way to reach the real endpoint).

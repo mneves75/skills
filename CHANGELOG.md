@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.37.0] - 2026-10-15
+
+### Added
+- A full security audit now gates every staging and production deploy (`mneves-security`).
+  Deploy-gate mode audits the exact candidate in full: all twelve review areas and every
+  applicable launch control. It ends in a fix plan and a PASS, BLOCK or WAIVED verdict bound
+  to the commit and target. A confirmed Critical or High finding blocks both targets until it
+  is fixed, disproved or waived by the owner by name; for production, every unmet applicable
+  launch control also needs a named waiver. A production deploy of the commit staging already
+  passed reuses that audit with fresh advisories and production checks; a rollback to a gated
+  build needs no audit; an urgent fix ships under a named waiver with its full audit right after.
+- **Launch controls**: 32 security, privacy and compliance controls (`SEC-01` to `SEC-23`,
+  `CMP-01` to `CMP-09`): reset links, MFA and recovery, sessions, SSO/SAML/SCIM, object and
+  tenant isolation, impersonation, throttling, secrets rotation, package provenance, uploads,
+  CORS and headers, encryption, least privilege for agents, audit trails, penetration tests,
+  disclosure, lost devices, webhook signatures, AI safeguards, questionnaires, SOC 2, health
+  data, read audits, card scope, erasure, residency, access reviews and legal documents. The
+  IDs match the production-readiness catalog's delegated rows, so its import maps one to one.
+- A gate verdict record (`.scratch/security-gate/<target>.json`, one scalar per line) that
+  release tooling and a readiness review can read without a JSON parser.
+
+### Changed
+- `mneves-ship-deploy` runs the `mneves-security` gate in Phase 1 in place of the third-party
+  `security-audit` skill; without it the gate is BLOCKED. The decision packet carries the
+  verdict, and production promotion requires PASS or WAIVED for the promoted commit.
+- `mneves-verify` routes security evidence to `mneves-security` and, for a release, to its
+  deploy-gate verdict.
+
 ## [1.34.1] - 2026-10-13
 
 ### Changed

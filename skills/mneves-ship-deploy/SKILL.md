@@ -27,7 +27,7 @@ Within the requested release scope:
 
 Staging authorization does not waive required gates or authorize destructive operations, credential access, separate publication, or an unspecified deployment target. Missing required input and failed gates remain blockers.
 
-**One decision packet.** A gate that cannot pass (an advisory with no patched release, a tool that cannot run here) becomes one request to the user, sent as soon as it is known: the candidate (repository, commit, version), the target, each failing gate as a named waiver with its reason, and the rollback plan. Keep running every other gate while you wait. An approval of the packet approves exactly the waivers it lists; record them in the release evidence.
+**One decision packet.** A gate that cannot pass (an advisory with no patched release, a tool that cannot run here) becomes one request to the user, sent as soon as it is known: the candidate (repository, commit, version), the target, each failing gate as a named waiver with its reason, the security gate verdict with each block it asks the owner to waive, and the rollback plan. Keep running every other gate while you wait. An approval of the packet approves exactly the waivers it lists; record them in the release evidence.
 
 ## Do not invoke when
 
@@ -63,7 +63,7 @@ Report the six findings in one short paragraph before doing anything mutating.
 Run in order, fixing what each surfaces before moving on:
 
 1. `autoreview` — pre-commit code review, when installed; otherwise use the repository's documented independent review gate. Run automatically when its content and destination are already authorized; do not pause for redundant confirmation. Keep the review bounded: one review and one rerun after accepted corrections. Verify findings and apply in-scope corrections automatically. Unresolved actionable findings block the release; report them rather than repeating the same review indefinitely.
-2. `security-audit` — evidence-based; every finding needs `file:line` + snippet. Block the release on anything exploitable.
+2. **Security gate** (mandatory in both modes) — the separately installed `mneves-security` skill in deploy-gate mode: a full security, privacy and compliance audit of the release content, a fix plan, and a PASS, BLOCK or WAIVED verdict that it binds to the pushed commit and target before Phase 4 deploys. A confirmed Critical or High finding blocks staging and production until it is fixed, disproved, or waived by the owner by name in the decision packet; for production, every applicable launch control that is not met also needs a named waiver. A `ship-prod` of the commit staging already serves reuses that audit with fresh advisories and production-only checks. Without the skill the gate is BLOCKED: install it (`npx skills@latest add mneves75/skills --skill mneves-security -g -y`) or put the missing gate in the decision packet.
 3. `improve` (deep pass) — read-only survey producing prioritized plans. Land only what is in scope for this release; everything else becomes a named follow-up, not silent work.
 4. If Phase 1 uncovers work too large for this session, use the host's native task/goal facility only when the user requests that workflow; otherwise report the remaining work. Keep it within the authorized release scope.
 
@@ -113,7 +113,7 @@ After staging is verified, present what changed, the beta tag, the staging targe
 
 ## Production authorization — `ship-prod`
 
-`ship-prod` requests preparation for production; it does not by itself authorize Phase 5. Finish Phases 1–4, present the candidate under the Approval policy, and wait for the user's explicit OK before any production action. Do not request that approval again if it already covers the exact candidate and target. Before promotion, prove that staging is healthy and serves the exact commit being tagged for production. If `ship-prod` starts from scratch, run Phases 1–4 first. If it follows a prior `ship-staging`, re-check the deployed commit and staging health without redeploying an unchanged healthy build.
+`ship-prod` requests preparation for production; it does not by itself authorize Phase 5. Finish Phases 1–4, present the candidate under the Approval policy, and wait for the user's explicit OK before any production action. Do not request that approval again if it already covers the exact candidate and target. Before promotion, prove that staging is healthy and serves the exact commit being tagged for production, and that the security gate verdict for that commit and the production target is PASS or WAIVED. If `ship-prod` starts from scratch, run Phases 1–4 first. If it follows a prior `ship-staging`, re-check the deployed commit and staging health without redeploying an unchanged healthy build.
 
 Any repository, commit, version, environment, or target mismatch invalidates the authorization: stop and present the mismatch before mutating production.
 

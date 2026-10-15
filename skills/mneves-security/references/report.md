@@ -39,12 +39,54 @@ model from the builder. Record builder/verifier identity and scope. If unavailab
 block independent acceptance and overall assurance, not delivery of useful findings.
 Keep task completion, security readiness and launch approval as separate conclusions.
 
+## Gate verdict record
+
+In deploy-gate mode, write the report to `<unit>/.scratch/security-gate/<target>.md` and
+this record next to it as `<target>.json`, where `<unit>` is the deployable unit's
+directory (`.` for a single-unit repository). Confirm with `git check-ignore` that the
+path is ignored; if it is not, write both to the release's evidence location and say
+where. Never commit them into the candidate: that would change the audited commit.
+
+```json
+{
+  "schema": 1,
+  "unit": ".",
+  "target": "staging",
+  "commit": "<full 40-character SHA>",
+  "verdict": "pass",
+  "open_blockers": 0,
+  "independent_acceptance": "pass",
+  "reused_from": "",
+  "created_at": "2026-10-15T19:00:00Z",
+  "waivers": [
+    {
+      "id": "SEC-19",
+      "owner": "@owner",
+      "reason": "penetration test booked",
+      "expires": "2026-11-30T00:00:00Z"
+    }
+  ]
+}
+```
+
+- `target` is `staging` or `production`; `verdict` is `pass`, `block` or `waived`.
+- `open_blockers` counts blocks with no fix, disproof or waiver; `verdict` is `block`
+  exactly when it is above 0, and `waived` when it is 0 but `waivers` is not empty.
+- `independent_acceptance` is `pass`, `fail` or `blocked`; only `pass` allows `pass`.
+- `reused_from` names the commit whose full audit this run reused, or stays empty.
+- Each scalar and each waiver field sits on its own line, every object opens with `{` on
+  its own line, keys carry no escapes, and timestamps are UTC `YYYY-MM-DDTHH:MM:SSZ`, so a
+  shell script can read the record without a JSON parser. A waiver's `id` is a finding ID
+  or a launch-control ID; its target is the record's own.
+
 ## 1. Executive summary
 
 State overall risk and confidence, assessed scope and limitations, highest risks,
 verified fixes and manual actions. Give a reasoned launch-readiness assessment from
 confirmed impact and unresolved evidence; do not equate “audit complete” with “safe.”
 Name explicit blockers and separate observed vulnerability from unknown provider state.
+In deploy-gate mode, open with the verdict, candidate (commit, version, unit), target,
+whether the audit was full or reused, open blockers and the waivers requested.
 
 ## 2. Project inventory
 
@@ -119,6 +161,10 @@ Yes/No verdict.
 | Dependency / security scanner results | | | | |
 | Billing caps / alerts | | | | |
 | Monitoring / incident ownership | | | | |
+
+In deploy-gate mode, or when launch readiness was asked, add one row per applicable
+launch control (`SEC-01` to `SEC-23`, `CMP-01` to `CMP-09`) with the same columns, and list
+the not-applicable controls once with their reasons.
 
 Evidence scope is essential: source-only or local checks cannot mark live provider
 policies, billing caps, monitoring or deployed headers Yes. Preserve useful technical
