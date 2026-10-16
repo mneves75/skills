@@ -14,6 +14,12 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.36.0** (2026-10-15): `opencode-lane` adds an opt-in, sandboxed opencode worker trial to the
+  orchestrator. No role binding changed: four tasks showed feasibility only, and the spec sets a
+  20-task trial gate. Containment is a lane-generated Seatbelt profile proven by self-test each
+  round, because opencode's own permission rules can be rewritten by the worker. The lane never
+  reads credentials; the evaluated DeepSeek model left the anonymous roster that afternoon, so
+  account support is an open owner decision. Evaluation and evidence: `docs/specs/opencode-worker/`.
 - **1.35.0** (2026-10-15): `mneves-security` gains a mandatory deploy gate (full audit of the
   exact candidate, PASS/BLOCK/WAIVED verdict record) and 32 launch controls whose IDs match
   the production-readiness catalog; `mneves-ship-deploy` and `mneves-verify` route to it.
@@ -165,6 +171,24 @@ measure whether a *target* codebase is ready for agents.
 - **Shipped text must work from a stranger's clone.** 1.7.0 baked `~/dev/GUIDELINES-REF` into a
   skill's frontmatter `description:`; every installing agent was told to read a directory only
   the maintainer has. The public-repo scan is: no home paths, no machine layout, no client names.
+
+- **A spawned agent inherits `$PWD`, and some CLIs bind to it, not to the process cwd.** On
+  2026-10-15 a probe launched with `subprocess.run(cwd=probe)` from the main checkout made opencode
+  run a hard reset to `HEAD` in the main checkout (clean, same commit, nothing lost; the reflog
+  shows the entry). Set `PWD` explicitly, and run a destructive probe only after a read-only probe
+  proves the directory.
+- **A same-user sandbox on macOS is not isolation.** Seatbelt cannot stop `sysctl(KERN_PROCARGS2)`,
+  so a sandboxed worker reads the initial environment of the user's other non-Apple processes,
+  and `(allow default)` also leaves sockets, signals, preferences and Apple Events open until each
+  is denied. Test containment with a hostile worker, not with a cooperative model: the real model
+  refused the probes. Containment also has a coordinator side: Git hooks, a redirected `.git`
+  pointer and worker-written tests run with full rights the moment the coordinator touches them.
+  Path denies inside a tree the worker can write lose to renames, symlink swaps, `..` segments,
+  planted repositories and detached processes; the fix was to stop acting on that tree at all
+  (harvest a patch, apply it in a clean worktree).
+- **A guard that loads is not a guard that fires.** The dcg opencode plugin loaded cleanly under
+  opencode v2 and never checked a command, because v2 renamed the shell tool (dcg #547). Prove
+  every guard with a command it must block.
 
 ## Known gaps
 

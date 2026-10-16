@@ -432,6 +432,32 @@ second lane so two approaches can be compared from the same state; `list`, `drop
 thread, `next` exits non-zero and says so instead of echoing the previous message. A plain `codex exec` that unexpectedly needs a second round can be wrapped after the
 fact with `codex-lane adopt <lane> <thread-id>`.
 
+**opencode worker trial (optional, macOS).** `opencode-lane` runs a bounded coding task through
+the [opencode CLI](https://opencode.ai/) on a model you name. It rebinds no role and never reads your
+credentials, so it runs only models the provider offers without an account. Run it from a throwaway Git worktree outside your home directory (opencode reads
+agent configuration in every parent directory) whose content may go to the model's provider:
+
+```bash
+git worktree add /tmp/wt-fix-123 -b fix/123 && cd /tmp/wt-fix-123
+opencode-lane start fix-123 /tmp/spec.md -m <provider/model> --allow-read ~/.bun
+opencode-lane last fix-123                        # the worker's final report
+opencode-lane next fix-123 - < /tmp/gate.log      # a correction in the same session
+opencode-lane harvest fix-123                     # path of the patch to review
+git worktree add /tmp/clean-123 <base> && cd /tmp/clean-123 && git apply --index <patch>
+```
+
+opencode has no sandbox, and a worker can rewrite its own permission rules, so the lane contains
+it with the operating system. It gives the worker a private home and stores and a minimal
+environment, and refuses a tree that carries opencode configuration. Before every round a
+self-test proves its Seatbelt profile: your home is unreadable and writes outside the workspace
+fail. After the round it exits non-zero if another model ran. The network stays open, and macOS
+lets any process read the environment of your other programs, so keep secrets out of the
+worktree and out of exported environment variables while a lane runs. In the evaluation behind it, four small tasks with
+hidden tests, the opencode worker (DeepSeek V4.1 Flash, run on a signed-in account) matched the
+Codex worker. That is feasibility evidence; a role binding needs the larger trial described in
+the reference. A model offered only to signed-in accounts cannot run in the credential-free lane;
+the evaluation spec in `docs/specs/opencode-worker/` records when that happened to this one. Never run git or gates in the worker's tree: review the harvested patch, apply it in a clean worktree from the base commit, and run gates and commit there. Applying and committing use your repository's Git configuration, so review changes to any file it runs from the tree (hooks, filters) before applying.
+
 **Tips.**
 - One goal per dispatch. A grab-bag spec produces a grab-bag diff.
 - Pair every hard "never" in a spec with an exit ("if the gate fails after honest attempts, stop and report"). A cornered executor satisfies the letter of the rule in ways you will not like.

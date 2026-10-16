@@ -11,7 +11,7 @@ Delegate only when the work is independent, substantial, and objectively verifia
 | Orchestrator | Main session (Claude or Codex; model per the skill's Defaults block) | Repo understanding, architecture decisions, task decomposition, spec writing, acceptance |
 | Frontend executor | Frontend subagents (model per the Defaults block) | UI components, styling, layout, visual polish |
 | Ordinary worker | A scoped worker (model per the Defaults block) | Routine implementation with checkable acceptance |
-| Bounded worker | A scoped worker (model per the Defaults block) | Search, writing, and mechanical changes with a narrow result |
+| Bounded worker | A scoped worker (model per the Defaults block); `opencode-lane` runs an opt-in trial of an opencode worker | Search, writing, and mechanical changes with a narrow result |
 | Heavy executor | Codex via `codex exec` / `codex-lane` (model per the Defaults block) | Difficult debugging, architecture, and refactors |
 | Plan advisor | A read-only Codex run (model per the Defaults block) | Review of the Claude main session's plan before a decision with real downside |
 | Reviewer | `autoreview` or a read-only Codex run (model per the Defaults block) | Independent review of a fixed Git target |
@@ -88,6 +88,24 @@ Everything after `--` is passed through to `codex`, so the sandbox level is your
 `$CODEX_LANE_DIR` (default `~/.codex/lanes`), created mode `700`; the event logs hold
 the full model transcript for the job.
 
+### The opencode worker trial
+
+`tools/opencode-lane` runs bounded coding tasks through the opencode CLI as an opt-in trial; it
+rebinds no role. It keeps `codex-lane`'s habits (`start`, `next`, `last`, `id`, `log`, `list`,
+`drop`) with a stricter boundary, because opencode has no sandbox of its own and its permission
+rules can be rewritten by the worker they constrain. The lane gives the worker a private home and
+opencode stores, an environment of a few variables and a lean profile; refuses a tree that
+carries opencode configuration; contains the worker with a Seatbelt profile (reads of your home
+denied, writes only to the workspace) that a self-test proves before every round; kills a silent
+round's process group; checks the session's model afterwards; and harvests a patch the
+coordinator reviews and applies in a clean worktree, so nothing the worker left behind runs. macOS
+only for now; run it
+from a worktree outside your home directory, because opencode reads agent configuration in
+every parent directory.
+`references/opencode-dispatch.md` explains each rule, the residual risks (the network stays open,
+and other processes' environments stay readable)
+and when to escalate back to the Codex worker.
+
 ## Requirements
 
 - **Claude Code** with subagent support (`Agent` tool), or any harness that can spawn a
@@ -99,11 +117,14 @@ the full model transcript for the job.
   deliberate per-call specialist overrides. See `references/codex-dispatch.md` for flag
   placement, failure classes, and the optional (not shipped) `codex-auto` launcher.
 - **Goal workflow**: optional; use the goal mechanism exposed by the active agent runtime
+- **[opencode CLI](https://opencode.ai/)** and macOS `sandbox-exec`, optional, for the opencode
+  worker trial.
 
-Install the lane wrapper by symlinking it onto your `PATH`:
+Install the lane wrappers by symlinking them onto your `PATH`:
 
 ```bash
 ln -s /path/to/skills/skills/mneves-fable-orchestrator/tools/codex-lane ~/bin/codex-lane
+ln -s /path/to/skills/skills/mneves-fable-orchestrator/tools/opencode-lane ~/bin/opencode-lane
 ```
 
 ## Key rules

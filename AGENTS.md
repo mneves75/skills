@@ -23,7 +23,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── mneves-handoff/            # Discussion-first handoff prompt for another agent (MIT, adapted)
 │   ├── mneves-render/             # Project-local Markdown -> HTML, editable DOCX and PDF
 │   ├── mneves-security/           # Security/privacy audit, pre-deploy gate, safe fixes and evidence (+ references/)
-│   ├── mneves-fable-orchestrator/ # Model routing; Codex reference + tools/codex-lane (+ its test)
+│   ├── mneves-fable-orchestrator/ # Model routing; Codex + opencode references, tools/codex-lane and tools/opencode-lane (+ tests)
 │   ├── mneves-superaudit/         # Bounded audit-and-ship pass (+ references/)
 │   ├── mneves-ship-deploy/         # Deploy, prove live, then tag (+ references/, contract check, reference release scripts)
 │   ├── mneves-teach-back-srs/     # Spaced-repetition teach-back (+ scripts/srs_db.py)
@@ -50,6 +50,8 @@ bun run typecheck && bun run lint       # from tools/
 ast-grep scan --config sgconfig.yml .   # from repo root
 bash .githooks/pre-commit.test          # hook e2e test
 bash skills/mneves-fable-orchestrator/tools/codex-lane.test   # codex-lane e2e against a fake codex (no quota)
+bash skills/mneves-fable-orchestrator/tools/opencode-lane.test   # opencode-lane e2e against fake opencode + sandbox (no quota)
+bash skills/mneves-fable-orchestrator/tools/opencode-lane.sandbox.test   # real Seatbelt containment, no model (macOS; SKIP elsewhere)
 python3 skills/mneves-ship-deploy/scripts/run-tests.py        # release contract check: planted violations, read-only
 bash skills/mneves-ship-deploy/assets/release-guards.test.sh  # reference release guards: throwaway repo, fake wrangler
 tools/scripts/check-defaults-block.sh   # model ids only inside the orchestrator's Defaults block, with its verified-on date
@@ -87,7 +89,7 @@ bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no net
   Executable skills are `autoreview`, `mneves-fable-orchestrator`, `mneves-ship-deploy`,
   `mneves-teach-back-srs`, and `mneves-render`;
   the repository copy is canonical and each ships its relevant verification procedure
-  (`codex-lane.test` runs against a fake `codex` on `PATH`, so it never spends quota).
+  (`codex-lane.test` and `opencode-lane.test` run against fakes on `PATH`, so they never spend quota).
 - No `any` / `as any` in `tools/`; use `unknown` + a narrowing guard. ast-grep blocks it.
 - No personal paths, machine layout, secrets or client names in shipped files; a skill must work
   for a stranger's clone. A tool's own documented default (`~/.codex/lanes`) and an install
