@@ -443,7 +443,7 @@ worktree and out of exported environment variables while a lane runs. In the eva
 hidden tests, the opencode worker (DeepSeek V4.1 Flash, run on a signed-in account) matched the
 Codex worker. That is feasibility evidence; a role binding needs the larger trial described in
 the reference. A model offered only to signed-in accounts cannot run in the credential-free lane;
-the evaluation spec in `docs/specs/opencode-worker/` records when that happened to this one. Never run git or gates in the worker's tree: review the harvested patch, apply it in a clean worktree from the base commit, and run gates and commit there.
+the evaluation spec in `docs/specs/opencode-worker/` records when that happened to this one. Never run git or gates in the worker's tree: review the harvested patch, apply it in a clean worktree from the base commit, and run gates and commit there. Applying and committing use your repository's Git configuration, so review changes to any file it runs from the tree (hooks, filters) before applying.
 
 **Tips.**
 - One goal per dispatch. A grab-bag spec produces a grab-bag diff.

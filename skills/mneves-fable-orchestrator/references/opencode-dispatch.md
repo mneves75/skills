@@ -115,9 +115,12 @@ Never run git, an editor, `direnv` or a gate in the worker's workspace: hooks, `
 a planted repository or a detached process there can execute code with your rights. After every
 round the lane writes a patch of the workspace against the commit recorded at `start` into its
 own state directory, which the worker cannot write, and prints its path; `harvest` writes a fresh
-one. It computes the patch with an explicit Git directory and work tree, a temporary index, no
-global or system Git configuration, no fsmonitor, no hooks and no external diff or text
-conversion, so nothing in the workspace can redirect or run Git.
+one. It computes the patch with a private Git directory created for that harvest in its own
+state (the repository's objects borrowed read-only, none of its configuration), an empty `HOME`
+of its own and no global or system configuration, and it does not descend into repositories
+planted in the tree. So no hook, fsmonitor, filter or diff program, whether the worker planted it
+or your repository's configuration names a path the worker rewrote, runs while the patch is made.
+Any failed Git step fails the harvest; it never falls back to your repository's Git directory.
 
 ```bash
 patch="$(opencode-lane harvest fix-123)"
@@ -129,8 +132,10 @@ bun test                                               # gates run on reviewed c
 git commit -m 'fix: ...'                               # the repository's own hooks apply
 ```
 
-Hook, configuration and script changes are in the patch, so the review sees them before
-anything runs. `drop` removes the lane's state, patches, logs and box.
+Applying, gating and committing in the clean worktree use your repository's configuration, so
+anything it names inside the tree (a hooks directory, a filter, fsmonitor or diff program) runs
+there. Those files' changes are in the patch: review them before `git apply`. `drop` removes the
+lane's state, patches, logs and box.
 
 ## What the lane enforces
 
@@ -144,7 +149,7 @@ anything runs. `drop` removes the lane's state, patches, logs and box.
 | Runs the round in its own process group with a first-event timeout and a total timeout (exit 124, no automatic retry). | A silent run may still have had effects. |
 | Replays the model with `--session <id>` on `next`; one writer per lane. | Corrections keep the worker's context. |
 | Reads the session export after each round and exits 4 if another model ran. | A report is not proof of which model ran; the check is not tamper-proof. |
-| Harvests a patch after every round with a hardened Git into its state directory. | The coordinator reviews and applies exactly that, in a tree the worker never touched. |
+| Harvests a patch after every round into its state directory, with a private Git directory, an empty `HOME` and no descent into planted repositories; fails closed. | The coordinator reviews and applies exactly that, in a tree the worker never touched. |
 
 ## Failure classes
 

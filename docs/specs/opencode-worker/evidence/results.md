@@ -68,7 +68,8 @@ check was in place, which is the intended behavior.
 
 ## Implementation evidence (the tool itself)
 
-The Codex worker built the tool and both tests from the spec in one lane; the coordinator reran
+The Codex worker (`gpt-6-astra` at high, Codex's configured default) built the tool and both
+tests from the spec in one lane; the coordinator reran
 every test and accepted each round only after reading the diff. Each mutation below reverted one
 behavior, reran `opencode-lane.test`, saw it fail on the named scenario, and restored the file
 (SHA-256 matched before and after).
@@ -162,7 +163,20 @@ criterion A0), the workspace must be the Git top level, and reads of `/Users`, `
 and other terminals are denied. The fake-binary test now runs a hostile round trip (planted hook,
 fsmonitor in a planted bare layout, redirected `.git`, a late background edit): harvest exits 0,
 the patch applies in a fresh worktree, and no planted marker fires; reverting the hardened Git
-flags makes it fire. Live on a real model: a round edited one file and created another, the
-harvested patch contained exactly those two files, it applied with `git apply --index` in a clean
-worktree from the base commit, `bun test` passed there, and the commit ran with the repository's
-own `.githooks`.
+flags together makes it fire. Live on a real model: a round edited one file and created another,
+the harvested patch contained exactly those two files, it applied with `git apply --index` in a
+clean worktree from the base commit, `bun test` passed there, and the commit ran with the
+repository's own `.githooks`.
+
+### Final verification and the private Git directory
+
+The frozen final verification (a fresh Opus context) returned FAIL: A2 and A3 passed (a live
+DeepSeek `start`, `next` and harvest whose patch applied at base), every local gate passed, but
+A1 failed because each harvest override was pinned only jointly (removing the explicit Git
+directory alone, or `core.fsmonitor=false` alone, left the suite green), A0's independent attacks
+were not run (a safety classifier stopped the verifier) and A4 lacked PR CI. Probing that gap,
+the coordinator found H26: harvest inherited the repository's own configuration, and a trusted
+`filter.x.clean=./clean.sh` ran the worker's script 6 times with every override in place. A
+private Git directory per harvest ran 0 of the 13 programs the plain repository configuration ran,
+and `--ignore-submodules=dirty` stopped a planted repository's fsmonitor (H27). The per-key
+overrides were deleted; each harvest behavior (a)-(e) in the spec now has its own failing mutant.

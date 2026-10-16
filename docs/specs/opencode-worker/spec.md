@@ -98,6 +98,9 @@ worker for a plan written by another model, and then to build the result.
 | H23 | Git hooks kept in the workspace through `core.hooksPath` (this repository uses `.githooks`) can be rewritten by the worker and run on the coordinator's next commit. | The re-verification's hostile worker rewrote `.githooks/pre-commit`; the coordinator's commit created the marker. | A focused verification then renamed a parent (`core.hooksPath=scripts/hooks`) or swapped a symlinked `.githooks`, and the hook ran. A further check found `..` segments, planted repositories and detached processes. Resolution: the harvest protocol; the coordinator never runs git or gates in the worker's tree, so in-tree hooks are reviewed in the patch instead of protected in place. |
 | H24 | A blanket write allow on `/dev` lets the worker write into the user's other terminals (escape-sequence injection). | 15 bytes reached another pty from inside the sandbox. | Writes under `/dev` are limited to `null`, `zero`, the process's own descriptors and pseudo-terminals the worker opens (rules adapted from the Codex Seatbelt base policy). |
 | H25 | Seatbelt rules that only limit writes leave the user's other terminals readable: the worker read 13 typed bytes from another pty. | Focused verification with a pty pair opened outside the sandbox. | Reads of `/dev/ttys*` are denied except pseudo-terminals the worker opens. |
+| H26 | Harvest ran Git on the repository's own `GIT_DIR`, so it inherited the coordinator's repository configuration, and any key there that names a program inside the worktree runs the worker's version of it outside the sandbox. Per-key overrides covered hooks and fsmonitor, not clean filters. | With trusted `filter.x.clean=./clean.sh` and a worker-added `.gitattributes`, the harvest command with every override in place ran the worker's script 6 times. On the real `GIT_DIR` without overrides, read-tree, add and diff ran 13 worker programs: the filter 10 times, a relative `core.fsmonitor` twice, `.githooks/post-index-change` once. The final verification found the related gap from the test side: each override was pinned only jointly. | Harvest uses a private Git directory created per harvest in lane state (`git init --bare` with the recorded object format, the repository's objects through `alternates`, its `info/exclude` copied), so no repository configuration applies: 0 programs ran and the patch was complete. The per-key overrides were deleted. Rejected: adding `--attr-source` and further per-key overrides, which leaves every other configuration key that names a program open. |
+| H27 | A repository the worker plants in a subdirectory, with its own `core.fsmonitor` and a dirty file, runs when `git diff` spawns a status check for the new gitlink: the planted repository's configuration is the worker's. | Private Git directory alone: the planted fsmonitor ran once. | The harvest diff passes `--ignore-submodules=dirty` (0 programs ran), and a committed `.gitmodules` `ignore = none` does not override it. |
+| H28 | Harvest gave Git the box as `HOME`; even with `GIT_CONFIG_GLOBAL=/dev/null`, Git reads `~/.config/git/ignore` and `attributes` from `HOME`, so the worker could hide files from the patch. | Design review of the private-directory change. | Harvest Git gets an empty `HOME` owned by the lane. |
 
 The sandboxed probe with the real model (private home and stores, `env -i`): a write inside the
 workspace succeeded; a write outside, a read of a canary outside, and a read of the real home all
@@ -166,13 +169,22 @@ Threat model (the boundary the final verification checks):
 
 **Harvest protocol.** After every round (and on `opencode-lane harvest <lane>`) the lane writes
 a binary-safe patch of the workspace against the commit recorded at `start` into its state
-directory, which the worker cannot write. It computes the patch with an explicit `GIT_DIR` and
-`GIT_WORK_TREE` from recorded state, a temporary index, no global or system Git configuration,
-`core.fsmonitor=false`, `core.hooksPath=/dev/null`, `safe.bareRepository=explicit`,
-`--no-ext-diff` and `--no-textconv`, so nothing in the workspace can redirect or run Git. The
-coordinator reviews that patch, applies it in a fresh worktree created from the recorded base,
-runs gates there and commits there with the repository's normal hooks; hook changes are visible
-in the patch.
+directory, which the worker cannot write. Its safety behaviors, each with a scenario that fails
+without it:
+(a) **no repository configuration**: Git runs on a private Git directory created per harvest in
+lane state (the repository's objects through `alternates`, its `info/exclude` copied, the common
+directory and object format recorded at `start`), so no hook, fsmonitor, filter or diff driver
+the repository's configuration names can run (H26);
+(b) **no worker-writable user configuration**: an empty lane-owned `HOME` (H28);
+(c) **no recursion into repositories in the tree**: `--ignore-submodules=dirty` (H27);
+(d) **the patch reflects the moment of harvest**, whatever a detached process does later;
+(e) **fail closed**: any failed Git step exits non-zero, never reports "no changes" and never
+falls back to the repository's own Git directory.
+`GIT_CONFIG_NOSYSTEM` and `GIT_CONFIG_GLOBAL=/dev/null` stay for determinism. The coordinator
+reviews the patch, applies it in a fresh worktree created from the recorded base, runs gates
+there and commits there. Applying, gating and committing there use the repository's own
+configuration, so the review covers every in-tree path that configuration names (the hooks
+directory, filter, fsmonitor and diff programs), not only hooks.
 
 ### Layout
 - `$OPENCODE_LANE_DIR` (default `~/.local/state/opencode-lane`, mode 700) holds, per lane, the
@@ -241,6 +253,11 @@ that starts its own session can outlive the round's process-group kill (it stays
 worker cannot stage or commit (the `.git` entry and the Git common directory are read-only);
 the coordinator commits. Code the worker wrote (tests, scripts) runs with the coordinator's full
 rights if the coordinator runs it outside the sandbox; `opencode-lane exec` runs it inside.
+Known gaps: the lane records the session id at `start` and does not compare a `next` round's id
+with it; a sparse-checkout workspace's skip-worktree files show as deletions in the patch; a
+partial-clone repository whose base objects are missing fails the harvest closed; attributes in
+the worker's tree still apply text and end-of-line conversions (they cannot run programs, since
+no driver is configured).
 
 ## Trial gate before any role binding
 Bind the bounded-worker role only after a frozen, stratified set of at least 20 representative
@@ -258,7 +275,9 @@ model's own permission rules, and route on evidence, not on price.
 
 ## Implementation plan
 1. Branch `feat/opencode-lane` (worktree `.scratch/wt-opencode-lane`).
-2. Tests first, then the tool, built by the Codex worker per the owner's routing rule:
+2. Tests first, then the tool, built by the Codex worker per the owner's routing rule (one lane
+   on Codex's configured default, `gpt-6-astra` at high; the benchmark's control arm ran
+   `gpt-6.1-sol` at medium):
    - `tools/opencode-lane.test`: fakes for `opencode` and `sandbox-exec` on an override path;
      every behavior above, each shown to fail without its implementation (mutation table).
    - `tools/opencode-lane.sandbox.test`: the real `sandbox-exec` with canaries and no model

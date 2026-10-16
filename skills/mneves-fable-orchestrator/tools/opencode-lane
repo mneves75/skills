@@ -189,11 +189,12 @@ def new_state(state):
     top, common = git_paths(workspace)
     if workspace != top:
         die(f'workspace must be the Git top level: {workspace}')
-    recorded = subprocess.run(['git', '-C', workspace, 'rev-parse', 'HEAD', '--absolute-git-dir'],
+    recorded = subprocess.run(['git', '-C', workspace, 'rev-parse', 'HEAD', '--path-format=absolute',
+                               '--git-common-dir', '--show-object-format'],
                               capture_output=True, text=True)
-    if recorded.returncode or len(recorded.stdout.splitlines()) != 2:
-        die('workspace must have a base commit and an absolute Git directory')
-    base, workspace_git_dir = recorded.stdout.splitlines()
+    if recorded.returncode or len(recorded.stdout.splitlines()) != 3:
+        die('workspace must have a base commit, common Git directory and object format')
+    base, common, object_format = recorded.stdout.splitlines()
     executable = shutil.which('opencode')
     if not executable:
         die('opencode not found on PATH')
@@ -209,9 +210,9 @@ def new_state(state):
         git = shutil.which('git')
     if not git:
         die('git not found on PATH')
-    state.update(workspace=workspace, git_top=top, git_common=common,
+    state.update(workspace=workspace, git_top=top, git_common=physical(common),
                  opencode_root=str(install), git_dir=str(Path(physical(git)).parent),
-                 base=base, workspace_git_dir=physical(workspace_git_dir),
+                 base=base, object_format=object_format,
                  session_id='', events='', patch='')
     return state
 
@@ -611,27 +612,37 @@ def round_body(state, state_file, lane_dir, lane, sandbox, security, prompt, is_
 
 
 def harvest(state, state_file, lane_dir, lane):
-    box = lane_dir / f'{lane}.box'
     patch = lane_dir / f'{lane}.{time.time_ns()}.patch'
-    # The index and patch are outside the worker tree; Git never discovers its repository.
-    with tempfile.TemporaryDirectory(prefix=f'.{lane}.index-', dir=lane_dir) as temporary:
-        environment = dict(PATH=state['git_dir'] + ':/usr/bin:/bin', HOME=str(box / 'home'),
-                           GIT_DIR=state['workspace_git_dir'], GIT_WORK_TREE=state['workspace'],
-                           GIT_INDEX_FILE=str(Path(temporary) / 'index'), GIT_CONFIG_NOSYSTEM='1',
+    # Share objects, never repository config or the worker-writable box HOME.
+    with tempfile.TemporaryDirectory(prefix=f'.{lane}.harvest-', dir=lane_dir) as temporary:
+        private = Path(temporary) / 'git'
+        home = Path(temporary) / 'home'
+        home.mkdir(mode=0o700)
+        environment = dict(PATH=state['git_dir'] + ':/usr/bin:/bin', HOME=str(home),
+                           GIT_DIR=str(private), GIT_WORK_TREE=state['workspace'], GIT_CONFIG_NOSYSTEM='1',
                            GIT_CONFIG_GLOBAL='/dev/null')
-        base = ['/usr/bin/env', '-i', *[f'{key}={value}' for key, value in environment.items()],
-                'git', '-c', 'core.fsmonitor=false', '-c', 'core.hooksPath=/dev/null',
-                '-c', 'safe.bareRepository=explicit', '-c', 'core.untrackedCache=false', '-c', 'diff.external=']
-        commands = [['read-tree', state['base']], ['add', '--intent-to-add', '--all', '--', '.'],
-                    ['diff', '--binary', '--no-ext-diff', '--no-textconv', '--no-color', '--full-index', state['base']]]
+        def git_step(command, output=subprocess.DEVNULL):
+            values = environment if command[0] != 'init' else {
+                key: value for key, value in environment.items() if key not in ('GIT_DIR', 'GIT_WORK_TREE')}
+            base = ['/usr/bin/env', '-i', *[f'{key}={value}' for key, value in values.items()], 'git']
+            result = subprocess.run(base + command, cwd=state['workspace'], stdout=output,
+                                    stderr=subprocess.PIPE)
+            if result.returncode:
+                die(f'harvest failed ({command[0]}, Git exit {result.returncode}): '
+                    + result.stderr.decode(errors='replace').strip())
+
         try:
+            git_step(['init', '--bare', '--object-format=' + state['object_format'], str(private)])
+            common = Path(state['git_common'])
+            (private / 'objects/info/alternates').write_text(str(common / 'objects') + '\n')
+            exclude = common / 'info/exclude'
+            if exclude.is_file():
+                shutil.copyfile(exclude, private / 'info/exclude')
+            git_step(['read-tree', state['base']])
+            git_step(['add', '--intent-to-add', '--all', '--', '.'])
             with patch.open('xb') as output:
-                for command in commands:
-                    result = subprocess.run(base + command, cwd=state['workspace'], stdout=output,
-                                            stderr=subprocess.PIPE)
-                    if result.returncode:
-                        die(f'harvest failed ({command[0]}, Git exit {result.returncode}): '
-                            + result.stderr.decode(errors='replace').strip())
+                git_step(['diff', '--binary', '--no-color', '--full-index',
+                          '--ignore-submodules=dirty', state['base']], output)
         except BaseException:
             patch.unlink(missing_ok=True)
             raise

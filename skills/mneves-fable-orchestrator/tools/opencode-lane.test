@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Fake-only end-to-end checks. Never resolves or invokes the host's opencode.
+# OPENCODE_LANE_TEST_TIMEOUT scales the 12-second command budget and timing probes.
 set -euo pipefail
 umask 077
 LANE="$(cd "$(dirname "$0")" && pwd -P)/opencode-lane"
@@ -22,6 +23,7 @@ cat > "$TMP/bin/opencode" <<'PY'
 #!/usr/bin/env python3
 import json, os, pathlib, subprocess, sys, time
 root = pathlib.Path(__file__).resolve().parent.parent
+scale = float((root / 'time-scale').read_text())
 mode = (root / 'mode').read_text().strip()
 args = sys.argv[1:]
 with (root / 'calls').open('a') as out:
@@ -29,10 +31,10 @@ with (root / 'calls').open('a') as out:
                               cwd=os.getcwd())) + '\n')
 if args == ['models', '--standalone']:
     if (root / 'models-mode').read_text() == 'delayed':
-        time.sleep(1.3)
+        time.sleep(1.3 * scale)
     print((root / 'models-list').read_text(), end='', flush=True)
     if (root / 'models-mode').read_text() == 'slow':
-        time.sleep(40)
+        time.sleep(40 * scale)
     sys.exit(int((root / 'models-exit').read_text()))
 elif args[:2] == ['session', 'export']:
     if mode == 'export-write-config':
@@ -42,6 +44,8 @@ elif args[:2] == ['session', 'export']:
 elif args[:1] == ['run']:
     if mode == 'hostile':
         subprocess.run([sys.executable, str(root / 'hostile.py')], check=True)
+    if mode == 'private-harvest':
+        subprocess.run([sys.executable, str(root / 'private-hostile.py')], check=True)
     if mode in ('provider-error', 'provider-config', 'provider-wrong-model'):
         if mode == 'provider-config':
             pathlib.Path('opencode.json').write_text('{}')
@@ -51,22 +55,22 @@ elif args[:1] == ['run']:
         print(json.dumps({'type': 'error', 'error': {'type': 'provider.no-route', 'message': message}}))
         sys.exit(int((root / 'provider-exit').read_text()))
     if mode == 'hang':
-        child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(40)'])
+        child = subprocess.Popen([sys.executable, '-c', f'import time; time.sleep({40 * scale})'])
         (root / 'grandchild.pid').write_text(str(child.pid))
-        time.sleep(40)
+        time.sleep(40 * scale)
     if mode == 'partial':
         print('{', end='', flush=True)
-        time.sleep(40)
+        time.sleep(40 * scale)
     session = (root / 'session').read_text().strip()
     print(json.dumps({'type': 'step_start', 'sessionID': session}), flush=True)
     if mode == 'slow':
-        time.sleep(40)
+        time.sleep(40 * scale)
     if mode == 'write-config':
         pathlib.Path('opencode.json').write_text('{}')
     if mode == 'write-claude':
         pathlib.Path('.claude').mkdir()
     if mode == 'background':
-        child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(40)'])
+        child = subprocess.Popen([sys.executable, '-c', f'import time; time.sleep({40 * scale})'])
         (root / 'background.pid').write_text(str(child.pid))
     if mode != 'no-text':
         for text in ['hello ', (root / 'text').read_text()]:
@@ -108,11 +112,16 @@ PY
 chmod +x "$TMP/bin/opencode" "$TMP/bin/sandbox"
 python3 - "$LANE" "$TMP" <<'PY'
 # Python 3.10+, standard library only.
-import ast, contextlib, json, os, pathlib, re, shutil, signal, stat, subprocess, sys, time
+import ast, contextlib, json, math, os, pathlib, re, shutil, signal, stat, subprocess, sys, time
 
 os.environ['GIT_CONFIG_NOSYSTEM'] = '1'
 os.environ['GIT_CONFIG_GLOBAL'] = '/dev/null'
 tool, root = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2]).resolve()
+command_timeout = float(os.environ.get('OPENCODE_LANE_TEST_TIMEOUT', '12'))
+if not math.isfinite(command_timeout) or command_timeout <= 0:
+    sys.exit('OPENCODE_LANE_TEST_TIMEOUT must be positive and finite')
+scale = command_timeout / 12
+(root / 'time-scale').write_text(str(scale))
 bin_dir = root / 'bin'
 # Trace the actual supervisor at main() entry; all other Python invocations use
 # the original interpreter. This never inspects a real process's environment.
@@ -194,12 +203,23 @@ def check(value, message):
         raise AssertionError(f'{scenario}: {message}')
 
 def run(*args, code=0, cwd=ws, input=None, overrides=None, removed=()):
+    args = list(args)
+    for index, argument in enumerate(args):
+        if argument == '--':
+            break
+        if argument in ('--timeout', '--first-event-timeout') and index + 1 < len(args):
+            try:
+                seconds = float(args[index + 1])
+            except ValueError:
+                continue
+            if math.isfinite(seconds) and seconds > 0:
+                args[index + 1] = str(seconds * scale)
     child_env = env | (overrides or {})
     for key in removed:
         child_env.pop(key, None)
     result = subprocess.run(['bash', str(tool), *args], cwd=cwd,
                             env=child_env, input=input, text=True,
-                            capture_output=True, timeout=12)
+                            capture_output=True, timeout=command_timeout)
     check(result.returncode == code,
           f'expected exit {code}, got {result.returncode}: {result.stderr}')
     return result
@@ -237,7 +257,9 @@ try:
     state = json.loads((lanes / 'job.json').read_text())
     check(state.get('base') == subprocess.check_output(['git', '-C', str(ws), 'rev-parse', 'HEAD'], text=True).strip(),
           'base commit not recorded')
-    check(state.get('workspace_git_dir') == str(ws / '.git'), 'absolute Git directory not recorded')
+    check(state.get('git_common') == str(ws / '.git'), 'common Git directory not recorded')
+    check(state.get('object_format') == subprocess.check_output(
+        ['git', '-C', str(ws), 'rev-parse', '--show-object-format'], text=True).strip(), 'object format not recorded')
     patch = pathlib.Path(state['patch'])
     check(patch.read_bytes() == b'' and stat.S_IMODE(patch.stat().st_mode) == 0o600, 'empty/private patch missing')
     check(f'opencode-lane: patch: {patch}' in result.stderr and 'no changes' in result.stderr, 'patch diagnostic missing')
@@ -437,7 +459,7 @@ child = subprocess.Popen([sys.executable, '-c', late], start_new_session=True,
     (root / 'sandbox-mode').write_text('worker-leak')
     result = start('harvest-hostile', cwd=hostile)
     record = json.loads((lanes / 'harvest-hostile.json').read_text())
-    check(record['workspace_git_dir'] != str(hostile / '.git'), 'worktree Git directory not anchored')
+    check(record['git_common'] == str(donor / '.git'), 'worktree did not record the common Git directory')
     check(pathlib.Path(record['patch']).is_file(), 'automatic hostile harvest missing')
     before = len(calls())
     result = run('harvest', 'harvest-hostile', cwd=root)
@@ -453,7 +475,7 @@ child = subprocess.Popen([sys.executable, '-c', late], start_new_session=True,
     check(b'a/.git/' not in patch_bytes and b'b/.git/' not in patch_bytes and
           b' b/.git\n' not in patch_bytes, 'Git entry transferred')
     check(not (root / 'executed-marker').exists(), 'harvest executed a planted hook or fsmonitor')
-    check(not list(lanes.glob('.harvest-hostile.index-*')), 'temporary index left behind')
+    check(not list(lanes.glob('.harvest-hostile.harvest-*')), 'private Git directory or HOME left behind')
     subprocess.run(['git', '-C', str(donor), '-c', 'core.hooksPath=/dev/null', 'worktree',
                     'add', '--detach', '-q', str(clean), record['base']], check=True)
     subprocess.run(['git', '-C', str(clean), 'apply', '--index', str(patch)], check=True)
@@ -465,7 +487,7 @@ child = subprocess.Popen([sys.executable, '-c', late], start_new_session=True,
     subprocess.run(['git', '-C', str(clean), '-c', 'user.name=Lane Test',
                     '-c', 'user.email=lane@example.invalid', '-c', 'commit.gpgSign=false',
                     'commit', '-qm', 'probe'], check=True, stdout=subprocess.DEVNULL)
-    deadline = time.monotonic() + 3
+    deadline = time.monotonic() + 3 * scale
     while (hostile / 'tracked.txt').read_text() != 'late edit\n' and time.monotonic() < deadline:
         time.sleep(.05)
     check((hostile / 'tracked.txt').read_text() == 'late edit\n', 'detached writer did not run')
@@ -486,20 +508,124 @@ child = subprocess.Popen([sys.executable, '-c', late], start_new_session=True,
     check(not list(lanes.glob('harvest-hostile.*')), 'drop left harvested patches')
     (root / 'mode').write_text('ok')
     (root / 'sandbox-mode').write_text('enforce')
+    for kind in ('repository', 'home', 'nested', 'nested-modules'):
+        scenario = {'repository': 'harvest ignores repository programs',
+                    'home': 'harvest ignores worker HOME',
+                    'nested': 'harvest does not recurse into nested repositories',
+                    'nested-modules': 'harvest overrides committed submodule ignore none'}[kind]
+        source = root / f'private-source-{kind}'
+        work = root / f'private-work-{kind}'
+        init_repo(source)
+        (source / 'tracked.txt').write_text('base\n')
+        (source / '.githooks').mkdir()
+        for name in ('clean.sh', 'fsmon.sh', '.githooks/post-index-change'):
+            (source / name).write_text('#!/bin/sh\ncat\n')
+            (source / name).chmod(0o700)
+        if kind == 'nested-modules':
+            (source / '.gitmodules').write_text('[submodule "nested"]\n path = nested\n url = ./unused\n ignore = none\n')
+        subprocess.run(['git', '-C', str(source), 'add', '.'], check=True)
+        subprocess.run(['git', '-C', str(source), '-c', 'user.name=Lane Test',
+                        '-c', 'user.email=lane@example.invalid', '-c', 'core.hooksPath=/dev/null',
+                        '-c', 'commit.gpgSign=false', 'commit', '-qm', 'private base'], check=True)
+        (source / '.git/info/exclude').write_text('locally-excluded.txt\n')
+        if kind == 'repository':
+            for key, value in [('core.hooksPath', '.githooks'), ('core.fsmonitor', './fsmon.sh'),
+                               ('filter.x.clean', './clean.sh')]:
+                subprocess.run(['git', '-C', str(source), 'config', key, value], check=True)
+        subprocess.run(['git', '-C', str(source), '-c', 'core.hooksPath=/dev/null',
+                        '-c', 'core.fsmonitor=false', '-c', 'filter.x.clean=cat',
+                        'worktree', 'add', '--detach', '-q', str(work)], check=True)
+        (root / 'private-kind').write_text(kind)
+        (root / 'private-hostile.py').write_text(r'''import os, pathlib, shlex, subprocess
+root = pathlib.Path(__file__).resolve().parent
+kind = (root / 'private-kind').read_text()
+ws = pathlib.Path.cwd()
+marker = root / ('private-marker-' + kind)
+program = '#!/bin/sh\n: > ' + shlex.quote(str(marker)) + '\ncat\n'
+(ws / 'tracked.txt').write_text('worker edit\n')
+(ws / 'edited.txt').write_text('added edit\n')
+(ws / 'locally-excluded.txt').write_text('must not transfer\n')
+if kind == 'repository':
+    for name in ('clean.sh', 'fsmon.sh', '.githooks/post-index-change'):
+        (ws / name).write_text(program)
+    (ws / '.gitattributes').write_text('* filter=x\n')
+elif kind == 'home':
+    home = pathlib.Path(os.environ['HOME'])
+    (home / '.gitconfig').write_text('[core]\n fsmonitor = ./fsmon.sh\n')
+    config = home / '.config/git'
+    config.mkdir(parents=True)
+    (config / 'ignore').write_text('edited.txt\n')
+    (config / 'attributes').write_text('* -diff\n')
+    (ws / 'fsmon.sh').write_text(program)
+else:
+    nested = ws / 'nested'
+    subprocess.run(['git', 'init', '-q', str(nested)], check=True)
+    (nested / 'file').write_text('base\n')
+    subprocess.run(['git', '-C', str(nested), 'add', '.'], check=True)
+    subprocess.run(['git', '-C', str(nested), '-c', 'user.name=Lane Test',
+                    '-c', 'user.email=lane@example.invalid', '-c', 'commit.gpgSign=false',
+                    'commit', '-qm', 'nested base'], check=True)
+    for name in ('fsmon.sh', 'clean.sh'):
+        (nested / name).write_text(program)
+        (nested / name).chmod(0o700)
+    for key, value in [('core.fsmonitor', './fsmon.sh'), ('filter.x.clean', './clean.sh')]:
+        subprocess.run(['git', '-C', str(nested), 'config', key, value], check=True)
+    (nested / '.gitattributes').write_text('* filter=x\n')
+    (nested / 'file').write_text('dirty\n')
+''')
+        (root / 'mode').write_text('private-harvest')
+        start('private-' + kind, cwd=work)
+        state_path = lanes / f'private-{kind}.json'
+        private_state = json.loads(state_path.read_text())
+        patch_path = pathlib.Path(private_state['patch'])
+        patch_data = patch_path.read_bytes()
+        check(not (root / f'private-marker-{kind}').exists(), 'harvest executed worker program')
+        check(b'+worker edit' in patch_data and b'edited.txt' in patch_data,
+              'edited files missing or altered by worker attributes')
+        check(b'locally-excluded.txt' not in patch_data, 'common info/exclude was lost')
+        check(not list(lanes.glob(f'.private-{kind}.harvest-*')), 'private Git directory or HOME leaked')
+        if kind == 'repository':
+            for name in (b'clean.sh', b'fsmon.sh', b'.githooks/post-index-change', b'.gitattributes'):
+                check(name in patch_data, f'change missing: {name!r}')
+            destination = root / 'private-clean'
+            safe_git = ['git', '-c', 'core.hooksPath=/dev/null', '-c', 'core.fsmonitor=false',
+                        '-c', 'filter.x.clean=cat']
+            subprocess.run(safe_git + ['-C', str(source), 'worktree', 'add', '--detach', '-q',
+                                       str(destination), private_state['base']], check=True)
+            subprocess.run(safe_git + ['-C', str(destination), 'apply', '--index', str(patch_path)], check=True)
+            for name in ('tracked.txt', 'edited.txt', 'clean.sh', 'fsmon.sh', '.githooks/post-index-change', '.gitattributes'):
+                check((destination / name).read_bytes() == (work / name).read_bytes(), f'round-trip changed {name}')
+            check(not (root / 'private-marker-repository').exists(), 'safe apply executed worker program')
+        if kind == 'home':
+            scenario = 'harvest fails closed on an unresolved base'
+            private_state['base'] = '0' * len(private_state['base'])
+            private_state['patch'] = ''
+            state_path.write_text(json.dumps(private_state))
+            previous_patches = set(lanes.glob('private-home.*.patch'))
+            result = run('harvest', 'private-home', code=2)
+            check('harvest failed (read-tree' in result.stderr, 'failure did not name read-tree')
+            check('no changes' not in result.stderr and 'opencode-lane: patch:' not in result.stderr,
+                  'failed harvest reported a patch')
+            check(json.loads(state_path.read_text())['patch'] == '', 'failed harvest recorded patch path')
+            check(set(lanes.glob('private-home.*.patch')) == previous_patches, 'partial patch left behind')
+            check(not list(lanes.glob('.private-home.harvest-*')), 'failed harvest leaked private Git/HOME')
+        run('drop', 'private-' + kind)
+    (root / 'mode').write_text('ok')
     scenario = 'exec command streams, sandbox, environment and exit code'
     gate = bin_dir / 'gate'
     gate.write_text('''#!/usr/bin/env python3
 import json, os, pathlib, subprocess, sys, time
 root = pathlib.Path(__file__).resolve().parent.parent
+scale = float((root / 'time-scale').read_text())
 record = dict(argv=sys.argv[1:], stdin=sys.stdin.read(), cwd=os.getcwd(), env=dict(os.environ))
 with (root / 'gate-calls').open('a') as out:
     out.write(json.dumps(record) + '\\n')
 if sys.argv[1:] == ['hang']:
-    child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(40)'])
+    child = subprocess.Popen([sys.executable, '-c', f'import time; time.sleep({40 * scale})'])
     (root / 'exec-child.pid').write_text(str(child.pid))
-    time.sleep(40)
+    time.sleep(40 * scale)
 if sys.argv[1:] == ['quiet']:
-    time.sleep(.2)
+    time.sleep(.2 * scale)
     sys.exit(0)
 print(json.dumps(record))
 print('gate stderr', file=sys.stderr)
@@ -531,7 +657,7 @@ sys.exit(23)
     scenario = 'exec watchdog kills its process group'
     run('exec', 'job', '--timeout', '1', '--', str(gate), 'hang', code=124)
     pid = int((root / 'exec-child.pid').read_text())
-    deadline = time.monotonic() + 2
+    deadline = time.monotonic() + 2 * scale
     while alive(pid) and time.monotonic() < deadline:
         time.sleep(.05)
     check(not alive(pid), 'exec grandchild survived timeout')
@@ -756,7 +882,7 @@ sys.exit(23)
     started = time.monotonic()
     result = run('start', 'catalog-timeout', str(spec), '-m', 'fakeprov/fake-model',
                  '--first-event-timeout', '8', '--timeout', '1', code=2)
-    check(time.monotonic() - started < 5, 'catalog exceeded remaining round budget')
+    check(time.monotonic() - started < 5 * scale, 'catalog exceeded remaining round budget')
     check('model not offered: fakeprov/fake-model' in result.stderr and '124' in result.stderr, result.stderr)
     check([call['argv'] for call in calls()[before:]] == [['models', '--standalone']], 'run called')
     scenario = 'refused start releases name and workspace'
@@ -824,7 +950,7 @@ sys.exit(23)
                                           stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True))
     time.sleep(.3)
     (lanes / '.registry.lock').rmdir()
-    outcomes = [process.communicate(timeout=12) for process in processes]
+    outcomes = [process.communicate(timeout=command_timeout) for process in processes]
     check(all(process.returncode == 0 for process in processes), str(outcomes))
     for index in range(6):
         run('drop', f'parallel-{index}')
@@ -832,9 +958,9 @@ sys.exit(23)
     (root / 'mode').write_text('background')
     started = time.monotonic()
     result = run('start', 'background', str(spec), '-m', 'fakeprov/fake-model', '--timeout', '8')
-    check(time.monotonic() - started < 6, 'waited for grandchild instead of direct worker')
+    check(time.monotonic() - started < 6 * scale, 'waited for grandchild instead of direct worker')
     pid = int((root / 'background.pid').read_text())
-    deadline = time.monotonic() + 2
+    deadline = time.monotonic() + 2 * scale
     while alive(pid) and time.monotonic() < deadline:
         time.sleep(.05)
     check(not alive(pid), 'background child survived cleanup')
@@ -845,9 +971,9 @@ sys.exit(23)
     before = time.monotonic()
     run('start', 'hang', str(spec), '-m', 'fakeprov/fake-model', '--timeout', '3',
         '--first-event-timeout', '1', code=124)
-    check(time.monotonic() - before < 6, 'watchdog too late')
+    check(time.monotonic() - before < 6 * scale, 'watchdog too late')
     pid = int((root / 'grandchild.pid').read_text())
-    deadline = time.monotonic() + 2
+    deadline = time.monotonic() + 2 * scale
     while alive(pid) and time.monotonic() < deadline:
         time.sleep(.05)
     check(not alive(pid), f'grandchild {pid} survived')

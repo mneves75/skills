@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **`opencode-lane`** runs bounded coding tasks through the opencode CLI as an opt-in trial. The worker gets a private home and stores, a minimal environment and a lean profile, and a Seatbelt profile (macOS) contains it: your home is unreadable and writes stay in the workspace. A self-test proves that profile before every round. The lane refuses opencode configuration in the tree or its ancestors, bounds silent rounds with a watchdog, continues corrections in the same session and checks which model ran. The coordinator
-  accepts work only through a harvested patch applied in a clean worktree, never in the worker's tree; `exec` runs a command inside the worker's sandbox. A fake-binary end-to-end test spends no quota; a real-sandbox test runs on macOS.
+  accepts work only through a harvested patch applied in a clean worktree, never in the worker's tree. The lane computes that patch with a private Git directory that borrows the repository's objects but none of its configuration, so no hook, fsmonitor or filter the repository names can run the worker's version of a file; a failed harvest never falls back to the repository's Git. `exec` runs a command inside the worker's sandbox. A fake-binary end-to-end test spends no quota; a real-sandbox test runs on macOS.
 - **opencode dispatch reference**: the harness's real boundary (`PWD` binding, global profile
   load, project configuration and plugins, hot-reloaded permissions, shell rules that `bash -c`
   bypasses), the residual network risk, failure classes, escalation back to the Codex worker and
