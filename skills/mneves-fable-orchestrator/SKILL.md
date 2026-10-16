@@ -37,18 +37,21 @@ before it can perform ordinary implementation.
 The only place this skill names models. Edit this block on a model release; nothing else.
 
 ```
-main session      = gpt-6.1-sol, reasoning xhigh (Codex orchestrator)
-frontend subagent = gpt-6.1-sol, reasoning xhigh (Codex worker)
-ordinary worker   = gpt-6.1-sol, reasoning xhigh (Codex worker)
-bounded worker    = gpt-6.1-sol, reasoning xhigh (bounded Codex task)
-heavy executor    = gpt-6.1-sol, reasoning xhigh (Codex worker)
-reviewer          = gpt-6.1-sol, reasoning xhigh (autoreview's Codex default; no model fallback)
-planner           = gpt-6-astra, reasoning high (planning)
-plan advisor      = gpt-6-astra, reasoning high (advice and plan review)
-specialist        = gpt-6.1-sol, reasoning xhigh (specialist execution or review)
+main session      = Opus, latest release (Claude alias `opus`), reasoning xhigh, with a Fable advisor (Claude `advisorModel` alias `fable`) | gpt-6.1-sol, reasoning xhigh (Codex orchestrator)
+frontend subagent = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning xhigh (Codex worker)
+ordinary worker   = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning xhigh (Codex worker)
+bounded worker    = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning xhigh (bounded Codex task)
+heavy executor    = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning xhigh (Codex worker)
+reviewer          = Fable, latest release (Claude subagent alias `fable`) | gpt-6-astra, reasoning xhigh (autoreview `--model gpt-6-astra`; no model fallback)
+planner           = Fable, latest release (Claude subagent alias `fable`) | gpt-6-astra, reasoning xhigh (planning)
+plan advisor      = Fable, latest release (Claude `advisorModel` alias `fable`) | gpt-6-astra, reasoning xhigh (advice and plan review)
+specialist        = gpt-6.1-sol, reasoning xhigh (specialist execution; a specialist review takes the reviewer seat)
 ```
 
-Verified against the vendor model lists on 2026-10-15; a release re-verifies every id above and
+The builder seats (main session, workers, heavy executor) never review their own output: review,
+planning and plan advice run on the separate seats above.
+
+Verified against the vendor model lists on 2026-10-16; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file).
 
