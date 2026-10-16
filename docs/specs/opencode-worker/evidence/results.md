@@ -180,3 +180,14 @@ the coordinator found H26: harvest inherited the repository's own configuration,
 private Git directory per harvest ran 0 of the 13 programs the plain repository configuration ran,
 and `--ignore-submodules=dirty` stopped a planted repository's fsmonitor (H27). The per-key
 overrides were deleted; each harvest behavior (a)-(e) in the spec now has its own failing mutant.
+
+The independent re-verification on Sol (a model that neither built nor coordinated the work)
+stopped without a verdict when OpenAI's cybersecurity classifier flagged its attack scripts. Its
+recorded results before the stop: 31 of 32 attack vectors ran nothing during harvest, each with a
+positive control (filters, smudge and filter processes, textconv, external diff, fsmonitor, gpg
+and ssh programs, editor, relative and `..` hooks paths, symlinks, a redirected `.git`, box-home
+configuration, planted bare and non-bare repositories, a detached writer, unsafe patch paths); a
+live `start` and `next` kept one session id and could not read the outside canary. The 32nd
+vector ran: a submodule tracked in the base, dirty, with the worker's fsmonitor, executed during
+`git add --intent-to-add --all` (H27). Harvest now limits intent-to-add to untracked files; a new
+mutant restoring `--all` fails its scenario.

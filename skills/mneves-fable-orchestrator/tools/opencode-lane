@@ -639,7 +639,13 @@ def harvest(state, state_file, lane_dir, lane):
             if exclude.is_file():
                 shutil.copyfile(exclude, private / 'info/exclude')
             git_step(['read-tree', state['base']])
-            git_step(['add', '--intent-to-add', '--all', '--', '.'])
+            untracked = Path(temporary) / 'untracked'
+            with untracked.open('xb') as output:
+                git_step(['ls-files', '-z', '--others', '--exclude-standard'], output)
+            # Broad add also examines tracked gitlinks using their untrusted config.
+            if untracked.stat().st_size:
+                git_step(['add', '--intent-to-add', '--pathspec-from-file=' + str(untracked),
+                          '--pathspec-file-nul'])
             with patch.open('xb') as output:
                 git_step(['diff', '--binary', '--no-color', '--full-index',
                           '--ignore-submodules=dirty', state['base']], output)

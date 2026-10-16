@@ -508,11 +508,13 @@ child = subprocess.Popen([sys.executable, '-c', late], start_new_session=True,
     check(not list(lanes.glob('harvest-hostile.*')), 'drop left harvested patches')
     (root / 'mode').write_text('ok')
     (root / 'sandbox-mode').write_text('enforce')
-    for kind in ('repository', 'home', 'nested', 'nested-modules'):
+    for kind in ('repository', 'home', 'nested', 'nested-modules', 'tracked', 'tracked-modules'):
         scenario = {'repository': 'harvest ignores repository programs',
                     'home': 'harvest ignores worker HOME',
                     'nested': 'harvest does not recurse into nested repositories',
-                    'nested-modules': 'harvest overrides committed submodule ignore none'}[kind]
+                    'nested-modules': 'harvest overrides committed submodule ignore none',
+                    'tracked': 'harvest does not recurse into tracked submodules',
+                    'tracked-modules': 'harvest does not recurse into tracked submodules'}[kind]
         source = root / f'private-source-{kind}'
         work = root / f'private-work-{kind}'
         init_repo(source)
@@ -521,8 +523,18 @@ child = subprocess.Popen([sys.executable, '-c', late], start_new_session=True,
         for name in ('clean.sh', 'fsmon.sh', '.githooks/post-index-change'):
             (source / name).write_text('#!/bin/sh\ncat\n')
             (source / name).chmod(0o700)
-        if kind == 'nested-modules':
-            (source / '.gitmodules').write_text('[submodule "nested"]\n path = nested\n url = ./unused\n ignore = none\n')
+        tracked_submodule = kind in ('tracked', 'tracked-modules')
+        if tracked_submodule:
+            nested = source / 'nested'
+            init_repo(nested)
+            (nested / 'file').write_text('base\n')
+            subprocess.run(['git', '-C', str(nested), 'add', '.'], check=True)
+            subprocess.run(['git', '-C', str(nested), '-c', 'user.name=Lane Test',
+                            '-c', 'user.email=lane@example.invalid', '-c', 'commit.gpgSign=false',
+                            'commit', '-qm', 'nested base'], check=True)
+        if kind == 'nested-modules' or tracked_submodule:
+            ignore = ' ignore = none\n' if kind.endswith('-modules') else ''
+            (source / '.gitmodules').write_text('[submodule "nested"]\n path = nested\n url = ./unused\n' + ignore)
         subprocess.run(['git', '-C', str(source), 'add', '.'], check=True)
         subprocess.run(['git', '-C', str(source), '-c', 'user.name=Lane Test',
                         '-c', 'user.email=lane@example.invalid', '-c', 'core.hooksPath=/dev/null',
@@ -535,6 +547,11 @@ child = subprocess.Popen([sys.executable, '-c', late], start_new_session=True,
         subprocess.run(['git', '-C', str(source), '-c', 'core.hooksPath=/dev/null',
                         '-c', 'core.fsmonitor=false', '-c', 'filter.x.clean=cat',
                         'worktree', 'add', '--detach', '-q', str(work)], check=True)
+        if tracked_submodule:
+            subprocess.run(['git', 'clone', '-q', str(source / 'nested'), str(work / 'nested')], check=True)
+            check((work / 'nested/.git').is_dir(), 'tracked submodule needs its own Git directory')
+            entry = subprocess.check_output(['git', '-C', str(source), 'ls-tree', 'HEAD', 'nested'])
+            check(entry.startswith(b'160000 commit '), 'base must contain a committed gitlink')
         (root / 'private-kind').write_text(kind)
         (root / 'private-hostile.py').write_text(r'''import os, pathlib, shlex, subprocess
 root = pathlib.Path(__file__).resolve().parent
@@ -559,12 +576,13 @@ elif kind == 'home':
     (ws / 'fsmon.sh').write_text(program)
 else:
     nested = ws / 'nested'
-    subprocess.run(['git', 'init', '-q', str(nested)], check=True)
-    (nested / 'file').write_text('base\n')
-    subprocess.run(['git', '-C', str(nested), 'add', '.'], check=True)
-    subprocess.run(['git', '-C', str(nested), '-c', 'user.name=Lane Test',
-                    '-c', 'user.email=lane@example.invalid', '-c', 'commit.gpgSign=false',
-                    'commit', '-qm', 'nested base'], check=True)
+    if kind not in ('tracked', 'tracked-modules'):
+        subprocess.run(['git', 'init', '-q', str(nested)], check=True)
+        (nested / 'file').write_text('base\n')
+        subprocess.run(['git', '-C', str(nested), 'add', '.'], check=True)
+        subprocess.run(['git', '-C', str(nested), '-c', 'user.name=Lane Test',
+                        '-c', 'user.email=lane@example.invalid', '-c', 'commit.gpgSign=false',
+                        'commit', '-qm', 'nested base'], check=True)
     for name in ('fsmon.sh', 'clean.sh'):
         (nested / name).write_text(program)
         (nested / name).chmod(0o700)
@@ -583,6 +601,9 @@ else:
         check(b'+worker edit' in patch_data and b'edited.txt' in patch_data,
               'edited files missing or altered by worker attributes')
         check(b'locally-excluded.txt' not in patch_data, 'common info/exclude was lost')
+        if tracked_submodule:
+            check(b'+dirty' not in patch_data and b'diff --git a/nested' not in patch_data,
+                  f'nested dirty content transferred ({kind})')
         check(not list(lanes.glob(f'.private-{kind}.harvest-*')), 'private Git directory or HOME leaked')
         if kind == 'repository':
             for name in (b'clean.sh', b'fsmon.sh', b'.githooks/post-index-change', b'.gitattributes'):
