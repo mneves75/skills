@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - A timed-out readiness check now kills its whole process group, waits for it to exit and
   clears its timer; every adapter command has a deadline (60 seconds unless the check sets
   one). Commands now run through `/bin/sh`, so the assessor needs a POSIX system (F-02).
+  The shared checks also run under deadlines, and stopping the checker (SIGINT or SIGTERM)
+  stops every command it started.
+- A crafted `pnpm-workspace.yaml` line no longer stalls app discovery (quadratic matching), and
+  an `.env.example` file no longer hides the warning for suspicious files such as
+  `credentials.json` or `private.key`.
+- `codex-lane` cleanup guidance names each lane's exact files; the old `<lane>.*` advice also
+  deleted the files of dotted lanes such as `job.extra`.
 
 ### Security
 - Every site page and the readiness HTML report carry a Content-Security-Policy and a
@@ -23,9 +30,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `SECURITY.md` adds the access and release model, a quarterly access review, a compromise
   runbook, data handling and site protections. The autoreview README states its security
   model: untrusted input, what it sends, cost bounds, no irreversible actions, what it keeps.
+  The readiness disclosure now says that the project's own tooling may download packages and
+  write build output, and `codex-lane` transcript retention and erasure are documented.
+- Access review, 2026-10-16: the maintainer administers the repository and one other account,
+  also the maintainer's, has write access and keeps it; devices with write access use
+  full-disk encryption and a screen lock (maintainer attestation).
 
 ### Changed
-- `tools/` has unit tests (`bun test`, 40 tests), run in CI after typecheck and lint.
+- `tools/` has unit tests (`bun test`), run in CI after typecheck and lint.
 
 ## [1.35.0] - 2026-10-15
 

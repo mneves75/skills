@@ -449,8 +449,10 @@ fact with `codex-lane adopt <lane> <thread-id>`.
 context, making a change, verifying it and iterating. Nine pillars (style, build, testing,
 documentation, dev environment, observability, security, task discovery, product), fifty-plus
 checks, a percentage and a maturity level L1–L5. Ships with a Bun/TypeScript tool that runs
-locally and uploads nothing. Some checks run the project's own tools through `/bin/sh` with a
-deadline, so it needs a POSIX system (macOS or Linux) and a repository you trust.
+locally and sends nothing about your repository anywhere. Some checks run the project's own
+build, lint and test tools through `/bin/sh` with a deadline; those tools may download
+packages and write build output. It needs a POSIX system (macOS or Linux) and a repository
+you trust.
 
 **Triggers.** "agent readiness", "why isn't the agent working well here", onboarding a repo,
 planning infrastructure work.

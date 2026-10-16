@@ -69,15 +69,23 @@ operating-system updates.
 ## Data handling
 
 - The site (`site/`) loads no third-party resources and sets no cookies.
-- The readiness checker (`tools/`) reads the assessed repository and writes only the report
-  you request. No check contacts the network, but some checks run the assessed project's own
-  tooling commands, so assess only repositories you trust.
+- The readiness checker (`tools/`) sends nothing about the assessed repository anywhere. Some
+  checks run the project's own build, lint, test and dependency tooling (for example `bunx`,
+  Maven or Gradle resolution, `pip install -e .`), which can download packages from their
+  registries and write build output, caches or the active Python environment. Each command
+  has a deadline and stops with the checker. Assess only repositories you trust, in an
+  environment where those side effects are acceptable.
 - Autoreview sends the selected review inputs, after a credential scan, to the provider you
   configure; that provider's retention terms apply. Reports go only to output paths outside
   the reviewed repository, and temporary files are removed after the run.
 - `mneves-teach-back-srs` keeps sessions and cards in `.ai-learn/srs.db` inside your project;
   delete that file to erase them. Its CSV export keeps text as written, for Anki; check
   formulas before opening an export of untrusted text in a spreadsheet.
+- `codex-lane` (in `mneves-fable-orchestrator`) keeps each lane's state and full model
+  transcripts in `$CODEX_LANE_DIR` (default `~/.codex/lanes`, mode 700) and never prunes
+  them. A lane owns `<lane>.json` and, per run, `<lane>.<UTC stamp>.<pid>.jsonl`, `.last.txt`
+  and `.stderr.log`. To erase it, `drop` the lane, then delete exactly those names; never a
+  `<lane>.*` glob, which also matches dotted lanes such as `job.extra`.
 - The other skills are Markdown procedures. What your agent sends, and where, follows your
   agent's own configuration.
 
