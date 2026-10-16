@@ -14,6 +14,12 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.35.0** (2026-10-15): `mneves-security` gains a mandatory deploy gate (full audit of the
+  exact candidate, PASS/BLOCK/WAIVED verdict record) and 32 launch controls whose IDs match
+  the production-readiness catalog; `mneves-ship-deploy` and `mneves-verify` route to it.
+  `mneves-ship-deploy` gains a dev stop (dev -> staging -> prod, `-alpha<N>` tags).
+  Owner decisions: Critical/High blocks both targets, production waives every open launch
+  control by name, full audit per new commit, gated rollbacks exempt, hotfix by waiver.
 - **1.34.0** (2026-10-13): fourteen default skills, adding `mneves-security` with
   evidence-backed audit, authorized remediation and independent acceptance. The redesigned
   static catalog groups procedures by job, self-hosts typography and reports clipboard

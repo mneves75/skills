@@ -28,7 +28,7 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 | `autoreview` | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
 | `mneves-handoff` | hand a task to another agent, review first | "handoff the flaky login test" |
 | `mneves-render` | build repeatable HTML, Word and PDF exports from Markdown | "write a renderer for my Markdown reports" |
-| `mneves-security` | audit security/privacy, plan remediation and apply authorized safe fixes | "audit security and privacy; fix confirmed local issues; do not deploy" |
+| `mneves-security` | audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy | "audit security and privacy; fix confirmed local issues; do not deploy" |
 | `imagegen-frontend-mobile` | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
 | `mneves-chatgpt-search` | improve ChatGPT Search discovery and measure citations/referrals | "improve this site's ChatGPT Search visibility" |
 | `mneves-eli5` | explain a thing to a specific audience | "explain OAuth to my dad" |
@@ -55,6 +55,19 @@ AI/agentic/mobile checks when those surfaces exist.
 **When to use it.** You want an engineering security/privacy audit of an MVP, SaaS, API
 or AI application, or safe implementation of its confirmed remediation items. Audit
 and plan requests remain read-only; a fix request authorizes its in-scope local patches.
+
+**Deploy gate.** Every dev-stop, staging or production deploy runs it first, whatever starts
+the deploy (`ship-staging`, `ship-prod`, a release script, CI, TestFlight, an over-the-air
+update or a store upload). It
+audits the exact candidate in full: the twelve areas plus 32 launch controls (`SEC-01` to
+`SEC-23`, `CMP-01` to `CMP-09`). It returns a fix plan and a PASS, BLOCK or WAIVED verdict
+for that commit and target. A confirmed Critical or High finding blocks every target until
+it is fixed, disproved or waived by you by name; for production, every unmet applicable
+launch control and a missing independent acceptance also need your named waiver. One audit
+serves every target of the same commit, a rollback to a gated build needs none, and an urgent
+fix ships under your waiver with its audit right after. Without the skill, a release is
+blocked until it is installed or you waive the gate. The report stays private; public PRs
+and changelogs cite only the verdict and finding IDs.
 
 **Illustrative request (Codex):**
 
@@ -608,10 +621,13 @@ includes production tags and pushes.
 the authorized reviews and staging verification, presents the candidate, evidence, risks,
 and rollback plan, and waits for your OK before production. "ship-staging" stops after
 verified staging; plain "ship" does not select an environment or authorize deployment.
+When the project documents a dev environment, both modes deploy, prove and tag the same
+commit there first (`vX.Y.Z-alpha<N>`), then staging.
 
 Review and deployment integrations are optional. If a named skill is unavailable, the agent
 uses the repository's documented equivalent with the same gates, or reports the missing
-capability. Missing staging and failed gates remain blockers.
+capability. Missing staging and failed gates remain blockers. The security gate is the
+exception: without `mneves-security` it is BLOCKED until the skill is installed or you waive it.
 
 **Order.** The agent deploys the commit the remote already has, proves it live (served commit,
 health body, one request that must succeed and one that must be refused), and only then tags.
