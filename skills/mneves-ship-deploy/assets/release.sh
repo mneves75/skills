@@ -26,6 +26,9 @@
 # Guarantees covered here: 1 pushed source, 2 promotion, 3 runtime pin, 4 gates and waivers,
 # 6 target parity (partly, see below), 7 live proof with a rollback command, 8 tag after proof,
 # 9 release.json, 10 --check.
+# Each tag message states the security gate verdict that the mneves-security skill recorded for the
+# commit and target in .scratch/security-gate/<commit>/<target>.json (PASS, WAIVED with the waived ids,
+# BLOCK with its blockers), or "none recorded"; the script never refuses a release over it.
 # Guarantee 6 here means two things only: the required secrets are checked on the target, and every
 # gate and the build run with RELEASE_TARGET and RELEASE_COMMIT set. Nothing in this script asserts a
 # build-time value. A project that bakes target-specific values into its build (keys, endpoints) must
@@ -39,9 +42,10 @@
 # `percentage`; `secret list --format json` printing items with a `name`; `deploy --var KEY:VALUE`
 # (repeatable) with `--tag` and `--message`; and `rollback <id> -m "<message>" -y`; each with `--env <target>`.
 #
-# Needs bash 3.2+ (macOS default), git, curl, sed, awk and tr, plus wrangler and the package manager
-# the repository pins. The release runs `npm ci` and the gates in a fresh checkout of the commit;
-# change that line and the gate commands for pnpm, bun or yarn.
+# Needs bash 3.2+ (macOS default), git, curl, sed, awk, tr and python3 (standard library only; it parses
+# the staging health body), plus wrangler and the package manager the repository pins. The release
+# runs `npm ci` and the gates in a fresh checkout of the commit; change that line and the gate
+# commands for pnpm, bun or yarn.
 set -euo pipefail
 
 usage="usage: scripts/release.sh <staging|production> [--check] [--dry-run] [--waive <gate>=<reason>]... [--yes]"
@@ -110,8 +114,63 @@ done
 export RELEASE_STAGING_URL="$STAGING_URL" RELEASE_PRODUCTION_URL="$PRODUCTION_URL"
 
 waiver_reason() { printf '%s' "$waivers" | awk -F= -v g="$1" '$1 == g { sub(/^[^=]*=/, ""); print; exit }'; }
-json_field() { printf '%s' "$1" | tr -d '\n' | sed -n "s/.*\"$2\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p"; }
+# json_fields <body> <key>...: one line per key with that top-level field of a JSON object, empty when the
+# field is missing or is not a string of printable ASCII. It fails, printing why, when the body is not one
+# JSON object or names a top-level key twice (a JSON reader would silently keep only one of the two).
+# verify-live.sh carries the same reader.
+json_fields() {
+  printf '%s' "$1" | python3 -c '
+import json, sys
+
+class Pairs(list):
+    pass
+
+def fail(why):
+    print(why)
+    sys.exit(1)
+
+def constant(name):
+    raise ValueError(name + " is not a JSON value")
+
+try:
+    body = json.loads(sys.stdin.read(), object_pairs_hook=Pairs, parse_constant=constant)
+except ValueError as error:
+    fail("the body is not JSON: %s" % error)
+if not isinstance(body, Pairs):
+    fail("the body is not a JSON object")
+keys = [key for key, _ in body]
+repeated = sorted(set(key for key in keys if keys.count(key) > 1))
+if repeated:
+    fail("the body repeats the top-level key(s) " + " ".join(repeated))
+fields = dict(body)
+for key in sys.argv[1:]:
+    value = fields.get(key)
+    ok = isinstance(value, str) and all(" " <= ch <= "~" for ch in value)
+    print(value if ok else "")
+' "${@:2}"
+}
 json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+# record_field <file> <key>: every "<key>": "<value>" line of a security gate record, value only. The
+# record keeps one scalar per line, so a line reader is enough.
+record_field() { sed -n "s/^[[:space:]]*\"$2\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p" "$1"; }
+# gate_verdict <commit> <target>: what the tag message says about the security gate, read from the record
+# the mneves-security skill writes in deploy-gate mode for this exact commit and target. A missing record
+# is stated, never refused: the gate is a release rule, not a guard of this script.
+gate_verdict() {
+  local record="$root/.scratch/security-gate/$1/$2.json" verdict ids blockers
+  [ -f "$record" ] || { echo "security gate: none recorded"; return 0; }
+  verdict="$(record_field "$record" verdict)"
+  ids="$(record_field "$record" id | tr '\n' ' ' | sed 's/ *$//')"
+  blockers="$(record_field "$record" blockers)"
+  # A record that names another commit or target than its path (a copy) is not this release's verdict.
+  [ "$(record_field "$record" commit)" = "$1" ] && [ "$(record_field "$record" target)" = "$2" ] || verdict=""
+  case "$verdict:$ids" in
+    pass:*) echo "security gate: PASS" ;;
+    waived:?*) echo "security gate: WAIVED $ids" ;;
+    block:*) echo "security gate: BLOCK${blockers:+ $blockers}" ;;
+    *) echo "security gate: unreadable record" ;;
+  esac
+}
 
 root="$(git rev-parse --show-toplevel 2>/dev/null)" || die "not inside a Git repository"
 cd "$root"
@@ -176,7 +235,7 @@ else
   changelog_has "$commit" "$version" || die "CHANGELOG.md has no '## [$version]' entry at $staged_tag"
   git merge-base --is-ancestor "$commit" "$remote_tip" || die "the staged commit ${commit:0:7} ($staged_tag) is not on origin/$default_branch"
   health="$(curl -fsS --max-time 20 "$STAGING_URL/health")" || die "cannot read $STAGING_URL/health"
-  live="$(json_field "$health" commit)"
+  live="$(json_fields "$health" commit)" || die "$STAGING_URL/health: ${live:-cannot run python3}"
   [ -n "$live" ] || die "$STAGING_URL/health reports no commit"
   case "$live" in *[!0-9a-f]*) die "staging serves a value that is not a commit id: $live" ;; esac
   # A served id of 7 or more characters that starts the staged commit; anything else is another commit.
@@ -338,12 +397,14 @@ cat "$evidence/verify-live.log"
 
 # ---- Tag (only after the proof; a pushed tag is never moved) ----
 say "Tag $tag"
+message="$target release $tag ($short); $(gate_verdict "$commit" "$target")"
+echo "message: $message"
 tag_failed=0
-if git -C "$root" tag -a "$tag" "$commit" -m "$target release $tag ($short)" && git -C "$root" push --quiet origin "refs/tags/$tag"; then
+if git -C "$root" tag -a "$tag" "$commit" -m "$message" && git -C "$root" push --quiet origin "refs/tags/$tag"; then
   echo "pushed $tag"
 else
   echo "release: $tag is live and passed its checks, but the tag was not pushed. Finish by hand:" >&2
-  echo "  git tag -a $tag $commit -m '$target release $tag ($short)'; git push origin refs/tags/$tag" >&2
+  echo "  git tag -a $tag $commit -m '$message'; git push origin refs/tags/$tag" >&2
   tag_failed=1
 fi
 

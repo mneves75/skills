@@ -156,6 +156,30 @@ check "a skill without frontmatter is refused" 'refuses nofm "$r"'
 r=$(case_repo no-plugin $'---\nname: gamma\ndescription: Gamma does a thing when asked.\n---\nbody\n' no-plugin-json)
 check "a source without plugin.json is refused" 'refuses noplugin "$r"'
 
+# A symlink in the upstream tree must not let the sync read or rewrite a file outside its staging
+# directory. Each target below has a non-spec key, so a sync that followed the link would rewrite it.
+outside="$work/outside"
+mkdir -p "$outside/dir"
+printf -- '---\nname: delta\ndescription: Delta does a thing when asked.\nicon: star\n---\nbody\n' > "$outside/SKILL.md"
+printf -- '---\nname: epsilon\ndescription: Epsilon does a thing when asked.\nicon: star\n---\nbody\n' > "$outside/dir/SKILL.md"
+outside_snapshot() { (cd "$outside" && find . -type f -print0 | sort -z | xargs -0 shasum); }
+outside_before=$(outside_snapshot)
+link_repo() { # <name> <link path under skills/> <link target>
+  local dir="$work/link-$1"
+  mkdir -p "$dir/plugins/pstack/skills/alpha" "$dir/plugins/pstack/.claude-plugin" "$(dirname "$dir/plugins/pstack/skills/$2")"
+  printf -- '---\nname: alpha\ndescription: Alpha does the first thing when asked.\n---\nbody\n' > "$dir/plugins/pstack/skills/alpha/SKILL.md"
+  ln -s "$3" "$dir/plugins/pstack/skills/$2"
+  echo '{ "version": "1.0.0" }' > "$dir/plugins/pstack/.claude-plugin/plugin.json"
+  echo "MIT" > "$dir/LICENSE"
+  git -C "$dir" init -q && git -C "$dir" add -A && git -C "$dir" -c user.email=t@t -c user.name=t commit -qm links
+  echo "$dir"
+}
+r=$(link_repo file delta/SKILL.md "$outside/SKILL.md")
+check "an upstream file symlink is refused" 'refuses linkfile "$r"'
+r=$(link_repo dir epsilon "$outside/dir")
+check "an upstream directory symlink is refused" 'refuses linkdir "$r"'
+check "the files the symlinks point at stay byte-identical" '[ "$outside_before" = "$(outside_snapshot)" ]'
+
 sed -i.bak 's/^name: beta$/name: wrong/' "$src/plugins/pstack/skills/beta/SKILL.md" && rm "$src/plugins/pstack/skills/beta/SKILL.md.bak"
 git -C "$src" -c user.email=t@t -c user.name=t commit -qam "break name"
 if bash "$sync" "$src" HEAD "$dest" 2>/dev/null; then ok=0; else ok=1; fi

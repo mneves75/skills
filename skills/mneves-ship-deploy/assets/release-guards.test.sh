@@ -5,7 +5,7 @@
 # `node` and `curl` programs on PATH. The scripts themselves are real; only the programs they call at the
 # edge are fake. A fake `curl` serves bodies from files, so no server runs and nothing leaves the machine.
 #
-# Usage: bash release-guards.test.sh        (needs bash 3.2+, git, sed, awk, tr)
+# Usage: bash release-guards.test.sh        (needs bash 3.2+, git, sed, awk, tr, python3)
 # Run it from a checkout of the skill; it reads release.sh and verify-live.sh beside itself.
 set -euo pipefail
 
@@ -228,6 +228,13 @@ serve "$STAGING_URL" "abcdef1234567" staging
 expect "production refuses when staging serves another commit" 1 "staging serves abcdef1" -- production --check
 serve "$STAGING_URL" "${sha}-dirty" staging
 expect "production refuses a dirty staging build" 1 "is not a commit id" -- production --check
+# The staging health body is read as JSON: only its own top-level commit counts.
+printf '{"status":"ok","commit":"abcdef1234567","version":"1.2.3","env":"staging","lastHealthy":{"commit":"%s"}}' "$sha" > "$FAKE_WEB/staging.example.test_health"
+expect "production refuses when only a nested object names the staged commit" 1 "staging serves abcdef1" -- production --check
+printf '{"status":"ok","commit":"abcdef1234567","version":"1.2.3","env":"staging","commit":"%s"}' "$sha" > "$FAKE_WEB/staging.example.test_health"
+expect "production refuses a staging health body that repeats a top-level key" 1 "repeats the top-level key" -- production --check
+printf '{"status":"ok","commit":"%s","version":"1.2.3","env":"staging"' "$sha" > "$FAKE_WEB/staging.example.test_health"
+expect "production refuses a staging health body that is not JSON" 1 "is not JSON" -- production --check
 serve "$STAGING_URL" "$sha" staging
 git -C "$work" tag v1.2.3 && git -C "$work" push -q origin v1.2.3
 expect "production refuses a version that already has its tag" 1 "already exists on origin" -- production --check
@@ -247,6 +254,82 @@ for field in '"target": "staging"' '"tag": "v1.2.3-beta1"' '"version": "1.2.3"' 
 done
 check "every gate ran" log_has '^npm run lint'
 check "the deploy is the target's own environment" log_has '^wrangler deploy .*--env staging( |$)'
+
+# ==== The tag message states the security gate verdict recorded for the commit and target ====
+# gate_record <commit> <target> <verdict> <blockers> [<waiver id>...]: the record the mneves-security skill
+# writes in deploy-gate mode, at .scratch/security-gate/<commit>/<target>.json, one scalar per line.
+gate_record() {
+  local commit="$1" target="$2" verdict="$3" blockers="$4" waivers="" sep="" id
+  shift 4
+  for id in "$@"; do
+    waivers="$waivers$sep
+    {
+      \"id\": \"$id\",
+      \"owner\": \"@owner\",
+      \"reason\": \"booked\",
+      \"expires\": \"2026-11-30T00:00:00Z\"
+    }"
+    sep=","
+  done
+  mkdir -p "$work/.scratch/security-gate/$commit"
+  cat > "$work/.scratch/security-gate/$commit/$target.json" << JSON
+{
+  "schema": 1,
+  "unit": ".",
+  "target": "$target",
+  "commit": "$commit",
+  "tree": "0000000000000000000000000000000000000000",
+  "verdict": "$verdict",
+  "open_blockers": 0,
+  "blockers": "$blockers",
+  "independent_acceptance": "pass",
+  "reused_from": "",
+  "created_at": "2026-10-15T19:00:00Z",
+  "waivers": [$waivers
+  ]
+}
+JSON
+}
+tag_says() { git -C "$work" for-each-ref --format='%(contents)' "refs/tags/$1" | grep -F -- "$2" > /dev/null; }
+new_repo gatepass
+sha="$(head_sha)"
+serve "$STAGING_URL" "$sha" staging
+gate_record "$sha" staging pass ""
+expect "a release with a PASS gate record succeeds" 0 "Released v1.2.3-beta1" -- staging
+check "the tag message states the PASS verdict" tag_says v1.2.3-beta1 "staging release v1.2.3-beta1 (${sha:0:7}); security gate: PASS"
+new_repo gatewaived
+sha="$(head_sha)"
+serve "$STAGING_URL" "$sha" staging
+gate_record "$sha" staging waived "" SEC-19 gate:audit
+expect "a release with a WAIVED gate record succeeds" 0 "Released v1.2.3-beta1" -- staging
+check "the tag message states WAIVED with every waiver id" tag_says v1.2.3-beta1 "security gate: WAIVED SEC-19 gate:audit"
+new_repo gateblock
+sha="$(head_sha)"
+serve "$STAGING_URL" "$sha" staging
+gate_record "$sha" staging block "SEC-7 SEC-9"
+expect "a BLOCK gate record does not stop the script (the gate is a rule, not a guard)" 0 "Released v1.2.3-beta1" -- staging
+check "the tag message states the BLOCK verdict and its blockers" tag_says v1.2.3-beta1 "security gate: BLOCK SEC-7 SEC-9"
+new_repo gatenone
+sha="$(head_sha)"
+serve "$STAGING_URL" "$sha" staging
+gate_record "$sha" production pass ""
+expect "a release with no gate record for its target succeeds" 0 "Released v1.2.3-beta1" -- staging
+check "the tag message says no verdict is recorded" tag_says v1.2.3-beta1 "security gate: none recorded"
+if tag_says v1.2.3-beta1 "PASS"; then fail "another target's record never counts as this target's PASS"; else pass "another target's record never counts as this target's PASS"; fi
+new_repo gatecopy
+sha="$(head_sha)"
+serve "$STAGING_URL" "$sha" staging
+gate_record "1111111111111111111111111111111111111111" staging pass ""
+mkdir -p "$work/.scratch/security-gate/$sha"
+mv "$work/.scratch/security-gate/1111111111111111111111111111111111111111/staging.json" "$work/.scratch/security-gate/$sha/staging.json"
+expect "a release with a gate record copied from another commit succeeds" 0 "Released v1.2.3-beta1" -- staging
+check "a record that names another commit is not read as this commit's verdict" tag_says v1.2.3-beta1 "security gate: unreadable record"
+new_repo gatepush
+sha="$(head_sha)"
+serve "$STAGING_URL" "$sha" staging
+gate_record "$sha" staging pass ""
+printf '#!/bin/sh\nexit 1\n' > "$origin/hooks/pre-receive"; chmod +x "$origin/hooks/pre-receive"
+expect "a tag that cannot be pushed is suggested with the same gate verdict" 1 "security gate: PASS'; git push origin refs/tags/v1.2.3-beta1" -- staging
 
 # ==== A waiver ====
 new_repo waive
@@ -301,8 +384,10 @@ sha="$(head_sha)"
 serve "$STAGING_URL" "$sha" staging
 serve "$PRODUCTION_URL" "$sha" production
 git -C "$work" tag -a v1.2.3-beta1 -m staged && git -C "$work" push -q origin v1.2.3-beta1
+gate_record "$sha" production waived "" SEC-19
 expect "production releases the commit staging serves" 0 "Released v1.2.3 to production" -- production --yes
 check "the production tag is pushed" test -n "$(remote_tags | grep -F 'refs/tags/v1.2.3^{}')"
+check "the production tag message states the production gate verdict" tag_says v1.2.3 "security gate: WAIVED SEC-19"
 check "the deploy is the production environment" log_has '^wrangler deploy .*--env production( |$)'
 git -C "$work" tag -a v1.2.3 -m again 2> /dev/null || true
 
@@ -328,6 +413,26 @@ serve "$STAGING_URL" "$sha" production
 vl_expect "verify-live fails when the target answers as another environment" 1 "wiring" -- staging
 printf '{"commit":"%s","env":"staging"}' "$sha" > "$FAKE_WEB/staging.example.test_health"
 vl_expect "verify-live fails on a 2xx health body without its fields" 1 "health body says status ok" -- staging
+# The health body is one JSON object and only its own top-level fields count: a nested object, a
+# repeated key or a value of the wrong type never stands in for them.
+health_body() { printf '%s' "$1" > "$FAKE_WEB/staging.example.test_health"; }
+serve "$STAGING_URL" "$sha" staging
+health_body "$(printf '{\n  "env": "staging",\n  "status": "ok",\n  "commit": "%s",\n  "version": "1.2.3",\n  "checks": {"db": {"status": "down", "env": "production"}}\n}\n' "$sha")"
+vl_expect "verify-live passes on a healthy body with nested objects and any key order (control)" 0 "all assertions passed" -- staging
+health_body "$(printf '{"status":"error","commit":"%s","version":"1.2.3","env":"staging","lastHealthy":{"status":"ok"}}' "$sha")"
+vl_expect "verify-live fails when the top-level status fails and a nested one is ok" 1 "FAIL health body says status ok" -- staging
+health_body "$(printf '{"lastHealthy":{"status":"ok","commit":"%s","version":"1.2.3","env":"staging"}}' "$sha")"
+vl_expect "verify-live fails when the fields exist only in a nested object" 1 "FAIL health body says status ok" -- staging
+health_body "$(printf '{"status":"error","commit":"%s","version":"1.2.3","env":"staging","status":"ok"}' "$sha")"
+vl_expect "verify-live fails on a health body that repeats a top-level key" 1 "repeats the top-level key(s) status" -- staging
+health_body "$(printf '{"status":"ok","commit":"%s","version":"1.2.3","env":"staging"' "$sha")"
+vl_expect "verify-live fails on a health body that is not JSON" 1 "is not JSON" -- staging
+health_body '["ok"]'
+vl_expect "verify-live fails on a health body that is not a JSON object" 1 "is not a JSON object" -- staging
+health_body "$(printf '{"status":"ok","commit":"%s","version":123,"env":"staging"}' "$sha")"
+vl_expect "verify-live fails when the version is not a string" 1 "FAIL health body carries a version" -- staging
+health_body "$(printf '{"status":"ok","commit":"%s","version":"1.2.3","env":"production","previous":{"env":"staging"}}' "$sha")"
+vl_expect "verify-live fails when only a nested object names the target environment" 1 "FAIL wiring" -- staging
 serve "$STAGING_URL" "$sha" staging
 printf '{"items":[1]}' > "$FAKE_WEB/staging.example.test_api_admin"; rm -f "$FAKE_WEB/staging.example.test_api_admin.status"
 vl_expect "verify-live fails when the request that must be refused succeeds" 1 "is refused" -- staging
