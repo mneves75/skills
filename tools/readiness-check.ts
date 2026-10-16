@@ -57,8 +57,8 @@ import {
 	PILLAR_NAMES,
 	type Pillar,
 } from "./lib/check-registry.js";
-import { createFileCache, type FileCache } from "./lib/file-cache.js";
 import { installCommandSignalHandlers } from "./lib/command.js";
+import { createFileCache, type FileCache } from "./lib/file-cache.js";
 import {
 	EXIT_CODES,
 	generateHelp,

@@ -49,7 +49,10 @@ export function runCommand(timeoutMs = 60000) {
 		});
 
 		let stopped: Promise<void> | undefined;
-		const stop = () => stopped ??= stopGroup();
+		const stop = () => {
+			stopped ??= stopGroup();
+			return stopped;
+		};
 		const stopGroup = async () => {
 			if (child.pid !== undefined) {
 				try {
