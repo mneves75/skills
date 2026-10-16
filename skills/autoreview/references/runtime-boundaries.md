@@ -10,6 +10,9 @@ TruffleHog must scan the complete frozen input for partitioned reviews and each
 exact outgoing pack before it is sent; missing or failed scanning stops the run.
 Source-controlled ignore tags cannot suppress this gate. Scanner refusals never
 echo input headings or finding payloads; remove credentials locally and rerun.
+The scan is offline (`--no-verification`) and blocks every detection, verified or
+not. `--verify-secrets-online` sends detected credentials to their providers for
+verification and lets provider-confirmed invalid ones pass; use it only when asked.
 Never reproduce credentials in findings or work around an isolation failure.
 
 ## Trusted Git
@@ -22,7 +25,10 @@ selected Xcode, pass `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`.
 absolute, external `DEVELOPER_DIR` is kept in Git's sanitized environment; neither override
 reaches the isolated reviewer. Git collection never runs checkout-controlled executables:
 executable filter drivers are disabled for collection, and a diff that needs a converter to be
-read is refused before review.
+read is refused before review. Executables inside the checkout you run from are never selected
+from `PATH`, so a checkout whose local Git metadata relocates the work tree (`core.worktree`,
+a `gitdir:` file, or a Git directory used as the working directory) is refused; normal
+checkouts and linked worktrees are unaffected.
 
 ## Temporary directories on macOS
 
@@ -35,10 +41,12 @@ Tools installed in shared scratch or requiring writes there will be denied too.
 
 ## Size and partitioning
 
-Review files have no size/count cap and are never truncated. Large diffs and
-datasets are partitioned automatically. Intact instructions and required mixed
-source context must still fit the per-pass prompt budget. A failed pass does not
-produce a partial clean verdict.
+Review files are never truncated. Large diffs and datasets are partitioned
+automatically. Intact instructions and required mixed source context must still
+fit the per-pass prompt budget. A failed pass does not produce a partial clean
+verdict. A run needing more than 20 passes or 10,240,000 prompt bytes in total is
+refused before any provider call (and reported by `--dry-run`); raise
+`--max-review-passes` or `--max-review-input-bytes` only when that cost is authorized.
 
 Each pass is an independent assignment, not a continuing conversation. Its private completion
 field must confirm a finished assessment; a pass that defers to another pass leaves the overall
