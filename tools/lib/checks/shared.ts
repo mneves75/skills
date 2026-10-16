@@ -12,7 +12,6 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { $ } from "bun";
 import {
 	type CheckContext,
 	type CheckResult,
@@ -21,6 +20,7 @@ import {
 	fileExists,
 	readText,
 } from "../check-registry.js";
+import { runCommand } from "../command.js";
 import {
 	type DependencyManifest,
 	hasLibraryCategory,
@@ -232,7 +232,7 @@ export const sharedChecks: Record<string, CheckRunner> = {
 		}
 
 		try {
-			const result = await $`cd ${ctx.repoRoot} && git log -1 --format=%ct -- ${docPath} 2>/dev/null`.quiet();
+			const result = await runCommand(ctx.options.timeout)`cd ${ctx.repoRoot} && git log -1 --format=%ct -- ${docPath} 2>/dev/null`;
 			const timestamp = Number.parseInt(result.text().trim(), 10);
 			if (Number.isNaN(timestamp)) {
 				return { pass: false, details: "No git history" };
@@ -678,7 +678,7 @@ export const sharedChecks: Record<string, CheckRunner> = {
 		if (ctx.app.language === "go") {
 			// Check for _test.go files
 			try {
-				const testFiles = await $`find ${ctx.app.path} -name "*_test.go" -type f 2>/dev/null | head -1`.quiet();
+				const testFiles = await runCommand(ctx.options.timeout)`find ${ctx.app.path} -name "*_test.go" -type f 2>/dev/null | head -1`;
 				if (testFiles.text().trim()) {
 					return { pass: true, tool: "testing", details: "Go testing package (built-in)" };
 				}
@@ -691,7 +691,7 @@ export const sharedChecks: Record<string, CheckRunner> = {
 		if (ctx.app.language === "rust") {
 			// Check for #[test] or #[cfg(test)] in source files
 			try {
-				const testAttrs = await $`grep -r "#\\[test\\]\\|#\\[cfg(test)\\]" --include="*.rs" ${ctx.app.path} 2>/dev/null | head -1`.quiet();
+				const testAttrs = await runCommand(ctx.options.timeout)`grep -r "#\\[test\\]\\|#\\[cfg(test)\\]" --include="*.rs" ${ctx.app.path} 2>/dev/null | head -1`;
 				if (testAttrs.text().trim()) {
 					return { pass: true, tool: "test", details: "Rust test module (built-in)" };
 				}
@@ -703,7 +703,7 @@ export const sharedChecks: Record<string, CheckRunner> = {
 		// For Java: Check for JUnit annotations
 		if (ctx.app.language === "java") {
 			try {
-				const junitTests = await $`grep -r "@Test\\|@org.junit" --include="*.java" ${ctx.app.path} 2>/dev/null | head -1`.quiet();
+				const junitTests = await runCommand(ctx.options.timeout)`grep -r "@Test\\|@org.junit" --include="*.java" ${ctx.app.path} 2>/dev/null | head -1`;
 				if (junitTests.text().trim()) {
 					return { pass: true, tool: "JUnit", details: "JUnit tests found" };
 				}
@@ -1095,7 +1095,7 @@ export const sharedChecks: Record<string, CheckRunner> = {
 			try {
 				const files = await Bun.file(workflowDir);
 				// Simple check: look for release in workflow names
-				const result = await $`ls ${workflowDir} 2>/dev/null`.quiet();
+				const result = await runCommand(ctx.options.timeout)`ls ${workflowDir} 2>/dev/null`;
 				const workflowFiles = result.text().split("\n").filter(Boolean);
 				for (const wf of workflowFiles) {
 					if (wf.toLowerCase().includes("release")) {
@@ -1230,10 +1230,10 @@ export const sharedChecks: Record<string, CheckRunner> = {
 
 		const suspicious = hasEnvFile || hasCredentials || hasSecrets || hasPrivateKey;
 
-		if (suspicious && !hasEnvExample) {
+		if (suspicious) {
 			return {
 				pass: false,
-				details: "Potential secrets in repo, no .env.example",
+				details: "Potential secrets in repo",
 			};
 		}
 
@@ -1268,7 +1268,7 @@ export const sharedChecks: Record<string, CheckRunner> = {
 		const workflowDir = path.join(repoRoot, ".github/workflows");
 		if (dirExists(workflowDir)) {
 			try {
-				const result = await $`ls ${workflowDir} 2>/dev/null`.quiet();
+				const result = await runCommand(ctx.options.timeout)`ls ${workflowDir} 2>/dev/null`;
 				const files = result.text().split("\n").filter(Boolean);
 				for (const f of files) {
 					if (f.toLowerCase().includes("security") ||

@@ -57,6 +57,7 @@ import {
 	PILLAR_NAMES,
 	type Pillar,
 } from "./lib/check-registry.js";
+import { installCommandSignalHandlers } from "./lib/command.js";
 import { createFileCache, type FileCache } from "./lib/file-cache.js";
 import {
 	EXIT_CODES,
@@ -1544,6 +1545,8 @@ async function main(): Promise<number> {
 
 	return EXIT_CODES.SUCCESS;
 }
+
+installCommandSignalHandlers();
 
 try {
 	const code = await main();

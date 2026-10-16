@@ -1,12 +1,33 @@
 import { spawn } from "node:child_process";
 import { runWithTimeout } from "./check-registry.js";
 
+const activeCommands = new Set<() => Promise<void>>();
+let terminating = false;
+
+/** Install once at the CLI boundary; repeated signals cannot interrupt cleanup. */
+export function installCommandSignalHandlers(): void {
+	const terminate = (exitCode: number) => {
+		if (terminating) return;
+		terminating = true;
+		void Promise.all([...activeCommands].map((stop) => stop())).then(
+			() => process.exit(exitCode),
+			(error: unknown) => {
+				console.error("readiness-check: Command cleanup failed:", error);
+				process.exit(exitCode);
+			},
+		);
+	};
+	process.on("SIGINT", () => terminate(130));
+	process.on("SIGTERM", () => terminate(143));
+}
+
 /** Run a quiet POSIX shell command with a deadline, escaping interpolated arguments. */
 export function runCommand(timeoutMs = 60000) {
 	return async (
 		strings: TemplateStringsArray,
 		...values: (string | number)[]
 	) => {
+		if (terminating) throw new Error("Checker is terminating");
 		let script = strings.raw[0] ?? "";
 		for (let i = 0; i < values.length; i++) {
 			const quoted = `'${String(values[i]).replaceAll("'", "'\"'\"'")}'`;
@@ -27,7 +48,12 @@ export function runCommand(timeoutMs = 60000) {
 			child.once("close", () => resolve());
 		});
 
-		await runWithTimeout(exited, timeoutMs, async () => {
+		let stopped: Promise<void> | undefined;
+		const stop = () => {
+			stopped ??= stopGroup();
+			return stopped;
+		};
+		const stopGroup = async () => {
 			if (child.pid !== undefined) {
 				try {
 					process.kill(-child.pid, "SIGKILL");
@@ -47,13 +73,23 @@ export function runCommand(timeoutMs = 60000) {
 			child.stdout.destroy();
 			child.stderr.destroy();
 			await exited;
-		});
+		};
+		activeCommands.add(stop);
 
-		if (child.exitCode !== 0) {
-			throw new Error(
-				`Command failed (${child.signalCode ?? child.exitCode}): ${Buffer.concat(stderr).toString()}`,
-			);
+		try {
+			await runWithTimeout(exited, timeoutMs, stop);
+			if (child.exitCode !== 0) {
+				throw new Error(
+					`Command failed (${child.signalCode ?? child.exitCode}): ${Buffer.concat(stderr).toString()}`,
+				);
+			}
+			return { text: () => Buffer.concat(stdout).toString() };
+		} finally {
+			try {
+				await stop();
+			} finally {
+				activeCommands.delete(stop);
+			}
 		}
-		return { text: () => Buffer.concat(stdout).toString() };
 	};
 }
