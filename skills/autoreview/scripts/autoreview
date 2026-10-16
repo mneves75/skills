@@ -873,11 +873,57 @@ def redact_proxy_credentials(text: str) -> str:
     return pattern.sub("[REDACTED]", text) if pattern else text
 
 
+# Environment values hidden wherever they appear: the credential-shaped names
+# accepted for custom providers, the known provider keys, and allowlisted engine
+# secrets whose names lack those suffixes. Shorter values are indistinguishable
+# from prose and enum values, as with proxy passwords.
+REDACTED_CREDENTIAL_ENV_KEYS = MULTI_PROVIDER_CREDENTIAL_ENV_KEYS | {
+    "AWS_BEARER_TOKEN_BEDROCK",
+    "AZURE_CLIENT_SECRET",
+    "CLAUDE_CODE_CLIENT_KEY_PASSPHRASE",
+}
+MIN_REDACTED_CREDENTIAL_LENGTH = 8
+
+
+def environment_credentials() -> tuple[str, ...]:
+    return tuple(sorted({
+        value
+        for key, value in os.environ.items()
+        if len(value) >= MIN_REDACTED_CREDENTIAL_LENGTH
+        and (key in REDACTED_CREDENTIAL_ENV_KEYS or CUSTOM_PROVIDER_ENV_NAME_PATTERN.fullmatch(key))
+    }))
+
+
+@functools.lru_cache(maxsize=8)
+def credential_value_pattern(values: tuple[str, ...]) -> re.Pattern[str] | None:
+    forms: set[str] = set()
+    for value in values:
+        forms.update((value, urllib.parse.quote(value, safe=""),
+                      json.dumps(value, ensure_ascii=True)[1:-1]))
+    if not forms:
+        return None
+    patterns = []
+    for form in sorted(forms, key=len, reverse=True):
+        escaped = re.escape(form)
+        escaped = re.sub(r"%[0-9a-fA-F]{2}", lambda match: "(?i:" + match[0] + ")", escaped)
+        patterns.append(escaped)
+    return re.compile("|".join(patterns))
+
+
+def redact_credentials(text: str) -> str:
+    """Hide provider credential values and proxy credentials from displayed or saved text."""
+    pattern = credential_value_pattern(environment_credentials())
+    if pattern:
+        text = pattern.sub("[REDACTED]", text)
+    return redact_proxy_credentials(text)
+
+
 def redact_proxy_report(value: Any) -> Any:
-    # Redact after validation, at serialization only. Keep the original report
-    # and exit-status decisions intact; never edit source snapshots or auth.
+    # Redact provider and proxy credentials after validation, at serialization
+    # only. Keep the original report and exit-status decisions intact; never
+    # edit source snapshots or auth.
     if isinstance(value, str):
-        return redact_proxy_credentials(value)
+        return redact_credentials(value)
     if isinstance(value, list):
         return [redact_proxy_report(item) for item in value]
     if isinstance(value, dict):
@@ -888,7 +934,8 @@ def redact_proxy_report(value: Any) -> Any:
 
 
 class ProxyRedactedOutput:
-    """Cover plain progress/error prints as well as the formatted reports."""
+    """Redact provider and proxy credentials from plain progress/error prints
+    as well as the formatted reports."""
 
     def __init__(self, stream: Any) -> None:
         self.stream = stream
@@ -913,7 +960,7 @@ class ProxyRedactedOutput:
                     continue
                 self.pending += part
                 if newline:
-                    self.stream.write(redact_proxy_credentials(self.pending) + "\n")
+                    self.stream.write(redact_credentials(self.pending) + "\n")
                     self.pending = ""
         return len(text)
 
@@ -932,7 +979,7 @@ class ProxyRedactedOutput:
 
     def finish(self) -> None:
         with self.lock:
-            self.stream.write(redact_proxy_credentials(self.pending))
+            self.stream.write(redact_credentials(self.pending))
             self.pending = ""
             self.stream.flush()
 
@@ -2138,7 +2185,7 @@ def bounded_field(text: str, limit: int) -> str:
 
 def display_escape(text: object, limit: int, *, multiline: bool = False) -> str:
     parts: list[str] = []
-    for char in redact_proxy_credentials(str(text)):
+    for char in redact_credentials(str(text)):
         codepoint = ord(char)
         if multiline and char == "\n":
             parts.append(char)

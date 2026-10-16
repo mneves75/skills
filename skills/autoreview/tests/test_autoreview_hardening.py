@@ -7650,5 +7650,116 @@ Path(sys.argv[sys.argv.index(flag) + 1]).write_text(json.dumps({
                 output.fileno()
 
 
+class ProviderCredentialRedactionTests(unittest.TestCase):
+    """Provider credentials never reach terminals, exceptions or saved reports."""
+
+    def setUp(self):
+        self.helper = load_helper()
+
+    @staticmethod
+    def forms(value: str) -> tuple[str, ...]:
+        return (value, urllib.parse.quote(value, safe=""), json.dumps(value)[1:-1])
+
+    @unittest.skipIf(os.name == "nt", "POSIX executable fixture")
+    def test_cli_redacts_selected_engine_key_from_streams_reports_and_failures(self):
+        key = 'synthetic-openai/key+"value"\\0123456789'
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp).resolve()
+            repo = root / "repo"
+            repo.mkdir()
+            git(repo, "init", "-q")
+            (repo / "source.txt").write_text("before\n")
+            git(repo, "add", ".")
+            git(repo, "commit", "-qm", "fixture")
+            (repo / "source.txt").write_text("after\n")
+            fake = root / "codex-fixture"
+            fake.write_text(f"#!{sys.executable}\n" + '''import json, os, sys
+from pathlib import Path
+if "--version" in sys.argv:
+    print("codex-cli 0.0.0-test")
+    raise SystemExit(0)
+key = os.environ["OPENAI_API_KEY"]
+Path(os.environ["AUTOREVIEW_FAKE_KEY_RECORD"]).write_text(json.dumps({"auth": key}))
+print("provider rejected " + key)
+print("provider rejected " + json.dumps(key), file=sys.stderr)
+if os.environ.get("AUTOREVIEW_FAKE_KEY_EXIT"):
+    raise SystemExit(7)
+flag = "--output-last-message" if "--output-last-message" in sys.argv else "-o"
+Path(sys.argv[sys.argv.index(flag) + 1]).write_text(json.dumps({
+    "findings": [], "overall_correctness": "patch is incorrect",
+    "overall_explanation": "echoed credential: " + key, "overall_confidence": 0.8,
+    "review_completion": "complete",
+}))
+''')
+            fake.chmod(0o755)
+            home = root / "home"
+            home.mkdir()
+            record = root / "record.json"
+            human, report, status = (root / name for name in ("report.txt", "report.json", "status.json"))
+            env = {name: value for name, value in os.environ.items() if name in {"PATH", "TMPDIR", "TEMP", "TMP"}}
+            env.update({"HOME": str(home), "OPENAI_API_KEY": key,
+                        "AUTOREVIEW_FAKE_KEY_RECORD": str(record)})
+            add_fake_trufflehog(self.helper, root, env)
+            command = [sys.executable, str(SCRIPT), "--mode", "local", "--codex-bin", str(fake),
+                       "--output", str(human), "--json-output", str(report), "--status-output", str(status),
+                       "--stream-engine-output"]
+            result = subprocess.run(command, cwd=repo, env=env, capture_output=True, text=True)
+            self.assertTrue(report.exists(), result.stdout + result.stderr)
+            self.assertEqual(json.loads(record.read_text())["auth"], key)
+            saved = json.loads(report.read_text())
+            self.assertEqual(saved["overall_correctness"], "patch is incorrect")
+            self.assertEqual(json.loads(status.read_text())["exit_code"], result.returncode)
+            published = result.stdout + result.stderr + human.read_text() + report.read_text()
+            for form in self.forms(key):
+                self.assertNotIn(form, published)
+            self.assertIn("[REDACTED]", saved["overall_explanation"])
+
+            env["AUTOREVIEW_FAKE_KEY_EXIT"] = "1"
+            failed = subprocess.run(command, cwd=repo, env=env, capture_output=True, text=True)
+            self.assertNotEqual(failed.returncode, 0)
+            self.assertIn("codex engine failed (7)", failed.stderr)
+            self.assertEqual(json.loads(status.read_text())["reviewer_exit_code"], 7)
+            for form in self.forms(key):
+                self.assertNotIn(form, failed.stdout + failed.stderr)
+
+    def test_provider_key_shapes_are_redacted_at_every_boundary(self):
+        secrets = {
+            "OPENAI_API_KEY": "synthetic-openai-0123456789",
+            "ANTHROPIC_API_KEY": "synthetic-anthropic-0123456789",
+            "ANTHROPIC_AUTH_TOKEN": "synthetic-anthropic-token-0123",
+            "GH_TOKEN": "synthetic-gh-token-0123456789",
+            "CORP_LLM_API_KEY": "synthetic-corp/llm+key=0123",
+            "AZURE_CLIENT_SECRET": "synthetic-azure-secret-0123",
+        }
+        environment = {**secrets, "GITHUB_TOKEN": "short", "OPENAI_BASE_URL": "https://llm.example.invalid/v1"}
+        with mock.patch.dict(os.environ, environment, clear=True):
+            for name, value in secrets.items():
+                for form in self.forms(value):
+                    with self.subTest(name=name, form=form):
+                        text = f"{name} rejected: {form}"
+                        self.assertNotIn(form, self.helper["display_escape"](text, 4000, multiline=True))
+                        report = {"findings": [], "overall_correctness": "patch is incorrect",
+                                  "review_status": "findings", "overall_explanation": text}
+                        saved = self.helper["redact_proxy_report"](report)
+                        self.assertNotIn(form, json.dumps(saved))
+                        self.assertEqual(saved["overall_correctness"], "patch is incorrect")
+                        stream = io.StringIO()
+                        output = self.helper["ProxyRedactedOutput"](stream)
+                        output.write(text + "\n")
+                        output.write(text)
+                        output.finish()
+                        self.assertNotIn(form, stream.getvalue())
+                        failure = self.helper["ReviewerUnavailable"](f"codex engine failed (7)\n{text}")
+                        with mock.patch.dict(self.helper["sanitized_main"].__globals__, {
+                            "main": mock.Mock(side_effect=failure),
+                        }), self.assertRaises(SystemExit) as caught:
+                            self.helper["sanitized_main"]()
+                        self.assertNotIn(form, str(caught.exception))
+                        self.assertIn("codex engine failed (7)", str(caught.exception))
+            # Short and non-credential values stay readable; redaction must not corrupt prose.
+            prose = "short answer from https://llm.example.invalid/v1"
+            self.assertEqual(self.helper["display_escape"](prose, 4000), prose)
+
+
 if __name__ == "__main__":
     unittest.main()
