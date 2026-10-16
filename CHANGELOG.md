@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.36.0] - 2026-10-15
+## [1.37.0] - 2026-10-16
 
 ### Added
 - **`mneves-production-readiness`**: gates staging and production deploys on evidence-backed readiness.
@@ -31,7 +31,99 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`mneves-ship-deploy`**: Preflight reads the readiness ledger; review runs a provisional
   readiness assessment; staging and production each bind a readiness record before deploying.
 - **Catalog and docs**: fifteen skills; README, HOWTO, landing page, glossary and product brief.
-- **Orchestrator Defaults**: model ids re-verified against the vendor model list on 2026-10-15.
+- **Orchestrator Defaults**: model ids re-verified against the vendor model list on 2026-10-16.
+
+## [1.36.0] - 2026-10-16
+
+### Fixed
+- The readiness checker no longer lets a crafted manifest pollute `Object.prototype`.
+  `Cargo.toml` and `pyproject.toml` keys `__proto__`, `constructor` and `prototype` are
+  rejected, and ordinary manifests parse as before (F-01 from the 1.35.0 security gate).
+- A timed-out readiness check now kills its whole process group, waits for it to exit and
+  clears its timer; every adapter command has a deadline (60 seconds unless the check sets
+  one). Commands now run through `/bin/sh`, so the assessor needs a POSIX system (F-02).
+  The shared checks also run under deadlines, and stopping the checker (SIGINT or SIGTERM)
+  stops every command it started.
+- A crafted `pnpm-workspace.yaml` line no longer stalls app discovery (quadratic matching), and
+  an `.env.example` file no longer hides the warning for suspicious files such as
+  `credentials.json` or `private.key`.
+- `codex-lane` cleanup guidance names each lane's exact files; the old `<lane>.*` advice also
+  deleted the files of dotted lanes such as `job.extra`.
+- Autoreview redacts provider credentials from the environment (`*_API_KEY`, `*_TOKEN`, the
+  known provider keys and each `ANTHROPIC_CUSTOM_HEADERS` value) in terminal output, error messages and saved reports; before, only
+  proxy credentials were redacted.
+- Autoreview's TruffleHog scan runs offline by default and every detection blocks, so a dry
+  run contacts nobody; `--verify-secrets-online` restores online verification on request.
+- Autoreview refuses a run over 20 review passes or 10,240,000 prompt bytes before the first
+  provider call (`--max-review-passes`, `--max-review-input-bytes` raise the limits), and
+  refuses a Git work tree relocated away from its checkout, which could run an executable
+  from the original checkout before isolation.
+- The reference `verify-live.sh` and `release.sh` read health bodies as JSON objects with
+  unique top-level keys (a nested or repeated field no longer passes), which needs `python3`;
+  release tag messages state the recorded security gate verdict.
+- `sync-pstack.sh` refuses upstream skills that contain a symlink; the site's HTML guard
+  accepts only a strict subset; concurrent `mneves-teach-back-srs` reviews no longer lose
+  a scheduling step.
+
+### Security
+- Every site page and the readiness HTML report carry a Content-Security-Policy and a
+  referrer policy, tested served in a browser, and load no third-party fonts.
+- `SECURITY.md` adds the access and release model, a quarterly access review, a compromise
+  runbook, data handling and site protections. The autoreview README states its security
+  model: untrusted input, what it sends, cost bounds, no irreversible actions, what it keeps.
+  The readiness disclosure now says that the project's own tooling may download packages and
+  write build output, and `codex-lane` transcript retention and erasure are documented, with
+  erasure steps for local files, provider copies and backups.
+- Access review, 2026-10-16: the maintainer administers the repository and one other account,
+  also the maintainer's, has write access and keeps it; devices with write access use
+  full-disk encryption and a screen lock (maintainer attestation).
+
+### Changed
+- `tools/` has unit tests (`bun test`), run in CI after typecheck and lint, and the SRS
+  helper's test runs in CI.
+
+## [1.35.1] - 2026-10-16
+
+### Changed
+- `mneves-fable-orchestrator` routes building and reviewing to different models. Opus
+  (Claude) or Sol at xhigh (Codex) build: main session, workers and heavy executor. Fable
+  (Claude) or Astra (Codex) plan, advise and review, and the main session gets a Fable
+  advisor. Codex planning and plan advice move from high to xhigh, and the Codex reviewer
+  moves from Sol at xhigh to Astra at high, so the model that built a change never reviews it. Ids re-verified
+  against the vendor model lists on 2026-10-16.
+
+## [1.35.0] - 2026-10-15
+
+### Added
+- A full security audit now gates every staging and production deploy (`mneves-security`).
+  Deploy-gate mode audits the exact candidate in full: all twelve review areas and every
+  applicable launch control. It ends in a fix plan and a PASS, BLOCK or WAIVED verdict bound
+  to the audited tree and target. A confirmed Critical or High finding blocks every target until it
+  is fixed, disproved or waived by the owner by name; for production, every unmet applicable
+  launch control also needs a named waiver. A production deploy of the commit staging already
+  passed reuses that audit with fresh advisories and production checks; a rollback to a gated
+  build needs no audit; an urgent fix ships under a named waiver with its full audit right after.
+  Production also needs independent acceptance; on dev and staging its absence is a plan item.
+- **Launch controls**: 32 security, privacy and compliance controls (`SEC-01` to `SEC-23`,
+  `CMP-01` to `CMP-09`): reset links, MFA and recovery, sessions, SSO/SAML/SCIM, object and
+  tenant isolation, impersonation, throttling, secrets rotation, package provenance, uploads,
+  CORS and headers, encryption, least privilege for agents, audit trails, penetration tests,
+  disclosure, lost devices, webhook signatures, AI safeguards, questionnaires, SOC 2, health
+  data, read audits, card scope, erasure, residency, access reviews and legal documents. The
+  IDs match the production-readiness catalog's delegated rows, so its import maps one to one.
+- A gate verdict record per commit and target (`<unit>/.scratch/security-gate/<commit>/<target>.json`,
+  one scalar per line, open blocker IDs included) that a readiness review can import without a
+  JSON parser.
+
+### Changed
+- `mneves-ship-deploy` runs the `mneves-security` gate in Phase 1 in place of the third-party
+  `security-audit` skill, after the other Phase 1 changes land; without it the release is blocked
+  until it is installed or the owner waives it. The decision packet carries the verdict, and
+  production promotion requires PASS or WAIVED for the promoted commit.
+- `mneves-ship-deploy` adds a dev stop: when a project documents a dev environment, both modes
+  deploy, prove and tag (`vX.Y.Z-alpha<N>`) the same commit on dev before staging.
+- `mneves-verify` routes security evidence to `mneves-security` and, for a release, to its
+  deploy-gate verdict.
 
 ## [1.34.1] - 2026-10-13
 

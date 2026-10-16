@@ -159,4 +159,49 @@ with tempfile.TemporaryDirectory(prefix='skills-build-site-') as scratch:
             print(f'PASS: reject {label}')
         else:
             raise AssertionError(f'guide accessibility guard accepted {label}')
+
+    # The active-content guard, through the real generator: each payload appended to a copy of
+    # HOWTO.md must stop the build before site/howto.html is written. Several of them are read as
+    # inert by Python's parser but expose an event handler to a browser's HTML5 parser.
+    active_payloads = {
+        'noscript parser confusion': '<noscript><p title="</noscript><img src=x onerror=alert(1)>"></noscript>',
+        'xmp parser confusion': '<xmp><p title="</xmp><img src=x onerror=alert(1)>"></xmp>',
+        'CDATA read as a bogus comment': '<![CDATA[><img src=x onerror=alert(1)>]]>',
+        'abruptly closed comment': '<!--><img src=x onerror=alert(1)>-->',
+        'comment closed by --!>': '<!-- --!><img src=x onerror=alert(1)> -->',
+        'processing instruction': '<?php echo 1; ?>',
+        'declaration': '<!DOCTYPE html>',
+        'markup left as text': '<div>\n1 < 2\n</div>',
+        'javascript: in a non-URL attribute': '<p data-x="javascript:alert(1)">x</p>',
+        'entity-encoded javascript: URL': '<a href="&#106;avascript:alert(1)">x</a>',
+        'data: URL': '<a href="data:text/html,x">x</a>',
+        'event handler': '<p onclick="alert(1)">x</p>',
+        'attribute outside the accepted set': '<p style="color:red">x</p>',
+        'unknown element with attributes': '<task hidden>x</task>',
+    }
+    for element in ('script', 'style', 'textarea', 'title', 'xmp', 'plaintext', 'iframe', 'noembed',
+                    'noframes', 'noscript', 'template', 'svg', 'math', 'object', 'embed'):
+        active_payloads[f'<{element}> element'] = f'<{element}>x</{element}>'
+    howto = (source / 'HOWTO.md').read_text()
+    output = target / 'site/howto.html'
+
+    def build_with(extra):
+        (target / 'HOWTO.md').write_text(f'{howto}\n\n{extra}\n')
+        output.unlink(missing_ok=True)
+        return subprocess.run(['bash', 'tools/scripts/build-site.sh'], cwd=target, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+
+    accepted = []
+    for label, payload in active_payloads.items():
+        result = build_with(payload)
+        if result.returncode == 0 or output.exists() or 'check-html-active:' not in result.stdout:
+            accepted.append(label)
+        else:
+            print(f'PASS: reject {label}')
+    assert not accepted, f'the build accepted active HTML: {accepted}'
+    safe = ('Prose that mentions javascript: and data: URLs, the `<noscript>` element and an '
+            '`onclick=` handler.\n\n```html\n' + '\n'.join(active_payloads.values()) + '\n```')
+    result = build_with(safe)
+    assert result.returncode == 0 and output.exists(), f'the build rejected prose and code:\n{result.stdout}'
+    print('PASS: prose and code that only mention active HTML still build')
 PY

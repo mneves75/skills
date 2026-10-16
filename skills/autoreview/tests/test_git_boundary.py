@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from unittest import mock
 
-from .test_autoreview_hardening import SCRIPT, git, init_repo, load_helper
+from .test_autoreview_hardening import SCRIPT, git, init_repo, load_helper, write_executable
 
 
 ORACLE_TOOLS = runpy.run_path(str(SCRIPT.with_name("test-review-harness.py")))
@@ -400,6 +400,72 @@ class DeveloperGitBoundaryTests(unittest.TestCase):
                     self.assertIn("untrusted", result.stderr)
                     self.assertNotIn("scoped-clean", result.stdout + result.stderr)
                     self.assertFalse(marker.exists())
+
+
+class RelocatedWorkTreeBoundaryTests(unittest.TestCase):
+    """Local Git metadata cannot move the executable-exclusion boundary."""
+
+    @staticmethod
+    def plant_git(directory: Path, marker: Path) -> None:
+        directory.mkdir(parents=True, exist_ok=True)
+        write_executable(directory / "git", f"#!{sys.executable}\nfrom pathlib import Path\n"
+                                            f"Path({str(marker)!r}).touch()\nraise SystemExit(1)\n")
+
+    @unittest.skipIf(os.name == "nt", "POSIX executable fixture")
+    def test_relocated_work_tree_cannot_run_original_checkout_executables(self):
+        for relocation in ("core.worktree", "gitdir file", "gitdir as working directory"):
+            with self.subTest(relocation=relocation), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary).resolve()
+                elsewhere = root / "elsewhere"
+                elsewhere.mkdir()
+                if relocation == "gitdir as working directory":
+                    checkout = root / "metadata"
+                    git(root, "init", "-q", "--bare", str(checkout))
+                    git(checkout, "config", "core.bare", "false")
+                else:
+                    checkout = init_repo(root)
+                    (checkout / "tracked.txt").write_text("tracked\n")
+                    git(checkout, "add", ".")
+                    git(checkout, "commit", "-qm", "fixture")
+                    if relocation == "gitdir file":
+                        (checkout / ".git").rename(root / "admin.git")
+                        (checkout / ".git").write_text(f"gitdir: {root / 'admin.git'}\n")
+                git(checkout, "config", "core.worktree", str(elsewhere))
+                marker = root / "original-checkout-git-ran"
+                self.plant_git(checkout / "bin", marker)
+                env = {key: value for key, value in os.environ.items() if key in {"TMPDIR", "TEMP", "TMP"}}
+                env.update({"PATH": f"{checkout / 'bin'}{os.pathsep}{os.environ['PATH']}", "HOME": str(root)})
+                result = subprocess.run(
+                    [sys.executable, str(SCRIPT), "--mode", "local", "--dry-run"],
+                    cwd=checkout, env=env, text=True, capture_output=True, timeout=60,
+                )
+                self.assertFalse(marker.exists(), result.stdout + result.stderr)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("relocated Git work tree", result.stderr)
+
+    @unittest.skipIf(os.name == "nt", "POSIX executable fixture")
+    def test_linked_worktree_keeps_its_own_root_and_exclusion(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary).resolve()
+            main = init_repo(root)
+            (main / "tracked.txt").write_text("tracked\n")
+            git(main, "add", ".")
+            git(main, "commit", "-qm", "fixture")
+            linked = root / "linked"
+            git(main, "worktree", "add", "-q", str(linked))
+            nested = linked / "nested"
+            nested.mkdir()
+            self.plant_git(linked / "bin", root / "linked-git-ran")
+            helper = load_helper()
+            previous = Path.cwd()
+            try:
+                os.chdir(nested)
+                with mock.patch.dict(os.environ, {"PATH": f"{linked / 'bin'}{os.pathsep}{os.environ['PATH']}"}):
+                    repo = helper["repo_root"]()
+                    self.assertEqual(repo, linked)
+                    self.assertNotEqual(Path(helper["find_command"]("git", repo)).parent, linked / "bin")
+            finally:
+                os.chdir(previous)
 
 
 if __name__ == "__main__":

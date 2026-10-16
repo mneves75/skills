@@ -2,32 +2,32 @@
 name: mneves-ship-deploy
 description: "Use for `ship-staging`, `ship-prod`, or an explicit staging/production deployment request for a project you own. Runs review, release preparation, deployment, and verification. Plain `ship` does not invoke this skill or authorize external writes."
 license: Apache-2.0
-compatibility: The procedure needs only Git. The optional contract check (`scripts/release-contract-check.py`) needs Python 3.11+. The reference release scripts in `assets/` need bash 3.2+, git, curl, sed, awk and the Wrangler version the project pins.
+compatibility: The procedure needs only Git. The optional contract check (`scripts/release-contract-check.py`) needs Python 3.11+. The reference release scripts in `assets/` need bash 3.2+, git, curl, sed, awk, python3 and the Wrangler version the project pins.
 ---
 
 # Ship Staging / Prod
 
 The release closeout chain for the user's own projects has two explicit modes:
 
-- `ship-staging` runs through a verified staging deployment and stops before production.
-- `ship-prod` prepares and verifies staging, then waits for the user's explicit OK for the exact candidate and production target before any production action.
+- `ship-staging` runs through a verified staging deployment (after a verified dev deployment, when the project has a dev environment) and stops before production.
+- `ship-prod` prepares and verifies dev (when the project has one) and staging, then waits for the user's explicit OK for the exact candidate and production target before any production action.
 
 Plain `ship` has no special meaning and grants no release, deploy, push, or pull authority.
 
-This is an orchestrator. Prefer the installed review and deployment skills named below. They are optional integrations, not bundled dependencies: if one is unavailable, use the repository's documented commands for that phase and preserve the same gates, authorization boundaries, and evidence. If no safe documented equivalent exists, report the missing capability and stop that phase.
+This is an orchestrator. Prefer the installed review and deployment skills named below. They are optional integrations, not bundled dependencies: if one is unavailable, use the repository's documented commands for that phase and preserve the same gates, authorization boundaries, and evidence. If no safe documented equivalent exists, report the missing capability and stop that phase. The security gate in Phase 1 is the exception: it has no substitute.
 
 ## Approval policy
 
 Within the requested release scope:
 
-- **Staging is authorized:** run authorized reviews, apply verified in-scope corrections, complete required gates, and deploy to the established staging target without a separate confirmation, regardless of complexity. `ship-staging` still stops before production.
+- **Dev and staging are authorized:** run authorized reviews, apply verified in-scope corrections, complete required gates, and deploy to the established dev and staging targets without a separate confirmation, regardless of complexity. `ship-staging` still stops before production.
 - **Production always waits for explicit OK:** before any production tag, push, deployment, or promotion, present the exact repository, commit, version, production target, staging evidence, material risks, and rollback plan. Wait for the user's explicit approval of that candidate and target. `ship-prod` alone does not grant this approval. If approval of the exact candidate and target already exists, do not ask again.
 
 `autoreview` is a review gate, not a human approval step. Follow its existing authorization requirements for the selected content and review destination; when that authorization already exists, run it without asking again. Preserve its secret-scanning and isolation controls. This policy grants no new authorization to disclose private data.
 
 Staging authorization does not waive required gates or authorize destructive operations, credential access, separate publication, or an unspecified deployment target. Missing required input and failed gates remain blockers.
 
-**One decision packet.** A gate that cannot pass (an advisory with no patched release, a tool that cannot run here) becomes one request to the user, sent as soon as it is known: the candidate (repository, commit, version), the target, each failing gate as a named waiver with its reason, and the rollback plan. Keep running every other gate while you wait. An approval of the packet approves exactly the waivers it lists; record them in the release evidence.
+**One decision packet.** A gate that cannot pass (an advisory with no patched release, a tool that cannot run here) becomes one request to the user, sent as soon as it is known: the candidate (repository, commit, version), the target, each failing gate as a named waiver with its reason, the security gate verdict with each block it asks the owner to waive, and the rollback plan. Keep running every other gate while you wait. An approval of the packet approves exactly the waivers it lists; record them in the release evidence.
 
 ## Do not invoke when
 
@@ -53,7 +53,7 @@ Then establish, without guessing:
    | `wrangler.toml` / `wrangler.jsonc` | `cloudflare-deploy` skill, when installed, or the repository's documented Cloudflare deployment command. Read [references/cloudflare.md](references/cloudflare.md) before the first deploy. |
    | `eas.json` + Expo app | `eas-app-stores` skill, when installed, or the repository's documented store workflow (staging = TestFlight / internal track) |
    | `docker-compose.yml`, deploy script, VPS host in repo docs | repo's own deploy script; use `vps-setup` for host work only when installed and authorized. Read [references/vps.md](references/vps.md) before the first deploy. |
-5. **Staging environment** — required for both modes. If none exists, say so and ask whether to run beta-tag-only for `ship-staging`; never skip staging and never invent a staging URL.
+5. **Staging environment** — required for both modes. If none exists, say so and ask whether to run beta-tag-only for `ship-staging`; never skip staging and never invent a staging URL. A dev environment is optional: when the repository documents one (deploy command, URL, health check), it becomes the first stop (see Dev stop); never invent one.
 6. **Release contract** — `scripts/release.sh` and `scripts/verify-live.sh`, when the repository has them, are the entry points for Phases 4 and 5: start with `scripts/release.sh <target> --check`, which prints the plan and builds, deploys and tags nothing. The checker ships in this skill's own folder, next to this file: run `python3 <skill folder>/scripts/release-contract-check.py <repo>` when Python 3.11+ is available and report each `FAIL`. Read [references/release-contract.md](references/release-contract.md) when an entry point is missing or a check fails.
 7. **Readiness ledger** — the production-readiness ledger (`docs/readiness/ledger.md`, or where the repository docs say), its stage, baseline age and each target's last assessed commit. Without a ledger, the first readiness gate runs a baseline.
 
@@ -64,7 +64,7 @@ Report the seven findings in one short paragraph before doing anything mutating.
 Run in order, fixing what each surfaces before moving on:
 
 1. `autoreview` — pre-commit code review, when installed; otherwise use the repository's documented independent review gate. Run automatically when its content and destination are already authorized; do not pause for redundant confirmation. Keep the review bounded: one review and one rerun after accepted corrections. Verify findings and apply in-scope corrections automatically. Unresolved actionable findings block the release; report them rather than repeating the same review indefinitely.
-2. `security-audit` — evidence-based; every finding needs `file:line` + snippet. Block the release on anything exploitable.
+2. **Security gate** (mandatory in both modes) — the separately installed `mneves-security` skill in deploy-gate mode: a full security, privacy and compliance audit with a fix plan and a PASS, BLOCK or WAIVED verdict for the exact commit and each target. Run it last, after steps 1 and 3, the build gates and Phase 2 have landed their changes, so it audits the final release content; it binds by tree hash to the release commit before any push, merge or tag that deploys it, and any later change to the tree is a new candidate with a new audit. Its verdict rules decide what blocks; a block clears only by a fix, disproof, or the owner's named waiver in the decision packet. One audit serves every target of the same tree; production runs the gate's reuse pass before promotion. Its runtime checks belong in `scripts/verify-live.sh` (or the live proof a project uses), so they pass before any tag, and each tag message records the verdict (`security gate: PASS`, or `WAIVED` with the waived IDs). Without the skill, the release is blocked until it is installed (`npx skills@latest add mneves75/skills --skill mneves-security -g -y`) or the owner waives the gate by name; no other review substitutes for it.
 3. `improve` (deep pass) — read-only survey producing prioritized plans. Land only what is in scope for this release; everything else becomes a named follow-up, not silent work.
 4. `mneves-production-readiness` — the provisional readiness assessment, when installed; otherwise the repository's documented readiness review. Fix the in-scope blockers it finds, commit ledger changes with the release, and carry the rest of its plan as named follow-ups. It never relaxes another gate; its open production blockers join the decision packet as named waivers.
 5. If Phase 1 uncovers work too large for this session, use the host's native task/goal facility only when the user requests that workflow; otherwise report the remaining work. Keep it within the authorized release scope.
@@ -95,6 +95,21 @@ If the repo works PR-first, open the PR (`gh pr create`) and land it rather than
 
 Land the PR only when authorized and when its merge does not bypass the production approval boundary.
 
+## Dev stop (projects with a dev environment)
+
+When preflight found a dev environment, it is the first stop of both modes, before Phase 4. The
+order is the same as staging: deploy the pushed commit, prove it live with the Phase 4 step 2
+assertions and the security gate's runtime checks, then tag it.
+
+```bash
+git tag -a vX.Y.Z-alpha<N> <commit> -m "vX.Y.Z-alpha<N> — dev; security gate: PASS" && git push origin vX.Y.Z-alpha<N>
+```
+
+`alpha` keeps SemVer order: dev before staging (`beta`) before production. `<N>` counts verified
+dev builds of the target version; a failed proof gets no tag. Use `scripts/release.sh dev` only
+when the repository's script supports that target; otherwise use its documented dev command.
+Staging then deploys the same commit. Dev needs no separate confirmation, like staging.
+
 ## Phase 4 — Staging (`vX.Y.Z-beta<N>`)
 
 Order: deploy the pushed commit, prove it live, then tag. A tag names bytes that were served and checked.
@@ -106,7 +121,7 @@ First bind readiness: run the readiness gate for `staging` on the exact pushed c
 3. **Tag** the verified commit:
 
 ```bash
-git tag -a vX.Y.Z-beta<N> <commit> -m "vX.Y.Z-beta<N> — staging" && git push origin vX.Y.Z-beta<N>
+git tag -a vX.Y.Z-beta<N> <commit> -m "vX.Y.Z-beta<N> — staging; security gate: PASS" && git push origin vX.Y.Z-beta<N>
 ```
 
 For `ship-prod`, then run the readiness gate for `production` on the same commit, with the same fallback. A production record never reuses the staging one; its verdict and open blockers go into the candidate presented for approval.
@@ -115,11 +130,11 @@ For `ship-prod`, then run the readiness gate for `production` on the same commit
 
 ## Mode stop — `ship-staging`
 
-After staging is verified, present what changed, the beta tag, the staging target and evidence, and anything unverified. Then stop. Do not promote or ask a trailing production question.
+After staging is verified, present what changed, the alpha tag (with a dev stop) and the beta tag, the dev and staging targets and evidence, and anything unverified. Then stop. Do not promote or ask a trailing production question.
 
 ## Production authorization — `ship-prod`
 
-`ship-prod` requests preparation for production; it does not by itself authorize Phase 5. Finish Phases 1–4, present the candidate under the Approval policy, and wait for the user's explicit OK before any production action. Do not request that approval again if it already covers the exact candidate and target. Before promotion, prove that staging is healthy and serves the exact commit being tagged for production. If `ship-prod` starts from scratch, run Phases 1–4 first. If it follows a prior `ship-staging`, re-check the deployed commit and staging health without redeploying an unchanged healthy build.
+`ship-prod` requests preparation for production; it does not by itself authorize Phase 5. Finish Phases 1–4 (with the dev stop when the project has one), present the candidate under the Approval policy, and wait for the user's explicit OK before any production action. Do not request that approval again if it already covers the exact candidate and target. Before promotion, prove that staging is healthy and serves the exact commit being tagged for production, and that the security gate verdict for that commit and the production target is PASS or WAIVED. If `ship-prod` starts from scratch, run Phases 1–4 first. If it follows a prior `ship-staging`, re-check the deployed commit and staging health without redeploying an unchanged healthy build.
 
 Any repository, commit, version, environment, or target mismatch invalidates the authorization: stop and present the mismatch before mutating production.
 
@@ -130,7 +145,7 @@ Enter this phase only after the user's explicit OK for the exact candidate and p
 Same order as staging: deploy the commit staging serves, prove it live with the same assertions, then tag. Deploy only with a valid production readiness record for that commit. After the owner grants readiness waivers, or if the record expired while you waited, run the production gate again on the same commit so the record lists the waivers, and present any change.
 
 ```bash
-git tag -a vX.Y.Z <commit> -m "vX.Y.Z" && git push origin vX.Y.Z
+git tag -a vX.Y.Z <commit> -m "vX.Y.Z; security gate: PASS" && git push origin vX.Y.Z
 ```
 
 Then:

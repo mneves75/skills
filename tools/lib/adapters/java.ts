@@ -13,7 +13,6 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { $ } from "bun";
 import {
 	type CheckContext,
 	type CheckResult,
@@ -21,8 +20,8 @@ import {
 	dirExists,
 	fileExists,
 	readText,
-	runWithTimeout,
 } from "../check-registry.js";
+import { runCommand } from "../command.js";
 import { createLanguageAdapter } from "./base.js";
 
 // ============================================================================
@@ -140,7 +139,7 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 	"no-lint-ignores": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
 			// Check for @SuppressWarnings annotations
-			const result = await $`grep -r "@SuppressWarnings" --include="*.java" ${ctx.app.path} 2>/dev/null | wc -l`.quiet();
+			const result = await runCommand()`grep -r "@SuppressWarnings" --include="*.java" ${ctx.app.path} 2>/dev/null | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return {
 				pass: count < 20,
@@ -181,15 +180,9 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 
 		try {
 			if (buildSystem.type === "maven") {
-				await runWithTimeout(
-					$`cd ${ctx.app.path} && mvn compile -q 2>&1`.quiet(),
-					180000,
-				);
+				await runCommand(180000)`cd ${ctx.app.path} && mvn compile -q 2>&1`;
 			} else {
-				await runWithTimeout(
-					$`cd ${ctx.app.path} && ./gradlew compileJava -q 2>&1`.quiet(),
-					180000,
-				);
+				await runCommand(180000)`cd ${ctx.app.path} && ./gradlew compileJava -q 2>&1`;
 			}
 			return { pass: true, details: "Compilation clean" };
 		} catch {
@@ -276,9 +269,9 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 
 		try {
 			if (buildSystem.type === "maven") {
-				await $`cd ${ctx.app.path} && mvn dependency:resolve -q 2>&1`.quiet();
+				await runCommand()`cd ${ctx.app.path} && mvn dependency:resolve -q 2>&1`;
 			} else {
-				await $`cd ${ctx.app.path} && ./gradlew dependencies --quiet 2>&1`.quiet();
+				await runCommand()`cd ${ctx.app.path} && ./gradlew dependencies --quiet 2>&1`;
 			}
 			return { pass: true, details: "Dependencies resolved" };
 		} catch {
@@ -299,15 +292,9 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 
 		try {
 			if (buildSystem.type === "maven") {
-				await runWithTimeout(
-					$`cd ${ctx.app.path} && mvn package -DskipTests -q 2>&1`.quiet(),
-					300000,
-				);
+				await runCommand(300000)`cd ${ctx.app.path} && mvn package -DskipTests -q 2>&1`;
 			} else {
-				await runWithTimeout(
-					$`cd ${ctx.app.path} && ./gradlew build -x test -q 2>&1`.quiet(),
-					300000,
-				);
+				await runCommand(300000)`cd ${ctx.app.path} && ./gradlew build -x test -q 2>&1`;
 			}
 			return { pass: true, details: "Build succeeded" };
 		} catch {
@@ -370,7 +357,7 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 		}
 
 		try {
-			const result = await $`find ${ctx.app.path} -name "*Test.java" -o -name "*Tests.java" -o -name "*IT.java" 2>/dev/null | head -1`.quiet();
+			const result = await runCommand()`find ${ctx.app.path} -name "*Test.java" -o -name "*Tests.java" -o -name "*IT.java" 2>/dev/null | head -1`;
 			if (result.text().trim().length > 0) {
 				return { pass: true, details: "Test files found" };
 			}
@@ -394,15 +381,9 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 
 		try {
 			if (buildSystem.type === "maven") {
-				await runWithTimeout(
-					$`cd ${ctx.app.path} && mvn test -q 2>&1`.quiet(),
-					300000,
-				);
+				await runCommand(300000)`cd ${ctx.app.path} && mvn test -q 2>&1`;
 			} else {
-				await runWithTimeout(
-					$`cd ${ctx.app.path} && ./gradlew test -q 2>&1`.quiet(),
-					300000,
-				);
+				await runCommand(300000)`cd ${ctx.app.path} && ./gradlew test -q 2>&1`;
 			}
 			return { pass: true, details: "All tests pass" };
 		} catch {
@@ -421,7 +402,7 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 
 		// Check for IT suffix files
 		try {
-			const result = await $`find ${appPath} -name "*IT.java" 2>/dev/null | head -1`.quiet();
+			const result = await runCommand()`find ${appPath} -name "*IT.java" 2>/dev/null | head -1`;
 			if (result.text().trim().length > 0) {
 				return { pass: true, details: "*IT.java files found" };
 			}
@@ -499,15 +480,9 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 		const start = Date.now();
 		try {
 			if (buildSystem.type === "maven") {
-				await runWithTimeout(
-					$`cd ${ctx.app.path} && mvn test -q 2>&1`.quiet(),
-					300000,
-				);
+				await runCommand(300000)`cd ${ctx.app.path} && mvn test -q 2>&1`;
 			} else {
-				await runWithTimeout(
-					$`cd ${ctx.app.path} && ./gradlew test -q 2>&1`.quiet(),
-					300000,
-				);
+				await runCommand(300000)`cd ${ctx.app.path} && ./gradlew test -q 2>&1`;
 			}
 			const elapsed = Date.now() - start;
 			return {
@@ -525,7 +500,7 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 
 	"console-logs-minimal": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
-			const result = await $`grep -r "System.out.print\\|System.err.print" --include="*.java" ${ctx.app.path} 2>/dev/null | wc -l`.quiet();
+			const result = await runCommand()`grep -r "System.out.print\\|System.err.print" --include="*.java" ${ctx.app.path} 2>/dev/null | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return {
 				pass: count < 20,
@@ -550,7 +525,7 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 		}
 
 		try {
-			const result = await $`grep -r "mvn test\\|gradle.*test\\|./gradlew test" ${workflowsDir} 2>/dev/null | wc -l`.quiet();
+			const result = await runCommand()`grep -r "mvn test\\|gradle.*test\\|./gradlew test" ${workflowsDir} 2>/dev/null | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return { pass: count > 0, details: count > 0 ? "Tests in CI" : "No tests in CI" };
 		} catch {
@@ -571,7 +546,7 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 
 		if (buildSystem.type === "gradle") {
 			try {
-				const result = await $`cd ${ctx.app.path} && ./gradlew tasks --quiet 2>&1 | head -20`.quiet();
+				const result = await runCommand()`cd ${ctx.app.path} && ./gradlew tasks --quiet 2>&1 | head -20`;
 				const tasks = result.text().split("\n").filter((l) => l.trim()).length;
 				return { pass: true, details: `${tasks}+ Gradle tasks` };
 			} catch {
@@ -625,7 +600,7 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 	"inline-docs": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
 			// Check for Javadoc comments
-			const result = await $`grep -r "/\\*\\*" --include="*.java" ${ctx.app.path} 2>/dev/null | wc -l`.quiet();
+			const result = await runCommand()`grep -r "/\\*\\*" --include="*.java" ${ctx.app.path} 2>/dev/null | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return {
 				pass: count > 10,

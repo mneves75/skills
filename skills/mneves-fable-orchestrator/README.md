@@ -12,9 +12,10 @@ Delegate only when the work is independent, substantial, and objectively verifia
 | Frontend executor | Frontend subagents (model per the Defaults block) | UI components, styling, layout, visual polish |
 | Ordinary worker | A scoped worker (model per the Defaults block) | Routine implementation with checkable acceptance |
 | Bounded worker | A scoped worker (model per the Defaults block) | Search, writing, and mechanical changes with a narrow result |
-| Heavy executor | Codex via `codex exec` / `codex-lane` (model per the Defaults block) | Difficult debugging, architecture, and refactors |
-| Plan advisor | A read-only Codex run (model per the Defaults block) | Review of the Claude main session's plan before a decision with real downside |
-| Reviewer | `autoreview` or a read-only Codex run (model per the Defaults block) | Independent review of a fixed Git target |
+| Heavy executor | A Claude subagent, or Codex via `codex exec` / `codex-lane` (model per the Defaults block) | Difficult debugging, architecture, and refactors |
+| Planner | A read-only Claude subagent or Codex run (model per the Defaults block) | The plan, before implementation |
+| Plan advisor | Claude's native advisor or a read-only Codex run (model per the Defaults block) | Review of the main session's plan before a decision with real downside |
+| Reviewer | A read-only Claude subagent, `autoreview`, or a read-only Codex run (model per the Defaults block) | Independent review of a fixed Git target, never by the model that built it |
 | Long-horizon driver | A lane, a checked-in plan file, or your harness's long-task mechanism | User-requested multi-phase work driven to its stopping condition |
 
 ## Continuity is the whole game
@@ -68,8 +69,10 @@ thread instead of re-specifying it: `codex-lane adopt api-rls <thread-id> [cwd]`
 - The binding is flag-level: `-C` is refused, but a `-c` override given at `start` can still
   change policy, so choose start arguments deliberately. Stored args are re-validated on every
   `next`, so a hand-edited state file cannot smuggle in a refused flag.
-- Artifacts are never pruned; after `drop`, delete `$CODEX_LANE_DIR/<lane>.*` yourself. A lane
-  directory that grants other users any access is refused.
+- Artifacts are never pruned. A lane owns `<lane>.json` and, per run,
+  `<lane>.<UTC stamp>.<pid>.jsonl`, `.last.txt` and `.stderr.log`; after `drop`, delete exactly
+  those names yourself, never a `<lane>.*` glob, which also matches dotted lanes such as
+  `job.extra`. A lane directory that grants other users any access is refused.
 - `fork <lane> <new-lane> <prompt|->` branches the thread (`codex exec fork`) into a new lane with
   the same cwd and policy; the source lane is never written. Compare the two lanes' diffs on the
   same evidence, keep one, `drop` the other.
@@ -92,8 +95,10 @@ the full model transcript for the job.
 
 - **Claude Code** with subagent support (`Agent` tool), or any harness that can spawn a
   fresh-context worker
-- **[Codex CLI](https://github.com/openai/codex)** installed and authenticated, for the
-  heavy-executor path, plus `bash` and `python3` for `codex-lane`. The `/codex:rescue` command
+- **[Codex CLI](https://github.com/openai/codex)** installed and authenticated, for the Codex
+  paths (heavy executor, planner, plan advisor, reviewer), plus `bash` and `python3` for
+  `codex-lane`. Without Codex, the Claude seats of the Defaults block cover every role except the
+  specialist, which is Codex-only. The `/codex:rescue` command
   from the openai-codex plugin is an equivalent front-end if you have that plugin; the routing
   rules apply either way. Set the shared Codex default from the skill's Defaults block. Preserve
   deliberate per-call specialist overrides. See `references/codex-dispatch.md` for flag

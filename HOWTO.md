@@ -28,7 +28,7 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 | `autoreview` | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
 | `mneves-handoff` | hand a task to another agent, review first | "handoff the flaky login test" |
 | `mneves-render` | build repeatable HTML, Word and PDF exports from Markdown | "write a renderer for my Markdown reports" |
-| `mneves-security` | audit security/privacy, plan remediation and apply authorized safe fixes | "audit security and privacy; fix confirmed local issues; do not deploy" |
+| `mneves-security` | audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy | "audit security and privacy; fix confirmed local issues; do not deploy" |
 | `mneves-production-readiness` | check an app is ready for paying customers before each staging or production deploy | "is this ready for production? give me the fix plan" |
 | `imagegen-frontend-mobile` | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
 | `mneves-chatgpt-search` | improve ChatGPT Search discovery and measure citations/referrals | "improve this site's ChatGPT Search visibility" |
@@ -56,6 +56,19 @@ AI/agentic/mobile checks when those surfaces exist.
 **When to use it.** You want an engineering security/privacy audit of an MVP, SaaS, API
 or AI application, or safe implementation of its confirmed remediation items. Audit
 and plan requests remain read-only; a fix request authorizes its in-scope local patches.
+
+**Deploy gate.** Every dev-stop, staging or production deploy runs it first, whatever starts
+the deploy (`ship-staging`, `ship-prod`, a release script, CI, TestFlight, an over-the-air
+update or a store upload). It
+audits the exact candidate in full: the twelve areas plus 32 launch controls (`SEC-01` to
+`SEC-23`, `CMP-01` to `CMP-09`). It returns a fix plan and a PASS, BLOCK or WAIVED verdict
+for that commit and target. A confirmed Critical or High finding blocks every target until
+it is fixed, disproved or waived by you by name; for production, every unmet applicable
+launch control and a missing independent acceptance also need your named waiver. One audit
+serves every target of the same commit, a rollback to a gated build needs none, and an urgent
+fix ships under your waiver with its audit right after. Without the skill, a release is
+blocked until it is installed or you waive the gate. The report stays private; public PRs
+and changelogs cite only the verdict and finding IDs.
 
 **Illustrative request (Codex):**
 
@@ -228,7 +241,7 @@ real and well-shaped before changing anything. It names things by portable ancho
 issue and PR URLs, branch, module, symbol, exact error text) instead of filesystem paths, and
 forbids pushes, merges, and public comments unless you ask for them.
 
-**Triggers.** "handoff <task>", "write a handoff", "give me a prompt for another agent". For
+**Triggers.** "handoff `<task>`", "write a handoff", "give me a prompt for another agent". For
 work you dispatch into your own tree, use `mneves-fable-orchestrator`'s delegation brief instead.
 
 **Example** (illustrative).
@@ -421,11 +434,13 @@ the loop ends. Findings map to *fixed*, *disproved* or *blocked*, nothing else.
 ## mneves-fable-orchestrator
 
 **What it does.** Routes non-trivial work across the main session, Codex, and subagents when
-delegation creates independent progress or evidence. Planning and read-only advice use
-`gpt-6-astra` at `high`; all Codex execution, discovery, frontend work, specialist work and
-code review use `gpt-6.1-sol` at `xhigh`. Codex review has no automatic model fallback.
-Other harnesses bind these roles through Codex dispatch when available; the portable defaults
-do not change a running harness's main-session model. Caller overrides and actual host
+delegation creates independent progress or evidence. Building and reviewing run on different
+models: the main session and every worker build on Opus (Claude) or `gpt-6.1-sol` at `xhigh`
+(Codex); planning, plan advice and code review run on Fable (Claude, also the main session's
+advisor) or `gpt-6-astra` (Codex: `xhigh` to plan and advise, `high` to review), so the model
+that built a change never reviews it.
+Codex review has no automatic model fallback. The portable defaults do not change a running
+harness's main-session model. Caller overrides and actual host
 configuration take precedence; the skill's Defaults block owns its portable defaults.
 See [usage-efficiency.md](docs/usage-efficiency.md) for compact prompts and measurement limits.
 Before accepting delegated claims, check task/project/source identity, actual evidence and
@@ -486,7 +501,10 @@ fact with `codex-lane adopt <lane> <thread-id>`.
 context, making a change, verifying it and iterating. Nine pillars (style, build, testing,
 documentation, dev environment, observability, security, task discovery, product), fifty-plus
 checks, a percentage and a maturity level L1–L5. Ships with a Bun/TypeScript tool that runs
-locally and uploads nothing.
+locally and sends nothing about your repository anywhere. Some checks run the project's own
+build, lint and test tools through `/bin/sh` with a deadline; those tools may download
+packages and write build output. It needs a POSIX system (macOS or Linux) and a repository
+you trust.
 
 **Triggers.** "agent readiness", "why isn't the agent working well here", onboarding a repo,
 planning infrastructure work.
@@ -658,10 +676,13 @@ includes production tags and pushes.
 the authorized reviews and staging verification, presents the candidate, evidence, risks,
 and rollback plan, and waits for your OK before production. "ship-staging" stops after
 verified staging; plain "ship" does not select an environment or authorize deployment.
+When the project documents a dev environment, both modes deploy, prove and tag the same
+commit there first (`vX.Y.Z-alpha<N>`), then staging.
 
 Review and deployment integrations are optional. If a named skill is unavailable, the agent
 uses the repository's documented equivalent with the same gates, or reports the missing
-capability. Missing staging and failed gates remain blockers.
+capability. Missing staging and failed gates remain blockers. The security gate is the
+exception: without `mneves-security` it is BLOCKED until the skill is installed or you waive it.
 
 **Order.** The agent deploys the commit the remote already has, proves it live (served commit,
 health body, one request that must succeed and one that must be refused), and only then tags.

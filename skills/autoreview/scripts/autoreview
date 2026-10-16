@@ -149,6 +149,10 @@ MAX_REVIEW_PROMPT_BYTES = 512_000
 # command line at ~32,767 characters.
 KIMI_MAX_PROMPT_BYTES = 30_000 if os.name == "nt" else 120_000
 MAX_REVIEW_CHUNK_CONTEXT_BYTES = 64_000
+# Per-run paid-work budget, checked before the first provider call. The byte
+# default is that many full-size passes, so it binds once passes are raised.
+DEFAULT_MAX_REVIEW_PASSES = 20
+DEFAULT_MAX_REVIEW_INPUT_BYTES = DEFAULT_MAX_REVIEW_PASSES * MAX_REVIEW_PROMPT_BYTES
 
 
 class ReviewChunk(NamedTuple):
@@ -873,11 +877,74 @@ def redact_proxy_credentials(text: str) -> str:
     return pattern.sub("[REDACTED]", text) if pattern else text
 
 
+# Environment values hidden wherever they appear: the credential-shaped names
+# accepted for custom providers, the known provider keys, and allowlisted engine
+# secrets whose names lack those suffixes. Shorter values are indistinguishable
+# from prose and enum values, as with proxy passwords.
+REDACTED_CREDENTIAL_ENV_KEYS = MULTI_PROVIDER_CREDENTIAL_ENV_KEYS | {
+    "AWS_BEARER_TOKEN_BEDROCK",
+    "AZURE_CLIENT_SECRET",
+    "CLAUDE_CODE_CLIENT_KEY_PASSPHRASE",
+}
+MIN_REDACTED_CREDENTIAL_LENGTH = 8
+# Newline-separated "Name: Value" headers the engine sends; any value may carry a credential.
+CREDENTIAL_HEADER_ENV_KEYS = ("ANTHROPIC_CUSTOM_HEADERS",)
+
+
+def header_credentials(raw: str) -> set[str]:
+    values: set[str] = set()
+    for line in raw.splitlines():
+        _name, separator, value = line.partition(":")
+        value = value.strip() if separator else line.strip()
+        # An auth scheme ("Bearer <token>") also hides the bare token.
+        candidates = (value, *value.split(None, 1)[1:])
+        values.update(item.strip() for item in candidates
+                      if len(item.strip()) >= MIN_REDACTED_CREDENTIAL_LENGTH)
+    return values
+
+
+def environment_credentials() -> tuple[str, ...]:
+    values = {
+        value
+        for key, value in os.environ.items()
+        if len(value) >= MIN_REDACTED_CREDENTIAL_LENGTH
+        and (key in REDACTED_CREDENTIAL_ENV_KEYS or CUSTOM_PROVIDER_ENV_NAME_PATTERN.fullmatch(key))
+    }
+    for key in CREDENTIAL_HEADER_ENV_KEYS:
+        values.update(header_credentials(os.environ.get(key, "")))
+    return tuple(sorted(values))
+
+
+@functools.lru_cache(maxsize=8)
+def credential_value_pattern(values: tuple[str, ...]) -> re.Pattern[str] | None:
+    forms: set[str] = set()
+    for value in values:
+        forms.update((value, urllib.parse.quote(value, safe=""),
+                      json.dumps(value, ensure_ascii=True)[1:-1]))
+    if not forms:
+        return None
+    patterns = []
+    for form in sorted(forms, key=len, reverse=True):
+        escaped = re.escape(form)
+        escaped = re.sub(r"%[0-9a-fA-F]{2}", lambda match: "(?i:" + match[0] + ")", escaped)
+        patterns.append(escaped)
+    return re.compile("|".join(patterns))
+
+
+def redact_credentials(text: str) -> str:
+    """Hide provider credential values and proxy credentials from displayed or saved text."""
+    pattern = credential_value_pattern(environment_credentials())
+    if pattern:
+        text = pattern.sub("[REDACTED]", text)
+    return redact_proxy_credentials(text)
+
+
 def redact_proxy_report(value: Any) -> Any:
-    # Redact after validation, at serialization only. Keep the original report
-    # and exit-status decisions intact; never edit source snapshots or auth.
+    # Redact provider and proxy credentials after validation, at serialization
+    # only. Keep the original report and exit-status decisions intact; never
+    # edit source snapshots or auth.
     if isinstance(value, str):
-        return redact_proxy_credentials(value)
+        return redact_credentials(value)
     if isinstance(value, list):
         return [redact_proxy_report(item) for item in value]
     if isinstance(value, dict):
@@ -888,7 +955,8 @@ def redact_proxy_report(value: Any) -> Any:
 
 
 class ProxyRedactedOutput:
-    """Cover plain progress/error prints as well as the formatted reports."""
+    """Redact provider and proxy credentials from plain progress/error prints
+    as well as the formatted reports."""
 
     def __init__(self, stream: Any) -> None:
         self.stream = stream
@@ -913,7 +981,7 @@ class ProxyRedactedOutput:
                     continue
                 self.pending += part
                 if newline:
-                    self.stream.write(redact_proxy_credentials(self.pending) + "\n")
+                    self.stream.write(redact_credentials(self.pending) + "\n")
                     self.pending = ""
         return len(text)
 
@@ -932,7 +1000,7 @@ class ProxyRedactedOutput:
 
     def finish(self) -> None:
         with self.lock:
-            self.stream.write(redact_proxy_credentials(self.pending))
+            self.stream.write(redact_credentials(self.pending))
             self.pending = ""
             self.stream.flush()
 
@@ -1731,11 +1799,23 @@ def git_path_list(repo: Path, *args: str, check: bool = True) -> list[str]:
 
 def repo_root() -> Path:
     start = Path.cwd().resolve()
-    unsafe_root = discover_repo_root(start) or start
+    checkout = discover_repo_root(start)
+    unsafe_root = checkout or start
     result = git_result(unsafe_root, "rev-parse", "--show-toplevel", check=False)
     if result.returncode != 0:
         raise SystemExit("autoreview must run inside a git repository")
-    return Path(result.stdout.removesuffix("\n")).resolve()
+    root = Path(result.stdout.removesuffix("\n")).resolve()
+    # The returned root is the executable-exclusion boundary for every later
+    # lookup. Local metadata (core.worktree, a gitdir file, or a gitdir used as
+    # the working directory) can point Git elsewhere and leave this checkout's
+    # executables on PATH; normal checkouts and linked worktrees match.
+    if root != checkout:
+        raise SystemExit(
+            "refusing relocated Git work tree: Git resolves "
+            f"{display_escape(root, 500)} from {display_escape(unsafe_root, 500)}; "
+            "run autoreview from a checkout without core.worktree relocation"
+        )
+    return root
 
 
 def discover_repo_root(start: Path) -> Path | None:
@@ -2039,7 +2119,16 @@ def safe_trufflehog_env(repo: Path) -> dict[str, str]:
     return env
 
 
-def scan_outgoing_review_pack(repo: Path, prompt: str) -> None:
+def scan_outgoing_review_pack(repo: Path, prompt: str, verify_online: bool = False) -> None:
+    # Detector verification sends each candidate credential to its provider,
+    # so the default scan is offline and every detection blocks. Opt-in online
+    # verification keeps the verified/unknown filter: a provider-confirmed
+    # invalid credential then passes.
+    verification_args = (
+        ["--results=verified,unknown"]
+        if verify_online
+        else ["--no-verification", "--results=verified,unknown,unverified"]
+    )
     trufflehog_bin = find_command("trufflehog", repo)
     if not trufflehog_bin:
         raise SystemExit(
@@ -2062,7 +2151,7 @@ def scan_outgoing_review_pack(repo: Path, prompt: str) -> None:
                 result = run(
                     [
                         trufflehog_bin, *source_args,
-                        "--json", "--no-color", "--results=verified,unknown",
+                        "--json", "--no-color", *verification_args,
                         "--fail", "--fail-on-scan-errors", "--no-update",
                     ],
                     Path(tempdir),
@@ -2138,7 +2227,7 @@ def bounded_field(text: str, limit: int) -> str:
 
 def display_escape(text: object, limit: int, *, multiline: bool = False) -> str:
     parts: list[str] = []
-    for char in redact_proxy_credentials(str(text)):
+    for char in redact_credentials(str(text)):
         codepoint = ord(char)
         if multiline and char == "\n":
             parts.append(char)
@@ -4072,6 +4161,7 @@ def prepare_review_prompts(
     extra_prompt: str,
     datasets: list[ReviewDataset],
     max_prompt_bytes: int,
+    verify_online: bool = False,
 ) -> list[str] | list[ReviewPass]:
     prompts = build_review_prompts(
         repo, target, target_ref, bundle, extra_prompt, datasets, max_prompt_bytes,
@@ -4083,7 +4173,7 @@ def prepare_review_prompts(
         scan_outgoing_review_pack(repo, render_review_prompt(
             current_branch(repo), target, target_ref, chunk,
             extra_prompt, render_datasets(datasets),
-        ))
+        ), verify_online)
     return prompts
 
 
@@ -5251,7 +5341,7 @@ def run_codex(args: argparse.Namespace, repo: Path, prompt: str) -> str:
                 if index:
                     # The initial send was scanned by run_reviewer; a retry is
                     # a new provider invocation even with the same frozen pack.
-                    scan_outgoing_review_pack(repo, prompt)
+                    scan_outgoing_review_pack(repo, prompt, getattr(args, "verify_secrets_online", False))
                 result = run_with_heartbeat(
                     cmd,
                     review_root,
@@ -6658,6 +6748,16 @@ def positive_float(value: str) -> float:
     return parsed
 
 
+def positive_int(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a positive integer") from exc
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return parsed
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Bundle-driven AI code review.")
     parser.add_argument("--mode", choices=["auto", "local", "uncommitted", "branch", "commit"], default="auto")
@@ -6680,6 +6780,18 @@ def parse_args() -> argparse.Namespace:
         type=positive_float,
         default=os.environ.get("AUTOREVIEW_ENGINE_TIMEOUT_SECONDS"),
         help="Optional wall-clock limit for each reviewer process. Disabled by default. Env: AUTOREVIEW_ENGINE_TIMEOUT_SECONDS.",
+    )
+    parser.add_argument(
+        "--max-review-passes",
+        type=positive_int,
+        default=DEFAULT_MAX_REVIEW_PASSES,
+        help=f"Most review passes (provider requests, excluding access-failure retries) one run may send; a larger run is refused before the first call. Default: {DEFAULT_MAX_REVIEW_PASSES}.",
+    )
+    parser.add_argument(
+        "--max-review-input-bytes",
+        type=positive_int,
+        default=DEFAULT_MAX_REVIEW_INPUT_BYTES,
+        help=f"Most prompt bytes one run may send across all passes; a larger run is refused before the first call. Default: {DEFAULT_MAX_REVIEW_INPUT_BYTES} ({DEFAULT_MAX_REVIEW_PASSES} full {MAX_REVIEW_PROMPT_BYTES}-byte passes).",
     )
     parser.add_argument("--codex-bin", default=os.environ.get("CODEX_BIN", "codex"))
     parser.add_argument(
@@ -6722,6 +6834,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         default=os.environ.get("AUTOREVIEW_STREAM_ENGINE_OUTPUT") == "1",
         help="Stream review engine output while preserving buffered output for validation. Codex and Claude filter noisy tool/status chatter.",
+    )
+    parser.add_argument(
+        "--verify-secrets-online",
+        action="store_true",
+        help="Let TruffleHog send detected credentials to their providers for verification; provider-confirmed invalid credentials then do not block. Default: offline scan (no network call) in which every detection blocks, including during --dry-run.",
     )
     parser.add_argument("--require-finding", action="append", default=[], help="Require finding text to contain this substring.")
     parser.add_argument("--expect-findings", action="store_true", help="Treat findings as success; for harness acceptance tests.")
@@ -7042,12 +7159,17 @@ def dry_run_preflight(
         try:
             with PreparationProgress("bundle/evidence preparation and scan"):
                 threshold_extra_prompt = apply_finding_threshold_prompt(args, evidence.prompt)
+                verify_online = getattr(args, "verify_secrets_online", False)
                 prompts = prepare_review_prompts(
                     repo, target, target_ref, captured, threshold_extra_prompt,
                     evidence.datasets, max_prompt_bytes_for_reviewers(reviewers),
+                    verify_online,
                 )
+                enforce_review_budget(args, prompts)
                 for prompt in prompts:
-                    scan_outgoing_review_pack(repo, prompt.prompt if isinstance(prompt, ReviewPass) else prompt)
+                    scan_outgoing_review_pack(
+                        repo, prompt.prompt if isinstance(prompt, ReviewPass) else prompt, verify_online,
+                    )
             with PreparationProgress("evidence verification"):
                 verify_evidence(repo, evidence.files)
                 verify_mixed_sources(repo, captured.mixed)
@@ -7089,7 +7211,7 @@ def run_reviewer(
         raise SystemExit("mixed review requires owner-built pass metadata")
     outgoing = prompt.prompt if isinstance(prompt, ReviewPass) else prompt
     with PreparationProgress("outgoing pack scan and evidence verification"):
-        scan_outgoing_review_pack(repo, outgoing)
+        scan_outgoing_review_pack(repo, outgoing, getattr(args, "verify_secrets_online", False))
         verify_evidence(repo, evidence or [])
         verify_mixed_sources(repo, mixed)
     raw = run_engine(args, repo, outgoing)
@@ -7181,6 +7303,23 @@ def merge_chunk_reports(reports: list[tuple[str, dict[str, Any]]]) -> dict[str, 
     return report
 
 
+def enforce_review_budget(args: argparse.Namespace, prompts: list[str] | list[ReviewPass]) -> None:
+    """Refuse a run whose paid work exceeds the per-run budget, before any dispatch."""
+    max_passes = getattr(args, "max_review_passes", DEFAULT_MAX_REVIEW_PASSES)
+    if len(prompts) > max_passes:
+        raise SystemExit(
+            f"refusing to start review: {len(prompts)} review passes exceed the per-run budget "
+            f"of {max_passes}; narrow the target or raise --max-review-passes"
+        )
+    max_bytes = getattr(args, "max_review_input_bytes", DEFAULT_MAX_REVIEW_INPUT_BYTES)
+    total = sum(utf8_size(prompt.prompt if isinstance(prompt, ReviewPass) else prompt) for prompt in prompts)
+    if total > max_bytes:
+        raise SystemExit(
+            f"refusing to start review: {total} prompt bytes exceed the per-run budget "
+            f"of {max_bytes}; narrow the target or raise --max-review-input-bytes"
+        )
+
+
 def run_review_passes(
     args: argparse.Namespace,
     reviewers: list[argparse.Namespace],
@@ -7189,6 +7328,7 @@ def run_review_passes(
     changed_paths: set[str] | CapturedBundle,
     evidence: list[EvidenceFile] | None = None,
 ) -> list[tuple[str, ReviewResult]]:
+    enforce_review_budget(args, prompts)
     chunk_reports: list[tuple[str, ReviewResult]] = []
     for index, prompt in enumerate(prompts, start=1):
         if len(prompts) > 1:
@@ -7354,7 +7494,7 @@ def main_impl() -> int:
         extra_prompt = apply_finding_threshold_prompt(args, evidence.prompt)
         prompts = prepare_review_prompts(
             repo, target, target_ref, captured, extra_prompt, evidence.datasets,
-            max_prompt_bytes_for_reviewers(reviewers),
+            max_prompt_bytes_for_reviewers(reviewers), args.verify_secrets_online,
         )
     print(f"bundle: {utf8_size(captured.text)} bytes; review passes: {len(prompts)}", flush=True)
     with PreparationProgress("pre-review verification") as progress:

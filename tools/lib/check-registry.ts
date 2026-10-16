@@ -469,11 +469,22 @@ export async function readText(filepath: string): Promise<string | null> {
 export async function runWithTimeout<T>(
 	promise: Promise<T>,
 	timeoutMs: number,
+	cancel: () => Promise<void>,
 ): Promise<T> {
-	return Promise.race([
-		promise,
-		new Promise<T>((_, reject) =>
-			setTimeout(() => reject(new Error("Timeout")), timeoutMs),
-		),
-	]);
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	let timedOut = false;
+	try {
+		return await Promise.race([
+			promise,
+			new Promise<never>((_, reject) => {
+				timer = setTimeout(() => {
+					timedOut = true;
+					reject(new Error("Timeout"));
+				}, timeoutMs);
+			}),
+		]);
+	} finally {
+		clearTimeout(timer);
+		if (timedOut) await cancel();
+	}
 }

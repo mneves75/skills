@@ -159,6 +159,8 @@ const SKIP_DIRECTORIES = new Set([
 	"examples",
 ]);
 
+const MAX_WORKSPACE_LINE_LENGTH = 4096;
+
 // ============================================================================
 // Utility Functions
 // ============================================================================
@@ -211,12 +213,13 @@ async function detectWorkspaceConfig(
 			const lines = content.split("\n");
 			let inPackages = false;
 			for (const line of lines) {
+				if (line.length > MAX_WORKSPACE_LINE_LENGTH) continue;
 				if (line.trim().startsWith("packages:")) {
 					inPackages = true;
 					continue;
 				}
 				if (inPackages && line.trim().startsWith("-")) {
-					const pattern = line.replace(/^\s*-\s*['"]?/, "").replace(/['"]?\s*$/, "");
+					const pattern = line.replace(/^\s*-\s*['"]?/, "").trimEnd().replace(/['"]$/, "");
 					if (pattern) patterns.push(pattern);
 				} else if (inPackages && !line.match(/^\s/)) {
 					inPackages = false;

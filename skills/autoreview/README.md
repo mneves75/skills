@@ -30,6 +30,30 @@ Inputs are sent to the selected provider. Scanning credentials does not make pri
 data public; review only code you are authorized to send. An AI verdict is evidence to inspect,
 not a security guarantee. `--dry-run` checks preparation without contacting a reviewer.
 
+## Security model
+
+- **Untrusted input.** Repository content and model output are untrusted data. The reviewer
+  runs in an empty sandbox with read-only tools; a configuration that grants a write-capable
+  tool is refused. Text in the reviewed code cannot widen what the reviewer may do.
+- **What leaves the machine.** Only the selected review inputs, after the TruffleHog
+  credential scan, go to the provider you configure; its retention terms apply. The scan runs
+  offline and every detection blocks. `--verify-secrets-online` lets TruffleHog send detected
+  credentials to their providers for verification, so confirmed-invalid ones stop blocking.
+  `--dry-run` prepares the review without contacting anyone unless that flag is passed.
+- **Cost bounds.** Each run reviews one frozen target. A large change is split into chunks,
+  one provider request each, with every prompt capped at 512,000 bytes (lower for engines
+  with argument limits); retries cover access failures only, with no model fallback. A run
+  needing more than 20 passes or 10,240,000 prompt bytes in total is refused before the first
+  provider call; `--max-review-passes` and `--max-review-input-bytes` raise those limits. Hard
+  spending limits belong in the provider account.
+- **No irreversible actions.** The helper applies no fixes, pushes nothing and publishes
+  nothing; a person decides what to do with the findings.
+- **What it keeps.** Reports go only to output paths outside the reviewed repository. Proxy
+  credentials and provider credential values from the environment (`*_API_KEY`, `*_TOKEN`,
+  the known provider keys and each `ANTHROPIC_CUSTOM_HEADERS` value, eight characters or longer) are redacted from terminal output, error
+  messages and saved reports. Temporary files live in a temporary directory removed after the
+  run. Child process groups are terminated with bounded cleanup.
+
 ## Test
 
 For supported source changes, collect optional local `cccc` complexity evidence before

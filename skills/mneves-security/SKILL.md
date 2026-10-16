@@ -1,6 +1,6 @@
 ---
 name: mneves-security
-description: Audit application security and privacy against current OWASP guidance; use for evidence-backed remediation plans and authorized safe fixes in web, SaaS, API or AI projects.
+description: Audit application security and privacy against current OWASP guidance and gate every staging or production deploy; use for evidence-backed remediation plans, authorized safe fixes and the pre-deploy verdict.
 license: Apache-2.0
 ---
 
@@ -18,6 +18,9 @@ and data exposure over checklist volume. A clean scan does not prove a secure ap
 - **Fix or implement:** make confirmed, minimal, in-scope code/config changes and run
   non-destructive checks. Preserve unrelated edits, behavior and public contracts
   except where the agreed security/correctness fix requires a change.
+- **Deploy gate:** before any dev-stop, staging or production deployment, audit the
+  exact candidate in full and return a PASS, BLOCK or WAIVED verdict with its plan (see
+  [Deploy gate](#deploy-gate)). Read-only unless the release task also authorizes fixes.
 - **Delivery:** commits, pushes, PRs, tags, staging, store submissions, merges and
   production deployment follow the current task's exact authorization and the host's
   rules. Creating this skill or invoking an audit grants none of those actions.
@@ -42,6 +45,8 @@ procedure, without a required scanner or framework:
 
 - [Audit coverage](references/audit.md): read before auditing; covers all twelve areas
   and conditional AI/mobile controls. Track applicability for every area.
+- [Launch controls](references/launch-controls.md): read in deploy-gate mode and for any
+  launch-readiness question; 32 security, privacy and compliance controls with IDs.
 - [Primary sources](references/sources.md): read when selecting the current baseline
   and checking provider-specific assumptions. Refresh official editions on each run.
 - [Report contract](references/report.md): read when recording findings, planning
@@ -179,3 +184,63 @@ project's required version/changelog, stage task-owned paths, and follow its rel
 workflow. Choose staging/device/store targets from the actual stack and request, never
 from an assumed app type. Deployment proof, tags, cleanup and promotion obey the owning
 release procedure. Never auto-merge/deploy because an audit report is complete.
+
+## Deploy gate
+
+Run this mode before every deployment of an application, service, site or app build to a
+dev stop, staging or production, whatever starts it: a release command or script, a CI
+job, a push, merge or tag that deploys, a TestFlight or internal-track upload, an
+over-the-air update, or a store submission. Staging is any shared pre-production
+environment; a per-branch preview counts when the project uses it as staging or it can
+reach shared data or real users. A dev stop is the first target of a release chain that
+goes dev, staging, production. This skill gives no deploy a pass without a verdict for
+its exact commit and target.
+
+1. **Freeze the candidate.** Run the gate after every other release change, version and
+   documentation included, has landed, so it audits the final content. Record the
+   repository, version, unit, target and the audited tree hash (`git rev-parse
+   HEAD^{tree}` for committed content, `git write-tree` for staged content). The verdict
+   binds to every commit whose tree equals that hash, so a merge or squash that keeps the
+   tree keeps the verdict; record each deployed commit before any push, merge or tag that
+   deploys it. Any change to the tree, this gate's own fixes included, makes a new
+   candidate with a new full audit.
+2. **Audit in full.** Run Execution steps 1 to 4 over the candidate's entire first-party
+   source: all twelve areas and every applicable
+   [launch control](references/launch-controls.md). Mark each finding as introduced since
+   the last gated release or pre-existing. Apply only the fixes the release task
+   authorizes (Execution step 5); the rest goes into the plan.
+3. **Review independently** as in Execution step 6. Production needs independent
+   acceptance. On dev and staging, an unavailable reviewer is recorded as
+   `gate:independent-acceptance` in the plan and does not block.
+4. **Decide.** The gate blocks every target while a confirmed Critical or High finding is
+   open, or an area's source could not be inspected. Production also blocks while an
+   applicable launch control is not Yes or independent acceptance has not passed. Before
+   a deploy, configuration evidence meets a `runtime` control provisionally (for
+   production, so does the same tree's runtime evidence from an earlier target); the
+   live check after the deploy decides it. A fix, disproving evidence
+   or the owner's named waiver (owner, reason, expiry) in the release decision packet
+   clears a block. Waivers make the verdict WAIVED; no block makes it PASS. Medium and
+   lower findings, and launch-control gaps on dev and staging, go into the plan.
+5. **Record.** Write the verdict record and report as the report reference describes,
+   outside the tracked tree. The runtime checks (headers, cookies, CORS, TLS) belong in
+   the project's live proof (its `scripts/verify-live.sh` when it has one), so they run
+   after each deploy and before any tag. A failure there fails the release: no tag, then
+   fix forward or roll back by the release procedure. Each release tag's message records
+   the verdict (`security gate: PASS`, or `WAIVED` with the waived IDs).
+
+Reuse and exemptions:
+
+- One full audit per tree. A later target for the same tree (dev, then staging, then
+  production) reuses it: re-read the advisories, assess the launch controls whose
+  evidence depends on that target's environment, and run its runtime checks.
+- Rolling back needs no new audit when the build passed the gate for that target: its
+  release tag message records a PASS or WAIVED verdict, or a gate record names its commit.
+  A tag whose message lacks the verdict (a release script that writes its own message)
+  proves nothing. Any other build, including one released before the gate existed, needs
+  the owner's named waiver.
+- An urgent fix may deploy under the owner's named waiver (`gate:audit`). Its full audit
+  runs right after the deploy. A Critical or High finding there is the next fix, or the
+  owner decides to roll back.
+
+The report and record stay private. A public repository's PR, issue, tag, changelog or
+release notes cite only the verdict and finding IDs, never open vulnerability details.

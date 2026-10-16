@@ -23,7 +23,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── mneves-handoff/            # Discussion-first handoff prompt for another agent (MIT, adapted)
 │   ├── mneves-render/             # Project-local Markdown -> HTML, editable DOCX and PDF
 │   ├── mneves-production-readiness/ # Deploy gate: readiness ledger, verdict per target, fix plan (+ references/)
-│   ├── mneves-security/           # Security/privacy audit, safe fixes and evidence (+ references/)
+│   ├── mneves-security/           # Security/privacy audit, pre-deploy gate, safe fixes and evidence (+ references/)
 │   ├── mneves-fable-orchestrator/ # Model routing; Codex reference + tools/codex-lane (+ its test)
 │   ├── mneves-superaudit/         # Bounded audit-and-ship pass (+ references/)
 │   ├── mneves-ship-deploy/         # Deploy, prove live, then tag (+ references/, contract check, reference release scripts)
@@ -47,7 +47,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 
 ```bash
 cd tools && bun install                 # dev deps only (Biome, TypeScript, bun-types)
-bun run typecheck && bun run lint       # from tools/
+bun run typecheck && bun run lint && bun test   # from tools/
 ast-grep scan --config sgconfig.yml .   # from repo root
 bash .githooks/pre-commit.test          # hook e2e test
 bash skills/mneves-fable-orchestrator/tools/codex-lane.test   # codex-lane e2e against a fake codex (no quota)
@@ -55,6 +55,7 @@ python3 skills/mneves-ship-deploy/scripts/run-tests.py        # release contract
 bash skills/mneves-ship-deploy/assets/release-guards.test.sh  # reference release guards: throwaway repo, fake wrangler
 python3 tools/scripts/check-readiness-catalog.py  # readiness catalogs and preservation map: read-only
 bash tools/scripts/check-readiness-catalog.test   # planted-violation controls for the readiness catalog guard
+python3 skills/mneves-teach-back-srs/tests/test_srs_db.py    # SRS helper: concurrent reviews on a temporary database
 tools/scripts/check-defaults-block.sh   # model ids only inside the orchestrator's Defaults block, with its verified-on date
 bash tools/scripts/check-defaults-block.test   # planted-violation controls for that guard
 bun --bun tools/readiness-check.ts --format=html --output=report.html   # assess cwd

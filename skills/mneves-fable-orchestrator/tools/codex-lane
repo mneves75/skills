@@ -58,7 +58,10 @@
 # resume the thread (`thread/resume failed` on stderr, seen on very long
 # threads), `next` exits nonzero, says so on stderr, and does not print the
 # stale previous message -- start a fresh lane with a self-contained order.
-# Artifacts are never pruned; delete $CODEX_LANE_DIR/<lane>.* after `drop`.
+# Artifacts are never pruned. A lane owns <lane>.json and, per run,
+# <lane>.<UTC stamp>.<pid>.jsonl, .last.txt and .stderr.log (`log` prints the
+# current events file). To erase a lane, `drop` it, then delete exactly those
+# names. Never use a <lane>.* glob: dotted names (job, job.extra) share prefixes.
 
 set -euo pipefail
 

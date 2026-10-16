@@ -24,11 +24,11 @@ For compact task prompts, bounded retries and model routing, see
 | [mneves-expert-review](skills/mneves-expert-review/) | Scoped stress test: objective, first principles, relevant research, one combined challenge, distinct alternatives, improved deliverable |
 | [mneves-handoff](skills/mneves-handoff/) | Clipboard-ready, path-free prompt that hands a task to another agent for independent review and discussion first |
 | [mneves-render](skills/mneves-render/) | Build project-local Markdown renderers for HTML, editable DOCX and PDF, with shared design, tested starter templates and content/visual verification |
-| [mneves-security](skills/mneves-security/) | Evidence-backed security/privacy audit, ordered remediation and authorized safe fixes using current OWASP guidance, adversarial review and independent acceptance |
+| [mneves-security](skills/mneves-security/) | Evidence-backed security/privacy audit, ordered remediation, authorized safe fixes and the mandatory gate before every staging or production deploy, using current OWASP guidance, adversarial review and independent acceptance |
 | [mneves-production-readiness](skills/mneves-production-readiness/) | Gate staging and production deploys on production readiness: a ledger of evidence-backed controls (data, recovery, money, operations, ownership), a verdict per target and a detailed fix plan; security rows delegate to `mneves-security` |
 | [mneves-fable-orchestrator](skills/mneves-fable-orchestrator/) | Route ordinary, bounded and difficult work by capability; models live in one Defaults block; ships [`codex-lane`](skills/mneves-fable-orchestrator/tools/codex-lane) |
 | [mneves-superaudit](skills/mneves-superaudit/) | Bounded audit-and-ship pass: slop, performance, agent DX, PR triage — falsifiable completion criteria, existing authority and requested stops |
-| [mneves-ship-deploy](skills/mneves-ship-deploy/) | Deploy the pushed commit, prove it live, then tag; staging without redundant confirmation, explicit approval of the exact candidate before production; ships a release-contract check |
+| [mneves-ship-deploy](skills/mneves-ship-deploy/) | Deploy the pushed commit, prove it live, then tag, through dev (when present) and staging without redundant confirmation; explicit approval of the exact candidate before production; ships a release-contract check |
 | [mneves-teach-back-srs](skills/mneves-teach-back-srs/) | Spaced-repetition learning through codebase teach-back sessions (SM-2 + SQLite) |
 | [mneves-verify](skills/mneves-verify/) | Independent verification before done/fixed/shipped: fresh context checks the artifact against criteria, PASS/FAIL/BLOCKED |
 

@@ -80,6 +80,8 @@ jobs:
 
       - name: Readiness catalog (preservation map and planted violations)
         run: bash tools/scripts/check-readiness-catalog.test
+      - name: SRS helper (concurrent reviews, temporary SQLite)
+        run: python3 skills/mneves-teach-back-srs/tests/test_srs_db.py
 
       - name: Model ids live only in the orchestrator's Defaults block
         run: |
@@ -112,6 +114,7 @@ jobs:
           bun install --frozen-lockfile
           bun run typecheck
           bun run lint
+          bun test
 
   render-starters:
     runs-on: ubuntu-24.04

@@ -201,6 +201,9 @@ def get_due_cards(limit: int = 20) -> list[dict]:
 def record_review(card_id: int, quality: int) -> dict:
     """Record a review and update SM-2 scheduling. Returns updated card info."""
     conn = connect()
+    # Take the write lock before reading the schedule: a concurrent review then waits (up to the
+    # connection's busy timeout) and reads this review's result instead of overwriting it.
+    conn.execute("BEGIN IMMEDIATE")
     card = conn.execute(
         "SELECT * FROM cards WHERE id = ? AND deleted_at IS NULL", (card_id,)
     ).fetchone()
