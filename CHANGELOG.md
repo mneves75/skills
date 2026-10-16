@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.37.0] - 2026-10-15
+## [1.35.0] - 2026-10-15
 
 ### Added
 - A full security audit now gates every staging and production deploy (`mneves-security`).
