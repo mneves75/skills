@@ -387,7 +387,8 @@ the loop ends. Findings map to *fixed*, *disproved* or *blocked*, nothing else.
 delegation creates independent progress or evidence. Building and reviewing run on different
 models: the main session and every worker build on Opus (Claude) or `gpt-6.1-sol` at `xhigh`
 (Codex); planning, plan advice and code review run on Fable (Claude, also the main session's
-advisor) or `gpt-6-astra` at `xhigh` (Codex), so the model that built a change never reviews it.
+advisor) or `gpt-6-astra` (Codex: `xhigh` to plan and advise, `high` to review), so the model
+that built a change never reviews it.
 Codex review has no automatic model fallback. The portable defaults do not change a running
 harness's main-session model. Caller overrides and actual host
 configuration take precedence; the skill's Defaults block owns its portable defaults.
