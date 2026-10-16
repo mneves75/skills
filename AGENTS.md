@@ -46,7 +46,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 
 ```bash
 cd tools && bun install                 # dev deps only (Biome, TypeScript, bun-types)
-bun run typecheck && bun run lint       # from tools/
+bun run typecheck && bun run lint && bun test   # from tools/
 ast-grep scan --config sgconfig.yml .   # from repo root
 bash .githooks/pre-commit.test          # hook e2e test
 bash skills/mneves-fable-orchestrator/tools/codex-lane.test   # codex-lane e2e against a fake codex (no quota)

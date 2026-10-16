@@ -14,6 +14,10 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.36.0** (2026-10-16): closes the 1.35.0 gate waivers. F-01 (TOML prototype pollution)
+  and F-02 (timeouts that left commands running) are fixed test-first and `tools/` gains
+  `bun test` in CI; pages and the readiness report carry a meta CSP and load no third-party
+  fonts; `SECURITY.md` documents access, a compromise runbook and data handling.
 - **1.35.0** (2026-10-15): `mneves-security` gains a mandatory deploy gate (full audit of the
   exact candidate, PASS/BLOCK/WAIVED verdict record) and 32 launch controls whose IDs match
   the production-readiness catalog; `mneves-ship-deploy` and `mneves-verify` route to it.

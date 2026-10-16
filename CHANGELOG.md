@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.36.0] - 2026-10-16
+
+### Fixed
+- The readiness checker no longer lets a crafted manifest pollute `Object.prototype`.
+  `Cargo.toml` and `pyproject.toml` keys `__proto__`, `constructor` and `prototype` are
+  rejected, and ordinary manifests parse as before (F-01 from the 1.35.0 security gate).
+- A timed-out readiness check now kills its whole process group, waits for it to exit and
+  clears its timer; every adapter command has a deadline (60 seconds unless the check sets
+  one). Commands now run through `/bin/sh`, so the assessor needs a POSIX system (F-02).
+
+### Security
+- Every site page and the readiness HTML report carry a Content-Security-Policy and a
+  referrer policy, tested served in a browser, and load no third-party fonts.
+- `SECURITY.md` adds the access and release model, a quarterly access review, a compromise
+  runbook, data handling and site protections. The autoreview README states its security
+  model: untrusted input, what it sends, cost bounds, no irreversible actions, what it keeps.
+
+### Changed
+- `tools/` has unit tests (`bun test`, 40 tests), run in CI after typecheck and lint.
+
 ## [1.35.0] - 2026-10-15
 
 ### Added
