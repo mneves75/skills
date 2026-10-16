@@ -95,7 +95,8 @@ the full model transcript for the job.
   fresh-context worker
 - **[Codex CLI](https://github.com/openai/codex)** installed and authenticated, for the Codex
   paths (heavy executor, planner, plan advisor, reviewer), plus `bash` and `python3` for
-  `codex-lane`. Without Codex, the Claude seats of the Defaults block cover every role. The `/codex:rescue` command
+  `codex-lane`. Without Codex, the Claude seats of the Defaults block cover every role except the
+  specialist, which is Codex-only. The `/codex:rescue` command
   from the openai-codex plugin is an equivalent front-end if you have that plugin; the routing
   rules apply either way. Set the shared Codex default from the skill's Defaults block. Preserve
   deliberate per-call specialist overrides. See `references/codex-dispatch.md` for flag
