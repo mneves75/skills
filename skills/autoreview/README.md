@@ -42,7 +42,9 @@ not a security guarantee. `--dry-run` checks preparation without contacting a re
   `--dry-run` prepares the review without contacting anyone unless that flag is passed.
 - **Cost bounds.** Each run reviews one frozen target. A large change is split into chunks,
   one provider request each, with every prompt capped at 512,000 bytes (lower for engines
-  with argument limits); retries cover access failures only, with no model fallback. Hard
+  with argument limits); retries cover access failures only, with no model fallback. A run
+  needing more than 20 passes or 10,240,000 prompt bytes in total is refused before the first
+  provider call; `--max-review-passes` and `--max-review-input-bytes` raise those limits. Hard
   spending limits belong in the provider account.
 - **No irreversible actions.** The helper applies no fixes, pushes nothing and publishes
   nothing; a person decides what to do with the findings.

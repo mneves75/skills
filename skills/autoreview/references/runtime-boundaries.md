@@ -38,10 +38,12 @@ Tools installed in shared scratch or requiring writes there will be denied too.
 
 ## Size and partitioning
 
-Review files have no size/count cap and are never truncated. Large diffs and
-datasets are partitioned automatically. Intact instructions and required mixed
-source context must still fit the per-pass prompt budget. A failed pass does not
-produce a partial clean verdict.
+Review files are never truncated. Large diffs and datasets are partitioned
+automatically. Intact instructions and required mixed source context must still
+fit the per-pass prompt budget. A failed pass does not produce a partial clean
+verdict. A run needing more than 20 passes or 10,240,000 prompt bytes in total is
+refused before any provider call (and reported by `--dry-run`); raise
+`--max-review-passes` or `--max-review-input-bytes` only when that cost is authorized.
 
 Each pass is an independent assignment, not a continuing conversation. Its private completion
 field must confirm a finished assessment; a pass that defers to another pass leaves the overall

@@ -149,6 +149,10 @@ MAX_REVIEW_PROMPT_BYTES = 512_000
 # command line at ~32,767 characters.
 KIMI_MAX_PROMPT_BYTES = 30_000 if os.name == "nt" else 120_000
 MAX_REVIEW_CHUNK_CONTEXT_BYTES = 64_000
+# Per-run paid-work budget, checked before the first provider call. The byte
+# default is that many full-size passes, so it binds once passes are raised.
+DEFAULT_MAX_REVIEW_PASSES = 20
+DEFAULT_MAX_REVIEW_INPUT_BYTES = DEFAULT_MAX_REVIEW_PASSES * MAX_REVIEW_PROMPT_BYTES
 
 
 class ReviewChunk(NamedTuple):
@@ -6715,6 +6719,16 @@ def positive_float(value: str) -> float:
     return parsed
 
 
+def positive_int(value: str) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must be a positive integer") from exc
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return parsed
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Bundle-driven AI code review.")
     parser.add_argument("--mode", choices=["auto", "local", "uncommitted", "branch", "commit"], default="auto")
@@ -6737,6 +6751,18 @@ def parse_args() -> argparse.Namespace:
         type=positive_float,
         default=os.environ.get("AUTOREVIEW_ENGINE_TIMEOUT_SECONDS"),
         help="Optional wall-clock limit for each reviewer process. Disabled by default. Env: AUTOREVIEW_ENGINE_TIMEOUT_SECONDS.",
+    )
+    parser.add_argument(
+        "--max-review-passes",
+        type=positive_int,
+        default=DEFAULT_MAX_REVIEW_PASSES,
+        help=f"Most review passes (provider requests, excluding access-failure retries) one run may send; a larger run is refused before the first call. Default: {DEFAULT_MAX_REVIEW_PASSES}.",
+    )
+    parser.add_argument(
+        "--max-review-input-bytes",
+        type=positive_int,
+        default=DEFAULT_MAX_REVIEW_INPUT_BYTES,
+        help=f"Most prompt bytes one run may send across all passes; a larger run is refused before the first call. Default: {DEFAULT_MAX_REVIEW_INPUT_BYTES} ({DEFAULT_MAX_REVIEW_PASSES} full {MAX_REVIEW_PROMPT_BYTES}-byte passes).",
     )
     parser.add_argument("--codex-bin", default=os.environ.get("CODEX_BIN", "codex"))
     parser.add_argument(
@@ -7110,6 +7136,7 @@ def dry_run_preflight(
                     evidence.datasets, max_prompt_bytes_for_reviewers(reviewers),
                     verify_online,
                 )
+                enforce_review_budget(args, prompts)
                 for prompt in prompts:
                     scan_outgoing_review_pack(
                         repo, prompt.prompt if isinstance(prompt, ReviewPass) else prompt, verify_online,
@@ -7247,6 +7274,23 @@ def merge_chunk_reports(reports: list[tuple[str, dict[str, Any]]]) -> dict[str, 
     return report
 
 
+def enforce_review_budget(args: argparse.Namespace, prompts: list[str] | list[ReviewPass]) -> None:
+    """Refuse a run whose paid work exceeds the per-run budget, before any dispatch."""
+    max_passes = getattr(args, "max_review_passes", DEFAULT_MAX_REVIEW_PASSES)
+    if len(prompts) > max_passes:
+        raise SystemExit(
+            f"refusing to start review: {len(prompts)} review passes exceed the per-run budget "
+            f"of {max_passes}; narrow the target or raise --max-review-passes"
+        )
+    max_bytes = getattr(args, "max_review_input_bytes", DEFAULT_MAX_REVIEW_INPUT_BYTES)
+    total = sum(utf8_size(prompt.prompt if isinstance(prompt, ReviewPass) else prompt) for prompt in prompts)
+    if total > max_bytes:
+        raise SystemExit(
+            f"refusing to start review: {total} prompt bytes exceed the per-run budget "
+            f"of {max_bytes}; narrow the target or raise --max-review-input-bytes"
+        )
+
+
 def run_review_passes(
     args: argparse.Namespace,
     reviewers: list[argparse.Namespace],
@@ -7255,6 +7299,7 @@ def run_review_passes(
     changed_paths: set[str] | CapturedBundle,
     evidence: list[EvidenceFile] | None = None,
 ) -> list[tuple[str, ReviewResult]]:
+    enforce_review_budget(args, prompts)
     chunk_reports: list[tuple[str, ReviewResult]] = []
     for index, prompt in enumerate(prompts, start=1):
         if len(prompts) > 1:

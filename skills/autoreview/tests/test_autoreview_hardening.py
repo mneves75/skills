@@ -725,7 +725,8 @@ class AutoreviewMixedTargetTests(unittest.TestCase):
                 self.assertEqual(len(scans), 1)
                 self.assertIn("SOURCE_ONLY_SCAN_SENTINEL\nMULTILINE_SCAN_CONTINUATION\n", scans[0])
                 self.assertIn(evidence[0].content, scans[0])
-                args = argparse.Namespace(engine="codex", max_priority="P0")
+                # The tiny prompt limit forces more passes than the default run budget.
+                args = argparse.Namespace(engine="codex", max_priority="P0", max_review_passes=len(passes))
                 self.helper["run_review_passes"](args, [args], repo, passes, captured)
             self.assertEqual(scans[1:], sends)
             for item, scanned in zip(passes, scans[1:]):
@@ -1106,6 +1107,42 @@ class AutoreviewHardeningTests(unittest.TestCase):
             snapshot.assert_not_called()
             self.assertTrue(scans)
             self.assertFalse(sends)
+
+    def test_review_budget_refuses_over_budget_runs_before_any_dispatch(self):
+        original_prepare = self.helper["prepare_review_prompts"]
+        # count, options, refusal naming the flag to raise (None: the run dispatches every pass)
+        cases = (
+            (21, (), "--max-review-passes"),
+            (2, ("--max-review-input-bytes", "1000"), "--max-review-input-bytes"),
+            (2, (), None),
+            (21, ("--max-review-passes", "21"), None),
+        )
+        for count, options, refusal in cases:
+            with self.subTest(count=count, options=options), self.preparation_fixture(*options) as (
+                _repo, sends, scans, _out, _err,
+            ), mock.patch.dict(self.helper["main_impl"].__globals__, {
+                "prepare_review_prompts": lambda *args: original_prepare(*args) * count,
+            }):
+                if refusal:
+                    with self.assertRaisesRegex(SystemExit, re.escape(refusal)):
+                        self.helper["main_impl"]()
+                    self.assertEqual(sends, [])
+                    self.assertEqual(scans, [])
+                else:
+                    self.assertEqual(self.helper["main_impl"](), 0)
+                    self.assertEqual(len(sends), count)
+
+    def test_dry_run_reports_review_budget_refusal(self):
+        original_prepare = self.helper["prepare_review_prompts"]
+        with self.preparation_fixture("--dry-run") as (_repo, sends, scans, out, _err), mock.patch.dict(
+            self.helper["main_impl"].__globals__, {
+                "prepare_review_prompts": lambda *args: original_prepare(*args) * 21,
+            },
+        ):
+            self.assertEqual(self.helper["main_impl"](), 1)
+            self.assertRegex(out.getvalue(), r"prompt: FAILED \(.*--max-review-passes")
+            self.assertEqual(scans, [])
+            self.assertEqual(sends, [])
 
     def test_evidence_mutations_refuse_stale_publication_and_later_passes(self):
         for tracked in (False, True):

@@ -99,6 +99,8 @@ validation. Keep those controls enabled; a missing or failed scan stops the run.
 The scan is offline by default; pass `--verify-secrets-online` only when the user asks,
 because it sends detected credentials to their providers.
 Never reproduce credentials in findings or work around an isolation failure.
+A run over the default pass or prompt-byte budget is refused before any provider call; raise
+`--max-review-passes` / `--max-review-input-bytes` only when the user authorizes that cost.
 Long reviews are normal; keep inputs frozen and observe the existing run. Repeat only for a
 changed target, accepted correction, or a resolved blocker; retain the requested severity
 and every required security gate.
