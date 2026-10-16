@@ -30,6 +30,8 @@ cat > "$root/site/howto.html" <<HTML
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>How to use these skills</title>
 <style>
 :root{--bg:#fff;--fg:#1a1a1a;--muted:#666;--line:#e5e5e5;--code:#f4f4f4;--link:#1d4ed8}

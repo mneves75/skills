@@ -31,3 +31,62 @@ isolation, source-integrity checks, and output-path restrictions are security bo
 do not disable them to obtain a clean review. Scanning is not permission to disclose private
 code, and an AI review does not prove a program secure. Beta tags identify test candidates,
 not a guarantee that every provider or platform has been exercised.
+
+## Access and release model
+
+- One maintainer administers the repository. Every other account with write access is
+  checked in the quarterly access review below, and removed when it is no longer needed.
+- A ruleset on `main` blocks force-pushes and branch deletion. GitHub secret scanning,
+  Dependabot alerts and private vulnerability reporting are enabled.
+- CI runs with `contents: read`. Only the Pages workflow gets `pages: write` and
+  `id-token: write`, its `github-pages` environment deploys from `main` only, and every
+  action is pinned to a full commit SHA.
+- A merge to `main` publishes the site and the skills. Each release first passes the
+  repository's own pre-deploy security gate (the `mneves-security` deploy gate) and needs the
+  maintainer's explicit approval of that commit. AI agents act only through the maintainer's
+  session and hold no separate deploy credentials.
+- Access review, each quarter: list collaborators, deploy keys, OAuth and GitHub App grants,
+  and personal access tokens with access to the repository; remove what is not needed;
+  record the date in the release notes of the next release.
+
+## If a device or credential is compromised
+
+Applies to any device or token with write access to this repository.
+
+1. From a clean device, revoke GitHub sessions, personal access tokens, SSH and signing keys,
+   and OAuth grants; change the password and confirm two-factor authentication.
+2. Review the account security log, recent pushes, tags, releases, workflow runs and Pages
+   deployments. Revert unexpected changes with a corrective release; never move a published tag.
+3. Rotate every provider credential that device held for these tools (AI review engines,
+   package registries). This repository stores none.
+4. Inspect open branches and pull requests before the next release, and run the pre-deploy
+   security gate on that candidate.
+5. Record what happened, what was revoked and what changed.
+
+Baseline for devices with write access: full-disk encryption, a screen lock, and current
+operating-system updates.
+
+## Data handling
+
+- The site (`site/`) loads no third-party resources and sets no cookies.
+- The readiness checker (`tools/`) reads the assessed repository and writes only the report
+  you request. No check contacts the network, but some checks run the assessed project's own
+  tooling commands, so assess only repositories you trust.
+- Autoreview sends the selected review inputs, after a credential scan, to the provider you
+  configure; that provider's retention terms apply. Reports go only to output paths outside
+  the reviewed repository, and temporary files are removed after the run.
+- `mneves-teach-back-srs` keeps sessions and cards in `.ai-learn/srs.db` inside your project;
+  delete that file to erase them. Its CSV export keeps text as written, for Anki; check
+  formulas before opening an export of untrusted text in a spreadsheet.
+- The other skills are Markdown procedures. What your agent sends, and where, follows your
+  agent's own configuration.
+
+## Site protections
+
+GitHub Pages serves the site over HTTPS and redirects HTTP to HTTPS, but it does not let a
+repository set response headers. Each page therefore carries its policy in markup: a
+Content-Security-Policy that allows only same-origin scripts, styles, fonts and images (inline
+styles included) and blocks plugins, forms and base-URL changes, plus a
+`strict-origin-when-cross-origin` referrer policy. HSTS, `X-Content-Type-Options` and frame
+protection need response headers, which this hosting cannot send. The site holds no accounts,
+cookies, forms or state-changing actions.

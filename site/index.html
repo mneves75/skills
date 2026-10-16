@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <title>mneves75/skills — a clear way forward for coding agents</title>
 <meta name="description" content="Fourteen portable skills for AI coding agents. Choose a procedure for security, review, planning, building, discovery or learning, then install it in the tools you already use.">
 <meta property="og:title" content="mneves75/skills">
@@ -156,7 +158,7 @@ h3{font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}
     <div class="step"><h3>Name the work.</h3><p>Each <code>SKILL.md</code> begins with a description. Your agent loads the matching procedure, or you call it directly: <code>/mneves-verify</code>.</p></div>
     <div class="step"><h3>Keep your boundaries.</h3><p>The steps run with your tools and permissions. Some skills ship helpers; others are Markdown only. A workflow preserves your scope and existing authority.</p></div>
   </div>
-  <p class="privacy-note">The readiness tooling runs locally. Image generation may send authorized prompts and references to your configured provider. Autoreview sends selected review inputs after credential scanning. Each procedure states its own requirements and limits.</p>
+  <p class="privacy-note">The readiness tooling runs locally. Image generation may send authorized prompts and references to your configured provider. Autoreview sends selected review inputs after credential scanning. Each procedure states its own requirements and limits. This site loads no third-party resources and sets no cookies.</p>
 </section>
 <section class="tool" aria-labelledby="h-tool">
   <div><h2 id="h-tool">Find where the feedback loop breaks.</h2><p><code>mneves-agent-readiness</code> includes a Bun + TypeScript assessor with no runtime dependencies. Point it at the project you want to assess.</p><pre tabindex="0"><code>cd /path/to/your-project
