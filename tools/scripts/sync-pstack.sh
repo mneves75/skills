@@ -4,8 +4,10 @@
 #   tools/scripts/sync-pstack.sh <pstack-claude-repo> <ref> [dest]
 #
 # Copies only files tracked at <ref> (git archive), so a local node_modules or
-# scratch file never ships. Moves frontmatter keys outside the Agent Skills spec
-# under `metadata:` so every agent that follows the spec can load the skill.
+# scratch file never ships, and refuses a <ref> whose skills hold a symlink, so
+# the sync never reads or writes outside its staging directory. Moves
+# frontmatter keys outside the Agent Skills spec under `metadata:` so every
+# agent that follows the spec can load the skill.
 # A fork's own commits ship as <dest>/local-overrides.patch, so the collection
 # can be rebuilt from the published commit named in UPSTREAM.
 # Owns <dest>/skills, <dest>/UPSTREAM, <dest>/LICENSE and <dest>/local-overrides.patch;
@@ -24,6 +26,11 @@ dest=${3:-$repo_root/collections/pstack}
 
 sha=$(git -C "$src" rev-parse --verify --quiet "$ref^{commit}") || { echo "unknown ref: $ref" >&2; exit 1; }
 git -C "$src" cat-file -e "$sha:plugins/pstack/skills" 2>/dev/null || { echo "$sha has no plugins/pstack/skills" >&2; exit 1; }
+# A symlink in the upstream skills (mode 120000, for a file or a directory alike) would let the
+# frontmatter rewrite below, or a later reader of the collection, reach outside the staging
+# directory. Refuse it before anything is extracted.
+links=$(git -C "$src" ls-tree -r "$sha" -- plugins/pstack/skills | awk -F'\t' '$1 ~ /^120000 / { print "  " $2 }')
+[ -z "$links" ] || { printf 'refusing %s: symlinks in plugins/pstack/skills:\n%s\n' "$sha" "$links" >&2; exit 1; }
 
 # Stage beside the destination so the final moves are renames on one filesystem.
 mkdir -p "$(dirname "$dest")"
