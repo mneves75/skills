@@ -17,9 +17,11 @@ body=$(sed -E 's#href="([^"#/][^":]*)"#href="https://github.com/mneves75/skills/
   | perl -pe 's{<h2>([^<]+)</h2>}{my $t=$1; (my $id=lc $t) =~ s/[^a-z0-9]+/-/g; $id =~ s/^-|-$//g; "<h2 id=\"$id\">$t</h2>"}e')
 
 # marked does not sanitize: raw HTML in HOWTO.md would land on the Pages origin
-# as-is. The rendered body is parsed (not grepped) and rejected if any element
-# can run or embed code, any attribute is an on* handler, or any URL attribute
-# decodes to an executable scheme; escaped code examples are text and pass.
+# as-is. The rendered body is parsed (not grepped) and must stay inside a strict
+# subset: no element that switches an HTML5 parser's state or runs or embeds
+# code, only the attributes marked emits, no on* handler, no attribute value
+# that decodes to an executable scheme, and no comment, declaration or markup
+# the parser cannot classify. Escaped code examples are text and pass.
 # The template head below is not scanned (it legitimately carries <meta>).
 printf '%s\n' "$body" | python3 "$root/tools/scripts/check-html-active.py" \
   || { echo "HOWTO.md renders active HTML; fix HOWTO.md (details above)" >&2; exit 1; }
