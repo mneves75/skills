@@ -39,6 +39,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - `tools/` has unit tests (`bun test`), run in CI after typecheck and lint.
 
+## [1.35.1] - 2026-10-16
+
+### Changed
+- `mneves-fable-orchestrator` routes building and reviewing to different models. Opus
+  (Claude) or Sol at xhigh (Codex) build: main session, workers and heavy executor. Fable
+  (Claude) or Astra (Codex) plan, advise and review, and the main session gets a Fable
+  advisor. Codex planning and plan advice move from high to xhigh, and the Codex reviewer
+  moves from Sol at xhigh to Astra at high, so the model that built a change never reviews it. Ids re-verified
+  against the vendor model lists on 2026-10-16.
+
 ## [1.35.0] - 2026-10-15
 
 ### Added
