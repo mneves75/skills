@@ -18,6 +18,7 @@
 		"readiness-check": "bun --bun readiness-check.ts",
 		"typecheck": "tsc --noEmit",
 		"lint": "biome check . --formatter-enabled=false",
+		"test": "bun test",
 		"format": "biome format . --write"
 	},
 	"devDependencies": {

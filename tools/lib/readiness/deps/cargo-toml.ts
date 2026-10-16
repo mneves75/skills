@@ -7,11 +7,7 @@
  * Supports regular, dev, and build dependencies.
  */
 
-import type {
-	Dependency,
-	DependencyManifest,
-	ParseOptions,
-} from "./types.js";
+import type { Dependency, DependencyManifest, ParseOptions } from "./types.js";
 
 // ============================================================================
 // Types
@@ -51,7 +47,7 @@ interface CargoDep {
  */
 export async function parseCargoToml(
 	filepath: string,
-	options: ParseOptions = {}
+	options: ParseOptions = {},
 ): Promise<DependencyManifest | null> {
 	const { includeDev = true } = options;
 
@@ -120,7 +116,10 @@ export async function parseCargoToml(
 /**
  * Parse a single Cargo dependency
  */
-function parseCargoDep(name: string, spec: string | CargoDep): Dependency | null {
+function parseCargoDep(
+	name: string,
+	spec: string | CargoDep,
+): Dependency | null {
 	if (typeof spec === "string") {
 		return {
 			name,
@@ -170,7 +169,7 @@ function parseCargoDep(name: string, spec: string | CargoDep): Dependency | null
 
 function parseToml(content: string): CargoToml | null {
 	try {
-		const result: Record<string, unknown> = {};
+		const result: Record<string, unknown> = Object.create(null);
 		const lines = content.split("\n");
 		let currentSection: string[] = [];
 		let currentObject: Record<string, unknown> = result;
@@ -315,7 +314,7 @@ function parseTomlValue(value: string): unknown {
 	// Inline table
 	if (value.startsWith("{") && value.endsWith("}")) {
 		const tableContent = value.slice(1, -1).trim();
-		const result: Record<string, unknown> = {};
+		const result: Record<string, unknown> = Object.create(null);
 
 		// Parse inline table with proper quote handling
 		let current = "";
@@ -346,6 +345,7 @@ function parseTomlValue(value: string): unknown {
 			const eqIdx = pair.indexOf("=");
 			if (eqIdx !== -1) {
 				const k = pair.substring(0, eqIdx).trim();
+				validatePath(k.split("."));
 				const v = parseTomlValue(pair.substring(eqIdx + 1).trim());
 				result[k] = v;
 			}
@@ -363,12 +363,13 @@ function parseTomlValue(value: string): unknown {
 
 function ensurePath(
 	obj: Record<string, unknown>,
-	path: string[]
+	path: string[],
 ): Record<string, unknown> {
+	validatePath(path);
 	let current = obj;
 	for (const key of path) {
-		if (!(key in current)) {
-			current[key] = {};
+		if (!Object.hasOwn(current, key)) {
+			current[key] = Object.create(null);
 		}
 		current = current[key] as Record<string, unknown>;
 	}
@@ -377,23 +378,24 @@ function ensurePath(
 
 function ensureArrayPath(
 	obj: Record<string, unknown>,
-	path: string[]
+	path: string[],
 ): Record<string, unknown> {
+	validatePath(path);
 	let current = obj;
 	for (let i = 0; i < path.length - 1; i++) {
 		const key = path[i]!;
-		if (!(key in current)) {
-			current[key] = {};
+		if (!Object.hasOwn(current, key)) {
+			current[key] = Object.create(null);
 		}
 		current = current[key] as Record<string, unknown>;
 	}
 
 	const lastKey = path[path.length - 1]!;
-	if (!(lastKey in current)) {
+	if (!Object.hasOwn(current, lastKey)) {
 		current[lastKey] = [];
 	}
 	const arr = current[lastKey] as unknown[];
-	const newObj: Record<string, unknown> = {};
+	const newObj: Record<string, unknown> = Object.create(null);
 	arr.push(newObj);
 	return newObj;
 }
@@ -401,19 +403,32 @@ function ensureArrayPath(
 function setNestedValue(
 	obj: Record<string, unknown>,
 	key: string,
-	value: unknown
+	value: unknown,
 ): void {
 	// Handle dotted keys
 	const parts = key.split(".");
+	validatePath(parts);
 	let current = obj;
 
 	for (let i = 0; i < parts.length - 1; i++) {
 		const part = parts[i]!;
-		if (!(part in current)) {
-			current[part] = {};
+		if (!Object.hasOwn(current, part)) {
+			current[part] = Object.create(null);
 		}
 		current = current[part] as Record<string, unknown>;
 	}
 
 	current[parts[parts.length - 1]!] = value;
+}
+
+function validatePath(parts: string[]): void {
+	if (
+		parts.some((part) =>
+			["__proto__", "constructor", "prototype"].includes(
+				part.trim().replace(/^["']|["']$/g, ""),
+			),
+		)
+	) {
+		throw new Error("Unsafe TOML path");
+	}
 }

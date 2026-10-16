@@ -32,7 +32,10 @@ interface PyProject {
 			version?: string;
 			dependencies?: Record<string, string | PoetryDep>;
 			"dev-dependencies"?: Record<string, string | PoetryDep>;
-			group?: Record<string, { dependencies?: Record<string, string | PoetryDep> }>;
+			group?: Record<
+				string,
+				{ dependencies?: Record<string, string | PoetryDep> }
+			>;
 		};
 		uv?: {
 			"dev-dependencies"?: string[];
@@ -62,7 +65,7 @@ interface PoetryDep {
  */
 export async function parsePyProject(
 	filepath: string,
-	options: ParseOptions = {}
+	options: ParseOptions = {},
 ): Promise<DependencyManifest | null> {
 	const { includeDev = true } = options;
 
@@ -100,10 +103,10 @@ export async function parsePyProject(
 			// Parse optional dependencies (often used for dev)
 			if (includeDev && pyproject.project["optional-dependencies"]) {
 				for (const [group, deps] of Object.entries(
-					pyproject.project["optional-dependencies"]
+					pyproject.project["optional-dependencies"],
 				)) {
 					const isDev = ["dev", "test", "testing", "development"].includes(
-						group.toLowerCase()
+						group.toLowerCase(),
 					);
 					for (const dep of deps) {
 						const parsed = parsePep508(dep);
@@ -141,7 +144,7 @@ export async function parsePyProject(
 			// Parse Poetry dev dependencies
 			if (includeDev && poetry["dev-dependencies"]) {
 				for (const [depName, depSpec] of Object.entries(
-					poetry["dev-dependencies"]
+					poetry["dev-dependencies"],
 				)) {
 					const dep = parsePoetryDep(depName, depSpec);
 					if (dep) {
@@ -155,10 +158,12 @@ export async function parsePyProject(
 			if (includeDev && poetry.group) {
 				for (const [groupName, group] of Object.entries(poetry.group)) {
 					const isDev = ["dev", "test", "testing", "development"].includes(
-						groupName.toLowerCase()
+						groupName.toLowerCase(),
 					);
 					if (group.dependencies) {
-						for (const [depName, depSpec] of Object.entries(group.dependencies)) {
+						for (const [depName, depSpec] of Object.entries(
+							group.dependencies,
+						)) {
 							const dep = parsePoetryDep(depName, depSpec);
 							if (dep) {
 								dep.type = isDev ? "development" : "optional";
@@ -206,7 +211,7 @@ export async function parsePyProject(
  */
 export async function parseRequirementsTxt(
 	filepath: string,
-	options: ParseOptions = {}
+	options: ParseOptions = {},
 ): Promise<DependencyManifest | null> {
 	try {
 		const file = Bun.file(filepath);
@@ -301,7 +306,7 @@ function parsePep508(spec: string): Dependency | null {
  */
 function parsePoetryDep(
 	name: string,
-	spec: string | PoetryDep
+	spec: string | PoetryDep,
 ): Dependency | null {
 	if (typeof spec === "string") {
 		return {
@@ -325,7 +330,7 @@ function parsePoetryDep(
  */
 function parseToml(content: string): PyProject | null {
 	try {
-		const result: Record<string, unknown> = {};
+		const result: Record<string, unknown> = Object.create(null);
 		const lines = content.split("\n");
 		let currentSection: string[] = [];
 		let currentObject: Record<string, unknown> = result;
@@ -447,13 +452,14 @@ function parseTomlValue(value: string): unknown {
 	// Inline table
 	if (value.startsWith("{") && value.endsWith("}")) {
 		const tableContent = value.slice(1, -1).trim();
-		const result: Record<string, unknown> = {};
+		const result: Record<string, unknown> = Object.create(null);
 		// Simple inline table parsing
 		const pairs = tableContent.split(",");
 		for (const pair of pairs) {
 			const kv = pair.split("=");
 			if (kv.length === 2) {
 				const k = kv[0]!.trim();
+				validatePath(k.split("."));
 				const v = parseTomlValue(kv[1]!.trim());
 				result[k] = v;
 			}
@@ -472,12 +478,13 @@ function parseTomlValue(value: string): unknown {
 
 function ensurePath(
 	obj: Record<string, unknown>,
-	path: string[]
+	path: string[],
 ): Record<string, unknown> {
+	validatePath(path);
 	let current = obj;
 	for (const key of path) {
-		if (!(key in current)) {
-			current[key] = {};
+		if (!Object.hasOwn(current, key)) {
+			current[key] = Object.create(null);
 		}
 		current = current[key] as Record<string, unknown>;
 	}
@@ -487,18 +494,31 @@ function ensurePath(
 function setNestedValue(
 	obj: Record<string, unknown>,
 	key: string,
-	value: unknown
+	value: unknown,
 ): void {
 	const parts = key.split(".");
+	validatePath(parts);
 	let current = obj;
 
 	for (let i = 0; i < parts.length - 1; i++) {
 		const part = parts[i]!;
-		if (!(part in current)) {
-			current[part] = {};
+		if (!Object.hasOwn(current, part)) {
+			current[part] = Object.create(null);
 		}
 		current = current[part] as Record<string, unknown>;
 	}
 
 	current[parts[parts.length - 1]!] = value;
+}
+
+function validatePath(parts: string[]): void {
+	if (
+		parts.some((part) =>
+			["__proto__", "constructor", "prototype"].includes(
+				part.trim().replace(/^["']|["']$/g, ""),
+			),
+		)
+	) {
+		throw new Error("Unsafe TOML path");
+	}
 }
