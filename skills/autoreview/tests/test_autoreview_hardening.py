@@ -233,6 +233,7 @@ def init_repo(tempdir: Path) -> Path:
 
 
 def posix_process_is_running(pid: int) -> bool:
+    """Whether pid is a live, non-zombie process; raise when that cannot be determined."""
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -244,7 +245,16 @@ def posix_process_is_running(pid: int) -> bool:
         check=False,
     )
     state = result.stdout.strip()
-    return result.returncode == 0 and bool(state) and not state.startswith("Z")
+    if result.returncode == 0 and state:
+        return not state.startswith("Z")
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False  # Exited between the two checks.
+    raise RuntimeError(
+        f"cannot determine whether process {pid} is running: ps exited {result.returncode} "
+        f"with {result.stderr.strip()!r}"
+    )
 
 
 def installed_java() -> str | None:
@@ -5980,15 +5990,25 @@ else:
             )
         elapsed = time.monotonic() - started
 
-        self.assertEqual(result.returncode, 124, result.stderr)
-        self.assertIn("tick", result.stdout)
-        self.assertIn("streaming-reviewer engine timed out after 0.5s", result.stderr)
-        self.assertLess(elapsed, 5)
-        child_pid = int(result.stdout.splitlines()[0])
-        deadline = time.monotonic() + 1
-        while posix_process_is_running(child_pid) and time.monotonic() < deadline:
-            time.sleep(0.01)
-        self.assertFalse(posix_process_is_running(child_pid))
+        lines = result.stdout.splitlines()
+        child_pid = int(lines[0]) if lines and lines[0].isdigit() else None
+        exited = False
+        try:
+            self.assertEqual(result.returncode, 124, result.stderr)
+            self.assertIn("tick", result.stdout)
+            self.assertIn("streaming-reviewer engine timed out after 0.5s", result.stderr)
+            self.assertLess(elapsed, 5)
+            self.assertIsNotNone(child_pid, result.stdout)
+            deadline = time.monotonic() + 1
+            while posix_process_is_running(child_pid) and time.monotonic() < deadline:
+                time.sleep(0.01)
+            exited = not posix_process_is_running(child_pid)
+            self.assertTrue(exited)
+        finally:
+            # The SIGTERM-resistant child sleeps for 60s; never leave it behind.
+            if child_pid is not None and not exited:
+                with contextlib.suppress(ProcessLookupError, PermissionError):
+                    os.kill(child_pid, signal.SIGKILL)
 
     @unittest.skipUnless(os.name == "posix", "detached process groups require POSIX")
     def test_deadline_bounds_drain_when_descendant_retains_pipe(self) -> None:
@@ -7878,6 +7898,20 @@ class OfflineSecretScanTests(unittest.TestCase):
                     self.assertTrue(scans())
                     for command in scans():
                         self.assertEqual("--no-verification" in command, offline, command)
+
+
+class ProcessLivenessHelperTests(unittest.TestCase):
+    @unittest.skipUnless(os.name == "posix", "POSIX process inspection")
+    def test_failed_inspection_of_live_process_is_not_reported_as_exited(self):
+        # This test process is alive; a denied or empty ps answer is unknown, not "exited".
+        for failure in (
+            subprocess.CompletedProcess(["ps"], 1, "", "ps: Operation not permitted\n"),
+            subprocess.CompletedProcess(["ps"], 0, "", ""),
+        ):
+            with self.subTest(returncode=failure.returncode), \
+                    mock.patch.object(subprocess, "run", return_value=failure):
+                with self.assertRaisesRegex(RuntimeError, "cannot determine"):
+                    posix_process_is_running(os.getpid())
 
 
 if __name__ == "__main__":
