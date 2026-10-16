@@ -1230,10 +1230,10 @@ export const sharedChecks: Record<string, CheckRunner> = {
 
 		const suspicious = hasEnvFile || hasCredentials || hasSecrets || hasPrivateKey;
 
-		if (suspicious && !hasEnvExample) {
+		if (suspicious) {
 			return {
 				pass: false,
-				details: "Potential secrets in repo, no .env.example",
+				details: "Potential secrets in repo",
 			};
 		}
 
