@@ -36,8 +36,10 @@ not a security guarantee. `--dry-run` checks preparation without contacting a re
   runs in an empty sandbox with read-only tools; a configuration that grants a write-capable
   tool is refused. Text in the reviewed code cannot widen what the reviewer may do.
 - **What leaves the machine.** Only the selected review inputs, after the TruffleHog
-  credential scan, go to the provider you configure; its retention terms apply. `--dry-run`
-  prepares the review without contacting anyone.
+  credential scan, go to the provider you configure; its retention terms apply. The scan runs
+  offline and every detection blocks. `--verify-secrets-online` lets TruffleHog send detected
+  credentials to their providers for verification, so confirmed-invalid ones stop blocking.
+  `--dry-run` prepares the review without contacting anyone unless that flag is passed.
 - **Cost bounds.** Each run reviews one frozen target. A large change is split into chunks,
   one provider request each, with every prompt capped at 512,000 bytes (lower for engines
   with argument limits); retries cover access failures only, with no model fallback. Hard

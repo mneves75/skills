@@ -1181,40 +1181,42 @@ class AutoreviewTruffleHogTests(unittest.TestCase):
                     self.assertEqual(events, expected)
                     self.assertTrue(all(not pack.parent.exists() for pack in packs))
 
-    def test_scanner_command_requests_verified_and_unknown_results(self) -> None:
+    def test_scanner_command_is_offline_by_default_and_reports_unverified_results(self) -> None:
         prompt = "review pack with redacted examples only"
-        with tempfile.TemporaryDirectory() as tempdir:
-            repo = Path(tempdir)
+        common = ["--json", "--no-color"]
+        tail = ["--fail", "--fail-on-scan-errors", "--no-update"]
+        for verify_online, verification in (
+            (False, ["--no-verification", "--results=verified,unknown,unverified"]),
+            (True, ["--results=verified,unknown"]),
+        ):
+            with self.subTest(verify_online=verify_online), tempfile.TemporaryDirectory() as tempdir:
+                repo = Path(tempdir)
+                sources: list[str] = []
 
-            def run_scanner(
-                command: list[str],
-                cwd: Path,
-                **kwargs: object,
-            ) -> subprocess.CompletedProcess[str]:
-                pack = Path(command[2]) if command[1] == "filesystem" else Path(kwargs["stdin"].name)
-                self.assertEqual(cwd, pack.parent)
-                data = pack.read_bytes() if command[1] == "filesystem" else kwargs["stdin"].read()
-                self.assertEqual(data, prompt.encode("utf-8"))
-                self.assertEqual(
-                    command[3:] if command[1] == "filesystem" else command[2:],
-                    [
-                        "--json",
-                        "--no-color",
-                        "--results=verified,unknown",
-                        "--fail",
-                        "--fail-on-scan-errors",
-                        "--no-update",
-                    ],
-                )
-                self.assertEqual(kwargs["check"], False)
-                return subprocess.CompletedProcess(command, 0, "", "")
+                def run_scanner(
+                    command: list[str],
+                    cwd: Path,
+                    **kwargs: object,
+                ) -> subprocess.CompletedProcess[str]:
+                    pack = Path(command[2]) if command[1] == "filesystem" else Path(kwargs["stdin"].name)
+                    self.assertEqual(cwd, pack.parent)
+                    data = pack.read_bytes() if command[1] == "filesystem" else kwargs["stdin"].read()
+                    self.assertEqual(data, prompt.encode("utf-8"))
+                    self.assertEqual(
+                        command[3:] if command[1] == "filesystem" else command[2:],
+                        [*common, *verification, *tail],
+                    )
+                    self.assertEqual(kwargs["check"], False)
+                    sources.append(command[1])
+                    return subprocess.CompletedProcess(command, 0, "", "")
 
-            with mock.patch.object(
-                AUTOREVIEW,
-                "find_command",
-                return_value="/trusted/trufflehog",
-            ), mock.patch.object(AUTOREVIEW, "run", side_effect=run_scanner):
-                AUTOREVIEW.scan_outgoing_review_pack(repo, prompt)
+                with mock.patch.object(
+                    AUTOREVIEW,
+                    "find_command",
+                    return_value="/trusted/trufflehog",
+                ), mock.patch.object(AUTOREVIEW, "run", side_effect=run_scanner):
+                    AUTOREVIEW.scan_outgoing_review_pack(repo, prompt, verify_online)
+                self.assertEqual(sources, ["filesystem", "stdin"])
 
 
 class AutoreviewCompatibilityTests(unittest.TestCase):

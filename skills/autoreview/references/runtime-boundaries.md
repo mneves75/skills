@@ -10,6 +10,9 @@ TruffleHog must scan the complete frozen input for partitioned reviews and each
 exact outgoing pack before it is sent; missing or failed scanning stops the run.
 Source-controlled ignore tags cannot suppress this gate. Scanner refusals never
 echo input headings or finding payloads; remove credentials locally and rerun.
+The scan is offline (`--no-verification`) and blocks every detection, verified or
+not. `--verify-secrets-online` sends detected credentials to their providers for
+verification and lets provider-confirmed invalid ones pass; use it only when asked.
 Never reproduce credentials in findings or work around an isolation failure.
 
 ## Trusted Git

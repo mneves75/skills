@@ -2086,7 +2086,16 @@ def safe_trufflehog_env(repo: Path) -> dict[str, str]:
     return env
 
 
-def scan_outgoing_review_pack(repo: Path, prompt: str) -> None:
+def scan_outgoing_review_pack(repo: Path, prompt: str, verify_online: bool = False) -> None:
+    # Detector verification sends each candidate credential to its provider,
+    # so the default scan is offline and every detection blocks. Opt-in online
+    # verification keeps the verified/unknown filter: a provider-confirmed
+    # invalid credential then passes.
+    verification_args = (
+        ["--results=verified,unknown"]
+        if verify_online
+        else ["--no-verification", "--results=verified,unknown,unverified"]
+    )
     trufflehog_bin = find_command("trufflehog", repo)
     if not trufflehog_bin:
         raise SystemExit(
@@ -2109,7 +2118,7 @@ def scan_outgoing_review_pack(repo: Path, prompt: str) -> None:
                 result = run(
                     [
                         trufflehog_bin, *source_args,
-                        "--json", "--no-color", "--results=verified,unknown",
+                        "--json", "--no-color", *verification_args,
                         "--fail", "--fail-on-scan-errors", "--no-update",
                     ],
                     Path(tempdir),
@@ -4119,6 +4128,7 @@ def prepare_review_prompts(
     extra_prompt: str,
     datasets: list[ReviewDataset],
     max_prompt_bytes: int,
+    verify_online: bool = False,
 ) -> list[str] | list[ReviewPass]:
     prompts = build_review_prompts(
         repo, target, target_ref, bundle, extra_prompt, datasets, max_prompt_bytes,
@@ -4130,7 +4140,7 @@ def prepare_review_prompts(
         scan_outgoing_review_pack(repo, render_review_prompt(
             current_branch(repo), target, target_ref, chunk,
             extra_prompt, render_datasets(datasets),
-        ))
+        ), verify_online)
     return prompts
 
 
@@ -5298,7 +5308,7 @@ def run_codex(args: argparse.Namespace, repo: Path, prompt: str) -> str:
                 if index:
                     # The initial send was scanned by run_reviewer; a retry is
                     # a new provider invocation even with the same frozen pack.
-                    scan_outgoing_review_pack(repo, prompt)
+                    scan_outgoing_review_pack(repo, prompt, getattr(args, "verify_secrets_online", False))
                 result = run_with_heartbeat(
                     cmd,
                     review_root,
@@ -6770,6 +6780,11 @@ def parse_args() -> argparse.Namespace:
         default=os.environ.get("AUTOREVIEW_STREAM_ENGINE_OUTPUT") == "1",
         help="Stream review engine output while preserving buffered output for validation. Codex and Claude filter noisy tool/status chatter.",
     )
+    parser.add_argument(
+        "--verify-secrets-online",
+        action="store_true",
+        help="Let TruffleHog send detected credentials to their providers for verification; provider-confirmed invalid credentials then do not block. Default: offline scan (no network call) in which every detection blocks, including during --dry-run.",
+    )
     parser.add_argument("--require-finding", action="append", default=[], help="Require finding text to contain this substring.")
     parser.add_argument("--expect-findings", action="store_true", help="Treat findings as success; for harness acceptance tests.")
     parser.add_argument("--dry-run", action="store_true")
@@ -7089,12 +7104,16 @@ def dry_run_preflight(
         try:
             with PreparationProgress("bundle/evidence preparation and scan"):
                 threshold_extra_prompt = apply_finding_threshold_prompt(args, evidence.prompt)
+                verify_online = getattr(args, "verify_secrets_online", False)
                 prompts = prepare_review_prompts(
                     repo, target, target_ref, captured, threshold_extra_prompt,
                     evidence.datasets, max_prompt_bytes_for_reviewers(reviewers),
+                    verify_online,
                 )
                 for prompt in prompts:
-                    scan_outgoing_review_pack(repo, prompt.prompt if isinstance(prompt, ReviewPass) else prompt)
+                    scan_outgoing_review_pack(
+                        repo, prompt.prompt if isinstance(prompt, ReviewPass) else prompt, verify_online,
+                    )
             with PreparationProgress("evidence verification"):
                 verify_evidence(repo, evidence.files)
                 verify_mixed_sources(repo, captured.mixed)
@@ -7136,7 +7155,7 @@ def run_reviewer(
         raise SystemExit("mixed review requires owner-built pass metadata")
     outgoing = prompt.prompt if isinstance(prompt, ReviewPass) else prompt
     with PreparationProgress("outgoing pack scan and evidence verification"):
-        scan_outgoing_review_pack(repo, outgoing)
+        scan_outgoing_review_pack(repo, outgoing, getattr(args, "verify_secrets_online", False))
         verify_evidence(repo, evidence or [])
         verify_mixed_sources(repo, mixed)
     raw = run_engine(args, repo, outgoing)
@@ -7401,7 +7420,7 @@ def main_impl() -> int:
         extra_prompt = apply_finding_threshold_prompt(args, evidence.prompt)
         prompts = prepare_review_prompts(
             repo, target, target_ref, captured, extra_prompt, evidence.datasets,
-            max_prompt_bytes_for_reviewers(reviewers),
+            max_prompt_bytes_for_reviewers(reviewers), args.verify_secrets_online,
         )
     print(f"bundle: {utf8_size(captured.text)} bytes; review passes: {len(prompts)}", flush=True)
     with PreparationProgress("pre-review verification") as progress:

@@ -713,7 +713,7 @@ class AutoreviewMixedTargetTests(unittest.TestCase):
             evidence = [self.helper["ReviewDataset"]("evidence.txt", "evidence\n" * 6000)]
             scans, sends = [], []
             with mock.patch.dict(self.helper["prepare_review_prompts"].__globals__, {
-                "scan_outgoing_review_pack": lambda _repo, prompt: scans.append(prompt),
+                "scan_outgoing_review_pack": lambda _repo, prompt, *_: scans.append(prompt),
                 "run_engine": lambda _args, _repo, prompt: sends.append(prompt) or json.dumps({
                     "findings": [], "overall_correctness": "patch is correct",
                     "overall_explanation": "Synthetic clean.", "overall_confidence": 0.9,
@@ -1045,7 +1045,7 @@ class AutoreviewHardeningTests(unittest.TestCase):
             with mock.patch.dict(self.helper["main_impl"].__globals__, {
                 "repo_root": lambda: repo,
                 "run_engine": engine,
-                "scan_outgoing_review_pack": lambda _repo, prompt: scans.append(prompt),
+                "scan_outgoing_review_pack": lambda _repo, prompt, *_: scans.append(prompt),
                 "resolve_engine_binary": lambda *_args: (True, None),
             }), mock.patch.object(sys, "argv", [str(SCRIPT), "--mode", "local", *options]), \
                     contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
@@ -1349,7 +1349,7 @@ source = args[0]
 assert source in {"filesystem", "stdin"}
 pack = Path(args[1]) if source == "filesystem" else None
 assert set(args[2:] if pack else args[1:]) == {
-    "--json", "--no-color", "--results=verified,unknown",
+    "--json", "--no-color", "--no-verification", "--results=verified,unknown,unverified",
     "--fail", "--fail-on-scan-errors", "--no-update",
 }
 payload = pack.read_bytes() if pack else sys.stdin.buffer.read()
@@ -1801,7 +1801,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
             main = self.helper["main_impl"]
             with mock.patch.dict(main.__globals__, {
                 "repo_root": lambda: repo,
-                "scan_outgoing_review_pack": lambda _repo, prompt: scanned.append(prompt),
+                "scan_outgoing_review_pack": lambda _repo, prompt, *_: scanned.append(prompt),
                 "run_engine": run_engine,
                 "resolve_engine_binary": lambda _reviewer, _repo: (True, None),
             }):
@@ -1955,7 +1955,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
                         output = io.StringIO()
                         with mock.patch.dict(self.helper["main_impl"].__globals__, {
                             "repo_root": lambda: repo, "run_engine": run_engine,
-                            "scan_outgoing_review_pack": lambda _repo, prompt: scans.append(prompt),
+                            "scan_outgoing_review_pack": lambda _repo, prompt, *_: scans.append(prompt),
                         }), mock.patch.object(sys, "argv", argv), contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
                             self.assertEqual(self.helper["main_impl"](), expected_exit)
                         result = json.loads((root / "result.json").read_text())
@@ -2459,7 +2459,8 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
                     self.assertEqual(payload, pack.encode("utf-8"))
                     if os.name != "nt":
                         self.assertEqual(stat.S_IMODE(outgoing.stat().st_mode), 0o600)
-                    self.assertIn("--results=verified,unknown", command)
+                    self.assertIn("--no-verification", command)
+                    self.assertIn("--results=verified,unknown,unverified", command)
                     self.assertIn("--no-update", command)
                     for token in ("-// DELETED_SCAN_MARKER", "+// STAGED_SCAN_MARKER", "UNTRACKED_SCAN_MARKER", "PROMPT_SCAN_MARKER", "# Dataset:", "# Prompt file:"):
                         self.assertIn(token, pack)
@@ -3275,7 +3276,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
                     self.assertFalse(any(sentinel in prompt for prompt in prompts))
                     scanned = []
 
-                    def scan(_repo, prompt):
+                    def scan(_repo, prompt, *_):
                         scanned.append(prompt)
                         if sentinel in prompt:
                             raise SystemExit("complete input scanner rejection")
@@ -3327,7 +3328,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
                 repo = init_repo(Path(tempdir))
                 events = []
 
-                def scan(_repo, prompt):
+                def scan(_repo, prompt, *_):
                     events.append(("scan", prompt))
                     if failure == "scan" and prompt == prompts[8]:
                         raise SystemExit("late scan failure")
@@ -6677,7 +6678,7 @@ os.execv(target, [str(target), *sys.argv[1:]])
                 preflight.__globals__,
                 {
                     "build_review_prompts": capturing,
-                    "scan_outgoing_review_pack": lambda _repo, _prompt: None,
+                    "scan_outgoing_review_pack": lambda _repo, _prompt, *_: None,
                 },
             ):
                 with contextlib.redirect_stdout(stdout):
@@ -7759,6 +7760,87 @@ Path(sys.argv[sys.argv.index(flag) + 1]).write_text(json.dumps({
             # Short and non-credential values stay readable; redaction must not corrupt prose.
             prose = "short answer from https://llm.example.invalid/v1"
             self.assertEqual(self.helper["display_escape"](prose, 4000), prose)
+
+
+# Models TruffleHog 3.x: without --no-verification each detector contacts its
+# provider, and a synthetic credential verifies as invalid ("unverified"); with
+# --no-verification every detection is "unverified". --results filters both,
+# and --fail exits 183 only for a reported result.
+FAKE_RESULT_FILTERING_TRUFFLEHOG = r'''#!/usr/bin/env python3
+import json
+from pathlib import Path
+import sys
+
+args = sys.argv[1:]
+# The scanner environment is sanitized; record beside this executable.
+with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as record:
+    record.write(json.dumps(args) + "\n")
+payload = open(args[1], "rb").read() if args[0] == "filesystem" else sys.stdin.buffer.read()
+results = next((arg.split("=", 1)[1].split(",") for arg in args if arg.startswith("--results=")),
+               ["verified", "unverified", "unknown"])
+if b"SYNTHETIC_DETECTOR_MATCH" in payload and "unverified" in results and "--fail" in args:
+    print(json.dumps({"DetectorName": "Synthetic", "Verified": False}))
+    raise SystemExit(183)
+raise SystemExit(0)
+'''
+
+
+class OfflineSecretScanTests(unittest.TestCase):
+    """The credential gate makes no network call by default and still blocks."""
+
+    def setUp(self):
+        self.helper = load_helper()
+
+    @contextlib.contextmanager
+    def scanner(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            write_executable(root / "trufflehog", FAKE_RESULT_FILTERING_TRUFFLEHOG)
+            record = root / "scans.jsonl"
+            with mock.patch.dict(os.environ, {"PATH": f"{root}{os.pathsep}{os.environ.get('PATH', '')}"}):
+                yield lambda: [json.loads(line) for line in record.read_text(encoding="utf-8").splitlines()] \
+                    if record.exists() else []
+
+    def test_unverified_detection_blocks_offline_and_online_verification_is_opt_in(self):
+        prompt = "review pack\n+token = SYNTHETIC_DETECTOR_MATCH\n"
+        with tempfile.TemporaryDirectory() as tmp, self.scanner() as scans:
+            repo = init_repo(Path(tmp))
+            with self.assertRaisesRegex(SystemExit, "TruffleHog found credentials"):
+                self.helper["scan_outgoing_review_pack"](repo, prompt)
+            self.assertTrue(scans())
+            for command in scans():
+                self.assertIn("--no-verification", command)
+                self.assertIn("--results=verified,unknown,unverified", command)
+            before = len(scans())
+            # Opt-in online verification restores the verified/unknown filter,
+            # so a provider-confirmed invalid credential does not block.
+            self.helper["scan_outgoing_review_pack"](repo, prompt, True)
+            online = scans()[before:]
+            self.assertEqual(len(online), 2)
+            for command in online:
+                self.assertNotIn("--no-verification", command)
+                self.assertIn("--results=verified,unknown", command)
+
+    def test_dry_run_scans_offline_unless_online_verification_is_requested(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = init_repo(Path(tmp))
+            (repo / "source.md").write_text("before\n")
+            git(repo, "add", ".")
+            git(repo, "commit", "-qm", "fixture")
+            (repo / "source.md").write_text("after\n")
+            for options, offline in (((), True), (("--verify-secrets-online",), False)):
+                with self.subTest(options=options), self.scanner() as scans, mock.patch.dict(
+                    self.helper["main_impl"].__globals__, {
+                        "repo_root": lambda: repo,
+                        "resolve_engine_binary": lambda *_args: (True, None),
+                        "run_engine": mock.Mock(side_effect=AssertionError("dry run must not contact a reviewer")),
+                    },
+                ), mock.patch.object(sys, "argv", [str(SCRIPT), "--mode", "local", "--dry-run", *options]), \
+                        contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    self.assertEqual(self.helper["main_impl"](), 0)
+                    self.assertTrue(scans())
+                    for command in scans():
+                        self.assertEqual("--no-verification" in command, offline, command)
 
 
 if __name__ == "__main__":
