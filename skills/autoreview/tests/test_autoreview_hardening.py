@@ -7818,6 +7818,35 @@ Path(sys.argv[sys.argv.index(flag) + 1]).write_text(json.dumps({
             prose = "short answer from https://llm.example.invalid/v1"
             self.assertEqual(self.helper["display_escape"](prose, 4000), prose)
 
+    def test_custom_header_credentials_are_redacted_at_every_boundary(self):
+        # ANTHROPIC_CUSTOM_HEADERS holds newline-separated "Name: Value" headers, so a
+        # credential can live there alone; each value and a bearer token's own value count.
+        bearer = "synthetic-header-bearer-0123456789"
+        api_key = "synthetic-header-key/0123+456="
+        headers = f"Authorization: Bearer {bearer}\nX-Api-Key: {api_key}\nX-Trace: on"
+        with mock.patch.dict(os.environ, {"ANTHROPIC_CUSTOM_HEADERS": headers}, clear=True):
+            for value in (bearer, f"Bearer {bearer}", api_key):
+                for form in self.forms(value):
+                    with self.subTest(form=form):
+                        text = f"gateway rejected header: {form}"
+                        self.assertNotIn(form, self.helper["display_escape"](text, 4000, multiline=True))
+                        report = {"findings": [], "overall_correctness": "patch is correct",
+                                  "review_status": "clean", "overall_explanation": text}
+                        self.assertNotIn(form, json.dumps(self.helper["redact_proxy_report"](report)))
+                        stream = io.StringIO()
+                        output = self.helper["ProxyRedactedOutput"](stream)
+                        output.write(text)
+                        output.finish()
+                        self.assertNotIn(form, stream.getvalue())
+                        failure = self.helper["ReviewerUnavailable"](f"claude engine failed (1)\n{text}")
+                        with mock.patch.dict(self.helper["sanitized_main"].__globals__, {
+                            "main": mock.Mock(side_effect=failure),
+                        }), self.assertRaises(SystemExit) as caught:
+                            self.helper["sanitized_main"]()
+                        self.assertNotIn(form, str(caught.exception))
+            # Header names and short non-secret values stay readable.
+            self.assertEqual(self.helper["display_escape"]("X-Trace: on", 4000), "X-Trace: on")
+
 
 # Models TruffleHog 3.x: without --no-verification each detector contacts its
 # provider, and a synthetic credential verifies as invalid ("unverified"); with

@@ -69,8 +69,10 @@ thread instead of re-specifying it: `codex-lane adopt api-rls <thread-id> [cwd]`
 - The binding is flag-level: `-C` is refused, but a `-c` override given at `start` can still
   change policy, so choose start arguments deliberately. Stored args are re-validated on every
   `next`, so a hand-edited state file cannot smuggle in a refused flag.
-- Artifacts are never pruned; after `drop`, delete `$CODEX_LANE_DIR/<lane>.*` yourself. A lane
-  directory that grants other users any access is refused.
+- Artifacts are never pruned. A lane owns `<lane>.json` and, per run,
+  `<lane>.<UTC stamp>.<pid>.jsonl`, `.last.txt` and `.stderr.log`; after `drop`, delete exactly
+  those names yourself, never a `<lane>.*` glob, which also matches dotted lanes such as
+  `job.extra`. A lane directory that grants other users any access is refused.
 - `fork <lane> <new-lane> <prompt|->` branches the thread (`codex exec fork`) into a new lane with
   the same cwd and policy; the source lane is never written. Compare the two lanes' diffs on the
   same evidence, keep one, `drop` the other.

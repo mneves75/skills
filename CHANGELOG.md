@@ -23,8 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `credentials.json` or `private.key`.
 - `codex-lane` cleanup guidance names each lane's exact files; the old `<lane>.*` advice also
   deleted the files of dotted lanes such as `job.extra`.
-- Autoreview redacts provider credentials from the environment (`*_API_KEY`, `*_TOKEN` and the
-  known provider keys) in terminal output, error messages and saved reports; before, only
+- Autoreview redacts provider credentials from the environment (`*_API_KEY`, `*_TOKEN`, the
+  known provider keys and each `ANTHROPIC_CUSTOM_HEADERS` value) in terminal output, error messages and saved reports; before, only
   proxy credentials were redacted.
 - Autoreview's TruffleHog scan runs offline by default and every detection blocks, so a dry
   run contacts nobody; `--verify-secrets-online` restores online verification on request.
@@ -46,7 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   runbook, data handling and site protections. The autoreview README states its security
   model: untrusted input, what it sends, cost bounds, no irreversible actions, what it keeps.
   The readiness disclosure now says that the project's own tooling may download packages and
-  write build output, and `codex-lane` transcript retention and erasure are documented.
+  write build output, and `codex-lane` transcript retention and erasure are documented, with
+  erasure steps for local files, provider copies and backups.
 - Access review, 2026-10-16: the maintainer administers the repository and one other account,
   also the maintainer's, has write access and keeps it; devices with write access use
   full-disk encryption and a screen lock (maintainer attestation).

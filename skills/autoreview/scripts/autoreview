@@ -887,15 +887,32 @@ REDACTED_CREDENTIAL_ENV_KEYS = MULTI_PROVIDER_CREDENTIAL_ENV_KEYS | {
     "CLAUDE_CODE_CLIENT_KEY_PASSPHRASE",
 }
 MIN_REDACTED_CREDENTIAL_LENGTH = 8
+# Newline-separated "Name: Value" headers the engine sends; any value may carry a credential.
+CREDENTIAL_HEADER_ENV_KEYS = ("ANTHROPIC_CUSTOM_HEADERS",)
+
+
+def header_credentials(raw: str) -> set[str]:
+    values: set[str] = set()
+    for line in raw.splitlines():
+        _name, separator, value = line.partition(":")
+        value = value.strip() if separator else line.strip()
+        # An auth scheme ("Bearer <token>") also hides the bare token.
+        candidates = (value, *value.split(None, 1)[1:])
+        values.update(item.strip() for item in candidates
+                      if len(item.strip()) >= MIN_REDACTED_CREDENTIAL_LENGTH)
+    return values
 
 
 def environment_credentials() -> tuple[str, ...]:
-    return tuple(sorted({
+    values = {
         value
         for key, value in os.environ.items()
         if len(value) >= MIN_REDACTED_CREDENTIAL_LENGTH
         and (key in REDACTED_CREDENTIAL_ENV_KEYS or CUSTOM_PROVIDER_ENV_NAME_PATTERN.fullmatch(key))
-    }))
+    }
+    for key in CREDENTIAL_HEADER_ENV_KEYS:
+        values.update(header_credentials(os.environ.get(key, "")))
+    return tuple(sorted(values))
 
 
 @functools.lru_cache(maxsize=8)

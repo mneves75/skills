@@ -49,8 +49,8 @@ not a security guarantee. `--dry-run` checks preparation without contacting a re
 - **No irreversible actions.** The helper applies no fixes, pushes nothing and publishes
   nothing; a person decides what to do with the findings.
 - **What it keeps.** Reports go only to output paths outside the reviewed repository. Proxy
-  credentials and provider credential values from the environment (`*_API_KEY`, `*_TOKEN` and
-  the known provider keys, eight characters or longer) are redacted from terminal output, error
+  credentials and provider credential values from the environment (`*_API_KEY`, `*_TOKEN`,
+  the known provider keys and each `ANTHROPIC_CUSTOM_HEADERS` value, eight characters or longer) are redacted from terminal output, error
   messages and saved reports. Temporary files live in a temporary directory removed after the
   run. Child process groups are terminated with bounded cleanup.
 
