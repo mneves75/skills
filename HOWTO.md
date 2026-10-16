@@ -191,7 +191,7 @@ real and well-shaped before changing anything. It names things by portable ancho
 issue and PR URLs, branch, module, symbol, exact error text) instead of filesystem paths, and
 forbids pushes, merges, and public comments unless you ask for them.
 
-**Triggers.** "handoff <task>", "write a handoff", "give me a prompt for another agent". For
+**Triggers.** "handoff `<task>`", "write a handoff", "give me a prompt for another agent". For
 work you dispatch into your own tree, use `mneves-fable-orchestrator`'s delegation brief instead.
 
 **Example** (illustrative).

@@ -23,6 +23,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `credentials.json` or `private.key`.
 - `codex-lane` cleanup guidance names each lane's exact files; the old `<lane>.*` advice also
   deleted the files of dotted lanes such as `job.extra`.
+- Autoreview redacts provider credentials from the environment (`*_API_KEY`, `*_TOKEN` and the
+  known provider keys) in terminal output, error messages and saved reports; before, only
+  proxy credentials were redacted.
+- Autoreview's TruffleHog scan runs offline by default and every detection blocks, so a dry
+  run contacts nobody; `--verify-secrets-online` restores online verification on request.
+- Autoreview refuses a run over 20 review passes or 10,240,000 prompt bytes before the first
+  provider call (`--max-review-passes`, `--max-review-input-bytes` raise the limits), and
+  refuses a Git work tree relocated away from its checkout, which could run an executable
+  from the original checkout before isolation.
+- The reference `verify-live.sh` and `release.sh` read health bodies as JSON objects with
+  unique top-level keys (a nested or repeated field no longer passes), which needs `python3`;
+  release tag messages state the recorded security gate verdict.
+- `sync-pstack.sh` refuses upstream skills that contain a symlink; the site's HTML guard
+  accepts only a strict subset; concurrent `mneves-teach-back-srs` reviews no longer lose
+  a scheduling step.
 
 ### Security
 - Every site page and the readiness HTML report carry a Content-Security-Policy and a
@@ -37,7 +52,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   full-disk encryption and a screen lock (maintainer attestation).
 
 ### Changed
-- `tools/` has unit tests (`bun test`), run in CI after typecheck and lint.
+- `tools/` has unit tests (`bun test`), run in CI after typecheck and lint, and the SRS
+  helper's test runs in CI.
 
 ## [1.35.1] - 2026-10-16
 

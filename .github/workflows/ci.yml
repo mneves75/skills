@@ -78,6 +78,9 @@ jobs:
       - name: Reference release guards (throwaway repo, fake wrangler, no network)
         run: bash skills/mneves-ship-deploy/assets/release-guards.test.sh
 
+      - name: SRS helper (concurrent reviews, temporary SQLite)
+        run: python3 skills/mneves-teach-back-srs/tests/test_srs_db.py
+
       - name: Model ids live only in the orchestrator's Defaults block
         run: |
           bash tools/scripts/check-defaults-block.sh
