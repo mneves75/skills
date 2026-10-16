@@ -225,7 +225,8 @@ after = {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
          for p in root.iterdir() if p.is_file() and p.name.startswith('job.extra.')}
 assert after == before, 'drop changed another lane artifact'
 PY
-if grep -Fq 'delete $CODEX_LANE_DIR/<lane>.*' "$LANE"; then
+# Every shipped file of this skill: no guidance may delete artifacts with a lane-prefix glob.
+if grep -RFl --exclude='codex-lane.test' 'CODEX_LANE_DIR/<lane>.*' "$TOOL_DIR/.." >/dev/null; then
   fail 'cleanup guidance can delete artifacts belonging to dotted lanes'
 fi
 

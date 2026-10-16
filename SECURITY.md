@@ -89,6 +89,24 @@ operating-system updates.
 - The other skills are Markdown procedures. What your agent sends, and where, follows your
   agent's own configuration.
 
+### Erasing what these tools leave behind
+
+Every store is on your machine or with a provider you chose; this project runs no server and
+keeps no copy. To erase:
+
+1. **Local files the tools wrote.** Delete the readiness reports you asked for (`--output`),
+   autoreview's `--output`, `--json-output` and `--status-output` files, `.ai-learn/srs.db`
+   and any SRS exports, and the `codex-lane` files listed above. Each lives where you chose or
+   where this file says; no tool keeps another copy.
+2. **Provider copies.** Review inputs sent by autoreview, and prompts your agent sends while
+   following a skill, are kept under that provider's own retention terms. Delete them through
+   the provider's account or data controls; no tool here can reach them.
+3. **Backups.** Copies in your own backups (for example Time Machine or a synced folder)
+   remain until those backups expire or you remove them. Delete or exclude them there; a
+   restore brings erased files back, so delete them again after restoring.
+4. **Not applicable.** The site sets no cookies and collects nothing, and this repository's CI
+   handles no user data.
+
 ## Site protections
 
 GitHub Pages serves the site over HTTPS and redirects HTTP to HTTPS, but it does not let a
