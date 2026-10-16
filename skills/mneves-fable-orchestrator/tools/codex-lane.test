@@ -202,4 +202,31 @@ probe "$TMP/lanes2/fresh.log"
 mode="$(python3 -c 'import os,stat,sys; print(oct(stat.S_IMODE(os.stat(sys.argv[1]).st_mode)))' "$TMP/lanes2/fresh.log")"
 [ "$mode" = "0o600" ] || fail "fresh artifact mode is $mode, expected 0o600"
 
+# 9. Dotted lane names share prefixes; drop and cleanup guidance must stay exact.
+FAKE_MODE=ok FAKE_MESSAGE='dotted lane' run "$LANE" start job.extra "$TMP/spec.txt"
+[ "$rc" -eq 0 ] || fail "dotted lane start exited $rc: $err"
+python3 - "$CODEX_LANE_DIR" "$TMP/dotted-before.json" <<'PY'
+import hashlib, json, pathlib, sys
+root = pathlib.Path(sys.argv[1])
+snapshot = {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in root.iterdir() if p.is_file() and p.name.startswith('job.extra.')}
+assert 'job.extra.json' in snapshot
+pathlib.Path(sys.argv[2]).write_text(json.dumps(snapshot))
+PY
+run "$LANE" drop job
+[ "$rc" -eq 0 ] || fail "drop exited $rc: $err"
+[ ! -e "$CODEX_LANE_DIR/job.json" ] || fail "drop kept its state file"
+[ "$("$LANE" last job.extra)" = 'dotted lane' ] || fail "drop changed dotted lane state"
+python3 - "$CODEX_LANE_DIR" "$TMP/dotted-before.json" <<'PY'
+import hashlib, json, pathlib, sys
+root = pathlib.Path(sys.argv[1])
+before = json.loads(pathlib.Path(sys.argv[2]).read_text())
+after = {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
+         for p in root.iterdir() if p.is_file() and p.name.startswith('job.extra.')}
+assert after == before, 'drop changed another lane artifact'
+PY
+if grep -Fq 'delete $CODEX_LANE_DIR/<lane>.*' "$LANE"; then
+  fail 'cleanup guidance can delete artifacts belonging to dotted lanes'
+fi
+
 echo "test PASS"
