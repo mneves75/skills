@@ -389,11 +389,13 @@ it varies inputs, retries, and checks persistence so a hard-coded success screen
 <hr>
 <h2 id="mneves-fable-orchestrator">mneves-fable-orchestrator</h2>
 <p><strong>What it does.</strong> Routes non-trivial work across the main session, Codex, and subagents when
-delegation creates independent progress or evidence. Planning and read-only advice use
-<code>gpt-6-astra</code> at <code>high</code>; all Codex execution, discovery, frontend work, specialist work and
-code review use <code>gpt-6.1-sol</code> at <code>xhigh</code>. Codex review has no automatic model fallback.
-Other harnesses bind these roles through Codex dispatch when available; the portable defaults
-do not change a running harness&#39;s main-session model. Caller overrides and actual host
+delegation creates independent progress or evidence. Building and reviewing run on different
+models: the main session and every worker build on Opus (Claude) or <code>gpt-6.1-sol</code> at <code>xhigh</code>
+(Codex); planning, plan advice and code review run on Fable (Claude, also the main session&#39;s
+advisor) or <code>gpt-6-astra</code> (Codex: <code>xhigh</code> to plan and advise, <code>high</code> to review), so the model
+that built a change never reviews it.
+Codex review has no automatic model fallback. The portable defaults do not change a running
+harness&#39;s main-session model. Caller overrides and actual host
 configuration take precedence; the skill&#39;s Defaults block owns its portable defaults.
 See <a href="https://github.com/mneves75/skills/blob/main/docs/usage-efficiency.md">usage-efficiency.md</a> for compact prompts and measurement limits.
 Before accepting delegated claims, check task/project/source identity, actual evidence and
