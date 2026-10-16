@@ -5,7 +5,7 @@
 # `node` and `curl` programs on PATH. The scripts themselves are real; only the programs they call at the
 # edge are fake. A fake `curl` serves bodies from files, so no server runs and nothing leaves the machine.
 #
-# Usage: bash release-guards.test.sh        (needs bash 3.2+, git, sed, awk, tr)
+# Usage: bash release-guards.test.sh        (needs bash 3.2+, git, sed, awk, tr, python3)
 # Run it from a checkout of the skill; it reads release.sh and verify-live.sh beside itself.
 set -euo pipefail
 
@@ -228,6 +228,13 @@ serve "$STAGING_URL" "abcdef1234567" staging
 expect "production refuses when staging serves another commit" 1 "staging serves abcdef1" -- production --check
 serve "$STAGING_URL" "${sha}-dirty" staging
 expect "production refuses a dirty staging build" 1 "is not a commit id" -- production --check
+# The staging health body is read as JSON: only its own top-level commit counts.
+printf '{"status":"ok","commit":"abcdef1234567","version":"1.2.3","env":"staging","lastHealthy":{"commit":"%s"}}' "$sha" > "$FAKE_WEB/staging.example.test_health"
+expect "production refuses when only a nested object names the staged commit" 1 "staging serves abcdef1" -- production --check
+printf '{"status":"ok","commit":"abcdef1234567","version":"1.2.3","env":"staging","commit":"%s"}' "$sha" > "$FAKE_WEB/staging.example.test_health"
+expect "production refuses a staging health body that repeats a top-level key" 1 "repeats the top-level key" -- production --check
+printf '{"status":"ok","commit":"%s","version":"1.2.3","env":"staging"' "$sha" > "$FAKE_WEB/staging.example.test_health"
+expect "production refuses a staging health body that is not JSON" 1 "is not JSON" -- production --check
 serve "$STAGING_URL" "$sha" staging
 git -C "$work" tag v1.2.3 && git -C "$work" push -q origin v1.2.3
 expect "production refuses a version that already has its tag" 1 "already exists on origin" -- production --check
@@ -328,6 +335,26 @@ serve "$STAGING_URL" "$sha" production
 vl_expect "verify-live fails when the target answers as another environment" 1 "wiring" -- staging
 printf '{"commit":"%s","env":"staging"}' "$sha" > "$FAKE_WEB/staging.example.test_health"
 vl_expect "verify-live fails on a 2xx health body without its fields" 1 "health body says status ok" -- staging
+# The health body is one JSON object and only its own top-level fields count: a nested object, a
+# repeated key or a value of the wrong type never stands in for them.
+health_body() { printf '%s' "$1" > "$FAKE_WEB/staging.example.test_health"; }
+serve "$STAGING_URL" "$sha" staging
+health_body "$(printf '{\n  "env": "staging",\n  "status": "ok",\n  "commit": "%s",\n  "version": "1.2.3",\n  "checks": {"db": {"status": "down", "env": "production"}}\n}\n' "$sha")"
+vl_expect "verify-live passes on a healthy body with nested objects and any key order (control)" 0 "all assertions passed" -- staging
+health_body "$(printf '{"status":"error","commit":"%s","version":"1.2.3","env":"staging","lastHealthy":{"status":"ok"}}' "$sha")"
+vl_expect "verify-live fails when the top-level status fails and a nested one is ok" 1 "FAIL health body says status ok" -- staging
+health_body "$(printf '{"lastHealthy":{"status":"ok","commit":"%s","version":"1.2.3","env":"staging"}}' "$sha")"
+vl_expect "verify-live fails when the fields exist only in a nested object" 1 "FAIL health body says status ok" -- staging
+health_body "$(printf '{"status":"error","commit":"%s","version":"1.2.3","env":"staging","status":"ok"}' "$sha")"
+vl_expect "verify-live fails on a health body that repeats a top-level key" 1 "repeats the top-level key(s) status" -- staging
+health_body "$(printf '{"status":"ok","commit":"%s","version":"1.2.3","env":"staging"' "$sha")"
+vl_expect "verify-live fails on a health body that is not JSON" 1 "is not JSON" -- staging
+health_body '["ok"]'
+vl_expect "verify-live fails on a health body that is not a JSON object" 1 "is not a JSON object" -- staging
+health_body "$(printf '{"status":"ok","commit":"%s","version":123,"env":"staging"}' "$sha")"
+vl_expect "verify-live fails when the version is not a string" 1 "FAIL health body carries a version" -- staging
+health_body "$(printf '{"status":"ok","commit":"%s","version":"1.2.3","env":"production","previous":{"env":"staging"}}' "$sha")"
+vl_expect "verify-live fails when only a nested object names the target environment" 1 "FAIL wiring" -- staging
 serve "$STAGING_URL" "$sha" staging
 printf '{"items":[1]}' > "$FAKE_WEB/staging.example.test_api_admin"; rm -f "$FAKE_WEB/staging.example.test_api_admin.status"
 vl_expect "verify-live fails when the request that must be refused succeeds" 1 "is refused" -- staging
