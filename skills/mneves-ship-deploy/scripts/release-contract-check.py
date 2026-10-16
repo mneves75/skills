@@ -52,7 +52,7 @@ SEVERITY = {FAIL: 3, WARN: 2, PASS: 1, NA: 0}
 IDS = (
     "entry.release", "entry.verify-live", "release.check-mode", "release.waivers",
     "release.pushed-source", "release.tag-after-proof", "release.evidence", "release.rollback",
-    "release.runtime-pin", "served-commit", "cf.targets", "cf.env-routes", "cf.env-triggers",
+    "release.runtime-pin", "release.readiness", "served-commit", "cf.targets", "cf.env-routes", "cf.env-triggers",
     "cf.env-bindings", "cf.worker-cache", "cf.workers-dev-origin", "guardrail.local", "guardrail.ci",
 )
 
@@ -670,6 +670,69 @@ def rollback(view: list[Line] | None) -> Result:
 PIN_FILES = (".nvmrc", ".node-version", ".bun-version", ".python-version", ".tool-versions")
 
 
+def readiness_failure_branch(candidate: str, following: list[tuple[Line, str]]) -> str:
+    if "||" in candidate:
+        # Negated existence plus || refuses an existing record, not a missing one.
+        if re.search(r"!\s*(?:\[\[?|test)?\s*-[efr]", candidate):
+            return ""
+        branch = candidate.split("||", 1)[1]
+        if (not branch.strip() or branch.rstrip().endswith("\\")) and following:
+            branch += "\n" + following[0][1]
+        return branch
+    if not re.search(r"\bif\s+.*!\s+-[efr]", candidate):
+        return ""
+    branch = candidate.split("then", 1)[-1] if "then" in candidate else ""
+    for _, text in following:
+        if re.search(r"\b(?:fi|else|elif)\b", text):
+            break
+        branch += "\n" + text
+    return branch
+
+
+def readiness_branch_refuses(branch: str) -> bool:
+    return any(first_word(statement) in FAILING_WORDS or
+               re.match(r"(?:exit|return)\s+[1-9][0-9]*\b", statement.lstrip(" {"))
+               for statement in split_statements(branch))
+
+
+def readiness_refusal(code: list[tuple[Line, str]], ref: str, read: re.Pattern) -> Line | None:
+    for index, (guard, candidate) in enumerate(code):
+        tests_file = re.search(r"-[efr]\s+[\"']?" + ref, candidate)
+        if is_message(candidate) or not (tests_file or read.search(candidate)):
+            continue
+        branch = readiness_failure_branch(candidate, code[index + 1:])
+        if readiness_branch_refuses(branch):
+            return guard
+    return None
+
+
+def readiness(repo: Repo, script: Path | None, view: list[Line] | None) -> Result:
+    check_id = "release.readiness"
+    if view is None:
+        return no_script(check_id)
+    declared = re.search(r"(?m)^\s*#\s*release-contract:\s*(\d+)\s*$", repo.require(script) or "") if script else None
+    version = int(declared.group(1)) if declared else 0
+    # Track the path and its assigned variable, then require both a read and a connected refusal.
+    deploy = first_deploy(view)
+    before_deploy = view[:view.index(deploy)] if deploy else view
+    code = [(line, line.text.split(" #", 1)[0]) for line in before_deploy]
+    for line, text in code:
+        if is_message(text) or ".scratch/readiness/" not in text:
+            continue
+        assignment = re.search(r"\b([A-Za-z_][A-Za-z0-9_]*)=[\"']?[^\n]*\.scratch/readiness/", text)
+        ref = (r"\$\{?" + re.escape(assignment.group(1)) + r"\b\}?" if assignment
+               else r"[^\s]*\.scratch/readiness/[^\s]*")
+        read = re.compile(r"\b(?:cat|cp|grep|awk|sed|read)\b[^\n]*" + ref + r"|<\s*[\"']?" + ref)
+        reads_record = any(read.search(candidate) for _, candidate in code if not is_message(candidate))
+        guard = readiness_refusal(code, ref, read) if reads_record else None
+        if guard:
+            return Result(check_id, PASS, f"{line.where()} reads a readiness record; refusal at {guard.where()} before deploy; function invocation is not proven", True)
+    note = "guarantee 11, the readiness record, is not adopted"
+    if version >= 2:
+        return Result(check_id, FAIL, f"{repo.rel(script)} declares release-contract: {version}, but {note}", True)
+    return Result(check_id, WARN, note, True)
+
+
 def pins_in(repo: Repo, directory: Path) -> tuple[list[tuple[str, str, int | None]], list[str]]:
     """((source name, path, line) for each runtime pin declared in one directory, problems reading the sources)."""
     pins: list[tuple[str, str, int | None]] = []
@@ -1085,6 +1148,7 @@ def check_unit(repo: Repo, unit: Path) -> list[Result]:
     then at the repository root; guardrails always read the repository root. No check raises: an input that
     cannot be read (permissions, too large, not a regular file, too deeply nested) is reported as a WARN."""
     view: list[Line] | None = None
+    script: Path | None = None
     view_error = ""
     try:
         script, kind = find_script(repo, unit, "release.sh")
@@ -1111,6 +1175,7 @@ def check_unit(repo: Repo, unit: Path) -> list[Result]:
         on_view("release.pushed-source", pushed_source), on_view("release.tag-after-proof", tag_after_proof),
         on_view("release.evidence", evidence), on_view("release.rollback", rollback),
         guarded("release.runtime-pin", lambda: runtime_pin(repo, unit, view, view_error)),
+        on_view("release.readiness", lambda lines: readiness(repo, script, lines)),
         guarded("served-commit", lambda: served_commit(repo, unit)), *cf,
         guarded("cf.workers-dev-origin", lambda: workers_dev_origin(repo, unit)),
         guarded("guardrail.local", lambda: guardrail_local(repo)), guarded("guardrail.ci", lambda: guardrail_ci(repo)),

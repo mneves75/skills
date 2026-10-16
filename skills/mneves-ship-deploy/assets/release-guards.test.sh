@@ -26,8 +26,28 @@ export FAKE_STATE="$tmp/state" FAKE_WEB="$tmp/web"
 mkdir -p "$tmp/bin" "$FAKE_STATE" "$FAKE_WEB"
 export FAKE_ACCOUNT="$ACCOUNT" FAKE_SECRETS="API_TOKEN" FAKE_NODE_VERSION="v22.11.0" FAKE_FAIL_GATE=""
 export VERIFY_LIVE_ATTEMPTS=1 VERIFY_LIVE_DELAY=1
+REAL_CP="$(command -v cp)"
+export REAL_CP FAKE_SWAP_RECORD=""
+REAL_DATE="$(command -v date)"
+export REAL_DATE FAKE_NOW="" FAKE_AFTER_BUILD=""
 
 # ---- Fake programs ----
+cat > "$tmp/bin/date" <<'FAKE'
+#!/bin/bash
+if [ "$*" = '-u +%Y-%m-%dT%H:%M:%SZ' ] && [ -n "$FAKE_NOW" ]; then
+  if [ -n "$FAKE_AFTER_BUILD" ] && [ -f "$FAKE_STATE/build-finished" ]; then
+    echo "$FAKE_AFTER_BUILD"
+  else echo "$FAKE_NOW"; fi
+else "$REAL_DATE" "$@"; fi
+FAKE
+cat > "$tmp/bin/cp" <<'FAKE'
+#!/bin/bash
+"$REAL_CP" "$@" || exit $?
+if [ -n "$FAKE_SWAP_RECORD" ] && [ "$1" -ef "$FAKE_SWAP_RECORD" ]; then
+  "$REAL_CP" "$FAKE_SWAP_RECORD.replacement" "$FAKE_SWAP_RECORD"
+  printf '%s\n' "$2" > "$FAKE_STATE/snapshot-path"
+fi
+FAKE
 cat > "$tmp/bin/wrangler" <<'FAKE'
 #!/bin/bash
 echo "wrangler $*" >> "$FAKE_STATE/calls.log"
@@ -54,7 +74,9 @@ cat > "$tmp/bin/npm" <<'FAKE'
 echo "npm $*" >> "$FAKE_STATE/calls.log"
 case "$1" in
   --version) echo "10.9.2" ;;
-  run) [ "$2" = "$FAKE_FAIL_GATE" ] && { echo "gate $2 failed" >&2; exit 1; } ;;
+  run)
+    [ "$2" = "$FAKE_FAIL_GATE" ] && { echo "gate $2 failed" >&2; exit 1; }
+    [ "$2" != build ] || touch "$FAKE_STATE/build-finished" ;;
 esac
 exit 0
 FAKE
@@ -129,11 +151,35 @@ new_repo() {
   )
   : > "$FAKE_STATE/calls.log"; rm -f "$FAKE_STATE"/live-* "$FAKE_STATE/count"
   rm -rf "$FAKE_WEB"; mkdir -p "$FAKE_WEB"
-  FAKE_SECRETS="API_TOKEN"; FAKE_NODE_VERSION="v22.11.0"; FAKE_FAIL_GATE=""
+  FAKE_SECRETS="API_TOKEN"; FAKE_NODE_VERSION="v22.11.0"; FAKE_FAIL_GATE=""; FAKE_SWAP_RECORD=""
+  FAKE_NOW=""; FAKE_AFTER_BUILD=""; rm -f "$FAKE_STATE/build-finished"
   export FAKE_SECRETS FAKE_NODE_VERSION FAKE_FAIL_GATE
+  write_readiness staging
+  write_readiness production
 }
 head_sha() { git -C "$work" rev-parse HEAD; }
-commit_push() { git -C "$work" add -A && git -C "$work" commit -q -m "$1" && git -C "$work" push -q origin main; }
+commit_push() {
+  git -C "$work" add -A && git -C "$work" commit -q -m "$1" && git -C "$work" push -q origin main
+  write_readiness staging
+  write_readiness production
+}
+write_readiness() {
+  mkdir -p "$work/.scratch/readiness"
+  cat > "$work/.scratch/readiness/$1.json" << JSON
+{
+  "schema": 1,
+  "unit": ".",
+  "target": "$1",
+  "catalog": 1,
+  "commit": "$(head_sha)",
+  "verdict": "ready",
+  "open_blockers": 0,
+  "created_at": "2000-01-01T00:00:00Z",
+  "valid_until": "9999-01-01T00:00:00Z",
+  "waivers": []
+}
+JSON
+}
 
 # serve <base url> <commit> <env>: the health page and the two controls of a healthy deployment.
 serve() {
@@ -170,6 +216,240 @@ no_build() { ! log_has '^npm (ci|run)' && ! log_has '^wrangler'; }
 release_json() { find "$work/.scratch" -name release.json 2> /dev/null | head -1 || true; }
 no_tags() { [ -z "$(remote_tags)" ] && [ -z "$(git -C "$work" tag)" ]; }
 
+set_readiness_expiries() {
+  awk -v first="$2" -v last="$3" '/"waivers":/ {
+    waiver = "    {\n      \"control\": \"BR-02\",\n      \"owner\": \"@o\",\n      \"reason\": \"r\",\n      \"expires\": \"%s\"\n    }"
+    printf "  \"waivers\": [\n" waiver ",\n" waiver "\n  ]\n", first, last
+    next
+  } { print }' "$1" > "$1.waivers"
+  mv "$1.waivers" "$1"
+}
+
+# ==== Calendar validation for every timestamp source ====
+for field in created_at valid_until expires; do
+  for day in 2026-02-31 2026-04-31 2100-02-29 2028-02-29; do
+    new_repo "calendar-$field-$day"
+    record="$work/.scratch/readiness/staging.json"
+    FAKE_NOW=2000-01-01T00:00:00Z
+    if [ "$field" = created_at ]; then FAKE_NOW=2130-01-01T00:00:00Z; fi
+    if [ "$field" = expires ]; then
+      set_readiness_expiries "$record" "${day}T00:00:00Z" 9999-01-01T00:00:00Z
+      problem='a readiness waiver has expired'
+    else
+      sed -i.bak "s/\"$field\": \"[^\"]*\"/\"$field\": \"${day}T00:00:00Z\"/" "$record"
+      problem="$field"
+    fi
+    run staging --dry-run
+    if [ "$day" = 2028-02-29 ]; then
+      if [ "$code" = 0 ]; then pass "calendar accepts $field=$day"
+      else fail "calendar accepts $field=$day (exit $code)" "$out"; fi
+    elif [ "$code" = 1 ] && printf '%s' "$out" | grep -F "$problem" > /dev/null && no_build; then
+      pass "calendar refuses $field=$day before build"
+    else fail "calendar refuses $field=$day before build (exit $code)" "$out"; fi
+  done
+done
+
+# ==== Expiry at the deploy boundary, without waiting for a real clock ====
+for target_case in staging production; do
+  for deadline_case in record boundary waiver-first waiver-last waived; do
+    new_repo "deadline-$target_case-$deadline_case"
+    serve "$STAGING_URL" "$(head_sha)" staging
+    serve "$PRODUCTION_URL" "$(head_sha)" production
+    if [ "$target_case" = production ]; then
+      git -C "$work" tag -a v1.2.3-beta1 -m staged
+      git -C "$work" push -q origin v1.2.3-beta1
+    fi
+    record="$work/.scratch/readiness/$target_case.json"
+    FAKE_NOW=2026-10-15T12:00:01Z
+    FAKE_AFTER_BUILD=2026-10-15T12:00:03Z
+    case "$deadline_case" in
+      record | boundary | waived)
+        sed -i.bak 's/9999-01-01T00:00:00Z/2026-10-15T12:00:02Z/' "$record" ;;
+      waiver-first) set_readiness_expiries "$record" 2026-10-15T12:00:02Z 9999-01-01T00:00:00Z ;;
+      waiver-last) set_readiness_expiries "$record" 9999-01-01T00:00:00Z 2026-10-15T12:00:02Z ;;
+    esac
+    [ "$deadline_case" != boundary ] || FAKE_AFTER_BUILD=2026-10-15T12:00:02Z
+    if [ "$deadline_case" = waived ]; then
+      expect "$target_case waived readiness skips deploy deadline" 0 "Released" -- "$target_case" --yes --waive readiness=incident
+    else
+      run "$target_case" --yes
+      if [ "$code" = 1 ] && printf '%s' "$out" | grep -F 'readiness record expired before deploy; run the readiness gate again' > /dev/null &&
+        log_has '^npm run build$' && no_deploy && [ -z "$(release_json)" ]; then
+        pass "$target_case refuses $deadline_case expiry after build before deploy"
+      else fail "$target_case refuses $deadline_case expiry after build before deploy (exit $code)" "$out"; fi
+    fi
+  done
+done
+
+# ==== Readiness: refusal before installing, building, deploying or making a run directory ====
+for defect in missing symlink directory malformed missing-key schema unit target commit short-sha future expired verdict blockers timestamp duplicate waiver-scope invalid-created invalid-until expired-waiver malformed-waiver inline-waiver inline-escaped-waiver escaped-waiver nested-target packed-duplicate waiver-no-expiry waivers-null scratch-link readiness-link; do
+  new_repo "readiness-$defect"
+  record="$work/.scratch/readiness/staging.json"
+  serve "$STAGING_URL" "$(head_sha)" staging
+  problem="$defect"
+  case "$defect" in
+    missing) rm "$record"; problem=missing ;;
+    symlink) mv "$record" "$record.real"; ln -s "$record.real" "$record" ;;
+    directory) rm "$record"; mkdir "$record"; problem=regular ;;
+    malformed) sed -i.bak 's/"schema": 1/"schema": nope/' "$record"; problem='not JSON' ;;
+    missing-key) sed -i.bak '/"catalog"/d' "$record"; problem=catalog ;;
+    schema) sed -i.bak 's/"schema": 1/"schema": 2/' "$record" ;;
+    unit) sed -i.bak 's/"unit": "."/"unit": "app"/' "$record" ;;
+    target) sed -i.bak 's/"target": "staging"/"target": "production"/' "$record" ;;
+    commit) sed -i.bak "s/$(head_sha)/$(printf '%040d' 0)/" "$record" ;;
+    short-sha) sed -i.bak "s/$(head_sha)/$(head_sha | cut -c1-7)/" "$record"; problem=commit ;;
+    future) sed -i.bak 's/2000-01-01/9999-01-01/' "$record"; problem=created_at ;;
+    expired) sed -i.bak 's/9999-01-01/2000-01-01/' "$record"; problem=valid_until ;;
+    verdict) sed -i.bak 's/"ready"/"not-ready"/' "$record" ;;
+    blockers) sed -i.bak 's/"open_blockers": 0/"open_blockers": 1/' "$record"; problem=open_blockers ;;
+    timestamp) sed -i.bak 's/2000-01-01T00:00:00Z/yesterday/' "$record"; problem=created_at ;;
+    invalid-created) sed -i.bak 's/2000-01-01T00:00:00Z/2000-13-45T25:61:61Z/' "$record"; problem=created_at ;;
+    invalid-until) sed -i.bak 's/9999-01-01T00:00:00Z/9999-99-99T99:99:99Z/' "$record"; problem=valid_until ;;
+    expired-waiver | malformed-waiver)
+      expiry=2001-01-01T00:00:00Z
+      [ "$defect" != malformed-waiver ] || expiry=9999-99-99T99:99:99Z
+      awk -v expiry="$expiry" '/"waivers":/ {
+        printf "  \"waivers\": [{\n    \"control\": \"BR-02\",\n    \"owner\": \"@o\",\n    \"reason\": \"r\",\n    \"expires\": \"%s\"\n  }]\n", expiry; next
+      } { print }' "$record" > "$record.waivers"
+      mv "$record.waivers" "$record"
+      problem='a readiness waiver has expired' ;;
+    # The record is read as JSON: inline objects and escaped keys mean what JSON says they mean.
+    inline-waiver)
+      sed -i.bak 's/"waivers": \[\]/"waivers": [{"control": "BR-02", "owner": "@o", "reason": "r", "expires": "2001-01-01T00:00:00Z"}]/' "$record"
+      problem='a readiness waiver has expired' ;;
+    inline-escaped-waiver)
+      sed -i.bak 's/"waivers": \[\]/"waivers": [{ "control": "BR-02", "owner": "@o", "reason": "r", "ex\\u0070ires": "2001-01-01T00:00:00Z"}]/' "$record"
+      problem='a readiness waiver has expired' ;;
+    waiver-scope)
+      # The record's target is the waiver's scope; a waiver that repeats it is refused clearly.
+      awk '/"waivers":/ {
+        printf "  \"waivers\": [\n    {\n      \"control\": \"BR-02\",\n      \"target\": \"staging\",\n      \"expires\": \"9999-01-01T00:00:00Z\"\n    }\n  ]\n"; next
+      } { print }' "$record" > "$record.waivers"
+      mv "$record.waivers" "$record"
+      problem='waiver objects must not repeat target' ;;
+    escaped-waiver)
+      set_readiness_expiries "$record" 2001-01-01T00:00:00Z 9999-01-01T00:00:00Z
+      sed -i.bak 's/"expires"/"ex\\u0070ires"/g' "$record"
+      problem='a readiness waiver has expired' ;;
+    nested-target)
+      # Root target names the other environment; only a nested object names staging.
+      awk '/"target":/ {
+        print "  \"meta\": {"; print "    \"target\": \"staging\""; print "  },"
+        print "  \"note\": \"x\", \"target\": \"production\","; next
+      } { print }' "$record" > "$record.nested"
+      mv "$record.nested" "$record"
+      problem='unknown readiness record key' ;;
+    packed-duplicate)
+      sed -i.bak 's/"verdict": "ready",/"verdict": "ready", "open_blockers": 1,/' "$record"
+      problem='duplicate open_blockers key' ;;
+    waiver-no-expiry)
+      awk '/"waivers":/ {
+        printf "  \"waivers\": [\n    {\n      \"control\": \"BR-02\",\n      \"owner\": \"@o\",\n      \"reason\": \"r\"\n    }\n  ]\n"; next
+      } { print }' "$record" > "$record.waivers"
+      mv "$record.waivers" "$record"
+      problem='every readiness waiver needs control, owner, reason and expires' ;;
+    waivers-null)
+      sed -i.bak 's/"waivers": \[\]/"waivers": null/' "$record"
+      problem='waivers must be a list of waiver objects' ;;
+    scratch-link) mv "$work/.scratch" "$work/scratch-real"; ln -s "$work/scratch-real" "$work/.scratch"; problem=symlink ;;
+    readiness-link) mv "$work/.scratch/readiness" "$work/.scratch/readiness-real"; ln -s "$work/.scratch/readiness-real" "$work/.scratch/readiness"; problem=symlink ;;
+    duplicate) sed -i.bak 's/"schema": 1,/"schema": 1,\
+  "schema": 1,/' "$record"; problem=schema ;;
+  esac
+  run staging
+  if [ "$code" = 1 ] && printf '%s' "$out" | grep -F "$problem" > /dev/null &&
+    printf '%s' "$out" | grep -F "run the readiness gate for staging on $(head_sha | cut -c1-7)" > /dev/null &&
+    printf '%s' "$out" | grep -F -- '--waive readiness=<reason>' > /dev/null &&
+    no_build && no_tags && [ ! -e "$work/.scratch/release" ]; then
+    pass "readiness refuses $defect before build with remediation"
+  else fail "readiness refuses $defect before build with remediation (exit $code)" "$out"; fi
+done
+
+new_repo readiness-multiline-waiver
+record="$work/.scratch/readiness/staging.json"
+awk '/"waivers":/ {
+  print "  \"waivers\": ["
+  print "    {"
+  print "      \"control\": \"BR-02\","
+  print "      \"owner\": \"@o\","
+  print "      \"reason\": \"r\","
+  print "      \"expires\": \"9999-01-01T00:00:00Z\""
+  print "    }"
+  print "  ]"
+  next
+} { print }' "$record" > "$record.waivers"
+mv "$record.waivers" "$record"
+serve "$STAGING_URL" "$(head_sha)" staging
+expect "documented multiline waiver permits release" 0 'Released' -- staging
+
+new_repo readiness-reserved
+sed -i.bak 's/GATES="lint=/GATES="readiness=true\
+lint=/' "$work/scripts/release.sh"
+expect "readiness is reserved even when waived" 2 'readiness is reserved' -- staging --check --waive readiness=incident
+check "reserved readiness gate builds nothing" no_build
+
+new_repo readiness-line-format
+record="$work/.scratch/readiness/staging.json"
+awk '{ printf "%s\r\n", $0 }' "$record" > "$record.lines"
+mv "$record.lines" "$record"
+expect "record reader accepts CRLF line endings" 0 'readiness: ready' -- staging --check
+tr -d '\r\n' < "$record" > "$record.flat"
+mv "$record.flat" "$record"
+expect "record reader accepts one-line JSON" 0 'readiness: ready' -- staging --check
+
+new_repo readiness-valid
+serve "$STAGING_URL" "$(head_sha)" staging
+expect "--check reports ready" 0 'readiness: ready (valid until 9999-01-01T00:00:00Z)' -- staging --check
+run staging
+json="$(release_json)"
+if [ "$code" = 0 ] && [ -f "$json" ] &&
+  grep -F '"readiness": {"status": "ready", "record": "readiness.json", "valid_until": "9999-01-01T00:00:00Z"}' "$json" > /dev/null &&
+  cmp "$work/.scratch/readiness/staging.json" "$(dirname "$json")/readiness.json"; then
+  pass "valid readiness deploys and preserves the record and summary"
+else fail "valid readiness deploys and preserves the record and summary" "$out"; fi
+
+new_repo readiness-waived
+rm "$work/.scratch/readiness/staging.json"
+serve "$STAGING_URL" "$(head_sha)" staging
+expect "--check reports NOT READY without failing" 0 'readiness: NOT READY:' -- staging --check
+expect "--check reports WAIVED" 0 'readiness: WAIVED: incident' -- staging --check --waive readiness=incident
+check "readiness --check statuses build nothing" no_build
+run staging --waive readiness=incident
+json="$(release_json)"
+if [ "$code" = 0 ] && [ -f "$json" ] &&
+  printf '%s' "$out" | grep -F 'WAIVED readiness: incident' > /dev/null &&
+  grep -F '"readiness": {"status": "waived", "reason": "incident"}' "$json" > /dev/null &&
+  grep -F '{"gate": "readiness", "reason": "incident"}' "$json" > /dev/null; then
+  pass "readiness waiver deploys without a record and records the reason"
+else fail "readiness waiver deploys without a record and records the reason" "$out"; fi
+
+for initial in ready expired; do
+  new_repo "readiness-snapshot-$initial"
+  serve "$STAGING_URL" "$(head_sha)" staging
+  record="$work/.scratch/readiness/staging.json"
+  cp "$record" "$record.expected"
+  cp "$record" "$record.replacement"
+  if [ "$initial" = ready ]; then
+    sed -i.bak 's/9999-01-01/2000-01-01/' "$record.replacement"
+  else
+    sed -i.bak 's/9999-01-01/2000-01-01/' "$record"
+  fi
+  FAKE_SWAP_RECORD="$record"
+  run staging
+  FAKE_SWAP_RECORD=""
+  json="$(release_json)"
+  if [ "$initial" = ready ]; then
+    if [ "$code" = 0 ] && [ -f "$json" ] &&
+      cmp "$record.expected" "$(dirname "$json")/readiness.json" &&
+      [ -f "$FAKE_STATE/snapshot-path" ] && [ ! -e "$(cat "$FAKE_STATE/snapshot-path")" ]; then
+      pass "readiness validates and preserves the private snapshot despite source replacement"
+    else fail "readiness validates and preserves the private snapshot despite source replacement" "$out"; fi
+  elif [ "$code" = 1 ] && printf '%s' "$out" | grep -F 'valid_until' > /dev/null && no_build &&
+    [ -f "$FAKE_STATE/snapshot-path" ] && [ ! -e "$(cat "$FAKE_STATE/snapshot-path")" ]; then
+    pass "readiness refuses an expired snapshot despite a valid source replacement"
+  else fail "readiness refuses an expired snapshot despite a valid source replacement" "$out"; fi
+done
+
 # ==== Usage and flags ====
 new_repo usage
 expect "no arguments prints usage" 2 "usage:" --
@@ -194,7 +474,7 @@ for line in "target staging" "version 1.2.3" "commit $sha" "url $STAGING_URL"; d
   expect "--check prints '${line%% *}'" 0 "$line" -- staging --check
 done
 check "--check builds nothing and deploys nothing" no_build
-check "--check creates no worktree" test ! -e "$work/.scratch"
+check "--check creates no worktree" test ! -e "$work/.scratch/release"
 git -C "$work" tag v1.2.3-beta1 && git -C "$work" push -q origin v1.2.3-beta1 && git -C "$work" tag -d v1.2.3-beta1 > /dev/null
 expect "the beta number follows the tags origin has" 0 "tag v1.2.3-beta2" -- staging --check
 
@@ -476,12 +756,14 @@ if [ "$code" = 0 ]; then pass "valid retry variables run the release (control)";
 new_repo noproof
 serve "$STAGING_URL" "$(head_sha)" staging
 git -C "$work" rm -q scripts/verify-live.sh && git -C "$work" commit -q -m "drop the proof" && git -C "$work" push -q origin main
+write_readiness staging
 serve "$STAGING_URL" "$(head_sha)" staging
 expect "a commit with no verify-live.sh is refused" 1 "verify-live.sh" -- staging
 check "a missing proof deploys nothing" no_deploy
 check "a missing proof leaves no tag" no_tags
 new_repo noexec
 git -C "$work" update-index --chmod=-x scripts/verify-live.sh && git -C "$work" commit -q -m "not executable" && git -C "$work" push -q origin main
+write_readiness staging
 serve "$STAGING_URL" "$(head_sha)" staging
 expect "a verify-live.sh that is not executable is refused" 1 "executable" -- staging
 check "a non-executable proof deploys nothing" no_deploy

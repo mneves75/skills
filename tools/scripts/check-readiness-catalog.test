@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Real catalog plus isolated planted violations; no network or source changes.
+set -euo pipefail
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+mkdir -p "$root/.scratch"
+python3 - "$root" <<'PY'
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+root = Path(sys.argv[1])
+guard = root / "tools/scripts/check-readiness-catalog.py"
+skill = Path("skills/mneves-production-readiness")
+refs = skill / "references"
+spec = Path("docs/specs/production-readiness/spec.md")
+failures = 0
+
+def check(name, tree, expected, message):
+    global failures
+    result = subprocess.run([sys.executable, str(guard), str(tree)], capture_output=True, text=True)
+    output = result.stdout + result.stderr
+    if result.returncode == expected and message in output:
+        print("PASS " + name)
+    else:
+        failures += 1
+        print(f"FAIL {name}: exit {result.returncode}, wanted {expected}; {output.strip()}")
+
+def replace(tree, path, old, new):
+    file = tree / path
+    text = file.read_text()
+    assert old in text, (path, old)
+    file.write_text(text.replace(old, new, 1))
+
+def remove_line(tree, path, prefix):
+    file = tree / path
+    lines = file.read_text().splitlines(True)
+    index = next(i for i, line in enumerate(lines) if line.startswith(prefix))
+    del lines[index]
+    file.write_text("".join(lines))
+
+def unmapped(tree):
+    file = tree / spec
+    file.write_text(re.sub(r"\bDM-01\b", "DM-02", file.read_text()))
+
+cases = [
+    ("stripped heading", lambda t: replace(t, refs / "controls-data.md", "### DM-01", "DM-01"), "heading marker"),
+    ("duplicate ID", lambda t: replace(t, refs / "controls-data.md", "### DM-02", "### DM-01"), "duplicate control ID"),
+    ("missing tier", lambda t: remove_line(t, refs / "controls-data.md", "`blocker`"), "tier"),
+    ("missing Evidence", lambda t: remove_line(t, refs / "controls-data.md", "- Evidence:"), "Evidence"),
+    ("missing Verify", lambda t: remove_line(t, refs / "controls-data.md", "- Verify:"), "Verify"),
+    ("missing Fallback", lambda t: remove_line(t, refs / "controls-security.md", "- Fallback:"), "Fallback"),
+    ("missing B item", lambda t: remove_line(t, spec, "| B1 |"), "B1 must appear exactly once"),
+    ("missing R item", lambda t: remove_line(t, spec, "| R1 |"), "R1 must appear exactly once"),
+    ("duplicate item", lambda t: replace(t, spec, "| B2 |", "| B1 |"), "B1 must appear exactly once"),
+    ("undefined ID", lambda t: replace(t, spec, "| DM-01 |", "| XX-99 |"), "undefined control ID XX-99"),
+    ("unmapped control", unmapped, "control DM-01 is missing from Preservation map"),
+    ("missing catalog version", lambda t: remove_line(t, refs / "gates.md", "Catalog version:"), "Catalog version"),
+    ("unlinked reference", lambda t: replace(t, skill / "SKILL.md", "references/sources.md", "references/not-sources.md"), "unlinked reference sources.md"),
+    ("malformed heading", lambda t: replace(t, refs / "controls-data.md", "### DM-01", "### DM-1"), "invalid control heading"),
+]
+
+check("real tree", root, 0, "readiness catalog: OK")
+with tempfile.TemporaryDirectory(prefix="catalog-tests.", dir=root / ".scratch") as temporary:
+    for index, (name, mutate, message) in enumerate(cases):
+        tree = Path(temporary) / str(index)
+        shutil.copytree(root / skill, tree / skill)
+        (tree / spec).parent.mkdir(parents=True)
+        shutil.copy2(root / spec, tree / spec)
+        mutate(tree)
+        check(name, tree, 1, message)
+if failures:
+    print(f"readiness catalog tests FAILED ({failures})")
+    sys.exit(1)
+print(f"readiness catalog tests passed ({len(cases)} planted violations)")
+PY

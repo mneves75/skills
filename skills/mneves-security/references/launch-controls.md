@@ -70,11 +70,15 @@ without it, this skill still covers the security slice completely.
 - **SEC-12 Secrets hygiene and rotation.** No secret in tracked files, history, build output,
   logs, prompts, agent transcripts or committed session files. Every key that ever appeared in a
   repository, config file, prompt or chat is listed for rotation as an owner action, and the
-  rotation is recorded. Values are never printed. Areas 7 and 8. `source`, `owner`
+  rotation is recorded. Values are never printed. A usable secret in the candidate's tracked
+  files or build output is a confirmed High finding at least, so it blocks every target. Areas 7
+  and 8. `source`, `owner`
 - **SEC-13 Supply chain.** Every dependency exists on its intended registry and is the package
   the code meant (publisher, age, adoption, no near-name lookalike or invented name), and it is
   locked to a version. Advisory scanning runs with its scope and exit status recorded; advisories
-  are read fresh on every gate run. Area 12. `source`
+  are read fresh on every gate run. A dependency that does not exist on its registry or is not
+  the intended package is a confirmed High finding at least, so it blocks every target. Area 12.
+  `source`
 - **SEC-14 File uploads.** Size limits, content checks, generated names, storage where files
   cannot execute (or a separate domain), malware scanning where files are shared, authorized
   access and safe serving types. Applies: uploads. Area 6. `source`, `test`

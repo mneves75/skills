@@ -28,7 +28,7 @@ FIXTURE = Path(__file__).resolve().parent / "fixtures" / "conforming"
 IDS = [
     "entry.release", "entry.verify-live", "release.check-mode", "release.waivers",
     "release.pushed-source", "release.tag-after-proof", "release.evidence", "release.rollback",
-    "release.runtime-pin", "served-commit", "cf.targets", "cf.env-routes", "cf.env-triggers",
+    "release.runtime-pin", "release.readiness", "served-commit", "cf.targets", "cf.env-routes", "cf.env-triggers",
     "cf.env-bindings", "cf.worker-cache", "cf.workers-dev-origin", "guardrail.local", "guardrail.ci",
 ]
 # What the conforming repository reports: everything passes, and no workflow files means NA for CI.
@@ -138,6 +138,79 @@ class Base(unittest.TestCase):
         return {i: c["status"] for i, c in report_for(repo or self.repo).items()}
 
 
+class Readiness(Base):
+    def readiness(self, source: str | None) -> dict:
+        script = self.repo / "scripts" / "release.sh"
+        if source is None:
+            script.unlink()
+        else:
+            script.write_text(source)
+        return report_for(self.repo)["release.readiness"]
+
+    def test_record_read_and_refusal_pass(self) -> None:
+        check = self.readiness('record="$root/.scratch/readiness/$target.json"\n'
+                               '[ -f "$record" ] || die "missing readiness record"\n'
+                               'cat "$record"\n')
+        self.assertEqual(check["status"], "PASS")
+        self.assertTrue(check["heuristic"])
+        self.assertRegex(check["evidence"], r"scripts/release.sh:\d+")
+
+    def test_contract_two_or_later_without_enforcement_fails(self) -> None:
+        for version in (2, 3):
+            with self.subTest(version=version):
+                check = self.readiness(f"# release-contract: {version}\necho deploy\n")
+                self.assertEqual(check["status"], "FAIL")
+
+    def test_unversioned_without_enforcement_warns(self) -> None:
+        check = self.readiness("echo deploy\n")
+        self.assertEqual(check["status"], "WARN")
+        self.assertIn("guarantee 11, the readiness record, is not adopted", check["evidence"])
+
+    def test_comments_messages_and_unrelated_failure_are_not_enforcement(self) -> None:
+        for decoy in (
+            '# cat .scratch/readiness/staging.json || exit 1\n',
+            'echo "cat .scratch/readiness/staging.json || exit 1"\n',
+            'record=".scratch/readiness/staging.json"\necho "$record"\nexit 1\n',
+            'cat .scratch/readiness/staging.json\n[ -f package.json ] || exit 1\n',
+            'record=".scratch/readiness/staging.json"\ncat "$record"\n[ -f "$record" ] || echo "die"\n',
+            'cat .scratch/readiness/staging.json || echo "exit 1"\n',
+            'record=".scratch/readiness/staging.json"\n[ ! -f "$record" ] || exit 1\ncat "$record"\n',
+        ):
+            with self.subTest(decoy=decoy):
+                self.assertEqual(self.readiness("# release-contract: 2\n" + decoy)["status"], "FAIL")
+
+    def test_missing_release_script_is_na(self) -> None:
+        self.assertEqual(self.readiness(None)["status"], "NA")
+
+    def test_reference_asset_enforces_readiness(self) -> None:
+        self.assertEqual(report_for(self.repo)["release.readiness"]["status"], "PASS")
+
+    def test_refusal_after_deploy_is_not_enforcement(self) -> None:
+        check = self.readiness('# release-contract: 2\nwrangler deploy\n'
+                               'record=".scratch/readiness/staging.json"\n'
+                               'cat "$record" || die "missing"\n')
+        self.assertEqual(check["status"], "FAIL")
+
+    def test_existence_without_a_reader_is_not_enforcement(self) -> None:
+        check = self.readiness('# release-contract: 2\nrecord=".scratch/readiness/staging.json"\n'
+                               '[ -f "$record" ] || die "missing"\nwrangler deploy\n')
+        self.assertEqual(check["status"], "FAIL")
+
+    def test_common_record_readers_before_deploy_pass(self) -> None:
+        for reader in ('cat "$record"', 'read value < "$record"', 'grep -q ready "$record"',
+                       'awk "1" "$record"', 'sed -n 1p "$record"', 'test_read < "$record"'):
+            with self.subTest(reader=reader):
+                check = self.readiness('# release-contract: 2\nrecord=".scratch/readiness/staging.json"\n'
+                                       + reader + ' || die "missing"\nwrangler deploy\n')
+                self.assertEqual(check["status"], "PASS")
+
+    def test_uncalled_functions_are_an_explicit_heuristic_limit(self) -> None:
+        check = self.readiness('check_record() {\nrecord=".scratch/readiness/staging.json"\n'
+                               'cat "$record" || die "missing"\n}\nwrangler deploy\n')
+        self.assertTrue(check["heuristic"])
+        self.assertIn("function invocation is not proven", check["evidence"])
+
+
 class ConformingRepository(Base):
     def test_every_check_is_reported_once_in_order(self) -> None:
         proc = run_checker(str(self.repo), "--json")
@@ -163,6 +236,7 @@ class ConformingRepository(Base):
             "release.tag-after-proof": r"scripts/release\.sh:\d+",
             "release.evidence": r"scripts/release\.sh:\d+",
             "release.runtime-pin": r"scripts/release\.sh:\d+",
+            "release.readiness": r"scripts/release\.sh:\d+",
             "served-commit": r"src/worker\.ts:\d+",
             "cf.targets": r"wrangler\.jsonc",
         }.items():
@@ -172,7 +246,7 @@ class ConformingRepository(Base):
     def test_text_output_labels_heuristic_checks(self) -> None:
         lines = {line.split()[1]: line for line in run_checker(str(self.repo)).stdout.splitlines() if line[:4].strip() in ("PASS", "FAIL", "WARN", "NA")}
         for check_id in ("release.check-mode", "release.waivers", "release.pushed-source", "release.tag-after-proof",
-                         "release.evidence", "release.rollback", "release.runtime-pin", "served-commit"):
+                         "release.evidence", "release.rollback", "release.runtime-pin", "release.readiness", "served-commit"):
             with self.subTest(check_id):
                 self.assertIn("[heuristic]", lines[check_id])
         self.assertNotIn("[heuristic]", lines["entry.release"])
@@ -180,7 +254,7 @@ class ConformingRepository(Base):
     def test_json_labels_heuristic_checks(self) -> None:
         checks = report_for(self.repo)
         for check_id in ("release.check-mode", "release.waivers", "release.pushed-source", "release.tag-after-proof",
-                         "release.evidence", "release.rollback", "release.runtime-pin", "served-commit", "cf.workers-dev-origin"):
+                         "release.evidence", "release.rollback", "release.runtime-pin", "release.readiness", "served-commit", "cf.workers-dev-origin"):
             with self.subTest(check_id):
                 self.assertTrue(checks[check_id]["heuristic"])
         for check_id in ("entry.release", "entry.verify-live", "cf.targets", "cf.env-routes", "cf.env-triggers",
@@ -352,9 +426,9 @@ VIOLATIONS = [
 # Release-script mutations change what the release.* checks see, never the other checks.
 SIDE_EFFECTS = {
     "missing release.sh": {"release.check-mode", "release.waivers", "release.pushed-source", "release.tag-after-proof",
-                          "release.evidence", "release.rollback", "release.runtime-pin"},
+                          "release.evidence", "release.rollback", "release.runtime-pin", "release.readiness"},
     "release.sh not executable": set(),
-    "pin declared but never compared": {"release.waivers", "release.check-mode"},
+    "pin declared but never compared": {"release.waivers", "release.check-mode", "release.readiness"},
     "single deploy target": {"cf.env-routes", "cf.env-triggers", "cf.env-bindings"},
 }
 
@@ -559,7 +633,7 @@ class ReleaseScriptReading(Base):
         (self.repo / "scripts" / "release.sh").chmod(0o755)
         statuses = self.statuses()
         for check_id in ("release.check-mode", "release.waivers", "release.pushed-source", "release.tag-after-proof",
-                         "release.evidence", "release.rollback", "release.runtime-pin"):
+                         "release.evidence", "release.rollback", "release.runtime-pin", "release.readiness"):
             with self.subTest(check_id):
                 self.assertEqual(statuses[check_id], "PASS")
 
@@ -893,7 +967,7 @@ class FleetMode(Base):
 
     def test_one_row_per_deployable_child_one_character_per_check(self) -> None:
         proc = run_checker("--fleet", str(self.make_fleet()))
-        rows = {line.split()[0]: line.split()[1] for line in proc.stdout.splitlines() if re.match(r"^\S+\s+[PFWN-]{18}$", line)}
+        rows = {line.split()[0]: line.split()[1] for line in proc.stdout.splitlines() if re.match(rf"^\S+\s+[PFWN-]{{{len(IDS)}}}$", line)}
         self.assertEqual(sorted(rows), ["alpha", "beta", "delta", "gamma"])
         self.assertEqual(len(rows["alpha"]), len(IDS))
         self.assertEqual(rows["alpha"].count("F"), 0)
@@ -975,7 +1049,7 @@ class Monorepos(Base):
         fleet = self.fleet()
         build_monorepo(fleet / "mono")
         rows = {line.split()[0]: line.split()[1] for line in run_checker("--fleet", str(fleet)).stdout.splitlines()
-                if re.match(r"^\S+\s+[PFWN-]{18}$", line)}
+                if re.match(rf"^\S+\s+[PFWN-]{{{len(IDS)}}}$", line)}
         self.assertEqual(sorted(rows), ["mono/apps/api", "mono/apps/web"])
         self.assertEqual(rows["mono/apps/api"][IDS.index("cf.env-routes")], "F")
         self.assertEqual(rows["mono/apps/web"].count("F"), 0)
@@ -1488,7 +1562,7 @@ class UnreadableAndOddFiles(Base):
         (self.repo / "scripts" / "release.sh").write_text((self.repo / "scripts" / "release.sh").read_text() + "\n# " + pad + "\n")
         checks = self.checks(str(self.repo))
         for check_id in ("release.check-mode", "release.waivers", "release.pushed-source", "release.tag-after-proof",
-                         "release.evidence", "release.rollback", "release.runtime-pin"):
+                         "release.evidence", "release.rollback", "release.runtime-pin", "release.readiness"):
             with self.subTest(check_id):
                 self.assertEqual(checks[check_id]["status"], "WARN", checks[check_id])
                 self.assertIn("too large to read", checks[check_id]["evidence"])

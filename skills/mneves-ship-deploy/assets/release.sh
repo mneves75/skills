@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Reference scripts/release.sh for ONE Cloudflare Worker with two Wrangler environments
 # (`staging` and `production`) and no database. It follows references/release-contract.md.
+# release-contract: 2
 #
 #   scripts/release.sh <staging|production> [--check] [--dry-run] [--waive <gate>=<reason>]... [--yes]
 #
@@ -25,7 +26,7 @@
 #
 # Guarantees covered here: 1 pushed source, 2 promotion, 3 runtime pin, 4 gates and waivers,
 # 6 target parity (partly, see below), 7 live proof with a rollback command, 8 tag after proof,
-# 9 release.json, 10 --check.
+# 9 release.json, 10 --check, 11 readiness record for the exact candidate.
 # Each tag message states the security gate verdict that the mneves-security skill recorded for the
 # commit and target in .scratch/security-gate/<commit>/<target>.json (PASS, WAIVED with the waived ids,
 # BLOCK with its blockers), or "none recorded"; the script never refuses a release over it.
@@ -54,6 +55,8 @@ usage="usage: scripts/release.sh <staging|production> [--check] [--dry-run] [--w
 STAGING_URL="__STAGING_URL__"
 PRODUCTION_URL="__PRODUCTION_URL__"
 ACCOUNT_ID="__ACCOUNT_ID__"
+# Deployable unit path relative to the repository root.
+UNIT="."
 # Secrets that must exist on each target, space separated; the word none states there are none.
 REQUIRED_SECRETS="__REQUIRED_SECRETS__"
 # A public repository can keep the four values above out of the committed script: put the same
@@ -72,6 +75,7 @@ say() { printf '\n==> %s\n' "$*"; }
 bad_usage() { echo "release: $*" >&2; echo "$usage" >&2; exit 2; }
 
 gate_names() { printf '%s\n' "$GATES" | sed -n 's/^\([^=]*\)=.*/\1/p'; }
+if gate_names | grep -qx readiness; then bad_usage "readiness is reserved and cannot appear in GATES"; fi
 
 # ---- Arguments ----
 target="${1:-}"
@@ -89,8 +93,8 @@ while [ "$#" -gt 0 ]; do
       # Control characters (tab, newline, escape...) become spaces so release.json stays valid JSON.
       w_reason="$(printf '%s' "${2#*=}" | tr '[:cntrl:]' ' ' | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')"
       [ -n "$w_reason" ] || bad_usage "--waive $w_gate needs a reason a reader can check"
-      gate_names | awk -v g="$w_gate" '$0 == g { found = 1 } END { exit !found }' ||
-        bad_usage "unknown gate '$w_gate' (gates: $(gate_names | tr '\n' ' '))"
+      [ "$w_gate" = readiness ] || gate_names | awk -v g="$w_gate" '$0 == g { found = 1 } END { exit !found }' ||
+        bad_usage "unknown gate '$w_gate' (gates: readiness $(gate_names | tr '\n' ' '))"
       waivers="$waivers$w_gate=$w_reason
 "
       shift ;;
@@ -281,6 +285,162 @@ check_pin() {
   fi
 }
 check_pin
+
+# ---- Readiness (snapshot the main checkout record before any build) ----
+readiness_tmp="" work="" wrangler_err=""
+cleanup() {
+  [ -z "$readiness_tmp" ] || { rm -f "$readiness_tmp/readiness.json"; rmdir "$readiness_tmp"; }
+  [ -z "$wrangler_err" ] || rm -f "$wrangler_err"
+  [ -z "$work" ] || git -C "$root" worktree remove --force "$work" 2> /dev/null || true
+}
+trap cleanup EXIT
+
+# readiness_fields <file>: the record's fields, one "key<TAB>value" line each (strings keep their
+# quotes), then one "expires<TAB>value" line per waiver. The record is parsed as JSON and checked
+# against its exact schema: these keys at the top level and no others, a list of waiver objects
+# holding exactly control, owner, reason and expires, no key repeated in any object. A field nested
+# deeper or packed beside another can therefore never stand in for a top-level one.
+readiness_fields() {
+  python3 -I -c '
+import json, re, sys
+
+KEYS = ("schema", "unit", "target", "catalog", "commit", "verdict", "open_blockers",
+        "created_at", "valid_until")
+WAIVER = ("control", "owner", "reason", "expires")
+TEXT = re.compile(r"^[ !#-\[\]-~]+$")  # printable ASCII without quote or backslash
+PATTERNS = {"target": re.compile(r"^(dev|staging|production)$"), "commit": re.compile(r"^[0-9a-f]+$")}
+
+
+def fail(why):
+    print(why)
+    sys.exit(1)
+
+
+def pairs(items):
+    seen = set()
+    for key, _ in items:
+        if key in seen:
+            fail("duplicate %s key" % key)
+        seen.add(key)
+    return dict(items)
+
+
+def constant(name):
+    raise ValueError(name + " is not a JSON value")
+
+
+def whole(value):
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+try:
+    with open(sys.argv[1], encoding="utf-8") as handle:
+        record = json.load(handle, object_pairs_hook=pairs, parse_constant=constant)
+except (ValueError, UnicodeDecodeError) as error:
+    fail("the readiness record is not JSON: %s" % error)
+if not isinstance(record, dict):
+    fail("the readiness record is not a JSON object")
+for key in record:
+    if key not in KEYS and key != "waivers":
+        fail("unknown readiness record key %s" % key)
+for key in KEYS + ("waivers",):
+    if key not in record:
+        fail("missing %s key" % key)
+for key in KEYS:
+    value = record[key]
+    if key in ("schema", "open_blockers"):
+        ok = whole(value) and value >= 0
+    elif key == "catalog":
+        ok = whole(value) and value >= 1
+    else:
+        ok = isinstance(value, str) and bool(TEXT.match(value)) and bool(PATTERNS.get(key, TEXT).match(value))
+    if not ok:
+        fail("malformed %s value" % key)
+waivers = record["waivers"]
+if not isinstance(waivers, list) or not all(isinstance(item, dict) for item in waivers):
+    fail("waivers must be a list of waiver objects")
+for waiver in waivers:
+    for key in waiver:
+        if key in KEYS:
+            fail("waiver objects must not repeat %s; the record'"'"'s %s is their scope" % (key, key))
+        if key not in WAIVER:
+            fail("unknown waiver key %s" % key)
+    if set(waiver) != set(WAIVER) or not all(isinstance(waiver[key], str) and TEXT.match(waiver[key]) for key in WAIVER):
+        fail("every readiness waiver needs control, owner, reason and expires as text")
+for key in KEYS:
+    value = record[key]
+    print("%s\t%s" % (key, value if whole(value) else "\"%s\"" % value))
+for waiver in waivers:
+    print("expires\t\"%s\"" % waiver["expires"])
+' "$1"
+}
+readiness_value() { printf '%s\n' "$readiness_data" | awk -F '\t' -v key="$1" '$1 == key { print $2 }'; }
+readiness_error() { readiness_problem="$*"; return 1; }
+readiness_timestamp() {
+  local stamp="$1" year month day last_day
+  [[ "$stamp" =~ ^\"[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]Z\"$ ]] || return 1
+  year=$((10#${stamp:1:4})); month="${stamp:6:2}"; day=$((10#${stamp:9:2}))
+  case "$month" in
+    02)
+      last_day=28
+      if (( year % 400 == 0 || (year % 4 == 0 && year % 100 != 0) )); then last_day=29; fi ;;
+    04 | 06 | 09 | 11) last_day=30 ;;
+    *) last_day=31 ;;
+  esac
+  [ "$day" -le "$last_day" ]
+}
+check_readiness() {
+  local record="$root/$UNIT/.scratch/readiness/$target.json" now created stamp parent expiry
+  for parent in "$root/$UNIT/.scratch" "$root/$UNIT/.scratch/readiness"; do
+    [ ! -L "$parent" ] || { readiness_error "readiness parent is a symlink: $parent"; return 1; }
+  done
+  [ ! -L "$record" ] || { readiness_error "record is a symlink: $record"; return 1; }
+  [ -e "$record" ] || { readiness_error "missing record: $record"; return 1; }
+  [ -f "$record" ] || { readiness_error "record is not a regular file: $record"; return 1; }
+  readiness_tmp="$(mktemp -d "${TMPDIR:-/tmp}/release-readiness.XXXXXX")" || { readiness_error "cannot create private snapshot"; return 1; }
+  cp "$record" "$readiness_tmp/readiness.json" || { readiness_error "cannot copy readiness record"; return 1; }
+  readiness_data="$(readiness_fields "$readiness_tmp/readiness.json")" || { readiness_error "$readiness_data"; return 1; }
+  [ "$(readiness_value schema)" = 1 ] || { readiness_error "schema must be 1"; return 1; }
+  [ "$(readiness_value unit)" = "\"$(json_escape "$UNIT")\"" ] || { readiness_error "unit does not match $UNIT"; return 1; }
+  [ "$(readiness_value target)" = "\"$target\"" ] || { readiness_error "target does not match $target"; return 1; }
+  [[ "$(readiness_value catalog)" =~ ^[1-9][0-9]*$ ]] || { readiness_error "catalog must be a positive integer"; return 1; }
+  [[ "$commit" =~ ^[0-9a-f]{40}$ ]] && [ "$(readiness_value commit)" = "\"$commit\"" ] || { readiness_error "commit must match the full 40-character lowercase SHA $commit"; return 1; }
+  [ "$(readiness_value verdict)" = '"ready"' ] || { readiness_error "verdict must be ready"; return 1; }
+  [ "$(readiness_value open_blockers)" = 0 ] || { readiness_error "open_blockers must be 0"; return 1; }
+  created="$(readiness_value created_at)"
+  readiness_until="$(readiness_value valid_until)"
+  for stamp in "created_at=$created" "valid_until=$readiness_until"; do
+    readiness_timestamp "${stamp#*=}" || { readiness_error "${stamp%%=*} must be YYYY-MM-DDTHH:MM:SSZ with valid ranges"; return 1; }
+  done
+  created="${created#\"}"; created="${created%\"}"
+  readiness_until="${readiness_until#\"}"; readiness_until="${readiness_until%\"}"
+  now="$(date -u +%Y-%m-%dT%H:%M:%SZ)" || { readiness_error "cannot read UTC time"; return 1; }
+  [[ ! "$created" > "$now" ]] || { readiness_error "created_at is in the future"; return 1; }
+  [[ "$readiness_until" > "$now" ]] || { readiness_error "valid_until has expired"; return 1; }
+  readiness_deadline="$readiness_until"
+  while IFS= read -r expiry; do
+    [ -n "$expiry" ] || continue
+    readiness_timestamp "$expiry" || { readiness_error "a readiness waiver has expired (malformed expires)"; return 1; }
+    expiry="${expiry#\"}"; expiry="${expiry%\"}"
+    [[ "$expiry" > "$now" ]] || { readiness_error "a readiness waiver has expired"; return 1; }
+    if [[ "$expiry" < "$readiness_deadline" ]]; then readiness_deadline="$expiry"; fi
+  done << EXPIRIES
+$(readiness_value expires)
+EXPIRIES
+}
+
+readiness_reason="$(waiver_reason readiness)"
+if [ -n "$readiness_reason" ]; then
+  echo "readiness: WAIVED: $readiness_reason"
+  echo "WAIVED readiness: $readiness_reason"
+  readiness_json="{\"status\": \"waived\", \"reason\": \"$(json_escape "$readiness_reason")\"}"
+elif check_readiness; then
+  echo "readiness: ready (valid until $readiness_until)"
+  readiness_json="{\"status\": \"ready\", \"record\": \"readiness.json\", \"valid_until\": \"$(json_escape "$readiness_until")\"}"
+else
+  echo "readiness: NOT READY: $readiness_problem"
+  [ "$check" -eq 1 ] || die "$readiness_problem; run the readiness gate for $target on $short or waive with --waive readiness=<reason>"
+fi
 [ "$check" -eq 0 ] || { echo; echo "guards passed (--check: nothing built, deployed or tagged; the remote was fetched and the live staging page may have been read)"; exit 0; }
 
 # ---- Build and verify in a fresh checkout of the commit ----
@@ -290,9 +450,8 @@ run_dir="$root/.scratch/release/$tag-$(date +%Y%m%d-%H%M%S)"
 work="$run_dir/worktree"
 evidence="$run_dir/evidence"
 mkdir -p "$evidence"
+[ -z "$readiness_tmp" ] || cp "$readiness_tmp/readiness.json" "$evidence/readiness.json"
 wrangler_err="$(mktemp "${TMPDIR:-/tmp}/release-wrangler.XXXXXX")"
-cleanup() { rm -f "$wrangler_err"; git -C "$root" worktree remove --force "$work" 2> /dev/null || true; }
-trap cleanup EXIT
 
 say "Checkout of $short and a clean install"
 git worktree add --quiet --detach "$work" "$commit"
@@ -366,6 +525,10 @@ fi
 
 # ---- Deploy ----
 say "Deploy $tag ($short) to $target"
+if [ -z "$readiness_reason" ]; then
+  deploy_now="$(date -u +%Y-%m-%dT%H:%M:%SZ)" || die "cannot read UTC time before deploy"
+  [[ "$readiness_deadline" > "$deploy_now" ]] || die "readiness record expired before deploy; run the readiness gate again"
+fi
 wrangler_env deploy --tag "$tag" --message "$tag $short" \
   --var "APP_COMMIT:$commit" --var "APP_VERSION:$version" --var "APP_ENV:$target" 2>&1 | tee "$evidence/deploy.log"
 deployed="$(live_version)" || die "deployed, but cannot read the new version: $(cat "$wrangler_err")"
@@ -429,6 +592,7 @@ cat > "$evidence/release.json" << JSON
   "deployedVersionId": "$deployed",
   "previousVersionId": "$previous",
   "waivers": [$waiver_json],
+  "readiness": $readiness_json,
   "url": "$url",
   "releasedAt": "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 }
