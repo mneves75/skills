@@ -284,7 +284,7 @@ model's own permission rules, and route on evidence, not on price.
    - `tools/opencode-lane.sandbox.test`: the real `sandbox-exec` with canaries and no model
      call; prints SKIP and exits 0 off macOS. Run by the coordinator (a sandboxed Codex worker
      cannot nest `sandbox-exec`).
-3. Docs: `references/opencode-dispatch.md`, SKILL.md paragraph and compatibility, skill README, HOWTO, root README, AGENTS.md, GLOSSARY, CI, CHANGELOG 1.35.0,
+3. Docs: `references/opencode-dispatch.md`, SKILL.md paragraph and compatibility, skill README, HOWTO, root README, AGENTS.md, GLOSSARY, CI, CHANGELOG 1.36.0,
    VERSION, badge, `build-site.sh`.
 4. Verification: both lane tests, `codex-lane.test`, the Defaults guard and its test,
    `build-site.test`, hook test, ast-grep; one live lane round plus a `next` round on the real

@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.35.0] - 2026-10-15
+## [1.36.0] - 2026-10-15
 
 ### Added
 - **`opencode-lane`** runs bounded coding tasks through the opencode CLI as an opt-in trial. The worker gets a private home and stores, a minimal environment and a lean profile, and a Seatbelt profile (macOS) contains it: your home is unreadable and writes stay in the workspace. A self-test proves that profile before every round. The lane refuses opencode configuration in the tree or its ancestors, bounds silent rounds with a watchdog, continues corrections in the same session and checks which model ran. The coordinator
@@ -24,6 +24,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Defaults**: unchanged bindings; every id re-verified live on 2026-10-15, with a fake-id
   negative control. The lane takes its model from the caller, so no trial model is bound.
+
+## [1.35.0] - 2026-10-15
+
+### Added
+- A full security audit now gates every staging and production deploy (`mneves-security`).
+  Deploy-gate mode audits the exact candidate in full: all twelve review areas and every
+  applicable launch control. It ends in a fix plan and a PASS, BLOCK or WAIVED verdict bound
+  to the audited tree and target. A confirmed Critical or High finding blocks every target until it
+  is fixed, disproved or waived by the owner by name; for production, every unmet applicable
+  launch control also needs a named waiver. A production deploy of the commit staging already
+  passed reuses that audit with fresh advisories and production checks; a rollback to a gated
+  build needs no audit; an urgent fix ships under a named waiver with its full audit right after.
+  Production also needs independent acceptance; on dev and staging its absence is a plan item.
+- **Launch controls**: 32 security, privacy and compliance controls (`SEC-01` to `SEC-23`,
+  `CMP-01` to `CMP-09`): reset links, MFA and recovery, sessions, SSO/SAML/SCIM, object and
+  tenant isolation, impersonation, throttling, secrets rotation, package provenance, uploads,
+  CORS and headers, encryption, least privilege for agents, audit trails, penetration tests,
+  disclosure, lost devices, webhook signatures, AI safeguards, questionnaires, SOC 2, health
+  data, read audits, card scope, erasure, residency, access reviews and legal documents. The
+  IDs match the production-readiness catalog's delegated rows, so its import maps one to one.
+- A gate verdict record per commit and target (`<unit>/.scratch/security-gate/<commit>/<target>.json`,
+  one scalar per line, open blocker IDs included) that a readiness review can import without a
+  JSON parser.
+
+### Changed
+- `mneves-ship-deploy` runs the `mneves-security` gate in Phase 1 in place of the third-party
+  `security-audit` skill, after the other Phase 1 changes land; without it the release is blocked
+  until it is installed or the owner waives it. The decision packet carries the verdict, and
+  production promotion requires PASS or WAIVED for the promoted commit.
+- `mneves-ship-deploy` adds a dev stop: when a project documents a dev environment, both modes
+  deploy, prove and tag (`vX.Y.Z-alpha<N>`) the same commit on dev before staging.
+- `mneves-verify` routes security evidence to `mneves-security` and, for a release, to its
+  deploy-gate verdict.
 
 ## [1.34.1] - 2026-10-13
 

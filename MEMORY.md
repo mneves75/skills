@@ -14,12 +14,18 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
-- **1.35.0** (2026-10-15): `opencode-lane` adds an opt-in, sandboxed opencode worker trial to the
+- **1.36.0** (2026-10-15): `opencode-lane` adds an opt-in, sandboxed opencode worker trial to the
   orchestrator. No role binding changed: four tasks showed feasibility only, and the spec sets a
   20-task trial gate. Containment is a lane-generated Seatbelt profile proven by self-test each
   round, because opencode's own permission rules can be rewritten by the worker. The lane never
   reads credentials; the evaluated DeepSeek model left the anonymous roster that afternoon, so
   account support is an open owner decision. Evaluation and evidence: `docs/specs/opencode-worker/`.
+- **1.35.0** (2026-10-15): `mneves-security` gains a mandatory deploy gate (full audit of the
+  exact candidate, PASS/BLOCK/WAIVED verdict record) and 32 launch controls whose IDs match
+  the production-readiness catalog; `mneves-ship-deploy` and `mneves-verify` route to it.
+  `mneves-ship-deploy` gains a dev stop (dev -> staging -> prod, `-alpha<N>` tags).
+  Owner decisions: Critical/High blocks both targets, production waives every open launch
+  control by name, full audit per new commit, gated rollbacks exempt, hotfix by waiver.
 - **1.34.0** (2026-10-13): fourteen default skills, adding `mneves-security` with
   evidence-backed audit, authorized remediation and independent acceptance. The redesigned
   static catalog groups procedures by job, self-hosts typography and reports clipboard

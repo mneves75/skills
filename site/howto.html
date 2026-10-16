@@ -60,7 +60,7 @@ also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use 
 </tr>
 <tr>
 <td><code>mneves-security</code></td>
-<td>audit security/privacy, plan remediation and apply authorized safe fixes</td>
+<td>audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy</td>
 <td>&quot;audit security and privacy; fix confirmed local issues; do not deploy&quot;</td>
 </tr>
 <tr>
@@ -126,6 +126,18 @@ AI/agentic/mobile checks when those surfaces exist.</p>
 <p><strong>When to use it.</strong> You want an engineering security/privacy audit of an MVP, SaaS, API
 or AI application, or safe implementation of its confirmed remediation items. Audit
 and plan requests remain read-only; a fix request authorizes its in-scope local patches.</p>
+<p><strong>Deploy gate.</strong> Every dev-stop, staging or production deploy runs it first, whatever starts
+the deploy (<code>ship-staging</code>, <code>ship-prod</code>, a release script, CI, TestFlight, an over-the-air
+update or a store upload). It
+audits the exact candidate in full: the twelve areas plus 32 launch controls (<code>SEC-01</code> to
+<code>SEC-23</code>, <code>CMP-01</code> to <code>CMP-09</code>). It returns a fix plan and a PASS, BLOCK or WAIVED verdict
+for that commit and target. A confirmed Critical or High finding blocks every target until
+it is fixed, disproved or waived by you by name; for production, every unmet applicable
+launch control and a missing independent acceptance also need your named waiver. One audit
+serves every target of the same commit, a rollback to a gated build needs none, and an urgent
+fix ships under your waiver with its audit right after. Without the skill, a release is
+blocked until it is installed or you waive the gate. The report stays private; public PRs
+and changelogs cite only the verdict and finding IDs.</p>
 <p><strong>Illustrative request (Codex):</strong></p>
 <pre tabindex="0"><code class="language-text">Use $mneves-security on this repository. Review the entire first-party source,
 create a detailed remediation plan and fix confirmed local code/config gaps.
@@ -624,10 +636,13 @@ includes production tags and pushes.</p>
 <p><strong>Example (illustrative).</strong> Ask &quot;ship-prod for this repository&quot;. The agent completes
 the authorized reviews and staging verification, presents the candidate, evidence, risks,
 and rollback plan, and waits for your OK before production. &quot;ship-staging&quot; stops after
-verified staging; plain &quot;ship&quot; does not select an environment or authorize deployment.</p>
+verified staging; plain &quot;ship&quot; does not select an environment or authorize deployment.
+When the project documents a dev environment, both modes deploy, prove and tag the same
+commit there first (<code>vX.Y.Z-alpha&lt;N&gt;</code>), then staging.</p>
 <p>Review and deployment integrations are optional. If a named skill is unavailable, the agent
 uses the repository&#39;s documented equivalent with the same gates, or reports the missing
-capability. Missing staging and failed gates remain blockers.</p>
+capability. Missing staging and failed gates remain blockers. The security gate is the
+exception: without <code>mneves-security</code> it is BLOCKED until the skill is installed or you waive it.</p>
 <p><strong>Order.</strong> The agent deploys the commit the remote already has, proves it live (served commit,
 health body, one request that must succeed and one that must be refused), and only then tags.
 A gate that cannot pass reaches you once, as a packet: the candidate, the target, each failing

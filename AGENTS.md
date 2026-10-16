@@ -22,7 +22,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── mneves-expert-review/      # Expert-panel review/optimization pass (+ references/)
 │   ├── mneves-handoff/            # Discussion-first handoff prompt for another agent (MIT, adapted)
 │   ├── mneves-render/             # Project-local Markdown -> HTML, editable DOCX and PDF
-│   ├── mneves-security/           # Security/privacy audit, safe fixes and evidence (+ references/)
+│   ├── mneves-security/           # Security/privacy audit, pre-deploy gate, safe fixes and evidence (+ references/)
 │   ├── mneves-fable-orchestrator/ # Model routing; Codex + opencode references, tools/codex-lane and tools/opencode-lane (+ tests)
 │   ├── mneves-superaudit/         # Bounded audit-and-ship pass (+ references/)
 │   ├── mneves-ship-deploy/         # Deploy, prove live, then tag (+ references/, contract check, reference release scripts)
