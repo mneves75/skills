@@ -11,7 +11,6 @@
  */
 
 import path from "node:path";
-import { $ } from "bun";
 import {
 	type CheckContext,
 	type CheckResult,
@@ -20,8 +19,8 @@ import {
 	fileExists,
 	readJson,
 	readText,
-	runWithTimeout,
 } from "../check-registry.js";
+import { runCommand } from "../command.js";
 import { createLanguageAdapter } from "./base.js";
 
 // ============================================================================
@@ -115,7 +114,7 @@ const tsSpecificRunners: Record<string, CheckRunner> = {
 
 	"no-any-casts": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
-			const result = await $`grep -r ": any" --include="*.ts" --include="*.tsx" ${ctx.app.path} 2>/dev/null | wc -l`.quiet();
+			const result = await runCommand()`grep -r ": any" --include="*.ts" --include="*.tsx" ${ctx.app.path} 2>/dev/null | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return {
 				pass: count === 0,
@@ -128,7 +127,7 @@ const tsSpecificRunners: Record<string, CheckRunner> = {
 
 	"no-ts-ignore": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
-			const result = await $`grep -r "@ts-ignore" --include="*.ts" --include="*.tsx" ${ctx.app.path} 2>/dev/null | wc -l`.quiet();
+			const result = await runCommand()`grep -r "@ts-ignore" --include="*.ts" --include="*.tsx" ${ctx.app.path} 2>/dev/null | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return {
 				pass: count === 0,
@@ -158,20 +157,14 @@ const tsSpecificRunners: Record<string, CheckRunner> = {
 
 		try {
 			if (await fileExists(path.join(appPath, "biome.json"))) {
-				await runWithTimeout(
-					$`cd ${appPath} && bunx biome check . 2>&1`.quiet(),
-					60000,
-				);
+				await runCommand(60000)`cd ${appPath} && bunx biome check . 2>&1`;
 				return { pass: true, details: "Biome clean" };
 			}
 
 			const eslintConfigs = [".eslintrc.json", "eslint.config.js"];
 			for (const config of eslintConfigs) {
 				if (await fileExists(path.join(appPath, config))) {
-					await runWithTimeout(
-						$`cd ${appPath} && bunx eslint . 2>&1`.quiet(),
-						60000,
-					);
+					await runCommand(60000)`cd ${appPath} && bunx eslint . 2>&1`;
 					return { pass: true, details: "ESLint clean" };
 				}
 			}
@@ -238,10 +231,7 @@ const tsSpecificRunners: Record<string, CheckRunner> = {
 		}
 
 		try {
-			await runWithTimeout(
-				$`cd ${ctx.app.path} && bun run build 2>&1`.quiet(),
-				180000,
-			);
+			await runCommand(180000)`cd ${ctx.app.path} && bun run build 2>&1`;
 			return { pass: true, details: "Build successful" };
 		} catch {
 			return { pass: false, details: "Build failed" };
@@ -296,7 +286,7 @@ const tsSpecificRunners: Record<string, CheckRunner> = {
 
 	"tests-exist": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
-			const result = await $`find ${ctx.app.path} -name "*.test.ts" -o -name "*.test.tsx" -o -name "*.spec.ts" -o -name "*.spec.tsx" -o -name "*.test.js" 2>/dev/null | head -1`.quiet();
+			const result = await runCommand()`find ${ctx.app.path} -name "*.test.ts" -o -name "*.test.tsx" -o -name "*.spec.ts" -o -name "*.spec.tsx" -o -name "*.test.js" 2>/dev/null | head -1`;
 			const found = result.text().trim().length > 0;
 			return {
 				pass: found,
@@ -313,10 +303,7 @@ const tsSpecificRunners: Record<string, CheckRunner> = {
 		}
 
 		try {
-			await runWithTimeout(
-				$`cd ${ctx.app.path} && bun test 2>&1`.quiet(),
-				120000,
-			);
+			await runCommand(120000)`cd ${ctx.app.path} && bun test 2>&1`;
 			return { pass: true, details: "All tests pass" };
 		} catch {
 			return { pass: false, details: "Tests failed or timed out" };
@@ -355,10 +342,7 @@ const tsSpecificRunners: Record<string, CheckRunner> = {
 
 		const start = Date.now();
 		try {
-			await runWithTimeout(
-				$`cd ${ctx.app.path} && bun test 2>&1`.quiet(),
-				300000,
-			);
+			await runCommand(300000)`cd ${ctx.app.path} && bun test 2>&1`;
 			const elapsed = Date.now() - start;
 			return {
 				pass: elapsed < 300000,
@@ -423,7 +407,7 @@ const tsSpecificRunners: Record<string, CheckRunner> = {
 
 	"console-logs-minimal": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
-			const result = await $`grep -r "console\\.log" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" ${ctx.app.path} 2>/dev/null | wc -l`.quiet();
+			const result = await runCommand()`grep -r "console\\.log" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.jsx" ${ctx.app.path} 2>/dev/null | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return {
 				pass: count < 20,
@@ -518,7 +502,7 @@ const tsSpecificRunners: Record<string, CheckRunner> = {
 		}
 
 		try {
-			const result = await $`grep -r "bun test\\|npm test\\|pnpm test\\|yarn test" ${workflowsDir} 2>/dev/null | wc -l`.quiet();
+			const result = await runCommand()`grep -r "bun test\\|npm test\\|pnpm test\\|yarn test" ${workflowsDir} 2>/dev/null | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return {
 				pass: count > 0,
@@ -547,7 +531,7 @@ const tsSpecificRunners: Record<string, CheckRunner> = {
 		}
 
 		try {
-			const result = await $`grep -r "featureFlag\\|feature_flag\\|FEATURE_" --include="*.ts" --include="*.tsx" ${ctx.app.path} 2>/dev/null | wc -l`.quiet();
+			const result = await runCommand()`grep -r "featureFlag\\|feature_flag\\|FEATURE_" --include="*.ts" --include="*.tsx" ${ctx.app.path} 2>/dev/null | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			if (count > 0) {
 				return { pass: true, details: `${count} flag references` };

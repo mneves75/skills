@@ -12,7 +12,6 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { $ } from "bun";
 import {
 	type CheckContext,
 	type CheckResult,
@@ -20,8 +19,8 @@ import {
 	dirExists,
 	fileExists,
 	readText,
-	runWithTimeout,
 } from "../check-registry.js";
+import { runCommand } from "../command.js";
 import { createLanguageAdapter } from "./base.js";
 
 // ============================================================================
@@ -157,7 +156,7 @@ const pySpecificRunners: Record<string, CheckRunner> = {
 	"no-any-casts": async (ctx: CheckContext): Promise<CheckResult> => {
 		// Check for typing.Any usage
 		try {
-			const result = await $`grep -r "Any\\|: any" --include="*.py" ${ctx.app.path} 2>/dev/null | grep -v "__pycache__" | grep -v ".venv" | wc -l`.quiet();
+			const result = await runCommand()`grep -r "Any\\|: any" --include="*.py" ${ctx.app.path} 2>/dev/null | grep -v "__pycache__" | grep -v ".venv" | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return {
 				pass: count < 10, // Some Any is acceptable in Python
@@ -171,7 +170,7 @@ const pySpecificRunners: Record<string, CheckRunner> = {
 	"no-ts-ignore": async (ctx: CheckContext): Promise<CheckResult> => {
 		// Check for type: ignore comments
 		try {
-			const result = await $`grep -r "# type: ignore" --include="*.py" ${ctx.app.path} 2>/dev/null | grep -v "__pycache__" | grep -v ".venv" | wc -l`.quiet();
+			const result = await runCommand()`grep -r "# type: ignore" --include="*.py" ${ctx.app.path} 2>/dev/null | grep -v "__pycache__" | grep -v ".venv" | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return {
 				pass: count === 0,
@@ -263,19 +262,13 @@ const pySpecificRunners: Record<string, CheckRunner> = {
 			// Try Ruff first
 			const pyproject = await readText(path.join(appPath, "pyproject.toml"));
 			if (pyproject?.includes("[tool.ruff]") || await fileExists(path.join(appPath, "ruff.toml"))) {
-				await runWithTimeout(
-					$`cd ${appPath} && ruff check . 2>&1`.quiet(),
-					60000,
-				);
+				await runCommand(60000)`cd ${appPath} && ruff check . 2>&1`;
 				return { pass: true, details: "Ruff clean" };
 			}
 
 			// Try Flake8
 			if (await fileExists(path.join(appPath, ".flake8"))) {
-				await runWithTimeout(
-					$`cd ${appPath} && flake8 . 2>&1`.quiet(),
-					60000,
-				);
+				await runCommand(60000)`cd ${appPath} && flake8 . 2>&1`;
 				return { pass: true, details: "Flake8 clean" };
 			}
 
@@ -388,29 +381,20 @@ const pySpecificRunners: Record<string, CheckRunner> = {
 		try {
 			// Try uv build first
 			if (await fileExists(path.join(appPath, "uv.lock"))) {
-				await runWithTimeout(
-					$`cd ${appPath} && uv build 2>&1`.quiet(),
-					180000,
-				);
+				await runCommand(180000)`cd ${appPath} && uv build 2>&1`;
 				return { pass: true, details: "uv build succeeded" };
 			}
 
 			// Try poetry build
 			if (await fileExists(path.join(appPath, "poetry.lock"))) {
-				await runWithTimeout(
-					$`cd ${appPath} && poetry build 2>&1`.quiet(),
-					180000,
-				);
+				await runCommand(180000)`cd ${appPath} && poetry build 2>&1`;
 				return { pass: true, details: "poetry build succeeded" };
 			}
 
 			// Try pip install -e .
 			const pyproject = await readText(path.join(appPath, "pyproject.toml"));
 			if (pyproject?.includes("[build-system]")) {
-				await runWithTimeout(
-					$`cd ${appPath} && pip install -e . 2>&1`.quiet(),
-					180000,
-				);
+				await runCommand(180000)`cd ${appPath} && pip install -e . 2>&1`;
 				return { pass: true, details: "pip install -e . succeeded" };
 			}
 
@@ -479,7 +463,7 @@ const pySpecificRunners: Record<string, CheckRunner> = {
 
 	"tests-exist": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
-			const result = await $`find ${ctx.app.path} -name "test_*.py" -o -name "*_test.py" 2>/dev/null | grep -v __pycache__ | grep -v .venv | head -1`.quiet();
+			const result = await runCommand()`find ${ctx.app.path} -name "test_*.py" -o -name "*_test.py" 2>/dev/null | grep -v __pycache__ | grep -v .venv | head -1`;
 			const found = result.text().trim().length > 0;
 			return {
 				pass: found,
@@ -496,10 +480,7 @@ const pySpecificRunners: Record<string, CheckRunner> = {
 		}
 
 		try {
-			await runWithTimeout(
-				$`cd ${ctx.app.path} && pytest 2>&1`.quiet(),
-				120000,
-			);
+			await runCommand(120000)`cd ${ctx.app.path} && pytest 2>&1`;
 			return { pass: true, details: "All tests pass" };
 		} catch {
 			return { pass: false, details: "Tests failed" };
@@ -532,10 +513,7 @@ const pySpecificRunners: Record<string, CheckRunner> = {
 
 		const start = Date.now();
 		try {
-			await runWithTimeout(
-				$`cd ${ctx.app.path} && pytest -x -q 2>&1`.quiet(),
-				300000,
-			);
+			await runCommand(300000)`cd ${ctx.app.path} && pytest -x -q 2>&1`;
 			const elapsed = Date.now() - start;
 			return {
 				pass: elapsed < 300000,
@@ -602,7 +580,7 @@ const pySpecificRunners: Record<string, CheckRunner> = {
 
 	"console-logs-minimal": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
-			const result = await $`grep -r "print(" --include="*.py" ${ctx.app.path} 2>/dev/null | grep -v __pycache__ | grep -v .venv | grep -v "_test.py" | wc -l`.quiet();
+			const result = await runCommand()`grep -r "print(" --include="*.py" ${ctx.app.path} 2>/dev/null | grep -v __pycache__ | grep -v .venv | grep -v "_test.py" | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return {
 				pass: count < 20,
@@ -776,7 +754,7 @@ const pySpecificRunners: Record<string, CheckRunner> = {
 		}
 
 		try {
-			const result = await $`grep -r "pytest\\|python -m pytest" ${workflowsDir} 2>/dev/null | wc -l`.quiet();
+			const result = await runCommand()`grep -r "pytest\\|python -m pytest" ${workflowsDir} 2>/dev/null | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return { pass: count > 0, details: count > 0 ? "Tests in CI" : "No tests in CI" };
 		} catch {
