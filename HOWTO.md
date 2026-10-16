@@ -113,8 +113,10 @@ files, steps, owner, acceptance check and rollback for every gap.
 
 **When to use it.** Before an app first serves paying customers, and before each later deploy.
 `mneves-ship-deploy` runs it for you: an assessment during review, then a binding run on the
-exact commit before the staging deploy and again before production. A standalone request is
-read-only.
+exact commit before the dev stop (when the project has one), the staging deploy and again
+before production. Staging blocks only on irreversible migrations and on a staging that can
+touch real data or customers; security blocks come from the imported `mneves-security`
+verdict. A standalone request is read-only.
 
 **Illustrative request (Claude Code):**
 

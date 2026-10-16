@@ -318,6 +318,9 @@ readiness_fields() {
       if (line ~ /"expires"/ && line !~ /^"expires"[[:space:]]*:[[:space:]]*"[^"[:cntrl:]]*"[[:space:]]*,?$/)
         bad("waiver fields must sit on their own lines")
       key=line; sub(/^"/, "", key); sub(/".*$/, "", key)
+      if (key == "waivers") in_waivers=1
+      # The record gives every waiver its unit, target and commit; a waiver never repeats them.
+      if (in_waivers && (key in pattern)) bad("waiver objects must not repeat " key "; the record'"'"'s " key " is their scope")
       if (!(key in pattern) && key != "expires") next
       if (line !~ ("^\"" key "\"[[:space:]]*:[[:space:]]*")) {
         if (key == "expires") bad("a readiness waiver has expired (malformed expires)")

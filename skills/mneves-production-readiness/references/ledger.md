@@ -100,8 +100,8 @@ these keys, then the waivers array:
 }
 ```
 
-- `unit` is `.` or the unit's path relative to the repository root; `target` is `staging` or
-  `production`; `commit` is the full 40-character SHA of the candidate.
+- `unit` is `.` or the unit's path relative to the repository root; `target` is `dev`,
+  `staging` or `production`; `commit` is the full 40-character SHA of the candidate.
 - `open_blockers` counts the rows that block under the target's gate rule (for
   staging, the FAIL rows in the staging set). `verdict` is `ready` exactly when it is 0; waived
   rows are not open.
@@ -109,6 +109,8 @@ these keys, then the waivers array:
 - `valid_until` is the earliest of `created_at` plus 24 hours, any waiver expiry and any
   relied-upon evidence expiry.
 - Every object opens with `{` on its own line, and keys are written plainly, without escapes.
+- A waiver object holds `control`, `owner`, `reason` and `expires`; the record's unit, target and
+  commit are its scope, so it never repeats them.
 - Each waiver field, like each scalar, sits on its own line: release scripts read the scalars
   and every waiver's `expires`, refuse an expired waiver, and copy the record into the release
   evidence.

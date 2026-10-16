@@ -71,13 +71,13 @@ claims NOT TESTED. A fallback never replaces a security audit.
   protection.
 
 ### SEC-12 Secrets hygiene and rotation
-`blocker` · staging set · always-on · area: sensitive data and credential leaks; keys
+`blocker` · always-on · area: sensitive data and credential leaks; keys
 - Fallback: no secret in tracked files, history, build output, logs or committed agent session
   files; secrets that ever appeared in a repository, chat or config are listed for rotation as an
   owner action; values are never printed.
 
 ### SEC-13 Supply chain
-`blocker` · staging set (new dependencies) · always-on (advisories) · area: dependencies and scanners
+`blocker` · always-on · area: dependencies and scanners
 - Fallback: each new dependency exists in its registry, is the package the code meant (name,
   publisher, age, adoption, no near-name lookalike), and is pinned in the lockfile; the package
   manager's audit runs with its scope and exit status recorded.
@@ -188,6 +188,15 @@ claims NOT TESTED. A fallback never replaces a security audit.
   processors it uses and the retention it applies; mismatches are findings for the legal owner.
 
 ## Importing a `mneves-security` report
+
+When the security gate recorded a verdict for the same commit and target
+(`.scratch/security-gate/<commit>/<target>.json`, written by the separately installed
+`mneves-security` skill), import that record first. Its launch-control IDs are these rows,
+one to one, and each row takes the status its report gives. A security `block` keeps this
+gate's verdict `not-ready` for that target: each listed security blocker counts as an open
+blocker here until the security gate clears it. A security `waived` row stays waived, with the
+security waiver's owner and expiry. With no record for that commit and target, run the security
+gate first or, without that skill, use the mapping below and the fallbacks.
 
 Map its launch-checklist subjects to rows: privacy disclosure → CMP-09; data map, retention,
 deletion and export → CMP-06 and DC-10; access control → SEC-06, SEC-07, SEC-08; server-side

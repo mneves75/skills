@@ -14,6 +14,12 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.37.0** (2026-10-16): fifteen default skills, adding `mneves-production-readiness`, a deploy
+  gate for data, recovery, money, operations, UX and maintainability (103 controls plus 32
+  security and compliance rows imported from the `mneves-security` gate record). Release
+  contract version 2 adds the readiness record (guarantee 11). Owner decisions: delta cadence,
+  staging blocks on DM-02/DM-03/TST-05 only, production waives blocker and contract rows by
+  name, readiness also runs on the dev stop.
 - **1.36.0** (2026-10-16): closes the 1.35.0 gate waivers. F-01 (TOML prototype pollution)
   and F-02 (timeouts that left commands running) are fixed test-first and `tools/` gains
   `bun test` in CI; pages and the readiness report carry a meta CSP and load no third-party

@@ -104,11 +104,13 @@ advisories), TST-05 (isolated lower environments), DEL-03 (tested before deploy)
 
 ## Staging gate
 
-Blocks only on a FAIL in the staging set: SEC-12 (a secret in the delta), SEC-13 (a new
-dependency that does not exist or is not the intended package), DM-02 and DM-03 (a migration in
-the delta with no way back or forward, or with an unreviewed blocking lock), and TST-05 (staging
-can reach production data or credentials, or can email, charge, notify or call real customers or
-their systems). BLOCKED and NOT TESTED rows, in the staging set or elsewhere, are reported
+Blocks only on a FAIL in the staging set: DM-02 and DM-03 (a migration in the delta with no way
+back or forward, or with an unreviewed blocking lock), and TST-05 (staging can reach production
+data or credentials, or can email, charge, notify or call real customers or their systems). A
+secret in the delta (SEC-12) or a new dependency that does not exist or is not the intended
+package (SEC-13) blocks through the imported security verdict (see the security controls
+reference), not through this set. The same rule applies to the dev stop of a release chain
+(target `dev`). BLOCKED and NOT TESTED rows, in the staging set or elsewhere, are reported
 without blocking staging; they carry into the production gate, where they block. Staging is where
 the remaining evidence is produced.
 
@@ -144,13 +146,20 @@ rows as pending; the check is required only before a production record is writte
 
 ## Waivers
 
-Only the owner, or a person the owner named, waives. A waiver names the control, owner, reason,
-target and expiry (the ledger belongs to one unit, and a record to one unit and target); the maximum is 90 days, and 72 hours for an incident waiver
+Only the owner, or a person the owner named, waives. A waiver names the control, owner, reason
+and expiry; the ledger row or record that holds it gives its unit and target, so a waiver in a
+record never repeats them (the release script refuses one that does); the maximum is 90 days, and 72 hours for an incident waiver
 covering failures the release repairs. Waivers come from the release's decision packet and are
 written to the ledger and the record. An expired waiver restores the underlying status.
 
 `scripts/release.sh --waive readiness=<reason>` skips the record check entirely. Use it only when
-the gate cannot run or for an incident repair the owner approved; the release records it.
+the gate cannot run or for an incident repair the owner approved; the release records it. After
+an incident repair deployed this way, run the gate on the deployed commit right after; its
+findings follow the normal rules.
+
+Rolling back to a build that already had a `ready` record for that target (its release
+evidence keeps the record) needs no new record; the rollback command bypasses the release
+script. Any other build needs a gate run or the owner's waiver.
 Control-level gaps are waived inside the record, never with this flag.
 
 ## Freshness defaults

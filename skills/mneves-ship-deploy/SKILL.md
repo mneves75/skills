@@ -98,8 +98,10 @@ Land the PR only when authorized and when its merge does not bypass the producti
 ## Dev stop (projects with a dev environment)
 
 When preflight found a dev environment, it is the first stop of both modes, before Phase 4. The
-order is the same as staging: deploy the pushed commit, prove it live with the Phase 4 step 2
-assertions and the security gate's runtime checks, then tag it.
+order is the same as staging: bind the readiness gate for `dev` on the pushed commit under the
+staging rule (`mneves-production-readiness` when installed, with the same fallback as Phase 4),
+deploy it, prove it live with the Phase 4 step 2 assertions and the security gate's runtime
+checks, then tag it.
 
 ```bash
 git tag -a vX.Y.Z-alpha<N> <commit> -m "vX.Y.Z-alpha<N> — dev; security gate: PASS" && git push origin vX.Y.Z-alpha<N>

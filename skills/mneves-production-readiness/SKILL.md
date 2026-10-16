@@ -75,7 +75,7 @@ These are separately installed; this skill works without them.
 
 ### 1. Frame the run
 
-State the mode (audit, baseline, gate `staging` or `production`, launch), the deployable unit,
+State the mode (audit, baseline, gate `dev`, `staging` or `production`, launch), the deployable unit,
 the candidate commit (full SHA for a gate), the target and the ledger path. Read the repository
 instructions, README and status documents, manifests and lockfiles, deploy, CI and release
 configuration, and the existing ledger. Inspect before claiming anything.

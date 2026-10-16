@@ -29,7 +29,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - **`mneves-ship-deploy`**: Preflight reads the readiness ledger; review runs a provisional
-  readiness assessment; staging and production each bind a readiness record before deploying.
+  readiness assessment; dev (when present), staging and production each bind a readiness
+  record before deploying.
+- **Owner decisions applied (2026-10-16)**: readiness keeps its baseline-plus-delta cadence
+  (the security gate keeps its full audit per tree); staging blocks only on DM-02, DM-03 and
+  TST-05, while secrets (SEC-12) and impostor packages (SEC-13) block through the imported
+  security verdict; production waives `blocker` and `contract` rows by name, with `advisory`
+  rows in the plan; the gate also runs on the dev stop.
+- **Security import**: the readiness gate reads the `mneves-security` gate record for the same
+  commit and target; a security block keeps readiness `not-ready`, so the release script's
+  readiness guard also stops a release the security gate blocked.
+- **Waivers, hotfixes and rollbacks**: a record's waiver holds `control`, `owner`, `reason` and
+  `expires` (the record gives its scope); the reference script refuses one that repeats
+  `target` with a clear message instead of "duplicate target key". An incident repair shipped
+  under `--waive readiness` gets its gate run right after; a rollback to a build with a `ready`
+  record needs none.
 - **Catalog and docs**: fifteen skills; README, HOWTO, landing page, glossary and product brief.
 - **Orchestrator Defaults**: model ids re-verified against the vendor model list on 2026-10-16.
 

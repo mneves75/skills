@@ -281,7 +281,7 @@ for target_case in staging production; do
 done
 
 # ==== Readiness: refusal before installing, building, deploying or making a run directory ====
-for defect in missing symlink directory malformed missing-key schema unit target commit short-sha future expired verdict blockers timestamp single-line duplicate invalid-created invalid-until expired-waiver malformed-waiver inline-waiver inline-escaped-waiver escaped-waiver escaped-required scratch-link readiness-link; do
+for defect in missing symlink directory malformed missing-key schema unit target commit short-sha future expired verdict blockers timestamp single-line duplicate waiver-scope invalid-created invalid-until expired-waiver malformed-waiver inline-waiver inline-escaped-waiver escaped-waiver escaped-required scratch-link readiness-link; do
   new_repo "readiness-$defect"
   record="$work/.scratch/readiness/staging.json"
   serve "$STAGING_URL" "$(head_sha)" staging
@@ -319,6 +319,13 @@ for defect in missing symlink directory malformed missing-key schema unit target
     inline-escaped-waiver)
       sed -i.bak 's/"waivers": \[\]/"waivers": [{ "control": "BR-02", "owner": "@o", "reason": "r", "ex\\u0070ires": "2001-01-01T00:00:00Z"}]/' "$record"
       problem='readiness record objects must open on their own line' ;;
+    waiver-scope)
+      # The record's target is the waiver's scope; a waiver that repeats it is refused clearly.
+      awk '/"waivers":/ {
+        printf "  \"waivers\": [\n    {\n      \"control\": \"BR-02\",\n      \"target\": \"staging\",\n      \"expires\": \"9999-01-01T00:00:00Z\"\n    }\n  ]\n"; next
+      } { print }' "$record" > "$record.waivers"
+      mv "$record.waivers" "$record"
+      problem='waiver objects must not repeat target' ;;
     escaped-waiver)
       set_readiness_expiries "$record" 2001-01-01T00:00:00Z 9999-01-01T00:00:00Z
       sed -i.bak 's/"expires"/"ex\\u0070ires"/g' "$record"

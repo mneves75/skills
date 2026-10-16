@@ -1,10 +1,12 @@
 # Production readiness skill: spec and implementation plan
 
-Status: Implemented on `feat/production-readiness` (PR #18). Independent acceptance: FAIL at
-`333b07f` on two findings, both fixed afterwards with tests and not re-accepted (see
-"Independent acceptance").
-Base: `579a92a` (origin/main). Version claim: 1.36.0 (`feat/opencode-lane` holds 1.35.0;
-whichever merges second renumbers).
+Status: Released as 1.37.0 (PR #18, taken over after its authoring session ended). The
+independent acceptance recorded below failed at `333b07f`; its two findings were fixed and the
+1.37.0 release went through the `mneves-security` deploy gate, whose independent review
+accepted the candidate. Owner decisions of 2026-10-16 (see CHANGELOG 1.37.0) supersede the
+staging set and the open owner decision below: SEC-12 and SEC-13 block through the security
+verdict, and readiness also runs on the dev stop.
+Base: `579a92a`, merged with `main` at 1.36.0 (`34aefc0`).
 
 ## What the review changed
 
