@@ -12,9 +12,10 @@ Delegate only when the work is independent, substantial, and objectively verifia
 | Frontend executor | Frontend subagents (model per the Defaults block) | UI components, styling, layout, visual polish |
 | Ordinary worker | A scoped worker (model per the Defaults block) | Routine implementation with checkable acceptance |
 | Bounded worker | A scoped worker (model per the Defaults block) | Search, writing, and mechanical changes with a narrow result |
-| Heavy executor | Codex via `codex exec` / `codex-lane` (model per the Defaults block) | Difficult debugging, architecture, and refactors |
-| Plan advisor | A read-only Codex run (model per the Defaults block) | Review of the Claude main session's plan before a decision with real downside |
-| Reviewer | `autoreview` or a read-only Codex run (model per the Defaults block) | Independent review of a fixed Git target |
+| Heavy executor | A Claude subagent, or Codex via `codex exec` / `codex-lane` (model per the Defaults block) | Difficult debugging, architecture, and refactors |
+| Planner | A read-only Claude subagent or Codex run (model per the Defaults block) | The plan, before implementation |
+| Plan advisor | Claude's native advisor or a read-only Codex run (model per the Defaults block) | Review of the main session's plan before a decision with real downside |
+| Reviewer | A read-only Claude subagent, `autoreview`, or a read-only Codex run (model per the Defaults block) | Independent review of a fixed Git target, never by the model that built it |
 | Long-horizon driver | A lane, a checked-in plan file, or your harness's long-task mechanism | User-requested multi-phase work driven to its stopping condition |
 
 ## Continuity is the whole game
@@ -92,8 +93,9 @@ the full model transcript for the job.
 
 - **Claude Code** with subagent support (`Agent` tool), or any harness that can spawn a
   fresh-context worker
-- **[Codex CLI](https://github.com/openai/codex)** installed and authenticated, for the
-  heavy-executor path, plus `bash` and `python3` for `codex-lane`. The `/codex:rescue` command
+- **[Codex CLI](https://github.com/openai/codex)** installed and authenticated, for the Codex
+  paths (heavy executor, planner, plan advisor, reviewer), plus `bash` and `python3` for
+  `codex-lane`. Without Codex, the Claude seats of the Defaults block cover every role. The `/codex:rescue` command
   from the openai-codex plugin is an equivalent front-end if you have that plugin; the routing
   rules apply either way. Set the shared Codex default from the skill's Defaults block. Preserve
   deliberate per-call specialist overrides. See `references/codex-dispatch.md` for flag
