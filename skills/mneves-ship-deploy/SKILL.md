@@ -2,7 +2,7 @@
 name: mneves-ship-deploy
 description: "Use for `ship-staging`, `ship-prod`, or an explicit staging/production deployment request for a project you own. Runs review, release preparation, deployment, and verification. Plain `ship` does not invoke this skill or authorize external writes."
 license: Apache-2.0
-compatibility: The procedure needs only Git. The optional contract check (`scripts/release-contract-check.py`) needs Python 3.11+. The reference release scripts in `assets/` need bash 3.2+, git, curl, sed, awk and the Wrangler version the project pins.
+compatibility: The procedure needs only Git. The optional contract check (`scripts/release-contract-check.py`) needs Python 3.11+. The reference release scripts in `assets/` need bash 3.2+, git, curl, sed, awk, python3 and the Wrangler version the project pins.
 ---
 
 # Ship Staging / Prod

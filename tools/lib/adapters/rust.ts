@@ -12,7 +12,6 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { $ } from "bun";
 import {
 	type CheckContext,
 	type CheckResult,
@@ -20,8 +19,8 @@ import {
 	dirExists,
 	fileExists,
 	readText,
-	runWithTimeout,
 } from "../check-registry.js";
+import { runCommand } from "../command.js";
 import { createLanguageAdapter } from "./base.js";
 
 // ============================================================================
@@ -117,7 +116,7 @@ const rustSpecificRunners: Record<string, CheckRunner> = {
 
 	"no-lint-ignores": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
-			const result = await $`grep -r "#\\[allow(" --include="*.rs" ${ctx.app.path} 2>/dev/null | wc -l`.quiet();
+			const result = await runCommand()`grep -r "#\\[allow(" --include="*.rs" ${ctx.app.path} 2>/dev/null | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return {
 				pass: count < 10,
@@ -130,7 +129,7 @@ const rustSpecificRunners: Record<string, CheckRunner> = {
 
 	"no-unsafe-types": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
-			const result = await $`grep -r "unsafe " --include="*.rs" ${ctx.app.path} 2>/dev/null | wc -l`.quiet();
+			const result = await runCommand()`grep -r "unsafe " --include="*.rs" ${ctx.app.path} 2>/dev/null | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return {
 				pass: count < 5,
@@ -171,14 +170,11 @@ const rustSpecificRunners: Record<string, CheckRunner> = {
 
 	"zero-lint-errors": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
-			await runWithTimeout(
-				$`cd ${ctx.app.path} && cargo clippy -- -D warnings 2>&1`.quiet(),
-				180000,
-			);
+			await runCommand(180000)`cd ${ctx.app.path} && cargo clippy -- -D warnings 2>&1`;
 			return { pass: true, details: "cargo clippy clean" };
 		} catch {
 			try {
-				await $`which cargo`.quiet();
+				await runCommand()`which cargo`;
 				return { pass: false, details: "Clippy warnings present" };
 			} catch {
 				return { pass: false, details: "Cargo not installed" };
@@ -238,7 +234,7 @@ const rustSpecificRunners: Record<string, CheckRunner> = {
 
 	"deps-installed": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
-			await $`cd ${ctx.app.path} && cargo check 2>&1`.quiet();
+			await runCommand()`cd ${ctx.app.path} && cargo check 2>&1`;
 			return { pass: true, details: "cargo check succeeded" };
 		} catch {
 			return { pass: false, details: "cargo check failed" };
@@ -251,10 +247,7 @@ const rustSpecificRunners: Record<string, CheckRunner> = {
 		}
 
 		try {
-			await runWithTimeout(
-				$`cd ${ctx.app.path} && cargo build 2>&1`.quiet(),
-				300000,
-			);
+			await runCommand(300000)`cd ${ctx.app.path} && cargo build 2>&1`;
 			return { pass: true, details: "cargo build succeeded" };
 		} catch {
 			return { pass: false, details: "cargo build failed" };
@@ -296,7 +289,7 @@ const rustSpecificRunners: Record<string, CheckRunner> = {
 	"tests-exist": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
 			// Check for #[test] or #[cfg(test)] in Rust files
-			const result = await $`grep -r "#\\[test\\]\\|#\\[cfg(test)\\]" --include="*.rs" ${ctx.app.path} 2>/dev/null | head -1`.quiet();
+			const result = await runCommand()`grep -r "#\\[test\\]\\|#\\[cfg(test)\\]" --include="*.rs" ${ctx.app.path} 2>/dev/null | head -1`;
 			const found = result.text().trim().length > 0;
 
 			if (found) {
@@ -320,10 +313,7 @@ const rustSpecificRunners: Record<string, CheckRunner> = {
 		}
 
 		try {
-			await runWithTimeout(
-				$`cd ${ctx.app.path} && cargo test 2>&1`.quiet(),
-				180000,
-			);
+			await runCommand(180000)`cd ${ctx.app.path} && cargo test 2>&1`;
 			return { pass: true, details: "All tests pass" };
 		} catch {
 			return { pass: false, details: "Tests failed" };
@@ -383,10 +373,7 @@ const rustSpecificRunners: Record<string, CheckRunner> = {
 
 		const start = Date.now();
 		try {
-			await runWithTimeout(
-				$`cd ${ctx.app.path} && cargo test 2>&1`.quiet(),
-				300000,
-			);
+			await runCommand(300000)`cd ${ctx.app.path} && cargo test 2>&1`;
 			const elapsed = Date.now() - start;
 			return {
 				pass: elapsed < 300000,
@@ -404,7 +391,7 @@ const rustSpecificRunners: Record<string, CheckRunner> = {
 	"inline-docs": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
 			// Check for doc comments (//! or ///)
-			const result = await $`grep -r "///\\|//!" --include="*.rs" ${ctx.app.path} 2>/dev/null | wc -l`.quiet();
+			const result = await runCommand()`grep -r "///\\|//!" --include="*.rs" ${ctx.app.path} 2>/dev/null | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return {
 				pass: count > 10,
@@ -421,7 +408,7 @@ const rustSpecificRunners: Record<string, CheckRunner> = {
 
 	"console-logs-minimal": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
-			const result = await $`grep -r "println!\\|print!\\|dbg!" --include="*.rs" ${ctx.app.path} 2>/dev/null | wc -l`.quiet();
+			const result = await runCommand()`grep -r "println!\\|print!\\|dbg!" --include="*.rs" ${ctx.app.path} 2>/dev/null | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return {
 				pass: count < 20,
@@ -446,7 +433,7 @@ const rustSpecificRunners: Record<string, CheckRunner> = {
 		}
 
 		try {
-			const result = await $`grep -r "cargo test" ${workflowsDir} 2>/dev/null | wc -l`.quiet();
+			const result = await runCommand()`grep -r "cargo test" ${workflowsDir} 2>/dev/null | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return { pass: count > 0, details: count > 0 ? "Tests in CI" : "No tests in CI" };
 		} catch {

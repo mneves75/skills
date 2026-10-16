@@ -191,7 +191,7 @@ real and well-shaped before changing anything. It names things by portable ancho
 issue and PR URLs, branch, module, symbol, exact error text) instead of filesystem paths, and
 forbids pushes, merges, and public comments unless you ask for them.
 
-**Triggers.** "handoff <task>", "write a handoff", "give me a prompt for another agent". For
+**Triggers.** "handoff `<task>`", "write a handoff", "give me a prompt for another agent". For
 work you dispatch into your own tree, use `mneves-fable-orchestrator`'s delegation brief instead.
 
 **Example** (illustrative).
@@ -451,7 +451,10 @@ fact with `codex-lane adopt <lane> <thread-id>`.
 context, making a change, verifying it and iterating. Nine pillars (style, build, testing,
 documentation, dev environment, observability, security, task discovery, product), fifty-plus
 checks, a percentage and a maturity level L1–L5. Ships with a Bun/TypeScript tool that runs
-locally and uploads nothing.
+locally and sends nothing about your repository anywhere. Some checks run the project's own
+build, lint and test tools through `/bin/sh` with a deadline; those tools may download
+packages and write build output. It needs a POSIX system (macOS or Linux) and a repository
+you trust.
 
 **Triggers.** "agent readiness", "why isn't the agent working well here", onboarding a repo,
 planning infrastructure work.

@@ -7,6 +7,55 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.36.0] - 2026-10-16
+
+### Fixed
+- The readiness checker no longer lets a crafted manifest pollute `Object.prototype`.
+  `Cargo.toml` and `pyproject.toml` keys `__proto__`, `constructor` and `prototype` are
+  rejected, and ordinary manifests parse as before (F-01 from the 1.35.0 security gate).
+- A timed-out readiness check now kills its whole process group, waits for it to exit and
+  clears its timer; every adapter command has a deadline (60 seconds unless the check sets
+  one). Commands now run through `/bin/sh`, so the assessor needs a POSIX system (F-02).
+  The shared checks also run under deadlines, and stopping the checker (SIGINT or SIGTERM)
+  stops every command it started.
+- A crafted `pnpm-workspace.yaml` line no longer stalls app discovery (quadratic matching), and
+  an `.env.example` file no longer hides the warning for suspicious files such as
+  `credentials.json` or `private.key`.
+- `codex-lane` cleanup guidance names each lane's exact files; the old `<lane>.*` advice also
+  deleted the files of dotted lanes such as `job.extra`.
+- Autoreview redacts provider credentials from the environment (`*_API_KEY`, `*_TOKEN`, the
+  known provider keys and each `ANTHROPIC_CUSTOM_HEADERS` value) in terminal output, error messages and saved reports; before, only
+  proxy credentials were redacted.
+- Autoreview's TruffleHog scan runs offline by default and every detection blocks, so a dry
+  run contacts nobody; `--verify-secrets-online` restores online verification on request.
+- Autoreview refuses a run over 20 review passes or 10,240,000 prompt bytes before the first
+  provider call (`--max-review-passes`, `--max-review-input-bytes` raise the limits), and
+  refuses a Git work tree relocated away from its checkout, which could run an executable
+  from the original checkout before isolation.
+- The reference `verify-live.sh` and `release.sh` read health bodies as JSON objects with
+  unique top-level keys (a nested or repeated field no longer passes), which needs `python3`;
+  release tag messages state the recorded security gate verdict.
+- `sync-pstack.sh` refuses upstream skills that contain a symlink; the site's HTML guard
+  accepts only a strict subset; concurrent `mneves-teach-back-srs` reviews no longer lose
+  a scheduling step.
+
+### Security
+- Every site page and the readiness HTML report carry a Content-Security-Policy and a
+  referrer policy, tested served in a browser, and load no third-party fonts.
+- `SECURITY.md` adds the access and release model, a quarterly access review, a compromise
+  runbook, data handling and site protections. The autoreview README states its security
+  model: untrusted input, what it sends, cost bounds, no irreversible actions, what it keeps.
+  The readiness disclosure now says that the project's own tooling may download packages and
+  write build output, and `codex-lane` transcript retention and erasure are documented, with
+  erasure steps for local files, provider copies and backups.
+- Access review, 2026-10-16: the maintainer administers the repository and one other account,
+  also the maintainer's, has write access and keeps it; devices with write access use
+  full-disk encryption and a screen lock (maintainer attestation).
+
+### Changed
+- `tools/` has unit tests (`bun test`), run in CI after typecheck and lint, and the SRS
+  helper's test runs in CI.
+
 ## [1.35.1] - 2026-10-16
 
 ### Changed

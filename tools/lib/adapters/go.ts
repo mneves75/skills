@@ -12,7 +12,6 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { $ } from "bun";
 import {
 	type CheckContext,
 	type CheckResult,
@@ -20,8 +19,8 @@ import {
 	dirExists,
 	fileExists,
 	readText,
-	runWithTimeout,
 } from "../check-registry.js";
+import { runCommand } from "../command.js";
 import { createLanguageAdapter } from "./base.js";
 
 // ============================================================================
@@ -138,7 +137,7 @@ const goSpecificRunners: Record<string, CheckRunner> = {
 
 	"no-any-casts": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
-			const result = await $`grep -r "interface{}" --include="*.go" ${ctx.app.path} 2>/dev/null | grep -v "_test.go" | wc -l`.quiet();
+			const result = await runCommand()`grep -r "interface{}" --include="*.go" ${ctx.app.path} 2>/dev/null | grep -v "_test.go" | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return {
 				pass: count < 10,
@@ -151,7 +150,7 @@ const goSpecificRunners: Record<string, CheckRunner> = {
 
 	"no-ts-ignore": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
-			const result = await $`grep -r "//nolint" --include="*.go" ${ctx.app.path} 2>/dev/null | wc -l`.quiet();
+			const result = await runCommand()`grep -r "//nolint" --include="*.go" ${ctx.app.path} 2>/dev/null | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return {
 				pass: count === 0,
@@ -211,21 +210,15 @@ const goSpecificRunners: Record<string, CheckRunner> = {
 
 	"zero-lint-errors": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
-			await runWithTimeout(
-				$`cd ${ctx.app.path} && golangci-lint run 2>&1`.quiet(),
-				120000,
-			);
+			await runCommand(120000)`cd ${ctx.app.path} && golangci-lint run 2>&1`;
 			return { pass: true, details: "golangci-lint clean" };
 		} catch {
 			try {
-				await $`which golangci-lint`.quiet();
+				await runCommand()`which golangci-lint`;
 				return { pass: false, details: "Lint errors present" };
 			} catch {
 				try {
-					await runWithTimeout(
-						$`cd ${ctx.app.path} && go vet ./... 2>&1`.quiet(),
-						60000,
-					);
+					await runCommand(60000)`cd ${ctx.app.path} && go vet ./... 2>&1`;
 					return { pass: true, details: "go vet clean (golangci-lint not installed)" };
 				} catch {
 					return { pass: false, details: "go vet failed" };
@@ -271,7 +264,7 @@ const goSpecificRunners: Record<string, CheckRunner> = {
 
 	"deps-install": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
-			await $`cd ${ctx.app.path} && go mod verify 2>&1`.quiet();
+			await runCommand()`cd ${ctx.app.path} && go mod verify 2>&1`;
 			return { pass: true, details: "go mod verify succeeded" };
 		} catch {
 			return { pass: false, details: "go mod verify failed" };
@@ -284,10 +277,7 @@ const goSpecificRunners: Record<string, CheckRunner> = {
 		}
 
 		try {
-			await runWithTimeout(
-				$`cd ${ctx.app.path} && go build ./... 2>&1`.quiet(),
-				180000,
-			);
+			await runCommand(180000)`cd ${ctx.app.path} && go build ./... 2>&1`;
 			return { pass: true, details: "go build succeeded" };
 		} catch {
 			return { pass: false, details: "go build failed" };
@@ -347,7 +337,7 @@ const goSpecificRunners: Record<string, CheckRunner> = {
 
 	"tests-exist": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
-			const result = await $`find ${ctx.app.path} -name "*_test.go" 2>/dev/null | head -1`.quiet();
+			const result = await runCommand()`find ${ctx.app.path} -name "*_test.go" 2>/dev/null | head -1`;
 			const found = result.text().trim().length > 0;
 			return {
 				pass: found,
@@ -364,10 +354,7 @@ const goSpecificRunners: Record<string, CheckRunner> = {
 		}
 
 		try {
-			await runWithTimeout(
-				$`cd ${ctx.app.path} && go test ./... 2>&1`.quiet(),
-				120000,
-			);
+			await runCommand(120000)`cd ${ctx.app.path} && go test ./... 2>&1`;
 			return { pass: true, details: "All tests pass" };
 		} catch {
 			return { pass: false, details: "Tests failed" };
@@ -404,7 +391,7 @@ const goSpecificRunners: Record<string, CheckRunner> = {
 
 		// Check for build tags indicating integration/acceptance tests
 		try {
-			const result = await $`grep -r "//go:build integration\\|// +build integration\\|//go:build acceptance\\|// +build acceptance" --include="*_test.go" ${appPath} 2>/dev/null | wc -l`.quiet();
+			const result = await runCommand()`grep -r "//go:build integration\\|// +build integration\\|//go:build acceptance\\|// +build acceptance" --include="*_test.go" ${appPath} 2>/dev/null | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			if (count > 0) {
 				return { pass: true, details: `${count} integration test files` };
@@ -419,7 +406,7 @@ const goSpecificRunners: Record<string, CheckRunner> = {
 				await fileExists(path.join(basePath, "WORKSPACE.bazel"))) {
 				// Projects using Bazel typically have integration tests via go_test rules
 				try {
-					const result = await $`grep -r "go_test\\|integration" --include="BUILD*" ${basePath} 2>/dev/null | wc -l`.quiet();
+					const result = await runCommand()`grep -r "go_test\\|integration" --include="BUILD*" ${basePath} 2>/dev/null | wc -l`;
 					const count = Number.parseInt(result.text().trim(), 10) || 0;
 					if (count > 0) {
 						return { pass: true, details: "Bazel integration tests" };
@@ -440,10 +427,7 @@ const goSpecificRunners: Record<string, CheckRunner> = {
 
 		const start = Date.now();
 		try {
-			await runWithTimeout(
-				$`cd ${ctx.app.path} && go test -short ./... 2>&1`.quiet(),
-				300000,
-			);
+			await runCommand(300000)`cd ${ctx.app.path} && go test -short ./... 2>&1`;
 			const elapsed = Date.now() - start;
 			return {
 				pass: elapsed < 300000,
@@ -513,7 +497,7 @@ const goSpecificRunners: Record<string, CheckRunner> = {
 
 	"console-logs-minimal": async (ctx: CheckContext): Promise<CheckResult> => {
 		try {
-			const result = await $`grep -r "fmt.Print\\|log.Print" --include="*.go" ${ctx.app.path} 2>/dev/null | grep -v "_test.go" | wc -l`.quiet();
+			const result = await runCommand()`grep -r "fmt.Print\\|log.Print" --include="*.go" ${ctx.app.path} 2>/dev/null | grep -v "_test.go" | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return {
 				pass: count < 20,
@@ -611,7 +595,7 @@ const goSpecificRunners: Record<string, CheckRunner> = {
 		}
 
 		try {
-			const result = await $`grep -r "go test" ${workflowsDir} 2>/dev/null | wc -l`.quiet();
+			const result = await runCommand()`grep -r "go test" ${workflowsDir} 2>/dev/null | wc -l`;
 			const count = Number.parseInt(result.text().trim(), 10) || 0;
 			return { pass: count > 0, details: count > 0 ? "Tests in CI" : "No tests in CI" };
 		} catch {
