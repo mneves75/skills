@@ -255,6 +255,82 @@ done
 check "every gate ran" log_has '^npm run lint'
 check "the deploy is the target's own environment" log_has '^wrangler deploy .*--env staging( |$)'
 
+# ==== The tag message states the security gate verdict recorded for the commit and target ====
+# gate_record <commit> <target> <verdict> <blockers> [<waiver id>...]: the record the mneves-security skill
+# writes in deploy-gate mode, at .scratch/security-gate/<commit>/<target>.json, one scalar per line.
+gate_record() {
+  local commit="$1" target="$2" verdict="$3" blockers="$4" waivers="" sep="" id
+  shift 4
+  for id in "$@"; do
+    waivers="$waivers$sep
+    {
+      \"id\": \"$id\",
+      \"owner\": \"@owner\",
+      \"reason\": \"booked\",
+      \"expires\": \"2026-11-30T00:00:00Z\"
+    }"
+    sep=","
+  done
+  mkdir -p "$work/.scratch/security-gate/$commit"
+  cat > "$work/.scratch/security-gate/$commit/$target.json" << JSON
+{
+  "schema": 1,
+  "unit": ".",
+  "target": "$target",
+  "commit": "$commit",
+  "tree": "0000000000000000000000000000000000000000",
+  "verdict": "$verdict",
+  "open_blockers": 0,
+  "blockers": "$blockers",
+  "independent_acceptance": "pass",
+  "reused_from": "",
+  "created_at": "2026-10-15T19:00:00Z",
+  "waivers": [$waivers
+  ]
+}
+JSON
+}
+tag_says() { git -C "$work" for-each-ref --format='%(contents)' "refs/tags/$1" | grep -F -- "$2" > /dev/null; }
+new_repo gatepass
+sha="$(head_sha)"
+serve "$STAGING_URL" "$sha" staging
+gate_record "$sha" staging pass ""
+expect "a release with a PASS gate record succeeds" 0 "Released v1.2.3-beta1" -- staging
+check "the tag message states the PASS verdict" tag_says v1.2.3-beta1 "staging release v1.2.3-beta1 (${sha:0:7}); security gate: PASS"
+new_repo gatewaived
+sha="$(head_sha)"
+serve "$STAGING_URL" "$sha" staging
+gate_record "$sha" staging waived "" SEC-19 gate:audit
+expect "a release with a WAIVED gate record succeeds" 0 "Released v1.2.3-beta1" -- staging
+check "the tag message states WAIVED with every waiver id" tag_says v1.2.3-beta1 "security gate: WAIVED SEC-19 gate:audit"
+new_repo gateblock
+sha="$(head_sha)"
+serve "$STAGING_URL" "$sha" staging
+gate_record "$sha" staging block "SEC-7 SEC-9"
+expect "a BLOCK gate record does not stop the script (the gate is a rule, not a guard)" 0 "Released v1.2.3-beta1" -- staging
+check "the tag message states the BLOCK verdict and its blockers" tag_says v1.2.3-beta1 "security gate: BLOCK SEC-7 SEC-9"
+new_repo gatenone
+sha="$(head_sha)"
+serve "$STAGING_URL" "$sha" staging
+gate_record "$sha" production pass ""
+expect "a release with no gate record for its target succeeds" 0 "Released v1.2.3-beta1" -- staging
+check "the tag message says no verdict is recorded" tag_says v1.2.3-beta1 "security gate: none recorded"
+if tag_says v1.2.3-beta1 "PASS"; then fail "another target's record never counts as this target's PASS"; else pass "another target's record never counts as this target's PASS"; fi
+new_repo gatecopy
+sha="$(head_sha)"
+serve "$STAGING_URL" "$sha" staging
+gate_record "1111111111111111111111111111111111111111" staging pass ""
+mkdir -p "$work/.scratch/security-gate/$sha"
+mv "$work/.scratch/security-gate/1111111111111111111111111111111111111111/staging.json" "$work/.scratch/security-gate/$sha/staging.json"
+expect "a release with a gate record copied from another commit succeeds" 0 "Released v1.2.3-beta1" -- staging
+check "a record that names another commit is not read as this commit's verdict" tag_says v1.2.3-beta1 "security gate: unreadable record"
+new_repo gatepush
+sha="$(head_sha)"
+serve "$STAGING_URL" "$sha" staging
+gate_record "$sha" staging pass ""
+printf '#!/bin/sh\nexit 1\n' > "$origin/hooks/pre-receive"; chmod +x "$origin/hooks/pre-receive"
+expect "a tag that cannot be pushed is suggested with the same gate verdict" 1 "security gate: PASS'; git push origin refs/tags/v1.2.3-beta1" -- staging
+
 # ==== A waiver ====
 new_repo waive
 sha="$(head_sha)"
@@ -308,8 +384,10 @@ sha="$(head_sha)"
 serve "$STAGING_URL" "$sha" staging
 serve "$PRODUCTION_URL" "$sha" production
 git -C "$work" tag -a v1.2.3-beta1 -m staged && git -C "$work" push -q origin v1.2.3-beta1
+gate_record "$sha" production waived "" SEC-19
 expect "production releases the commit staging serves" 0 "Released v1.2.3 to production" -- production --yes
 check "the production tag is pushed" test -n "$(remote_tags | grep -F 'refs/tags/v1.2.3^{}')"
+check "the production tag message states the production gate verdict" tag_says v1.2.3 "security gate: WAIVED SEC-19"
 check "the deploy is the production environment" log_has '^wrangler deploy .*--env production( |$)'
 git -C "$work" tag -a v1.2.3 -m again 2> /dev/null || true
 

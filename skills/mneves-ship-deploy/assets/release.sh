@@ -26,6 +26,9 @@
 # Guarantees covered here: 1 pushed source, 2 promotion, 3 runtime pin, 4 gates and waivers,
 # 6 target parity (partly, see below), 7 live proof with a rollback command, 8 tag after proof,
 # 9 release.json, 10 --check.
+# Each tag message states the security gate verdict that the mneves-security skill recorded for the
+# commit and target in .scratch/security-gate/<commit>/<target>.json (PASS, WAIVED with the waived ids,
+# BLOCK with its blockers), or "none recorded"; the script never refuses a release over it.
 # Guarantee 6 here means two things only: the required secrets are checked on the target, and every
 # gate and the build run with RELEASE_TARGET and RELEASE_COMMIT set. Nothing in this script asserts a
 # build-time value. A project that bakes target-specific values into its build (keys, endpoints) must
@@ -147,6 +150,27 @@ for key in sys.argv[1:]:
 ' "${@:2}"
 }
 json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+# record_field <file> <key>: every "<key>": "<value>" line of a security gate record, value only. The
+# record keeps one scalar per line, so a line reader is enough.
+record_field() { sed -n "s/^[[:space:]]*\"$2\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p" "$1"; }
+# gate_verdict <commit> <target>: what the tag message says about the security gate, read from the record
+# the mneves-security skill writes in deploy-gate mode for this exact commit and target. A missing record
+# is stated, never refused: the gate is a release rule, not a guard of this script.
+gate_verdict() {
+  local record="$root/.scratch/security-gate/$1/$2.json" verdict ids blockers
+  [ -f "$record" ] || { echo "security gate: none recorded"; return 0; }
+  verdict="$(record_field "$record" verdict)"
+  ids="$(record_field "$record" id | tr '\n' ' ' | sed 's/ *$//')"
+  blockers="$(record_field "$record" blockers)"
+  # A record that names another commit or target than its path (a copy) is not this release's verdict.
+  [ "$(record_field "$record" commit)" = "$1" ] && [ "$(record_field "$record" target)" = "$2" ] || verdict=""
+  case "$verdict:$ids" in
+    pass:*) echo "security gate: PASS" ;;
+    waived:?*) echo "security gate: WAIVED $ids" ;;
+    block:*) echo "security gate: BLOCK${blockers:+ $blockers}" ;;
+    *) echo "security gate: unreadable record" ;;
+  esac
+}
 
 root="$(git rev-parse --show-toplevel 2>/dev/null)" || die "not inside a Git repository"
 cd "$root"
@@ -373,12 +397,14 @@ cat "$evidence/verify-live.log"
 
 # ---- Tag (only after the proof; a pushed tag is never moved) ----
 say "Tag $tag"
+message="$target release $tag ($short); $(gate_verdict "$commit" "$target")"
+echo "message: $message"
 tag_failed=0
-if git -C "$root" tag -a "$tag" "$commit" -m "$target release $tag ($short)" && git -C "$root" push --quiet origin "refs/tags/$tag"; then
+if git -C "$root" tag -a "$tag" "$commit" -m "$message" && git -C "$root" push --quiet origin "refs/tags/$tag"; then
   echo "pushed $tag"
 else
   echo "release: $tag is live and passed its checks, but the tag was not pushed. Finish by hand:" >&2
-  echo "  git tag -a $tag $commit -m '$target release $tag ($short)'; git push origin refs/tags/$tag" >&2
+  echo "  git tag -a $tag $commit -m '$message'; git push origin refs/tags/$tag" >&2
   tag_failed=1
 fi
 
