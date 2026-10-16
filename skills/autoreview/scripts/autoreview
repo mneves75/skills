@@ -1782,11 +1782,23 @@ def git_path_list(repo: Path, *args: str, check: bool = True) -> list[str]:
 
 def repo_root() -> Path:
     start = Path.cwd().resolve()
-    unsafe_root = discover_repo_root(start) or start
+    checkout = discover_repo_root(start)
+    unsafe_root = checkout or start
     result = git_result(unsafe_root, "rev-parse", "--show-toplevel", check=False)
     if result.returncode != 0:
         raise SystemExit("autoreview must run inside a git repository")
-    return Path(result.stdout.removesuffix("\n")).resolve()
+    root = Path(result.stdout.removesuffix("\n")).resolve()
+    # The returned root is the executable-exclusion boundary for every later
+    # lookup. Local metadata (core.worktree, a gitdir file, or a gitdir used as
+    # the working directory) can point Git elsewhere and leave this checkout's
+    # executables on PATH; normal checkouts and linked worktrees match.
+    if root != checkout:
+        raise SystemExit(
+            "refusing relocated Git work tree: Git resolves "
+            f"{display_escape(root, 500)} from {display_escape(unsafe_root, 500)}; "
+            "run autoreview from a checkout without core.worktree relocation"
+        )
+    return root
 
 
 def discover_repo_root(start: Path) -> Path | None:

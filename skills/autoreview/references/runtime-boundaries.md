@@ -25,7 +25,10 @@ selected Xcode, pass `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`.
 absolute, external `DEVELOPER_DIR` is kept in Git's sanitized environment; neither override
 reaches the isolated reviewer. Git collection never runs checkout-controlled executables:
 executable filter drivers are disabled for collection, and a diff that needs a converter to be
-read is refused before review.
+read is refused before review. Executables inside the checkout you run from are never selected
+from `PATH`, so a checkout whose local Git metadata relocates the work tree (`core.worktree`,
+a `gitdir:` file, or a Git directory used as the working directory) is refused; normal
+checkouts and linked worktrees are unaffected.
 
 ## Temporary directories on macOS
 
