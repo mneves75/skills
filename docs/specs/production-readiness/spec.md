@@ -1,9 +1,9 @@
 # Production readiness skill: spec and implementation plan
 
 Status: Released as 1.37.0 (PR #18, taken over after its authoring session ended). The
-independent acceptance recorded below failed at `333b07f`; its two findings were fixed and the
-1.37.0 release went through the `mneves-security` deploy gate, whose independent review
-accepted the candidate. Owner decisions of 2026-10-16 (see CHANGELOG 1.37.0) supersede the
+independent acceptance recorded below failed at `333b07f`; its two findings were fixed, and the
+1.37.0 candidate goes through the `mneves-security` deploy gate before it merges; the gate
+record stays with the release evidence. Owner decisions of 2026-10-16 (see CHANGELOG 1.37.0) supersede the
 staging set and the open owner decision below: SEC-12 and SEC-13 block through the security
 verdict, and readiness also runs on the dev stop.
 Base: `579a92a`, merged with `main` at 1.36.0 (`34aefc0`).

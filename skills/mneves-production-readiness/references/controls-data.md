@@ -15,7 +15,7 @@ minimum scope that can mark it PASS.
 - Evidence: source.
 
 ### DM-02 Reversible migrations
-`blocker` · applies: `db` · triggers: migrations
+`blocker` · staging set · applies: `db` · triggers: migrations
 - Verify: every migration in scope has a tested way back or forward: a down step that was run,
   or a written forward fix that names the data it cannot restore. Destructive steps (drop, narrowing type change, rewrite) ship
   apart from the release that stops using the data (expand, migrate, contract) and follow a
@@ -25,7 +25,7 @@ minimum scope that can mark it PASS.
   staging copy.
 
 ### DM-03 Lock-safe migrations
-`blocker` · applies: `db` · triggers: migrations
+`blocker` · staging set · applies: `db` · triggers: migrations
 - Verify: for each DDL statement, look up the lock it takes and whether it rewrites the table in
   the engine's documentation. On large or busy tables use the online form: concurrent index
   builds, constraints added unvalidated and validated later, nullable columns with batched

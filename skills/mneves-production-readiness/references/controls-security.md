@@ -194,7 +194,8 @@ When the security gate recorded a verdict for the same commit and target
 `mneves-security` skill), import that record first. Its launch-control IDs are these rows,
 one to one, and each row takes the status its report gives. A security `block` keeps this
 gate's verdict `not-ready` for that target: each listed security blocker counts as an open
-blocker here until the security gate clears it. A security `waived` row stays waived, with the
+blocker here until the security gate clears it, including gate-step blockers such as
+`gate:audit` or `gate:independent-acceptance`. A security `waived` row stays waived, with the
 security waiver's owner and expiry. With no record for that commit and target, run the security
 gate first or, without that skill, use the mapping below and the fallbacks.
 

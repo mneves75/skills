@@ -295,51 +295,84 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# The record contract puts each scalar on its own line. This checks those lines, not JSON syntax.
+# readiness_fields <file>: the record's fields, one "key<TAB>value" line each (strings keep their
+# quotes), then one "expires<TAB>value" line per waiver. The record is parsed as JSON and checked
+# against its exact schema: these keys at the top level and no others, a list of waiver objects
+# holding exactly control, owner, reason and expires, no key repeated in any object. A field nested
+# deeper or packed beside another can therefore never stand in for a top-level one.
 readiness_fields() {
-  LC_ALL=C awk '
-    function bad(why) { print why; failed=1; exit 1 }
-    BEGIN {
-      count=split("schema unit target catalog commit verdict open_blockers created_at valid_until", keys, " ")
-      for (i=1; i<=count; i++) pattern[keys[i]]="^\"[^\"[:cntrl:]]+\"$"
-      pattern["schema"]=pattern["open_blockers"]="^(0|[1-9][0-9]*)$"
-      pattern["catalog"]="^[1-9][0-9]*$"
-      pattern["target"]="^\"(staging|production)\"$"
-      pattern["commit"]="^\"[0-9a-f]+\"$"
-    }
-    {
-      line=$0; sub(/^[[:space:]]*/, "", line); sub(/[[:space:]]*$/, "", line)
-      if (line == "") next
-      if (first == "") first=line
-      last=line
-      if (line ~ /[{][[:space:]]*"/) bad("readiness record objects must open on their own line")
-      key=line; sub(/:.*/, "", key)
-      if (key ~ /"[^"]*\\/) bad("readiness record keys must not use escapes")
-      if (line ~ /"expires"/ && line !~ /^"expires"[[:space:]]*:[[:space:]]*"[^"[:cntrl:]]*"[[:space:]]*,?$/)
-        bad("waiver fields must sit on their own lines")
-      key=line; sub(/^"/, "", key); sub(/".*$/, "", key)
-      if (key == "waivers") in_waivers=1
-      # The record gives every waiver its unit, target and commit; a waiver never repeats them.
-      if (in_waivers && (key in pattern)) bad("waiver objects must not repeat " key "; the record'"'"'s " key " is their scope")
-      if (!(key in pattern) && key != "expires") next
-      if (line !~ ("^\"" key "\"[[:space:]]*:[[:space:]]*")) {
-        if (key == "expires") bad("a readiness waiver has expired (malformed expires)")
-        bad("malformed " key " line")
-      }
-      value=line; sub(/^[^:]*:[[:space:]]*/, "", value); sub(/,$/, "", value); sub(/[[:space:]]*$/, "", value)
-      if (key == "expires") { expiry[++expiries]=value; next }
-      if (seen[key]++) bad("duplicate " key " key")
-      if (value !~ pattern[key]) bad("malformed " key " value")
-      values[key]=value
-    }
-    END {
-      if (failed) exit 1
-      if (first != "{" || last != "}") bad("record must start with { and end with } on separate lines")
-      for (i=1; i<=count; i++) if (!seen[keys[i]]) bad("missing " keys[i] " key")
-      for (i=1; i<=count; i++) print keys[i] "\t" values[keys[i]]
-      for (i=1; i<=expiries; i++) print "expires\t" expiry[i]
-    }
-  ' "$1"
+  python3 -I -c '
+import json, re, sys
+
+KEYS = ("schema", "unit", "target", "catalog", "commit", "verdict", "open_blockers",
+        "created_at", "valid_until")
+WAIVER = ("control", "owner", "reason", "expires")
+TEXT = re.compile(r"^[ !#-\[\]-~]+$")  # printable ASCII without quote or backslash
+PATTERNS = {"target": re.compile(r"^(dev|staging|production)$"), "commit": re.compile(r"^[0-9a-f]+$")}
+
+
+def fail(why):
+    print(why)
+    sys.exit(1)
+
+
+def pairs(items):
+    seen = set()
+    for key, _ in items:
+        if key in seen:
+            fail("duplicate %s key" % key)
+        seen.add(key)
+    return dict(items)
+
+
+def constant(name):
+    raise ValueError(name + " is not a JSON value")
+
+
+def whole(value):
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+try:
+    with open(sys.argv[1], encoding="utf-8") as handle:
+        record = json.load(handle, object_pairs_hook=pairs, parse_constant=constant)
+except (ValueError, UnicodeDecodeError) as error:
+    fail("the readiness record is not JSON: %s" % error)
+if not isinstance(record, dict):
+    fail("the readiness record is not a JSON object")
+for key in record:
+    if key not in KEYS and key != "waivers":
+        fail("unknown readiness record key %s" % key)
+for key in KEYS + ("waivers",):
+    if key not in record:
+        fail("missing %s key" % key)
+for key in KEYS:
+    value = record[key]
+    if key in ("schema", "open_blockers"):
+        ok = whole(value) and value >= 0
+    elif key == "catalog":
+        ok = whole(value) and value >= 1
+    else:
+        ok = isinstance(value, str) and bool(TEXT.match(value)) and bool(PATTERNS.get(key, TEXT).match(value))
+    if not ok:
+        fail("malformed %s value" % key)
+waivers = record["waivers"]
+if not isinstance(waivers, list) or not all(isinstance(item, dict) for item in waivers):
+    fail("waivers must be a list of waiver objects")
+for waiver in waivers:
+    for key in waiver:
+        if key in KEYS:
+            fail("waiver objects must not repeat %s; the record'"'"'s %s is their scope" % (key, key))
+        if key not in WAIVER:
+            fail("unknown waiver key %s" % key)
+    if set(waiver) != set(WAIVER) or not all(isinstance(waiver[key], str) and TEXT.match(waiver[key]) for key in WAIVER):
+        fail("every readiness waiver needs control, owner, reason and expires as text")
+for key in KEYS:
+    value = record[key]
+    print("%s\t%s" % (key, value if whole(value) else "\"%s\"" % value))
+for waiver in waivers:
+    print("expires\t\"%s\"" % waiver["expires"])
+' "$1"
 }
 readiness_value() { printf '%s\n' "$readiness_data" | awk -F '\t' -v key="$1" '$1 == key { print $2 }'; }
 readiness_error() { readiness_problem="$*"; return 1; }

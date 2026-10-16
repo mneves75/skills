@@ -80,16 +80,18 @@ an equivalent review) writes the record for one deployable unit, target and cand
 }
 ```
 
-Each scalar, and each field of each waiver object, sits on its own line; every object opens with
-`{` on its own line; keys are written without escapes. A shell script therefore reads the record
-without a JSON parser, and it refuses a waiver whose `expires` has passed. Timestamps
+The release script parses the record as JSON and checks its exact schema: these top-level keys
+and no others, a key never repeated in any object, and a waivers list whose objects hold
+exactly `control`, `owner`, `reason` and `expires`. A field nested deeper or packed beside
+another therefore never stands in for a top-level one, and a waiver whose `expires` has passed
+is refused. Timestamps
 are UTC in exactly the form `YYYY-MM-DDTHH:MM:SSZ` and compare as strings. The gate that writes
 the record keeps `valid_until` within 24 hours of `created_at`; the release script checks only
 that `created_at` is not in the future and `valid_until` has not passed. The record proves that
 the gate ran for these bytes; it does not authorize a deploy, and production still needs the
 owner's approval. Readiness waivers inside the record are the owner's, with expiries. A waiver
-object holds `control`, `owner`, `reason` and `expires` only: the record's unit, target and commit
-are its scope, and the reference script refuses a waiver that repeats one of them.
+object holds those four fields only: the record's unit, target and commit are its scope, and the
+reference script refuses a waiver that repeats any record field.
 
 In a public repository, host names, URLs and account ids stay out of the committed scripts:
 they come from an ignored file the scripts read at run time (the reference scripts read

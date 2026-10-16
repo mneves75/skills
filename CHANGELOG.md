@@ -21,7 +21,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to deploy without a valid readiness record for the exact unit, target and commit; `--waive
   readiness=<reason>` is the only bypass. The conformance check reports it (FAIL with the marker,
   WARN without), and the reference `release.sh` implements it with guard tests. The script
-  reads the record line by line, rejects impossible dates, expired waivers, symlinked record
+  parses the record as JSON against its exact schema (unknown, repeated or nested keys and
+  incomplete waivers are refused), rejects impossible dates, expired waivers, symlinked record
   directories and a project gate named `readiness`, and snapshots the record into the evidence.
 - **Readiness catalog guard**: `tools/scripts/check-readiness-catalog.py` checks control
   headings, tiers, verification lines, unique IDs, the spec's preservation map and the catalog
@@ -36,6 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   TST-05, while secrets (SEC-12) and impostor packages (SEC-13) block through the imported
   security verdict; production waives `blocker` and `contract` rows by name, with `advisory`
   rows in the plan; the gate also runs on the dev stop.
+- **`mneves-security`**: a usable secret in the candidate (SEC-12) and a dependency that does
+  not exist or is not the intended package (SEC-13) are confirmed High findings at least, so
+  they block every target, dev and staging included.
 - **Security import**: the readiness gate reads the `mneves-security` gate record for the same
   commit and target; a security block keeps readiness `not-ready`, so the release script's
   readiness guard also stops a release the security gate blocked.
