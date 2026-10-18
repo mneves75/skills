@@ -26,9 +26,12 @@ Record every source before using it:
 
 Rules:
 
-1. Normalise every timestamp to one zone and keep the original next to it.
-2. Order events from different clocks only when the gap exceeds the known skew; otherwise mark
-   the order `uncertain`.
+1. Normalise every timestamp to one zone and keep the original next to it. A zone offset is not
+   a skew: converting UTC−3 to UTC says nothing about how far that clock drifts.
+2. Within one source, order follows that source's own sequence. Across sources, order events
+   only when the gap exceeds a known, bounded skew plus both sources' resolution. With unknown
+   skew, the cross-clock order is `uncertain` whatever the displayed gap; say which conclusions
+   depend on it, and keep only those that hold either way.
 3. Human recollection is a source with a clock of "approximate"; it may place an event, it
    never proves one.
 4. A missing source is a finding ("no log of the cache refresh exists"), not a silent gap.
@@ -51,6 +54,36 @@ Label every action and statement in the timeline.
 A command typed is not a command that succeeded, and a command that succeeded is not an effect.
 A planned deploy that never ran is a common gap: when the timeline needs "the fix was deployed",
 find the artifact that shows the new version serving traffic.
+
+- **Absence is local.** An event missing from one artifact was not observed there. It does not
+  show where else the event happened: a rollback absent from the production history is "not
+  observed in production"; a different target needs its own artifact, otherwise it is
+  `unknown`.
+- **Noticed or not.** Record that a step failed or was cancelled from the artifact that shows
+  it, and record whether anyone noticed from evidence (an alert, a reply, a later message that
+  assumes the step ran). When the evidence shows it went unnoticed, that gap is a contributing
+  condition; do not add a diagnosis of why beyond what the evidence shows.
+- **Correlation is not mechanism.** A recovery that follows a change in time is a correlation.
+  Write it as a hypothesis, with what supports it and what evidence is missing, until an
+  artifact shows the mechanism (the data timestamps served after the fix, a replay of the
+  failure with and without the change).
+- **Knowledge in context comes from sources.** What a person knew or saw at the time is
+  `reported` from an interview or chat, or `observed` from what their screens showed. Never
+  supply it from the reviewer's later knowledge.
+
+## Durability, delivery and loss
+
+- An acknowledgement proves only what its contract guarantees: received, queued or durably
+  committed. State which, from code or documentation, before treating it as a durable write.
+- A missing acknowledgement does not prove the write failed; the write may have succeeded and
+  the acknowledgement been lost. Check the store.
+- Undelivered or missing items are incomplete delivery. Permanent loss needs its own evidence:
+  the source no longer holds the item and no copy, queue or retry remains.
+- On a device or in a native app, separate three things: what server storage holds, what
+  existed only on the device (edits not yet synced), and what a device or simulator exercise
+  actually showed. A corrupted local database does not by itself prove that local-only data was
+  lost, and a server query or a host-only calculation is not proof of device recovery. Bound
+  every recovery or loss claim to the exercise that showed it, and leave the rest `unknown`.
 
 ## Understanding
 
@@ -79,21 +112,28 @@ assign an action.
 | Action | What changes, concretely |
 | Condition | Which contributing condition it addresses |
 | Kind | `remove` (the condition can no longer occur), `detect` (it will be noticed), `limit` (harm is bounded), `recover` (restore is faster), `inform` (doc, training) |
-| Owner | A role or person who accepted it |
-| Due | A date |
+| Owner | A role or person who accepted it, `proposed: <role>`, or `unassigned` |
+| Due | An accepted date, `proposed: <date>`, or `pending` |
 | Effectiveness check | The observable result that shows it worked, and where to look |
-| Status | `open`, `done (check passed)`, `done (check not run)`, `dropped (reason)` |
+| Status | `open`, `implemented (verification pending)`, `done (check passed)`, `dropped (reason)` |
 
 Rules:
 
 1. Prefer `remove` and `detect` over `inform`. A reminder alone rarely changes the next event.
-2. Every action has an owner, a date and an effectiveness check. An action without one is a
-   wish; list it separately.
-3. `done` needs its check passed: a closed ticket, a merged change or a written doc is not
-   proof that the condition changed.
-4. A backup is not recovery. A recovery action's check is a timed restore into an isolated
-   target, with a data check against the source, and the measured time and data loss.
-5. A test or alert added as an action must be shown to fail on the original condition
+2. Owners and dates come from the people who accept them. When the sources do not supply an
+   accepted owner or date, write `unassigned`, `pending` or a clearly marked proposal, list the
+   decision under owner actions, and keep the action `open`. Never present a proposal as an
+   acceptance.
+3. Only a passed effectiveness check makes an action `done`. A change made whose check has not
+   run or not passed is `implemented (verification pending)`; a closed ticket, a merged change
+   or a written doc is not proof that the condition changed.
+4. A check reproduces the scale, platform and failure that matter: a lock-time test on an
+   isolated copy shaped like production, an interrupted migration on a device or simulator, a
+   replay of the bad input. A check on a smaller or different surface proves only that surface.
+5. A backup is not recovery. A recovery action's check is a timed restore into an isolated
+   target, with a data check against the source, and the measured recovery time and recovery
+   point (how much data was lost).
+6. A test or alert added as an action must be shown to fail on the original condition
    (replay the bad input, simulate the stale cache) before it counts as `detect`.
 
 ## Untrusted content
@@ -125,6 +165,9 @@ Impact: <users, window, signal> — known / unknown, with sources
 
 ## Decisions in context
 
+## Recovery
+What ended the impact: observed mechanism, or a hypothesis with its support and what is missing.
+
 ## What worked
 
 ## Luck
@@ -138,8 +181,8 @@ Reported but not observed; uncertain ordering; sources not seen; unknown coverag
 
 ## Sources
 
-Concepts, not text, follow these public references (not re-fetched by the authoring session;
-check the current edition when a decision depends on wording):
+Concepts, not text, follow these public references; check the current edition when a decision
+depends on wording:
 
 - Google SRE book, "Postmortem Culture: Learning from Failure":
   https://sre.google/sre-book/postmortem-culture/

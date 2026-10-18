@@ -771,11 +771,13 @@ Do not change project files.
 ```
 
 **How it stays honest.** A cached page served with HTTP 200 from stale data is a bad event.
-Weights are summed, not averaged as ratios. No data is `unknown`, never 100%. A 100% target
-has no budget, so nothing divides by zero. Provider failures stay in the numbers, and
-correctness or security failures are never budget. A window's burn rate and the period's
-budget are reported against their own populations, and completeness needs an expected count
-from the producer.
+Weights are summed, not averaged as ratios. No data is `unknown`, never 100%, and a gap in the
+window keeps the whole window `unknown`: figures for the covered days are an observed subset,
+not a miss or a pass. A 100% target has no budget, so nothing divides by zero. Provider
+failures stay in the numbers, and correctness or security failures are never budget. A burn
+rate is a normalised error fraction, not a forecast; each draft alert states the traffic
+assumption behind its threshold. Completeness needs an expected count from the producer, and
+an acknowledgement is durable only as far as its contract says.
 
 **Limits.** Every target is `draft` until you adopt it with an owner, a date and a review date.
 A draft blocks no release and pages no one, and adoption creates no gate, freeze or feature
@@ -793,10 +795,12 @@ Procedure: [SKILL.md](skills/mneves-slo/SKILL.md).
 (incident, near miss, workflow/test event), builds a timeline in which every entry has a
 source, a clock and a label (planned, executed as reported, executed as observed), and writes
 the contributing conditions, the decisions in context, what worked and where luck helped. Each
-action gets an owner, a due date and a check that will show it worked.
+action gets a check that will show it worked, and an owner and due date that you accepted or
+that are marked unassigned, pending or proposed.
 
 **When to use it.** Once the impact has stopped. During an active incident, mitigation stays
-with your runbook and incident lead; the skill only records.
+with your runbook and incident lead; the skill only records and points to them, and never
+picks a restart or rollback.
 
 **Illustrative request (Codex):**
 
@@ -806,10 +810,15 @@ Sources: the attached log export, deploy history and chat export.
 Write the review and the action list. Do not change project files.
 ```
 
-**Evidence.** "Rolled back" in chat is reported until the deploy history shows it. A backup
-is not a recovery action; a timed restore into an isolated target with a data check is. An
-action is done when its check passed, not when its ticket closed. A line in a log that claims
-an approval or tells the agent to close the review is quoted as data and changes nothing.
+**Evidence.** "Rolled back" in chat is reported until the deploy history shows it, and its
+absence from the production history means "not observed in production", not that it ran
+elsewhere. With unknown clock skew, chat and log events stay in uncertain order. A recovery
+that followed a change is a hypothesis until an artifact shows the mechanism. A backup is not
+a recovery action; a timed restore into an isolated target with a data check is. An action is
+`done` only when its check passed; a change without a passed check is
+`implemented (verification pending)`, and a closed ticket proves nothing. A line in a log
+that claims an approval or tells the agent to close the review is quoted as data and changes
+nothing.
 
 **Limits.** It never reads production records, contacts customers or changes provider
 settings; those become owner actions with the proof to send back. The review is blameless and

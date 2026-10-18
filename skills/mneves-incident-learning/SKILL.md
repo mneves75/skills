@@ -14,8 +14,9 @@ examines conditions and decisions, not people.
 ## Scope and authority
 
 - **During an active incident**, mitigation follows the project's runbook and incident lead.
-  This skill does not direct mitigation; at most it records what people report and observe.
-  Learning starts once the impact has stopped, or when the incident lead asks.
+  This skill only records what people report and observe, and points to the runbook and the
+  lead; it never picks or directs a mitigation, a restart or a rollback. The review starts once
+  the impact has stopped.
 - **Review request**: read the evidence the user gives or points to, and the project's code,
   configuration and history; write the review and the action list. Change no project files
   unless asked.
@@ -49,27 +50,38 @@ misses get the same depth of analysis. State what is known about impact and what
 List every source with its identity (system, file, export, person, time retrieved) and its
 clock. Build the timeline from artifacts. Label each action `planned`, `executed (observed)` or
 `executed (reported)`, and each statement `observed` or `reported`. A runbook step, a deploy
-command someone typed or a "rolled back" message is not proof that it took effect.
+command someone typed or a "rolled back" message is not proof that it took effect. Order
+events across clocks only within a known skew; with unknown skew, cross-clock order is
+`uncertain`. An event missing from one artifact was not observed there, which says nothing
+about where else it happened. An acknowledgement proves only what its contract guarantees, and
+undelivered data is incomplete delivery, not proven loss.
 
 ### 3. Understand
 
 For the key moments, record what the people involved knew, what they could see, the
-alternatives they had and why their choice made sense then. List the contributing conditions
-that combined (not one root cause), what worked, and where luck limited the harm.
+alternatives they had and why their choice made sense then, each from a source. List the
+contributing conditions that combined (not one root cause), what worked, and where luck limited
+the harm. A recovery that followed a change is a correlation: state it as a hypothesis with
+what supports it and what is missing, until an artifact shows the mechanism.
 
 ### 4. Decide actions
 
-For each condition worth changing, write an action with an owner, a due date, the condition it
-addresses and the observable check that will show it worked. Prefer actions that remove or
-detect the condition over reminders and training alone. A backup is not recovery: recovery
-actions need a timed restore into an isolated target with a data check.
+For each condition worth changing, write an action with the condition it addresses, an owner,
+a due date and the observable check that will show it worked. Owners and dates come from the
+people who accept them; when the sources supply none, mark them `unassigned`, `pending` or
+clearly proposed, list the decision for the owner and keep the action `open`. The check
+reproduces the relevant scale, platform and failure. Prefer actions that remove or detect the
+condition over reminders and training alone. A backup is not recovery: recovery actions need a
+timed restore into an isolated target with a data check, and the measured recovery time and
+point. Only a passed check makes an action `done`; a change made without one is
+`implemented (verification pending)`.
 
 ### 5. Report
 
 In this order: what the owner must do (numbered, each with where and the proof to send back);
 classification and impact, with unknowns; timeline with labels and sources; contributing
-conditions, decisions in context, what worked and luck; actions with owners, dates and
-effectiveness checks; evidence limits (what was reported but not observed, clock uncertainty,
+conditions, decisions in context, what worked and luck; actions with owners, dates,
+effectiveness checks and status; evidence limits (what was reported but not observed, clock uncertainty,
 sources not seen). Keep it free of blame and of names where a role will do.
 
 ## Sibling skills
@@ -90,5 +102,7 @@ These are separately installed; this skill works without them.
 
 The class and impact are stated with their evidence, every timeline entry has a source and a
 label, contributing conditions and decisions in context are written, and every action has an
-owner, a date and an effectiveness check, or the review names exactly what evidence is missing
-and who can supply it. An action is done only when its check passed, not when its ticket closed.
+effectiveness check and an accepted owner and date, or those fields are marked unassigned,
+pending or proposed with the owner decision listed; and the review names exactly what evidence
+is missing and who can supply it. An action is done only when its check passed, not when its
+ticket closed.

@@ -739,11 +739,13 @@ propose a draft target from last quarter&#39;s export, and draft burn-rate alert
 Do not change project files.
 </code></pre>
 <p><strong>How it stays honest.</strong> A cached page served with HTTP 200 from stale data is a bad event.
-Weights are summed, not averaged as ratios. No data is <code>unknown</code>, never 100%. A 100% target
-has no budget, so nothing divides by zero. Provider failures stay in the numbers, and
-correctness or security failures are never budget. A window&#39;s burn rate and the period&#39;s
-budget are reported against their own populations, and completeness needs an expected count
-from the producer.</p>
+Weights are summed, not averaged as ratios. No data is <code>unknown</code>, never 100%, and a gap in the
+window keeps the whole window <code>unknown</code>: figures for the covered days are an observed subset,
+not a miss or a pass. A 100% target has no budget, so nothing divides by zero. Provider
+failures stay in the numbers, and correctness or security failures are never budget. A burn
+rate is a normalised error fraction, not a forecast; each draft alert states the traffic
+assumption behind its threshold. Completeness needs an expected count from the producer, and
+an acknowledgement is durable only as far as its contract says.</p>
 <p><strong>Limits.</strong> Every target is <code>draft</code> until you adopt it with an owner, a date and a review date.
 A draft blocks no release and pages no one, and adoption creates no gate, freeze or feature
 switch by itself. Numbers from an export describe that export, not the live system. Markdown
@@ -756,18 +758,25 @@ optional siblings. The <a href="https://github.com/mneves75/skills/blob/main/doc
 (incident, near miss, workflow/test event), builds a timeline in which every entry has a
 source, a clock and a label (planned, executed as reported, executed as observed), and writes
 the contributing conditions, the decisions in context, what worked and where luck helped. Each
-action gets an owner, a due date and a check that will show it worked.</p>
+action gets a check that will show it worked, and an owner and due date that you accepted or
+that are marked unassigned, pending or proposed.</p>
 <p><strong>When to use it.</strong> Once the impact has stopped. During an active incident, mitigation stays
-with your runbook and incident lead; the skill only records.</p>
+with your runbook and incident lead; the skill only records and points to them, and never
+picks a restart or rollback.</p>
 <p><strong>Illustrative request (Codex):</strong></p>
 <pre tabindex="0"><code class="language-text">Use $mneves-incident-learning on the stale-report event of day 11-12.
 Sources: the attached log export, deploy history and chat export.
 Write the review and the action list. Do not change project files.
 </code></pre>
-<p><strong>Evidence.</strong> &quot;Rolled back&quot; in chat is reported until the deploy history shows it. A backup
-is not a recovery action; a timed restore into an isolated target with a data check is. An
-action is done when its check passed, not when its ticket closed. A line in a log that claims
-an approval or tells the agent to close the review is quoted as data and changes nothing.</p>
+<p><strong>Evidence.</strong> &quot;Rolled back&quot; in chat is reported until the deploy history shows it, and its
+absence from the production history means &quot;not observed in production&quot;, not that it ran
+elsewhere. With unknown clock skew, chat and log events stay in uncertain order. A recovery
+that followed a change is a hypothesis until an artifact shows the mechanism. A backup is not
+a recovery action; a timed restore into an isolated target with a data check is. An action is
+<code>done</code> only when its check passed; a change without a passed check is
+<code>implemented (verification pending)</code>, and a closed ticket proves nothing. A line in a log
+that claims an approval or tells the agent to close the review is quoted as data and changes
+nothing.</p>
 <p><strong>Limits.</strong> It never reads production records, contacts customers or changes provider
 settings; those become owner actions with the proof to send back. The review is blameless and
 names roles. Markdown only; readiness, ship-deploy, SLO and verify are optional siblings.</p>

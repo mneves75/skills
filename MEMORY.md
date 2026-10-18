@@ -18,7 +18,12 @@ measure whether a *target* codebase is ready for agents.
   `mneves-slo` and `mneves-incident-learning` plus eight prompts in `docs/sre-prompts.md`. Both
   are candidates. Under `docs/specs/sre-workflows/spec.md`, a skill stays if it shows better
   behaviour than a competent prompt, or equal behaviour plus observed automatic discovery; with
-  neither, its entrypoint is retired. The behavioural cases were still pending when this was written.
+  neither, its entrypoint is retired. Round 1 (first package contents, one bundled response per
+  arm, source-blind scoring): baseline 8 met / 11 partial, candidate 13 met / 6 partial, one
+  regression (an active-incident exception). Unnamed requests loaded the skills on Claude Code
+  and Codex; standalone dashboard reads loaded neither. A second round corrected the sources
+  (`docs/specs/sre-workflows/review.md`); the corrected sources are not re-evaluated, E15/E16
+  runtime checks are not run, and nothing is deployed or past the security gate.
 - **1.37.0** (2026-10-16): fifteen default skills, adding `mneves-production-readiness`, a deploy
   gate for data, recovery, money, operations, UX and maintainability (103 controls plus 32
   security and compliance rows imported from the `mneves-security` gate record). Release

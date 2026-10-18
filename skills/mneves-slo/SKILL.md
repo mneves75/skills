@@ -56,17 +56,20 @@ latency bound. An HTTP 200 that served stale or wrong data is a bad event.
 
 When the user supplies counts or an export, compute compliance, burn rate and remaining budget
 with the formulas and domain rules in `specification.md`. Show the inputs and each step.
-Missing or zero eligible events make every figure `unknown`. A 100% target has no budget.
-Provider-caused failures stay in the numbers. Report period budget and window burn rate
-against their own populations, and claim completeness only against an independent expected
-count.
+Missing or zero eligible events make every figure `unknown`. A gap inside the window keeps
+the whole window's figures and verdict `unknown`; label any figure for the covered part as an
+observed subset, never as a miss or a pass. A 100% target has no budget. Provider-caused
+failures stay in the numbers. Report period budget and window burn rate against their own
+populations; a burn rate is a normalised error fraction, not a forecast. Claim completeness
+only against an independent expected count, and durability only as far as the
+acknowledgement's stated guarantee.
 
 ### 4. Propose targets and alerts
 
 Propose a target from observed history and user need, not from a habit like 99.9%. Mark it
 `draft`. Propose burn-rate alerts and a budget policy only as drafts for the owner
-(`adoption.md`). Correctness, data loss and security failures are never budget; route them to
-the readiness or security review.
+(`adoption.md`), stating the traffic assumption behind each threshold. Correctness, data loss
+and security failures are never budget; route them to the readiness or security review.
 
 ### 5. Report
 

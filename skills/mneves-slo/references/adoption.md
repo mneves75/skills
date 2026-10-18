@@ -30,10 +30,16 @@ as strict and whether the observed compliance would have met it; do not edit eit
 
 ## Burn-rate alerts (draft)
 
-Alert on how fast the budget is being consumed, not on single errors. A burn-rate threshold for
-"consume a fraction `f` of the window's budget within alert window `w`" is
-`f * window / w`. For a 30-day window (720 hours), spending 2% of the budget in 1 hour is a burn
+Alert on how fast the budget is being consumed, not on single errors. The conventional
+threshold for "consume a fraction `f` of the period's budget within alert window `w`" is
+`f * period / w`. For a 30-day period (720 hours), spending 2% of the budget in 1 hour is a burn
 rate of `0.02 * 720 / 1 = 14.4`.
+
+That formula is a design approximation. It holds when eligible traffic is spread evenly over
+the period, or for a time-based indicator (good minutes). With uneven traffic, a window's actual
+share of the budget is `burn * N_window / N_period`: at peak hours the same burn spends more,
+at quiet hours less. State the assumption next to every threshold, check it against recent
+history when there is any, and never read a burn rate as a time until the budget runs out.
 
 - Pair a long window with a short one (for example one-twelfth of it) and fire only when both
   exceed the threshold, so the alert stops soon after the problem does.
@@ -74,7 +80,8 @@ computed figure from a staging or production export is that scope; an adoption i
 
 ## Sources
 
-Concepts, not text, follow these public references (not re-fetched by the authoring session):
+Concepts, not text, follow these public references; check the current edition when a decision
+depends on wording:
 
 - Google SRE workbook, "Alerting on SLOs": https://sre.google/workbook/alerting-on-slos/
 - Google SRE workbook, "Error Budget Policy": https://sre.google/workbook/error-budget-policy/

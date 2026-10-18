@@ -34,35 +34,51 @@ The status code is not the indicator: during an upstream stall the Worker keeps 
 
 ## Computation
 
-Days with data: `N = 170,000 + 34,000 + 255,000 = 459,000`;
-`G = 169,830 + 31,280 + 254,745 = 455,855`; bad weight `3,145`.
+Draft target `s = 0.995` (99.5%, from the previous quarter's observed compliance, not the
+README's 99.9%).
 
-- Compliance `c = 455,855 / 459,000 = 0.99315` (99.31%), over 27 of 28 days.
-- Day 13: compliance, burn and budget `unknown`. The export failure is its own finding.
-- Draft target `s = 0.995` (99.5%, from the previous quarter's observed compliance, not the
-  README's 99.9%).
-- Allowed bad weight `0.005 * 459,000 = 2,295`.
-- Burn rate `(1 - 0.99315) / 0.005 = 1.37`.
-- Remaining budget `1 - 3,145 / 2,295 = -0.37`: the draft objective was missed.
+**28-day window: `unknown`.** Day 13 has no data, so the window's compliance, remaining budget
+and verdict are unknown. The export failure is its own finding.
+
+**Observed subset (days 1–12 and 14–28, 27 of 28 days)**, shown for diagnosis only:
+`N = 170,000 + 34,000 + 255,000 = 459,000`; `G = 169,830 + 31,280 + 254,745 = 455,855`; bad
+weight `3,145`.
+
+- Subset compliance `c = 455,855 / 459,000 = 0.99315` (99.31%).
+- Subset burn rate `(1 - 0.99315) / 0.005 = 1.37`; the subset's bad weight exceeds its own
+  allowance (`0.005 * 459,000 = 2,295`).
+- This is not a 28-day miss. If day 13 had 200,000 eligible views, all good, the window would
+  be `655,855 / 659,000 = 99.5228%`, above the target; a day 13 with many stale views would
+  make it a miss. The missing day's traffic decides, so the verdict stays `unknown` until the
+  day is re-exported.
+- Days 11–12 alone are well outside the target: `31,280 / 34,000 = 92.0%`, burn 16. That is a
+  finding whatever day 13 holds.
 - The 120 identity-provider timeouts stay bad events; the attribution column says so.
 
-Counted by status code alone, the stale views would look good: bad weight 425, compliance
-99.91%, an apparent pass. The freshness specification is what exposes the stall.
+Counted by status code alone, the stale views would look good: subset bad weight 425,
+compliance 99.91%. The freshness specification is what exposes the stall.
 
 ## Draft alerts
 
-Window 28 days (672 hours). A page when 2% of the budget burns within 1 hour, confirmed over 5
+Period 28 days (672 hours). A page when 2% of the budget burns within 1 hour, confirmed over 5
 minutes: threshold `0.02 * 672 / 1 = 13.44`. A ticket when 10% burns within 3 days:
 `0.10 * 672 / 72 = 0.93`. Both require at least 200 eligible views in the long window; with no
 views, the rule reports a collection gap. Each page links the runbook "Report data stale".
 
+These thresholds assume report views are spread evenly over the 28 days. Weekly reports are
+likely to cluster on some days, which this export does not show; at a peak hour a burn of 13.44
+spends more than 2% of the budget, at night less. The owner checks the hourly shape on recent
+history before adopting the rules.
+
 ## Report
 
-1. Owner decisions: adopt or change the 99.5% freshness target (name an owner, a date and a
-   review date); decide whether "99.9% uptime" stays in the README, since it is neither
-   measured nor adopted; approve the draft alerts.
+1. Owner decisions: re-export day 13, so the 28-day result can be computed; adopt or change the
+   99.5% freshness target (name an owner, a date and a review date); decide whether "99.9%
+   uptime" stays in the README, since it is neither measured nor adopted; approve the draft
+   alerts after checking the traffic assumption.
 2. Status: `draft`. It blocks nothing and pages no one until adopted.
-3. Evidence limits: computed from the supplied export only; day 13 unknown; views that failed
-   before the Worker ran are not counted; no live system was observed.
+3. Evidence limits: computed from the supplied export only; the 28-day result is unknown
+   because day 13 is missing, and the 99.31% figure covers the other 27 days only; views that
+   failed before the Worker ran are not counted; no live system was observed.
 4. Follow-up: the upstream stall and the silent export failure are worth a review with
    `mneves-incident-learning`.
