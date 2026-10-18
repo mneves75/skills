@@ -30,6 +30,13 @@ data loss, wrong money, silent outages and one-person dependencies as much as at
 cheap by reassessing only what a diff touches, and its record lets a release script refuse a
 deploy the gate never saw. The record proves the gate ran; it never authorizes production.
 
+**Objectives and incident reviews are documents, not gates.** `mneves-slo` and
+`mneves-incident-learning` supply evidence that readiness rows OBS-04, OBS-08 and OBS-09 ask
+for, and never decide a verdict. A draft objective blocks nothing, so a number copied from a
+README cannot stop a release. Both are on trial. A skill stays if it behaves better than its
+prompt in `docs/sre-prompts.md`, or behaves the same and is observed loading on its own from a
+plain task description. With neither, it is retired and the prompt stays.
+
 **Original skills carry the `mneves-` prefix.** A rename in 1.3.0 collapsed three near-collisions
 with upstream/community skill names. An adapted third-party skill instead keeps its upstream name,
 license, copyright, and provenance so its origin stays obvious. Directory name and frontmatter

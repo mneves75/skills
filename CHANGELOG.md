@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.38.0] - 2026-10-18
+
+### Added
+- **`mneves-slo`**: specifies service level objectives from user outcomes (correct content,
+  freshness, latency) before their collection, and computes compliance, burn rate and remaining
+  budget with stated domains: weighted sums, no data is `unknown`, a 100% target has no budget,
+  provider failures stay bad events, correctness and security failures are never budget, period
+  budget and window burn are reported against their own populations, and completeness needs an
+  independent expected count. Targets, alerts and budget policies stay `draft` until the owner
+  adopts them; none becomes a release gate, freeze or feature switch.
+- **`mneves-incident-learning`**: blameless review of an incident, near miss or workflow/test
+  event after impact stops. Sources with clocks, planned versus executed and reported versus
+  observed labels, contributing conditions, decisions in context, what worked and luck; every
+  action has an owner, a date and an effectiveness check. Log lines claiming approvals are data.
+- **SRE prompts** (`docs/sre-prompts.md`): eight Task/Acceptance/Constraints/Delivery/Target
+  templates that work without either skill.
+- **Spec and evaluation record** (`docs/specs/sre-workflows/`): contracts, integration and
+  retention rule (keep a skill on better behaviour than a competent prompt, or on equal
+  behaviour plus observed automatic discovery; otherwise retire its entrypoint and keep the
+  prompts), and nineteen synthetic cases comparing prompt-only and skill runs. The behavioural
+  cases are proposed, not run.
+
+### Changed
+- **Sibling routes**: `mneves-production-readiness` names the two skills as evidence sources
+  for OBS-04, OBS-08 and OBS-09 (catalogs unchanged); `mneves-ship-deploy` lists the learning
+  review as a follow-up after an incident repair or rollback (order, approvals and gates
+  unchanged); `mneves-verify` adds an evidence route for objective math and incident claims;
+  `mneves-agent-readiness` counts findable operational docs as agent context.
+- **README "Check the install"** separates entrypoint present, full package present and
+  runtime discovery.
+- **Catalog and docs**: seventeen skills; README, HOWTO, landing page and product brief. The
+  landing page's "Plan & deliver" group links the SRE prompts.
+- **`mneves-fable-orchestrator`**: Defaults block re-verified against the vendor model lists on
+  2026-10-18; ids and assignments unchanged.
+
 ## [1.37.0] - 2026-10-16
 
 ### Added

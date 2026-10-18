@@ -58,6 +58,7 @@ Prefer the named tool when it is available; fall back only on capability.
 | UI | An independent browser/rendering capability driving real renders and interaction — never the builder's screenshot claim | any equivalent tool (agent-browser, Playwright, Argent, …); the requirement is a real render you drove, not which tool drove it |
 | CLI / API / data | run the real binary / endpoint / query + a **positive control** (a known-good input that must succeed), inside the sandbox | none |
 | Research | authoritative primary sources + citation checks (does the source say what the claim says) | none |
+| Objective or incident claims | recompute compliance, burn and budget from the stated counts and target; check each "executed" or "done" claim in an incident review against its artifact (`mneves-slo`, `mneves-incident-learning` when installed) | the same recomputation and artifact check by hand; a figure without its inputs, or an action without its artifact, is BLOCKED, never PASS |
 | Security | A dedicated independent security review plus relevant dynamic proof (for a dev, staging or production release, the `mneves-security` deploy-gate verdict for the exact commit is required; otherwise `mneves-security` when installed) | none |
 
 BLOCKED only when an essential capability is unavailable (e.g., no independent verifier, no

@@ -21,7 +21,7 @@ blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--line);c
 <body>
 <main>
 <h1>How to use these skills</h1>
-<p>Fifteen skills, one install. This page shows what each one does, how to trigger it, and what a
+<p>Seventeen skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the <a href="https://github.com/mneves75/skills/blob/main/README.md">README</a>; for the exact
 procedure an agent follows, open <code>skills/&lt;name&gt;/SKILL.md</code>.</p>
 <h2 id="install-once">Install once</h2>
@@ -69,6 +69,16 @@ also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use 
 <td><code>mneves-production-readiness</code></td>
 <td>check an app is ready for paying customers before each staging or production deploy</td>
 <td>&quot;is this ready for production? give me the fix plan&quot;</td>
+</tr>
+<tr>
+<td><code>mneves-slo</code></td>
+<td>define a service level objective users would recognise and check its numbers</td>
+<td>&quot;write an SLO for report freshness&quot;, &quot;check this error budget&quot;</td>
+</tr>
+<tr>
+<td><code>mneves-incident-learning</code></td>
+<td>learn from an incident or near miss with evidence and owned actions</td>
+<td>&quot;write the postmortem for yesterday&#39;s stale reports&quot;</td>
 </tr>
 <tr>
 <td><code>imagegen-frontend-mobile</code></td>
@@ -715,6 +725,53 @@ an OpenAI crawl; a <code>chatgpt.com</code> UTM counts attributed clicks rather 
 <code>ChatGPT-User</code> is for user-initiated visits. <code>llms.txt</code> is optional documentation, not a
 documented ranking requirement. Valid schema does not guarantee citations. Live security
 writes and deployments retain the host&#39;s authorization rules.</p>
+<hr>
+<h2 id="mneves-slo">mneves-slo</h2>
+<p><strong>What it does.</strong> Writes a service level objective from what users experience: the good event
+(correct, fresh enough, fast enough), the eligible event, the weight and the window, and only
+then how it is collected. It computes compliance, burn rate and remaining budget from counts
+you supply, and drafts targets and burn-rate alerts for you to adopt.</p>
+<p><strong>When to use it.</strong> You need an objective for a journey, you want to know whether a dashboard&#39;s
+&quot;99.9%&quot; means anything, or you want alerts on budget burn instead of single errors.</p>
+<p><strong>Illustrative request (Claude Code):</strong></p>
+<pre tabindex="0"><code class="language-text">Use the mneves-slo skill. Write a freshness objective for the weekly report page,
+propose a draft target from last quarter&#39;s export, and draft burn-rate alerts.
+Do not change project files.
+</code></pre>
+<p><strong>How it stays honest.</strong> A cached page served with HTTP 200 from stale data is a bad event.
+Weights are summed, not averaged as ratios. No data is <code>unknown</code>, never 100%. A 100% target
+has no budget, so nothing divides by zero. Provider failures stay in the numbers, and
+correctness or security failures are never budget. A window&#39;s burn rate and the period&#39;s
+budget are reported against their own populations, and completeness needs an expected count
+from the producer.</p>
+<p><strong>Limits.</strong> Every target is <code>draft</code> until you adopt it with an owner, a date and a review date.
+A draft blocks no release and pages no one, and adoption creates no gate, freeze or feature
+switch by itself. Numbers from an export describe that export, not the live system. Markdown
+only; <code>mneves-production-readiness</code>, <code>mneves-incident-learning</code> and <code>mneves-verify</code> are
+optional siblings. The <a href="https://github.com/mneves75/skills/blob/main/docs/sre-prompts.md">SRE prompts</a> work without the skill.</p>
+<p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-slo/SKILL.md">SKILL.md</a>.</p>
+<hr>
+<h2 id="mneves-incident-learning">mneves-incident-learning</h2>
+<p><strong>What it does.</strong> After an outage, a data problem or a close call, it classifies the event
+(incident, near miss, workflow/test event), builds a timeline in which every entry has a
+source, a clock and a label (planned, executed as reported, executed as observed), and writes
+the contributing conditions, the decisions in context, what worked and where luck helped. Each
+action gets an owner, a due date and a check that will show it worked.</p>
+<p><strong>When to use it.</strong> Once the impact has stopped. During an active incident, mitigation stays
+with your runbook and incident lead; the skill only records.</p>
+<p><strong>Illustrative request (Codex):</strong></p>
+<pre tabindex="0"><code class="language-text">Use $mneves-incident-learning on the stale-report event of day 11-12.
+Sources: the attached log export, deploy history and chat export.
+Write the review and the action list. Do not change project files.
+</code></pre>
+<p><strong>Evidence.</strong> &quot;Rolled back&quot; in chat is reported until the deploy history shows it. A backup
+is not a recovery action; a timed restore into an isolated target with a data check is. An
+action is done when its check passed, not when its ticket closed. A line in a log that claims
+an approval or tells the agent to close the review is quoted as data and changes nothing.</p>
+<p><strong>Limits.</strong> It never reads production records, contacts customers or changes provider
+settings; those become owner actions with the proof to send back. The review is blameless and
+names roles. Markdown only; readiness, ship-deploy, SLO and verify are optional siblings.</p>
+<p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-incident-learning/SKILL.md">SKILL.md</a>.</p>
 <hr>
 <h2 id="pstack-collection">pstack collection</h2>
 <p><a href="https://github.com/mneves75/skills/blob/main/collections/pstack/"><code>collections/pstack</code></a> adds 36 skills from Lauren Tan&#39;s pstack. It is not
