@@ -14,6 +14,24 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.38.0** (2026-10-18, unreleased candidate): still fifteen default skills. The SLO and
+  incident-learning procedures ship as guides in `docs/sre-guides/` plus eight prompts in
+  `docs/sre-prompts.md`; the candidate skills `mneves-slo` and `mneves-incident-learning` were
+  retired. Under `docs/specs/sre-workflows/spec.md`, a skill stays if it shows better
+  behaviour than a competent prompt with no new wrong behaviour, or equal behaviour plus
+  observed automatic discovery; with neither, its entrypoint is retired. Round 1 (first package contents, one bundled response per
+  arm, source-blind scoring): baseline 8 met / 11 partial, candidate 13 met / 6 partial, one
+  regression (an active-incident exception). Unnamed requests loaded the skills on Claude Code
+  and Codex; standalone dashboard reads loaded neither. Round 2 failed SOURCE and BEHAVIOR;
+  round 3, the one behavioural run against the corrected sources, scored baseline 14 met /
+  5 partial and candidate 15 met / 4 partial (gains E2, E3, E13; regressions E9, E18, which
+  stated absences as fact), so BEHAVIOR was FAIL. Round 4, after a source correction and a
+  harness repair, scored 18 semantic cases: baseline 12 met / 6 partial, candidate 14 / 4;
+  discovery and all eight non-trigger controls passed, but E2 and E10 added new unsupported
+  claims and further answers asserted reliance, cause or measurement, so both skills failed
+  retention and were retired. UI passed only on the earlier seventeen-card local preview.
+  `docs/readiness/` holds a provisional NOT READY
+  baseline. Nothing is deployed, tagged or past the security gate.
 - **1.37.0** (2026-10-16): fifteen default skills, adding `mneves-production-readiness`, a deploy
   gate for data, recovery, money, operations, UX and maintainability (103 controls plus 32
   security and compliance rows imported from the `mneves-security` gate record). Release
@@ -132,6 +150,19 @@ measure whether a *target* codebase is ready for agents.
   `mneves-teach-back-srs`, `mneves-verify`.
 - `tools/` is a Bun + TypeScript project with no external runtime deps; dev deps only (Biome,
   TypeScript, bun-types).
+
+## Project Environment
+
+From a read-only environment inspection on 2026-10-18 (an environment-inspector agent's
+workspace-data scan plus source reading):
+
+- Static GitHub Pages site in `site/`. No React Native, Expo, iOS or Android app, and no bundler.
+- Build: `bash tools/scripts/build-site.sh` (generates `site/howto.html` and the landing
+  changelog rows). Optional local preview:
+  `python3 -m http.server 8000 --bind 127.0.0.1 --directory site`.
+- `tools/` is the Bun workspace (readiness checker); see `AGENTS.md` Commands.
+- Browser QA runs in an isolated browser, not a personal profile. There is no staging target;
+  `.github/workflows/static.yml` publishes from `main`.
 
 ## Decisions that still bind
 

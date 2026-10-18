@@ -51,7 +51,7 @@ specialist        = gpt-6.1-sol, reasoning xhigh (specialist execution; a specia
 The builder seats (main session, workers, heavy executor) never review their own output: review,
 planning and plan advice run on the separate seats above.
 
-Verified against the vendor model lists on 2026-10-16; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-10-18; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file).
 

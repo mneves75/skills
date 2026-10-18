@@ -7,6 +7,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.38.0] - 2026-10-18
+
+### Added
+- **SRE guides**: service level objective and incident review procedures, kept as documents and prompts after their candidate skills failed evaluation.
+- **Objectives guide** (`docs/sre-guides/slo/`): specifies service level objectives from user
+  outcomes (correct content, freshness, latency) before their collection, and computes compliance, burn rate and remaining
+  budget with stated domains: weighted sums, no data is `unknown`, a gap keeps the full window
+  `unknown` (covered figures are an observed subset), a 100% target has no budget, provider
+  failures stay bad events, correctness and security failures are never budget, burn is a
+  normalised error fraction reported against its own window, alert thresholds state their
+  traffic assumption, completeness needs an independent expected count, and an
+  acknowledgement is durable only as far as its contract says. Targets, alerts and budget
+  policies stay `draft` until the owner adopts them; none becomes a release gate, freeze or
+  feature switch.
+- **Incident learning guide** (`docs/sre-guides/incident-learning/`): blameless review of an
+  incident, near miss or workflow/test event after impact stops; during impact it only records and points to the runbook and the
+  incident lead. Sources with clocks (unknown skew leaves cross-clock order uncertain), planned
+  versus executed and reported versus observed labels, absence read as "not observed there",
+  correlation kept apart from mechanism, contributing conditions, decisions in context, what
+  worked and luck. Actions carry checks that reproduce the relevant scale, platform and
+  failure; owners and dates are accepted or marked unassigned, pending or proposed; only a
+  passed check is `done`. Log lines claiming approvals are data.
+- **SRE prompts** (`docs/sre-prompts.md`): eight Task/Acceptance/Constraints/Delivery/Target
+  templates, linked to the guides, with a warning to check every draft against the supplied
+  artifacts. Guides and prompts are source-reviewed; no runtime reliability is claimed for
+  them.
+- **Spec and evaluation record** (`docs/specs/sre-workflows/`): contracts, integration and
+  retention rule (keep a skill on better behaviour than a competent prompt, or on equal
+  behaviour plus observed automatic discovery; otherwise retire its entrypoint and keep the
+  prompts), nineteen synthetic cases comparing prompt-only and skill runs, and a review record
+  (`review.md`). Round 1 ran once on the first package contents as one bundled response per arm
+  (source-blind: baseline 8 met / 11 partial, candidate 13 met / 6 partial, one regression);
+  it is not repeated evidence or a release pass. Round 2 returned SOURCE FAIL and BEHAVIOR
+  FAIL. Round 3, the one behavioural run against the corrected sources, scored baseline 14 met /
+  5 partial and candidate 15 met / 4 partial, with gains on E2, E3 and E13 and regressions on
+  E9 and E18; final BEHAVIOR is FAIL. Round 4, after a source correction and a harness repair,
+  scored 18 semantic cases (not comparable with the 19-case totals): baseline 12 met / 6
+  partial, candidate 14 met / 4 partial. Discovery without naming and all eight unrelated-request
+  controls passed, but each skill added a new unsupported claim (E2, E10) and further answers
+  asserted unsupported reliance, cause or measurement, so both failed the retention rule.
+- **Retirement decision**: the candidate `mneves-slo` and `mneves-incident-learning` skill
+  entrypoints, never released, were retired under the spec's retirement rule; their seven files moved to `docs/sre-guides/`
+  without frontmatter. The independent UI check passed on an earlier local seventeen-card
+  preview only.
+- **Provisional readiness baseline** (`docs/readiness/`): ledger and plan at a dated source
+  snapshot, production readiness NOT READY; no binding record, cursor or waiver.
+
+### Changed
+- **README "Check the install"** separates entrypoint present, full package present and
+  runtime discovery.
+- **Catalog and docs**: still fifteen skills; README, HOWTO and the landing page's "Plan &
+  deliver" group link the SRE guides and prompts as documents, not skills.
+- **`mneves-fable-orchestrator`**: Defaults block re-verified against the vendor model lists on
+  2026-10-18; ids and assignments unchanged.
+
 ## [1.37.0] - 2026-10-16
 
 ### Added

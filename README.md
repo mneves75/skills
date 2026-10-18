@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.37.0-blue)
+![Version](https://img.shields.io/badge/version-1.38.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -12,7 +12,10 @@ Skills for AI coding agents. Each installs into any tool that reads `SKILL.md` f
 ## Available Skills
 
 For compact task prompts, bounded retries and model routing, see
-[Using skills with less repeated work](docs/usage-efficiency.md).
+[Using skills with less repeated work](docs/usage-efficiency.md). Service level objectives and
+incident reviews are not installable skills: read the [SRE guides](docs/sre-guides/README.md)
+or paste one of the [SRE prompts](docs/sre-prompts.md), and check each draft against your
+artifacts.
 
 | Skill | Description |
 |-------|-------------|
@@ -96,12 +99,25 @@ Update a clone with `git -C <dir> pull`.
 
 If you link skills one by one instead (one symlink per skill into each agent's directory), a
 skill added in a later release is not linked until you add it; the agent simply never lists it.
-Rerun `npx skills@latest add mneves75/skills --all -g -y`, or list what a directory is missing:
+Rerun `npx skills@latest add mneves75/skills --all -g -y`, or check three separate things:
+
+1. **Entrypoint present**: each skill's `SKILL.md` is in the agent's directory.
+2. **Full package present**: its `references/`, `assets/` and scripts are there too. A copied
+   `SKILL.md` alone loads, then fails when it opens a reference.
+3. **Discovered at runtime**: start a fresh session and ask the agent which skills it can
+   see. A skill on disk that the agent does not list sits in a directory that agent does not
+   read, or the agent needs a restart.
 
 ```bash
-# from the repo root; set DIR to the agent's skills directory
+# from the repo root; set DIR to the agent's skills directory. Checks 1 and 2 only.
 DIR=~/.claude/skills
-for s in skills/*/; do n=$(basename "$s"); test -e "$DIR/$n/SKILL.md" || echo "missing: $n"; done
+for s in skills/*/; do
+  n=$(basename "$s")
+  if [ ! -e "$DIR/$n/SKILL.md" ]; then echo "missing entrypoint: $n"; continue; fi
+  git ls-files -- "$s" | while read -r f; do
+    test -e "$DIR/$n/${f#skills/$n/}" || echo "incomplete: $f"
+  done
+done
 ```
 
 ## Readiness check (tool)
