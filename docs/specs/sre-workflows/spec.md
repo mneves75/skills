@@ -4,8 +4,10 @@ Status: candidate on `feat/sre-workflows`, base `53ea5ad` (1.37.0). Proposed for
 nothing here is released or deployed. Round 1 of the paired evaluation ran on the first package
 contents (one bundled response per arm, source-blind scoring: baseline 8 met / 11 partial,
 candidate 13 met / 6 partial, no misses; one regression). The sources were then corrected in a
-second round from two review axes ([review.md](review.md)); the corrected candidate has not been
-re-evaluated. The release cut, the next evaluation round, the retention decision and the
+second round from two review axes ([review.md](review.md)). Round 2 on those sources scored
+baseline 10 met / 7 partial / 2 missed and candidate 12 met / 7 partial / 0 missed, and the
+formal SOURCE and BEHAVIOR results were FAIL; a third, bounded correction followed and has not
+been rechecked. The release cut, the next evaluation round, the retention decision and the
 security gate belong to the coordinating session; see [evaluation.md](evaluation.md).
 
 ## Problem
@@ -72,12 +74,16 @@ retired without changing a control ID.
    explain it; it never removes the event.
 7. **Correctness and security are not budget.** Wrong charges, data loss, data exposure or
    integrity failures are never "allowed bad events". They go to readiness, security or
-   incident handling, whatever the budget says.
+   incident handling, whatever the budget says. With or without those siblings, the report
+   keeps a concrete follow-up: the invariant's test, the evidence that shows it effective, and
+   an owner that is accepted, proposed or `unassigned`. The follow-up adopts no target and adds
+   no gate.
 8. **Draft until adopted.** A target becomes adopted only with a named owner, an adoption date
    and a review date. Everything else is `draft`. A draft objective never blocks a release,
    never triggers paging and never becomes an SLA. Adoption never disables a feature, freezes
    releases or creates a gate by itself; any such policy is the owner's separate written
-   decision.
+   decision. Every report gives each objective's status, owner, adoption date and review date,
+   each `pending` when the sources give none.
 9. **Integration.** A burn-rate alert with a runbook is evidence for OBS-04 and OBS-08. A
    contractual SLA is the readiness `sla` profile flag; the skill reports a mismatch between a
    promised SLA and the observed or draft objective instead of editing either.
@@ -117,8 +123,10 @@ retired without changing a control ID.
    contract 12.
 5. **Contributing conditions, not one root cause.** List the conditions that combined, the
    alternatives considered at the time, the local context of each decision (what the person
-   knew then, from a source), what worked and where luck helped. A recovery that followed a
-   change is a correlation, stated as a hypothesis with its support and what is missing, until
+   knew then, from a source; what no source gives, including their interface, knowledge or
+   reason, is `unknown` with an evidence request), what worked and where luck helped (timing
+   with no users active is luck unless a source shows a deliberate choice). A recovery that
+   followed a change is a correlation, stated as a hypothesis with its support and what is missing, until
    an artifact shows the mechanism. An unnoticed failed or cancelled step is a condition when
    the evidence shows it went unnoticed; no diagnosis beyond the evidence.
 6. **Actions with effectiveness proof.** Each action has the condition it addresses, an
@@ -142,6 +150,8 @@ retired without changing a control ID.
 
 - Markdown only. No executable, no new dependency. Each skill works without its siblings and
   says what it falls back to.
+- A test, lookup, review, effect or approval is reported as run only with its observed result;
+  one that was planned, requested or returned empty is `pending`, never independent proof.
 - No private paths, project names, customer data or session identifiers in tracked files.
   Examples are original and synthetic.
 - Sources: public primary references (Google SRE book and workbook chapters on objectives,

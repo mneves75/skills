@@ -77,7 +77,10 @@ Rules:
 4. **100% targets.** With `s = 1` there is no budget: allowed bad weight is 0 and burn is
    `undefined`. Report the count of bad events; any bad event is a miss. Most 100% wishes are
    correctness properties ("every payment recorded exactly once") that need a test and an
-   owner, not an objective.
+   owner, not an objective. Whether or not a readiness review is available, the report keeps
+   that follow-up concrete: the invariant, a test that fails on the bad event seen, the
+   evidence that will show the test effective, and an owner that is accepted,
+   `proposed: <role>` or `unassigned`. It is a follow-up, not a target, gate or budget.
 5. **`s = 0` or `s` outside (0, 1]** is not an objective; ask what was meant.
 6. **Burn rate is a normalised error fraction.** It compares one window's bad fraction with the
    allowed fraction; it says nothing about traffic volume or time left. For an event-based
@@ -111,6 +114,9 @@ Recompute from the stated `N`, `G` and `s`. Check that the eligible set matches 
 specification, that provider failures were not dropped, that no-data periods are `unknown`
 rather than perfect, that a window with a gap is not reported as a full-window result, and
 that weights were summed, not averaged. A figure without its inputs is a claim, not evidence.
+The same holds for your own work: report a recomputation, query, lookup, review or approval as
+done only with its observed result in hand. One that was planned, requested or came back empty
+is `pending`, never independent proof.
 
 ## Sources
 

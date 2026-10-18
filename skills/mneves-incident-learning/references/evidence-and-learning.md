@@ -62,7 +62,10 @@ find the artifact that shows the new version serving traffic.
 - **Noticed or not.** Record that a step failed or was cancelled from the artifact that shows
   it, and record whether anyone noticed from evidence (an alert, a reply, a later message that
   assumes the step ran). When the evidence shows it went unnoticed, that gap is a contributing
-  condition; do not add a diagnosis of why beyond what the evidence shows.
+  condition. A cancelled-job record and later chat can establish that a cancellation went
+  unnoticed; they do not establish what the person's interface showed, what they knew, or why
+  they acted. Those stay `unknown`, with a named evidence request (an interview, a screen
+  capture, the tool's own log), never a plausible account.
 - **Correlation is not mechanism.** A recovery that follows a change in time is a correlation.
   Write it as a hypothesis, with what supports it and what evidence is missing, until an
   artifact shows the mechanism (the data timestamps served after the fix, a replay of the
@@ -70,6 +73,9 @@ find the artifact that shows the new version serving traffic.
 - **Knowledge in context comes from sources.** What a person knew or saw at the time is
   `reported` from an interview or chat, or `observed` from what their screens showed. Never
   supply it from the reviewer's later knowledge.
+- **The review's own checks.** A test, query, external lookup, reviewer, effect or approval
+  counts as having run only with its observed result in hand. One that was planned, requested
+  or came back empty is `pending`, never independent proof.
 
 ## Durability, delivery and loss
 
@@ -93,14 +99,18 @@ Write the review around the conditions that combined, not a single root cause.
   the event possible or worse (a missing alert, a cache that served stale data with HTTP 200, a
   retry that amplified load, an unclear owner).
 - **Decisions in context**: for each key decision, what the person knew, what they could see,
-  the alternatives open to them, the time pressure, and why the choice made sense then. A
-  decision that looks wrong afterwards usually had a reason; the reason is the finding.
+  the alternatives open to them, the time pressure, and why the choice made sense then, each
+  from a source. A decision that looks wrong afterwards usually had a reason; the reason is the
+  finding when a source gives it. When none does, write `unknown` and the evidence request.
 - **Alternatives**: what else could have been done at each key moment, and what it would have
   needed (a dashboard, a permission, a runbook step).
 - **What worked**: detections, safeguards and actions that limited the harm. Keep them; they
   are easy to remove by accident.
 - **Luck**: where timing or chance limited the harm (low traffic at night, a job that happened
-  to fail before it wrote). Luck is a condition to replace with a safeguard.
+  to fail before it wrote). Luck is a condition to replace with a safeguard. When the supplied
+  facts show no users were active, name that timing as luck that limited exposure. Call it a
+  safeguard (a chosen maintenance window) or someone's reasoning only when a source shows that
+  decision.
 
 Blameless means no person is the cause. Name roles, not people, unless a name is needed to
 assign an action.

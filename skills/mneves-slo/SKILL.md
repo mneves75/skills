@@ -58,7 +58,8 @@ When the user supplies counts or an export, compute compliance, burn rate and re
 with the formulas and domain rules in `specification.md`. Show the inputs and each step.
 Missing or zero eligible events make every figure `unknown`. A gap inside the window keeps
 the whole window's figures and verdict `unknown`; label any figure for the covered part as an
-observed subset, never as a miss or a pass. A 100% target has no budget. Provider-caused
+observed subset, never as a miss or a pass. A 100% target has no budget: report the bad
+count and keep the correctness follow-up (test, its evidence, owner). Provider-caused
 failures stay in the numbers. Report period budget and window burn rate against their own
 populations; a burn rate is a normalised error fraction, not a forecast. Claim completeness
 only against an independent expected count, and durability only as far as the
@@ -76,7 +77,9 @@ and security failures are never budget; route them to the readiness or security 
 In this order: what the owner must decide or do (numbered: adopt, change, provide data); the
 indicator specifications; the numbers with their inputs, or `unknown` with the gap; draft
 targets and alerts; evidence limits (what was computed from supplied data, what was not
-observed). State each objective's status: `draft` or `adopted` (owner, date, review date).
+observed, and any check or review still `pending` without a result). For each objective state
+status (`draft` or `adopted`), owner, adoption date and review date, each `pending` when the
+sources give none, and any mismatch with a contractual SLA without editing either.
 
 ## Sibling skills
 
@@ -84,11 +87,12 @@ These are separately installed; this skill works without them.
 
 - `mneves-production-readiness`: an adopted objective with a burn-rate alert and runbook is
   evidence for OBS-04 and OBS-08; a contract SLA is its `sla` flag. Without it, report the
-  alert and runbook evidence in this skill's own report and do not invent control results.
+  alert and runbook evidence in this skill's own report, keep any correctness follow-up from
+  `specification.md` rule 4, and do not invent control results.
 - `mneves-incident-learning`: a budget miss or a fast burn worth understanding goes there.
   Without it, list the open questions and stop at the numbers.
 - `mneves-verify`: independent recomputation from the stated counts. Without it, a fresh
-  reviewer recomputes from the inputs alone.
+  reviewer recomputes from the inputs alone; until that result is returned, it is `pending`.
 
 ## Stop when
 

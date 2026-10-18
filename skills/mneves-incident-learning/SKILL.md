@@ -59,9 +59,10 @@ undelivered data is incomplete delivery, not proven loss.
 ### 3. Understand
 
 For the key moments, record what the people involved knew, what they could see, the
-alternatives they had and why their choice made sense then, each from a source. List the
+alternatives they had and why their choice made sense then, each from a source; context no
+source gives is `unknown`, with the evidence request, never a plausible story. List the
 contributing conditions that combined (not one root cause), what worked, and where luck limited
-the harm. A recovery that followed a change is a correlation: state it as a hypothesis with
+the harm, including timing when the facts show no users were active. A recovery that followed a change is a correlation: state it as a hypothesis with
 what supports it and what is missing, until an artifact shows the mechanism.
 
 ### 4. Decide actions
@@ -81,8 +82,9 @@ point. Only a passed check makes an action `done`; a change made without one is
 In this order: what the owner must do (numbered, each with where and the proof to send back);
 classification and impact, with unknowns; timeline with labels and sources; contributing
 conditions, decisions in context, what worked and luck; actions with owners, dates,
-effectiveness checks and status; evidence limits (what was reported but not observed, clock uncertainty,
-sources not seen). Keep it free of blame and of names where a role will do.
+effectiveness checks and status; evidence limits (what was reported but not observed, clock
+uncertainty, sources not seen, and any test, lookup or review still `pending` without a
+result). Keep it free of blame and of names where a role will do.
 
 ## Sibling skills
 
@@ -96,7 +98,8 @@ These are separately installed; this skill works without them.
 - `mneves-ship-deploy`: a repair shipped under `--waive readiness` still runs its readiness gate
   right after; this review does not replace that gate.
 - `mneves-verify`: independent check that each "done" action's effectiveness check actually
-  passed. Without it, a fresh reviewer checks the artifacts named in each action.
+  passed. Without it, a fresh reviewer checks the artifacts named in each action; until that
+  result is returned, it is `pending`.
 
 ## Stop when
 

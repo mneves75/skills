@@ -9,6 +9,10 @@ Every objective carries one status.
 | `draft` | nothing | Informational. Never blocks a release, pages a person, freezes work or becomes a contract. |
 | `adopted` | a named owner, an adoption date and a review date, recorded where the project keeps decisions | The owner commits to watching it. Still no automatic gate, release freeze or feature disable. |
 
+Every report states, for each objective, its status, owner, adoption date and review date. A
+field the sources do not supply reads `pending`; a draft lists the owner decision that would
+fill it.
+
 A number in a README, a dashboard title or a sales page is `draft` until the owner adopts it.
 An agent never adopts a target, never extends an adoption past its review date, and never
 treats an expired review date as still adopted: report it as `adopted (review overdue)`.
