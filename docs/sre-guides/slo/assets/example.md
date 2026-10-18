@@ -29,14 +29,15 @@ The status code is not the indicator: during an upstream stall the Worker keeps 
 | Days | Eligible `N` | Good `G` | Note |
 |---|---|---|---|
 | 1–10 | 170,000 | 169,830 | |
-| 11–12 | 34,000 | 31,280 | Upstream stall: every response was 200; 2,720 views showed data up to 3 hours old |
+| 11–12 | 34,000 | 31,280 | Upstream stall: every response was 200; 2,720 views showed data older than 15 minutes. The export holds no per-view ages, so how old the data got is not known from it |
 | 13 | none | none | Log export job failed; no data |
 | 14–28 | 255,000 | 254,745 | 120 of the 255 bad views were identity-provider timeouts |
 
 ## Computation
 
-Draft target `s = 0.995` (99.5%, from the previous quarter's observed compliance, not the
-README's 99.9%).
+Draft target `s = 0.995` (99.5%, an illustrative proposed target, not derived from the supplied
+export; not the README's 99.9%). Reviewing suitable history and adopting a target remain owner
+decisions.
 
 **28-day window: `unknown`.** Day 13 has no data, so the window's compliance, remaining budget
 and verdict are unknown. The export failure is its own finding.
@@ -66,20 +67,25 @@ minutes: threshold `0.02 * 672 / 1 = 13.44`. A ticket when 10% burns within 3 da
 `0.10 * 672 / 72 = 0.93`. Both require at least 200 eligible views in the long window; with no
 views, the rule reports a collection gap. Each page links the runbook "Report data stale".
 
-These thresholds assume report views are spread evenly over the 28 days. Weekly reports are
-likely to cluster on some days, which this export does not show; at a peak hour a burn of 13.44
-spends more than 2% of the budget, at night less. The owner checks the hourly shape on recent
-history before adopting the rules.
+These thresholds assume report views are spread evenly over the 28 days. Weekly reports may
+cluster on some days; this export, summed over ranges of days, cannot show it. At a peak hour
+a burn of 13.44 spends more than 2% of the budget, at night less. The owner checks the hourly
+shape on recent history before adopting the rules.
 
 ## Report
 
 1. Owner decisions: re-export day 13, so the 28-day result can be computed; adopt or change the
    99.5% freshness target (name an owner, a date and a review date); decide whether "99.9%
-   uptime" stays in the README, since no measurement or adoption record for it was found;
-   approve the draft alerts after checking the traffic assumption.
-2. Status: `draft`. It blocks nothing and pages no one until adopted.
+   uptime" stays in the README, since no owner or adoption record for it appears in the
+   repository; approve the draft alerts after checking the traffic assumption.
+2. Status: `draft`; target owner `pending`, adoption date `pending`, review date `pending`
+   (none accepted). It is not an automatic gate: it blocks nothing and pages no one until
+   adopted.
 3. Evidence limits: computed from the supplied export only; the 28-day result is unknown
    because day 13 is missing, and the 99.31% figure covers the other 27 days only; views that
-   failed before the Worker ran are not counted; no live system was observed.
-4. Follow-up: the upstream stall and the silent export failure are worth a review with the
+   failed before the Worker ran are not counted; the maximum data age on days 11–12 is not
+   known (it needs, from the Worker's per-view log, each view's time minus the data timestamp
+   it rendered, aggregated into a distribution and maximum for those days); no live system was
+   observed.
+4. Follow-up: the upstream stall and the export failure are worth a review with the
    [incident learning guide](../../incident-learning/README.md).

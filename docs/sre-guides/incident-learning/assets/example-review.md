@@ -6,23 +6,31 @@ they describe no real system. It continues the cached-report Worker in the
 
 ## Owner actions
 
-1. Decide whether affected users are told that reports showed old data for up to 3 hours
-   (customer contact is an owner action). Send back the decision and, if sent, the message date.
+1. Decide whether affected users are told that 2,720 report views on days 11–12 showed data
+   older than 15 minutes while the Worker served one unrefreshed cache from D11 08:05 to
+   D12 13:26 (customer contact is an owner action). State no maximum age until owner action 5
+   returns one. Send back the decision and, if sent, the message date.
 2. Export the deploy history of every account the on-call machine's CLI can reach, for day 12,
    and send it back. Until then, where the reported rollback acted is unknown.
 3. Accept or reassign the proposed owners and dates for A1, A2, A4 and A5, and name an owner
    and date for A3. Send back the accepted values; the actions stay `open` until then.
-4. Once A4 has an owner, run its restore exercise into an isolated target and send back the
-   restore log with start and end times, the row-count and checksum comparison, and the newest
-   restored record's timestamp.
+4. Once A4 has an owner, send back its inventory of copies and recovery paths, then run its
+   restore exercise into an isolated target and send back the restore log with start and end
+   times, the row-count and checksum comparison, and the newest restored record's timestamp.
+5. From the Worker per-view log, compute for days 11–12 each stale view's time minus the data
+   timestamp it rendered, and send back the distribution and the maximum. Until then the data's
+   maximum age is unknown.
 
 ## Classification and impact
 
-Class: `incident`. Signed-in users saw report data up to 3 hours old for about 29 hours over
-days 11–12; 2,720 of 34,000 eligible views were stale (from the Worker's per-view log). Known
-gap: views that failed before the Worker ran are not counted. The upstream database stayed
-intact (replica status history), so no report data was lost. Exposure was not examined: no
-source here covers access.
+Class: `incident`. The Worker served its last cache from D11 08:05 to D12 13:26 (29 h 21 min,
+the observed interval serving the last cache); 2,720 of 34,000 eligible views on days 11–12
+showed data older than 15 minutes (Worker per-view log). Per-view ages are not aggregated here,
+so neither how the 2,720 stale views spread across the interval nor the data's maximum age is
+computed (owner action 5). Known gap: views that failed before the Worker ran are not
+counted. The replica status history shows the upstream replica intact for days 10–14; that
+covers the replica only. Whether data was lost in any other store, cache or derived copy is
+unknown: no source here covers them. Exposure was not examined: no source here covers access.
 
 ## Sources
 
@@ -100,13 +108,15 @@ view, but no artifact shows the cache contents being replaced by that run.
 
 ## What worked
 
-- The per-view freshness log existed, so the impact could be measured to the view.
+- The per-view freshness log existed, so stale views could be counted one by one, and each
+  view's data age can be computed from it.
 - A user's report reached on-call, who acknowledged it in the incident chat.
 
 ## Luck
 
-- The upstream database itself was intact; had the rotation also dropped the replica, the cache
-  would have been the only copy of recent reports.
+- Unknown. The replica status history shows the upstream replica intact. Had the rotation also
+  dropped the replica, what could have been recovered, and from where, is unknown: no inventory
+  of copies or recovery paths and no restore evidence were supplied (A4).
 
 ## Actions
 
@@ -117,9 +127,9 @@ Owners and dates below are proposals by the reviewer; none has been accepted yet
 | A1 | Worker refuses to render data older than 15 minutes and shows a "data delayed" notice | Stale cache served as good | detect, limit | proposed: report team lead | proposed: D30 | A test with a 20-minute-old cache fails before the change and passes after; an isolated environment with the refresh job paused shows the notice | open |
 | A2 | Alert when two consecutive refresh runs fail, and when the log export misses a day | No alert on refresh or export failure | detect | proposed: on-call lead | proposed: D25 | Pausing the job in an isolated environment pages within 15 minutes; a skipped export opens a ticket | open |
 | A3 | Rotate the replica credential through the secret manager with an expiry warning | Credential rotation broke the refresh job | remove | unassigned | pending | A rotation in an isolated copy raises the warning before the old credential stops working, and the refresh job keeps succeeding | open |
-| A4 | Restore the report store into an isolated target and time it | Cache could be the only copy | recover | proposed: platform owner | proposed: D35 | Timed restore log: start and end times (recovery time), row counts and checksums equal to the source, newest restored record's timestamp (recovery point) | open |
+| A4 | List the report data's copies and recovery paths, then restore the report store into an isolated target and time it | No inventory of copies or recovery paths and no restore evidence in the supplied sources | recover | proposed: platform owner | proposed: D35 | The inventory names each copy with its source; timed restore log: start and end times (recovery time), row counts and checksums equal to the source, newest restored record's timestamp (recovery point) | open |
 | A5 | Runbook: after a rollback, confirm the version in the production account's deploy history | Runbook has no rollback confirmation step | detect | proposed: on-call lead | proposed: D20 | The next drill's record shows the confirmation step with its output, and a drill rollback aimed at the wrong account is caught by it | open |
-| A6 | Enable nightly backups of the report store | Cache could be the only copy | — | — | — | Backups exist | dropped: a backup without a tested restore does not change recovery; replaced by A4 |
+| A6 | Enable nightly backups of the report store | No inventory of copies or recovery paths and no restore evidence in the supplied sources | — | — | — | Backups exist | dropped: backups alone do not demonstrate recoverability; replaced by A4, which tests a restore |
 
 ## Evidence limits
 
@@ -135,3 +145,7 @@ Owners and dates below are proposals by the reviewer; none has been accepted yet
   was supplied.
 - Day 13 view data is missing; impact on that day is unknown, though the stall had ended.
 - Views that failed before the Worker ran are not counted.
+- The data's maximum age is not computed: the 29 h 21 min window is when the last cache was
+  served, not how old any view's data was (owner action 5).
+- The replica status history covers the upstream replica only; data loss in other stores,
+  caches or derived copies, and the available recovery paths, are unknown (A4).
