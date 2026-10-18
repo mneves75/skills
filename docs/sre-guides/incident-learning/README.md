@@ -1,10 +1,9 @@
----
-name: mneves-incident-learning
-description: Learn from an incident, near miss or failed operation after impact stops; use for postmortems, incident reviews, timelines or follow-up actions.
-license: Apache-2.0
----
-
 # Incident learning
+
+A guide to read, or hand to an agent, when you explicitly ask for an incident or near-miss
+review. It is not an installable skill and nothing discovers it on its own. Reviews drafted
+with it can still assert more than the evidence shows: check every fact against the artifacts
+you supplied ([why](../README.md#what-the-evaluation-showed)).
 
 After an outage, a data problem or a close call, find out what actually happened, why it made
 sense at the time, and which changes will make it less likely or less harmful, with proof that
@@ -14,7 +13,7 @@ examines conditions and decisions, not people.
 ## Scope and authority
 
 - **During an active incident**, mitigation follows the project's runbook and incident lead.
-  This skill only records what people report and observe, and points to the runbook and the
+  This guide only records what people report and observe, and points to the runbook and the
   lead; it never picks or directs a mitigation, a restart or a rollback. The review starts once
   the impact has stopped.
 - **Review request**: read the evidence the user gives or points to, and the project's code,
@@ -92,18 +91,19 @@ result). Keep it free of blame and of names where a role will do. Before deliver
 asserted fact in every section to a source whose coverage includes it, or rewrite it as
 `unknown`, a hypothesis or a proposed inspection.
 
-## Sibling skills
+## Related
 
-These are separately installed; this skill works without them.
+The skills named here are separately installed; this guide works without them.
 
-- `mneves-production-readiness`: the review and its tracked actions are evidence for OBS-09;
-  each new gap becomes a project-local readiness control; restore actions map to BR-01..BR-04.
-  Without it, list the gaps as plain follow-ups.
-- `mneves-slo`: when the event consumed error budget or exposed a wrong indicator (a 200 that
-  served stale data). Without it, note the indicator question as a follow-up.
-- `mneves-ship-deploy`: a repair shipped under `--waive readiness` still runs its readiness gate
+- `mneves-production-readiness` skill: the review and its tracked actions are evidence for
+  OBS-09; each new gap becomes a project-local readiness control; restore actions map to
+  BR-01..BR-04. Without it, list the gaps as plain follow-ups.
+- [Service level objectives guide](../slo/README.md): when the event consumed error budget or
+  exposed a wrong indicator (a 200 that served stale data). Otherwise note the indicator
+  question as a follow-up.
+- `mneves-ship-deploy` skill: a repair shipped under `--waive readiness` still runs its readiness gate
   right after; this review does not replace that gate.
-- `mneves-verify`: independent check that each "done" action's effectiveness check actually
+- `mneves-verify` skill: independent check that each "done" action's effectiveness check actually
   passed. Without it, a fresh reviewer checks the artifacts named in each action; until that
   result is returned, it is `pending`.
 

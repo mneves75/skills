@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>mneves75/skills — a clear way forward for coding agents</title>
-<meta name="description" content="Seventeen portable skills for AI coding agents. Choose a procedure for security, review, planning, reliability, building, discovery or learning, then install it in the tools you already use.">
+<meta name="description" content="Fifteen portable skills for AI coding agents. Choose a procedure for security, review, planning, building, discovery or learning, then install it in the tools you already use.">
 <meta property="og:title" content="mneves75/skills">
 <meta property="og:description" content="Reusable procedures for deliberate agent work. One install, any tool that reads SKILL.md.">
 <meta property="og:type" content="website">
@@ -94,7 +94,7 @@ h3{font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}
 <main>
 <section class="hero" aria-labelledby="h-hero">
   <h1 id="h-hero">Give your agent a clear way forward.</h1>
-  <div><p class="intro">Seventeen reusable procedures for AI coding agents. From the first plan to independent proof, use them with the tools you already have.</p>
+  <div><p class="intro">Fifteen reusable procedures for AI coding agents. From the first plan to independent proof, use them with the tools you already have.</p>
   <div class="hero-links"><a class="action" href="#skills">Choose a skill</a><a href="howto.html">Read the guide</a></div>
   <p class="compatibility">Claude Code, Codex, Cursor, OpenCode, pi — and any tool that reads <code>SKILL.md</code>.</p></div>
 </section>
@@ -126,14 +126,12 @@ h3{font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}
     </div>
   </section>
   <section class="catalog-group" id="plan" aria-labelledby="h-plan">
-    <div class="group-title"><h2 id="h-plan">Plan &amp; deliver</h2><p>Decide, coordinate, hand over and learn.</p><p>Objectives and incident reviews also work as <a href="https://github.com/mneves75/skills/blob/main/docs/sre-prompts.md">copy-ready prompts</a>, with no install.</p></div>
+    <div class="group-title"><h2 id="h-plan">Plan &amp; deliver</h2><p>Decide, coordinate and hand over.</p><p>Objectives and incident reviews are <a href="https://github.com/mneves75/skills/blob/main/docs/sre-guides/README.md">guides</a> and <a href="https://github.com/mneves75/skills/blob/main/docs/sre-prompts.md">copy-ready prompts</a>, not skills. Check each draft against your own evidence.</p></div>
     <div class="skill-list">
       <article class="skill"><h3>mneves-fable-orchestrator</h3><p>The main session owns decisions and acceptance. Route bounded, ordinary and difficult work by capability; <code>codex-lane</code> preserves multi-round context. Model bindings have one Defaults owner.</p><p class="example">Try: “delegate”, “use codex”, “heavy task”</p><a class="guide" href="howto.html#mneves-fable-orchestrator" aria-label="Read the mneves-fable-orchestrator guide">Read the guide</a></article>
       <article class="skill"><h3>mneves-expert-review</h3><p>Stress-test a draft through first principles, relevant research, one combined challenge and distinct alternatives. Returns the improved deliverable.</p><p class="example">Try: “challenge this”, “stress-test”, “best possible answer”</p><a class="guide" href="howto.html#mneves-expert-review" aria-label="Read the mneves-expert-review guide">Read the guide</a></article>
       <article class="skill"><h3>mneves-handoff</h3><p>A clipboard-ready handoff that opens a discussion. The receiver reviews first and decides whether the task is still worth doing. Portable anchors, no filesystem paths.</p><p class="example">Try: “handoff the flaky login test”, “write a handoff for this bug”</p><a class="guide" href="howto.html#mneves-handoff" aria-label="Read the mneves-handoff guide">Read the guide</a></article>
       <article class="skill"><h3>mneves-ship-deploy</h3><p>Deploy the pushed commit, prove it live, then tag. Staging preserves existing authority; production requires explicit approval of the exact candidate and target.</p><p class="example">Try: “ship-staging”, “ship-prod”</p><a class="guide" href="howto.html#mneves-ship-deploy" aria-label="Read the mneves-ship-deploy guide">Read the guide</a></article>
-      <article class="skill new"><h3>mneves-slo</h3><p>Define service level objectives from what users experience, not status codes. Computes compliance, burn rate and remaining budget from the counts you supply; missing data stays unknown. Targets stay drafts until an owner adopts them; a draft never blocks a release or pages anyone.</p><p class="example">Try: “write a freshness objective for the report page and draft burn-rate alerts”</p><span class="release-note">Added in 1.38.0</span><a class="guide" href="howto.html#mneves-slo" aria-label="Read the mneves-slo guide">Read the guide</a></article>
-      <article class="skill new"><h3>mneves-incident-learning</h3><p>Blameless reviews of incidents and near misses once impact has stopped. Every timeline entry cites its source and clock, and separates planned from executed. Each action gets a check that shows it worked, and is done only when that check passes.</p><p class="example">Try: “write the review for yesterday's stale reports; include the near miss”</p><span class="release-note">Added in 1.38.0</span><a class="guide" href="howto.html#mneves-incident-learning" aria-label="Read the mneves-incident-learning guide">Read the guide</a></article>
     </div>
   </section>
   <section class="catalog-group" id="build" aria-labelledby="h-build">
@@ -186,7 +184,7 @@ bun --bun /path/to/skills/tools/readiness-check.ts \
   <h2 id="h-log">What changed.</h2>
   <ul class="log">
     <!-- changelog:start -->
-        <li><span class="v">1.38.0<span class="d">2026-10-18</span></span><span>SRE workflows: two candidate skills for service level objectives and incident reviews.</span></li>
+        <li><span class="v">1.38.0<span class="d">2026-10-18</span></span><span>SRE guides: service level objective and incident review procedures, kept as documents and prompts after their candidate skills failed evaluation.</span></li>
         <li><span class="v">1.37.0<span class="d">2026-10-16</span></span><span><code>mneves-production-readiness</code>: gates staging and production deploys on evidence-backed readiness.</span></li>
         <li><span class="v">1.36.0<span class="d">2026-10-16</span></span><span>The readiness checker no longer lets a crafted manifest pollute <code>Object.prototype</code>.</span></li>
         <li><span class="v">1.35.1<span class="d">2026-10-16</span></span><span><code>mneves-fable-orchestrator</code> routes building and reviewing to different models.</span></li>

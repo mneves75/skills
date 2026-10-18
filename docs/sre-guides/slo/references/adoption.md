@@ -60,17 +60,18 @@ draft for the owner. Changing alert destinations or rotations is an owner action
 
 A budget policy says what the team does when the budget runs low or out: for example,
 prioritise reliability work, require an extra review for risky changes, or hold a feature
-launch. It is written and signed off by the owner and the people it binds. This skill may
-draft one; it never enforces one, never turns it into a release gate and never disables a
-feature. A missed objective is an input to planning and to `mneves-incident-learning`, not an
+launch. It is written and signed off by the owner and the people it binds. This guide may
+help draft one; it never enforces one, never turns it into a release gate and never disables a
+feature. A missed objective is an input to planning and to an
+[incident review](../../incident-learning/README.md), not an
 automatic consequence.
 
 ## Integration with readiness
 
-When `mneves-production-readiness` is installed, these map to existing controls; nothing here
+When the `mneves-production-readiness` skill is installed, these map to existing controls; nothing here
 creates a control or a verdict.
 
-| Readiness control | What this skill can supply |
+| Readiness control | What this guide can supply |
 |---|---|
 | OBS-04 Actionable alerting | Adopted objective, burn-rate alert rules and a test page (the page itself is owner-attested) |
 | OBS-05 Service dashboards | Indicator queries and their blind spots |

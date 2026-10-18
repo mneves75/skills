@@ -1,14 +1,15 @@
 # SRE workflows: SLO design and incident learning
 
-Status: candidate on `feat/sre-workflows`, base `53ea5ad` (1.37.0). Proposed for 1.38.0;
-nothing here is released or deployed. Round 1 of the paired evaluation ran on the first package
-contents (one bundled response per arm, source-blind scoring: baseline 8 met / 11 partial,
-candidate 13 met / 6 partial, no misses; one regression). The sources were then corrected in a
-second round from two review axes ([review.md](review.md)). Round 2 on those sources scored
-baseline 10 met / 7 partial / 2 missed and candidate 12 met / 7 partial / 0 missed, and the
-formal SOURCE and BEHAVIOR results were FAIL; a third, bounded correction followed and has not
-been rechecked. The release cut, the next evaluation round, the retention decision and the
-security gate belong to the coordinating session; see [evaluation.md](evaluation.md).
+Status: skill entrypoints retired; procedures kept as guides. On `feat/sre-workflows`, base
+`53ea5ad` (1.37.0), proposed for 1.38.0 as an unreleased candidate; nothing here is released or
+deployed. Four evaluation rounds ran ([evaluation.md](evaluation.md)). Round 4, after a source
+correction and a harness repair, observed unnamed discovery and correct non-triggers for both
+skills, but each added new unsupported claims, so both failed the retention rule below. The
+two entrypoints were retired: their seven files now live in
+[`docs/sre-guides/`](../../sre-guides/README.md) without frontmatter, beside the prompts in
+`docs/sre-prompts.md`. The guides and prompts are source-reviewed only; no runtime reliability
+is claimed for them. Generated files, UI recheck, CI, the security gate and any release belong
+to the coordinating session.
 
 ## Problem
 
@@ -44,6 +45,25 @@ Rejected alternatives:
 Five years out: the evidence and authority contracts outlive any monitoring vendor or model.
 The procedures name no provider, product or model, and each can be merged into its sibling or
 retired without changing a control ID.
+
+### Decision after round 4 (supersedes the two candidate skills above)
+
+Round 4 met the discovery half of the retention rule and failed the "no new wrong behaviour"
+half for both skills. Three ways forward were compared:
+
+1. **Patch the instructions and run a fifth round.** Each round so far fixed the last finding
+   and surfaced a new unsupported inference elsewhere; another patch cycle has no stopping
+   condition the evidence supports. Rejected.
+2. **Prompts and guides only** (rejected alternative 2 above). Keeps every contract and the
+   worked examples, loses automatic discovery, and adds nothing an agent loads unasked. Chosen,
+   as the retirement rule prescribes.
+3. **A larger SRE orchestrator** (rejected alternative 1). More text in one entrypoint widens
+   the surface the failures came from. Rejected.
+
+Five years out, option 2 is the cheapest to keep honest: a guide read on request cannot
+silently change an unrelated session, and a future candidate skill can be proposed from it
+with a fresh evaluation. The contracts below now govern the guides; where they say "the skill",
+read "the guide".
 
 ## Contracts
 
@@ -169,7 +189,11 @@ retired without changing a control ID.
 
 ## Integration points
 
-| Skill | Change |
+Reverted with the retirement: the four sibling skills equal the 1.37.0 base again. The README
+row stays because it is a generic install check. The guides' "Related" sections keep the
+control-ID mapping as optional reading.
+
+| Skill | Change (as proposed; reverted except README) |
 |---|---|
 | `mneves-production-readiness` | Sibling note: OBS-04 burn alerts and objectives route to `mneves-slo`; OBS-09 reviews to `mneves-incident-learning`. Control catalogs unchanged. |
 | `mneves-ship-deploy` | After an incident repair or rollback, route the learning to `mneves-incident-learning`; deploy order, approvals and gates unchanged. |
@@ -191,7 +215,16 @@ With no observed gain of either kind, delete the skill directory, keep the promp
 reference text in `docs/`, and record the decision in the changelog. No reliability,
 productivity or cost claim follows from these synthetic cases.
 
+Executed after round 4 for both skills: the directories moved to `docs/sre-guides/`, the
+entrypoints lost their frontmatter, and the changelog records the decision. The prompts are
+unchanged apart from their introduction.
+
 ## Acceptance
+
+Superseded by the retirement. Current acceptance: exactly fifteen source skills; no `SKILL.md`
+under `docs/`; both guides complete (seven files) and linked from the guide index, the prompts,
+README and HOWTO; the catalog lists fifteen skills and `build-site.test` passes on regenerated
+site files; the guards below pass unchanged. The original items, kept for the record:
 
 - Both skills pass `skills-ref validate`, name equals directory, `SKILL.md` under 500 lines,
   references linked once from `SKILL.md` and never from each other.

@@ -1,7 +1,8 @@
 # Example review: stale weekly reports behind HTTP 200
 
 Original synthetic example. The service, times and events are invented to show the procedure;
-they describe no real system. It continues the cached-report Worker in the `mneves-slo` example.
+they describe no real system. It continues the cached-report Worker in the
+[objectives example](../../slo/assets/example.md).
 
 ## Owner actions
 

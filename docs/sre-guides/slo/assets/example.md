@@ -81,5 +81,5 @@ history before adopting the rules.
 3. Evidence limits: computed from the supplied export only; the 28-day result is unknown
    because day 13 is missing, and the 99.31% figure covers the other 27 days only; views that
    failed before the Worker ran are not counted; no live system was observed.
-4. Follow-up: the upstream stall and the silent export failure are worth a review with
-   `mneves-incident-learning`.
+4. Follow-up: the upstream stall and the silent export failure are worth a review with the
+   [incident learning guide](../../incident-learning/README.md).

@@ -157,7 +157,6 @@ Then:
 - Bump the changelog to the next patch `Unreleased` and commit.
 - End on the repository's expected branch, preserving unrelated changes. Switch branches only when authorized; update with a fast-forward and verify `git status -sb`.
 - Close with a real narrative recap (2–5 paragraphs): what shipped and why, what the review gates caught, staging evidence, the exact tags and deploy URLs, what stayed unverified, follow-ups.
-- When the release repaired an incident or a rollback ran, list the learning review as a follow-up for the separately installed `mneves-incident-learning` skill (without it, a plain follow-up naming the event and its evidence). It changes no deploy order, approval or gate, and a repair shipped under `--waive readiness` still runs its readiness gate right after.
 
 ## Hard rules
 

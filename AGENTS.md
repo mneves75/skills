@@ -21,12 +21,10 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── mneves-eli5/               # Feynman explainer, audience-calibrated
 │   ├── mneves-expert-review/      # Expert-panel review/optimization pass (+ references/)
 │   ├── mneves-handoff/            # Discussion-first handoff prompt for another agent (MIT, adapted)
-│   ├── mneves-incident-learning/  # Blameless incident and near-miss reviews with owned actions (+ references/, assets/)
 │   ├── mneves-render/             # Project-local Markdown -> HTML, editable DOCX and PDF
 │   ├── mneves-production-readiness/ # Deploy gate: readiness ledger, verdict per target, fix plan (+ references/)
 │   ├── mneves-security/           # Security/privacy audit, pre-deploy gate, safe fixes and evidence (+ references/)
 │   ├── mneves-fable-orchestrator/ # Model routing; Codex reference + tools/codex-lane (+ its test)
-│   ├── mneves-slo/                # Service level objectives, error budgets, burn-rate alerts (+ references/, assets/)
 │   ├── mneves-superaudit/         # Bounded audit-and-ship pass (+ references/)
 │   ├── mneves-ship-deploy/         # Deploy, prove live, then tag (+ references/, contract check, reference release scripts)
 │   ├── mneves-teach-back-srs/     # Spaced-repetition teach-back (+ scripts/srs_db.py)

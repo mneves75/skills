@@ -1,10 +1,9 @@
----
-name: mneves-slo
-description: Specify, compute and adopt service level objectives from user outcomes; use for SLIs, SLOs, error budgets, burn-rate alerts or checking objective math.
-license: Apache-2.0
----
-
 # Service level objectives
+
+A guide to read, or hand to an agent, when you explicitly ask for objective work. It is not an
+installable skill and nothing discovers it on its own. Answers drafted with it can still be
+wrong: check every figure and claim against the artifacts you supplied
+([why](../README.md#what-the-evaluation-showed)).
 
 Turn "is the service good enough?" into an indicator users would recognise, a target someone
 owns, and arithmetic that stays honest when traffic is low, data is missing or a provider
@@ -43,7 +42,7 @@ Read each at the stage that needs it.
 Name the service, the user journeys in scope, who the users are, and what the user asked for
 (new objective, review, numbers for a period, alerts). Read the README, status docs, existing
 objective or SLA documents, monitoring and alert configuration. Note whether a contractual SLA
-exists; that is the owner's commitment, not something this skill sets.
+exists; that is the owner's commitment, not something this guide sets.
 
 ### 2. Specify each indicator
 
@@ -82,17 +81,17 @@ observed, and any check or review still `pending` without a result). For each ob
 status (`draft` or `adopted`), owner, adoption date and review date, each `pending` when the
 sources give none, and any mismatch with a contractual SLA without editing either.
 
-## Sibling skills
+## Related
 
-These are separately installed; this skill works without them.
+The skills named here are separately installed; this guide works without them.
 
-- `mneves-production-readiness`: an adopted objective with a burn-rate alert and runbook is
-  evidence for OBS-04 and OBS-08; a contract SLA is its `sla` flag. Without it, report the
-  alert and runbook evidence in this skill's own report, keep any correctness follow-up from
+- `mneves-production-readiness` skill: an adopted objective with a burn-rate alert and runbook
+  is evidence for OBS-04 and OBS-08; a contract SLA is its `sla` flag. Without it, report the
+  alert and runbook evidence in this report, keep any correctness follow-up from
   `specification.md` rule 4, and do not invent control results.
-- `mneves-incident-learning`: a budget miss or a fast burn worth understanding goes there.
-  Without it, list the open questions and stop at the numbers.
-- `mneves-verify`: independent recomputation from the stated counts. Without it, a fresh
+- [Incident learning guide](../incident-learning/README.md): a budget miss or a fast burn worth
+  understanding goes there. Without that review, list the open questions and stop at the numbers.
+- `mneves-verify` skill: independent recomputation from the stated counts. Without it, a fresh
   reviewer recomputes from the inputs alone; until that result is returned, it is `pending`.
 
 ## Stop when

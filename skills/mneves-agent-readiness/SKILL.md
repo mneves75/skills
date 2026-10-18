@@ -52,7 +52,7 @@ bun --bun "$SKILLS/tools/readiness-check.ts" --min-level=3
 | **CONTEXT** | Can the agent understand? | Context file is concise, has commands, structure is recognizable |
 | **ACTION** | Can the agent change things? | No `any`, strict types, linting and formatting configured |
 | **VERIFICATION** | Can the agent check work? | Tests pass, build works, lockfile committed |
-| **ITERATION** | Can the agent improve? | CI, PR template, required checks, deployment documented; operational docs (objectives, runbooks, incident reviews) findable from the context file |
+| **ITERATION** | Can the agent improve? | CI, PR template, required checks, deployment documented |
 
 ## Maturity Levels
 

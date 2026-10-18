@@ -1,9 +1,15 @@
 # SRE prompts
 
 Eight templates for service level objectives and incident learning. Each works on its own,
-pasted into any agent; with `mneves-slo` or `mneves-incident-learning` installed, the agent
-also follows that skill's procedure. Replace every `<...>`. Keep the Constraints lines: they
-are what stops a fluent answer from being a wrong one.
+pasted into any agent. For the full procedure, also hand the agent the
+[objectives guide](sre-guides/slo/README.md) or the
+[incident learning guide](sre-guides/incident-learning/README.md). Replace every `<...>`. Keep
+the Constraints lines: they state the limits and evidence the answer must respect.
+
+Check every draft against the artifacts you supplied before relying on it. The evaluation of
+these procedures found plausible answers that still asserted facts no input showed
+([details](sre-guides/README.md#what-the-evaluation-showed)). Neither these templates nor the
+guides were shown to produce answers free of such errors.
 
 ## 1. Define an objective for a journey
 

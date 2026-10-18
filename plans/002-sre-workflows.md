@@ -4,7 +4,7 @@
 
 - Planned at: `53ea5adaf420fa03e17559d0c31cbbfb0a89eb76`
 - Branch: `feat/sre-workflows`
-- Status: IN PROGRESS
+- Status: PROMPTS/GUIDES CANDIDATE — both entrypoints retired after R4; production BLOCKED
 - Priority: P1
 - Dependencies: none; reuse the released readiness, security, ship and verify contracts.
 
@@ -22,6 +22,20 @@ implementation worker never deploys, publishes, merges or edits other projects/h
 
 ## Current evidence and chosen approach
 
+The two-entrypoint experiment is complete and failed its retention rule. R4 improved three
+paired cases but introduced new wrong behavior in each skill; discovery and correct negative
+routes did not offset those failures. Apply the pre-agreed prompts/references-only fallback:
+retain eight explicit templates and the complete guides under `docs/sre-guides/`, remove both
+installable entrypoints and their four sibling routes, and restore the catalog to fifteen.
+R1–R4 failures stay in the evaluation history; they are not acceptance of error-free prompts.
+
+Further instruction patches were rejected after the bounded correction loops still produced
+unsupported facts. The broader orchestrator remains rejected for duplicated policy. Five years
+out, explicit guides with preserved evidence contracts and failed experiments are more useful
+than growing automatically loaded instructions whose benefit did not meet their own rule.
+The original scope/procedure below records the experiment; the final delivery scope is this
+fallback. Production remains subject to exact-candidate security/readiness gates and authority.
+
 The source release is 1.37.0. `mneves-production-readiness` already owns OBS-01..OBS-10,
 BR-01..BR-04, integration correctness and evidence scopes. The staging readiness set remains
 DM-02, DM-03 and TST-05, with security a separate gate. Do not create another SRE verdict or
@@ -34,7 +48,7 @@ increment from an entrypoint. Do not make productivity, reliability or preventio
 small synthetic evaluations. Five-year principle: preserve evidence/authority contracts and a
 merge/retire path; keep provider/model details out of the new procedures.
 
-## In scope
+## Historical experiment scope
 
 - `skills/mneves-slo/`: entrypoint, two routed references and original synthetic example.
 - `skills/mneves-incident-learning/`: entrypoint, evidence/learning reference and original
@@ -52,7 +66,7 @@ merge/retire path; keep provider/model details out of the new procedures.
 - Proposed release 1.38.0, after rechecking remote/main/tags. Another session's dependency
   updates, existing worktrees/branches, vendored collections and unrelated handoffs are excluded.
 
-## Procedure
+## Historical experiment procedure
 
 1. Read root instructions, README, status/memory, PRODUCT/DESIGN, contribution and CI policy,
    the existing skill surfaces and their tests. Run the drift check:
@@ -89,7 +103,7 @@ merge/retire path; keep provider/model details out of the new procedures.
 9. Freeze the candidate for parent-owned behavioral evaluations, improve-deep review, the two
    code-review axes and independent mneves-verify. Address precise corrections in the same lane.
 
-## Required evaluation and acceptance
+## Experiment evaluation and acceptance
 
 Use synthetic/public cases inside this repository, not customer data or changes to another
 project. Compare prompt-only vs candidate for Worker freshness, local data completeness and

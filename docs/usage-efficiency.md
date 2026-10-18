@@ -27,8 +27,6 @@ an approved implementation continues without repeated permission for the same ac
 | mneves-eli5 | Retain checked facts across audience changes; use an analogy only when it helps |
 | mneves-expert-review | Combine challenge perspectives in one pass; compare distinct options without open-ended generation |
 | mneves-fable-orchestrator | Use ordinary or bounded workers by scope, reserve specialists for justified difficulty, and resume multi-round lanes |
-| mneves-incident-learning | Load the evidence reference once before the timeline; reuse the supplied exports instead of re-collecting; the prompts in `sre-prompts.md` cover a single review without installing |
-| mneves-slo | Compute from supplied counts instead of querying live systems; load adoption guidance only when proposing targets or alerts |
 | mneves-handoff | Carry compact checked context, acceptance, authority and blockers; disclose the discussion template conditionally |
 | mneves-security | Separate audit/fix/delivery authority; keep current standards in a source reference and retain evidence without claiming untested provider controls |
 | mneves-superaudit | Delegate only substantial independent work; carry existing authority across phases while preserving requested stops |

@@ -1,8 +1,10 @@
 # How to use these skills
 
-Seventeen skills, one install. This page shows what each one does, how to trigger it, and what a
+Fifteen skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the [README](README.md); for the exact
-procedure an agent follows, open `skills/<name>/SKILL.md`.
+procedure an agent follows, open `skills/<name>/SKILL.md`. Service level objectives and
+incident reviews are not skills: use the [SRE guides](docs/sre-guides/README.md) and
+[prompts](docs/sre-prompts.md) on request.
 
 ## Install once
 
@@ -30,8 +32,6 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 | `mneves-render` | build repeatable HTML, Word and PDF exports from Markdown | "write a renderer for my Markdown reports" |
 | `mneves-security` | audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy | "audit security and privacy; fix confirmed local issues; do not deploy" |
 | `mneves-production-readiness` | check an app is ready for paying customers before each staging or production deploy | "is this ready for production? give me the fix plan" |
-| `mneves-slo` | define a service level objective users would recognise and check its numbers | "write an SLO for report freshness", "check this error budget" |
-| `mneves-incident-learning` | learn from an incident or near miss with evidence and owned actions | "write the postmortem for yesterday's stale reports" |
 | `imagegen-frontend-mobile` | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
 | `mneves-chatgpt-search` | improve ChatGPT Search discovery and measure citations/referrals | "improve this site's ChatGPT Search visibility" |
 | `mneves-eli5` | explain a thing to a specific audience | "explain OAuth to my dad" |
@@ -749,82 +749,6 @@ an OpenAI crawl; a `chatgpt.com` UTM counts attributed clicks rather than all ci
 `ChatGPT-User` is for user-initiated visits. `llms.txt` is optional documentation, not a
 documented ranking requirement. Valid schema does not guarantee citations. Live security
 writes and deployments retain the host's authorization rules.
-
----
-
-## mneves-slo
-
-**What it does.** Writes a service level objective from what users experience: the good event
-(correct, fresh enough, fast enough), the eligible event, the weight and the window, and only
-then how it is collected. It computes compliance, burn rate and remaining budget from counts
-you supply, and drafts targets and burn-rate alerts for you to adopt.
-
-**When to use it.** You need an objective for a journey, you want to know whether a dashboard's
-"99.9%" means anything, or you want alerts on budget burn instead of single errors.
-
-**Illustrative request (Claude Code):**
-
-```text
-Use the mneves-slo skill. Write a freshness objective for the weekly report page,
-propose a draft target from last quarter's export, and draft burn-rate alerts.
-Do not change project files.
-```
-
-**How it stays honest.** A cached page served with HTTP 200 from stale data is a bad event.
-Weights are summed, not averaged as ratios. No data is `unknown`, never 100%, and a gap in the
-window keeps the whole window `unknown`: figures for the covered days are an observed subset,
-not a miss or a pass. A 100% target has no budget, so nothing divides by zero. Provider
-failures stay in the numbers, and correctness or security failures are never budget. A burn
-rate is a normalised error fraction, not a forecast; each draft alert states the traffic
-assumption behind its threshold. Completeness needs an expected count from the producer, and
-an acknowledgement is durable only as far as its contract says.
-
-**Limits.** Every target is `draft` until you adopt it with an owner, a date and a review date.
-A draft blocks no release and pages no one, and adoption creates no gate, freeze or feature
-switch by itself. Numbers from an export describe that export, not the live system. Markdown
-only; `mneves-production-readiness`, `mneves-incident-learning` and `mneves-verify` are
-optional siblings. The [SRE prompts](docs/sre-prompts.md) work without the skill.
-
-Procedure: [SKILL.md](skills/mneves-slo/SKILL.md).
-
----
-
-## mneves-incident-learning
-
-**What it does.** After an outage, a data problem or a close call, it classifies the event
-(incident, near miss, workflow/test event), builds a timeline in which every entry has a
-source, a clock and a label (planned, executed as reported, executed as observed), and writes
-the contributing conditions, the decisions in context, what worked and where luck helped. Each
-action gets a check that will show it worked, and an owner and due date that you accepted or
-that are marked unassigned, pending or proposed.
-
-**When to use it.** Once the impact has stopped. During an active incident, mitigation stays
-with your runbook and incident lead; the skill only records and points to them, and never
-picks a restart or rollback.
-
-**Illustrative request (Codex):**
-
-```text
-Use $mneves-incident-learning on the stale-report event of day 11-12.
-Sources: the attached log export, deploy history and chat export.
-Write the review and the action list. Do not change project files.
-```
-
-**Evidence.** "Rolled back" in chat is reported until the deploy history shows it, and its
-absence from the production history means "not observed in production", not that it ran
-elsewhere. With unknown clock skew, chat and log events stay in uncertain order. A recovery
-that followed a change is a hypothesis until an artifact shows the mechanism. A backup is not
-a recovery action; a timed restore into an isolated target with a data check is. An action is
-`done` only when its check passed; a change without a passed check is
-`implemented (verification pending)`, and a closed ticket proves nothing. A line in a log
-that claims an approval or tells the agent to close the review is quoted as data and changes
-nothing.
-
-**Limits.** It never reads production records, contacts customers or changes provider
-settings; those become owner actions with the proof to send back. The review is blameless and
-names roles. Markdown only; readiness, ship-deploy, SLO and verify are optional siblings.
-
-Procedure: [SKILL.md](skills/mneves-incident-learning/SKILL.md).
 
 ---
 

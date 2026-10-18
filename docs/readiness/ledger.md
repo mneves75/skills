@@ -1,0 +1,178 @@
+# Production readiness ledger
+
+> Historical note (2026-10-18): this provisional baseline predates the retirement of the two SRE
+> candidate skills into `docs/sre-guides/`; it was not re-run on the guides-only candidate.
+
+Schema: 1 · Catalog: 1 · Unit: . · Stage: live · Visibility: public
+Deploy artifact: `site/`, published to GitHub Pages by `.github/workflows/static.yml` on a push to `main` that touches `site/**`
+Profile: ui (static HTML/CSS and minimal JavaScript, `PRODUCT.md:28`); stake: none (no `db`, `accounts`, `uploads`, `marketing-email`, `payments` or `sla`, `SECURITY.md:94`, `SECURITY.md:117-118`)
+Regulated: none established. No regulated consumer-service activity is established for these scoped static developer docs; the UX-07 contract gate is inactive, and this is not a legal exemption claim.
+Contracts: none
+Cursors: none
+Baseline: 2026-10-18 at 1f9d8fbc8b1229efb4e465f23665e42314433627 (source snapshot) · provisional · maximum age 90 days · final candidate pending
+Owners: proposed roles only, none accepted · review proposed: maintainer · data proposed: maintainer · delivery and cost proposed: maintainer · on-call proposed: maintainer, backup unassigned · security patching proposed: maintainer · compliance proposed: maintainer · testing proposed: maintainer · scope proposed: maintainer · architecture proposed: maintainer · memory proposed: maintainer
+
+This is a provisional baseline, not a binding gate run. No readiness record was written, no
+cursor moved, and the independent production check is pending. Production readiness is
+**NOT READY**: DEL-03, DEL-04, DEL-09, OPS-04, SEC-12, SEC-13, SEC-17, SEC-23 and CMP-06 are
+open blocker-tier rows, and every security row also depends on the security gate record for the
+final candidate, which does not exist yet. A
+green source gate (CI) is not readiness, and readiness is not release authority: a production
+release still needs the exact candidate's security gate and the owner's approval of that commit
+and target (`SECURITY.md:44-47`). Nothing below waives a control.
+
+Evidence is source scope, read 2026-10-18 at `1f9d8fb`, unless a row says otherwise; file and
+line citations refer to that snapshot. The result closeout later edited cited files
+(`CHANGELOG.md`, `site/README.md`); the final binding record assesses those deltas.
+"UI run 2026-10-18" means one independent, source-blind run against a local preview of `site/` (local scope): Chrome at 1440x1000, 768x1024 and 320x800,
+light and dark, keyboard, mocked Clipboard API, axe 4.12.1. It counts for the final candidate
+only after its preview is confirmed to be the same `site/` bytes. Security and compliance rows
+import the provisional security assessment of 2026-10-18 at `1f9d8fb`, except SEC-23, which is
+assessed against the frozen seven-file skill manifest; the assessment's scope includes the
+local-distribution trust boundaries (skills, scripts and tools users run) as well as the hosted
+artifact. Restricted details stay out of this public file.
+
+Totals: 135 rows · NOT APPLICABLE 86 · PASS 10 · FAIL 6 · NOT TESTED 33 · BLOCKED 0 · WAIVED 0.
+
+| ID | Status | Tier | Evidence (scope, date, commit) | Owner | Next action or waiver |
+|---|---|---|---|---|---|
+| DM-01 | NOT APPLICABLE | blocker | No database: static files only (`PRODUCT.md:28`); "this project runs no server and keeps no copy" (`SECURITY.md:94`) | proposed: maintainer | Reassess if a database is added |
+| DM-02 | NOT APPLICABLE | blocker | No database or migrations (`PRODUCT.md:28`, `SECURITY.md:94`) | proposed: maintainer | Reassess if a database is added |
+| DM-03 | NOT APPLICABLE | blocker | No database or migrations (`PRODUCT.md:28`, `SECURITY.md:94`) | proposed: maintainer | Reassess if a database is added |
+| DM-04 | NOT APPLICABLE | blocker | No database queries (`PRODUCT.md:28`, `SECURITY.md:94`) | proposed: maintainer | Reassess if a database is added |
+| DM-05 | NOT APPLICABLE | blocker | No database client (`PRODUCT.md:28`, `SECURITY.md:94`) | proposed: maintainer | Reassess if a database is added |
+| DM-06 | NOT APPLICABLE | advisory | No stored records users delete (`SECURITY.md:117-118`) | proposed: maintainer | Reassess if a database is added |
+| DM-07 | NOT APPLICABLE | advisory | No data model (`PRODUCT.md:28`, `SECURITY.md:94`) | proposed: maintainer | Reassess if a database is added |
+| BR-01 | NOT APPLICABLE | blocker | No persistent state: the artifact is rebuilt from tracked source (`site/README.md:7`) and uploaded from the checkout (`.github/workflows/static.yml:33-35`) | proposed: maintainer | Reassess if state is added |
+| BR-02 | NOT APPLICABLE | blocker | No database or state the product cannot regenerate (`site/README.md:7`, `.github/workflows/static.yml:33-35`) | proposed: maintainer | Reassess if state is added |
+| BR-03 | NOT APPLICABLE | blocker | No database with user writes (`SECURITY.md:117-118`) | proposed: maintainer | Reassess if a database is added |
+| BR-04 | NOT TESTED | advisory | No stake (header), so advisory. No disaster recovery plan for loss of the hosting account, the repository or the sole maintainer was found or attested | proposed: maintainer | Plan entry 6 |
+| BR-05 | NOT APPLICABLE | contract | Contracts: none (header) | proposed: maintainer | — |
+| DC-01 | NOT APPLICABLE | blocker | No accounts, forms or user input (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| DC-02 | NOT APPLICABLE | blocker | No scheduling, reminders or time-based billing (`PRODUCT.md:28`) | proposed: maintainer | — |
+| DC-03 | NOT APPLICABLE | blocker | No payments or stored money (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| DC-04 | NOT APPLICABLE | blocker | No currencies, tax or proration (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| DC-05 | NOT APPLICABLE | blocker | No payments or external side effects: the only script writes the clipboard (`site/copy-command.js:11-14`) | proposed: maintainer | — |
+| DC-06 | NOT APPLICABLE | advisory | No forms or create endpoints (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| DC-07 | NOT APPLICABLE | advisory | No lists over growing tables (`PRODUCT.md:28`) | proposed: maintainer | — |
+| DC-08 | NOT APPLICABLE | advisory | No accounts (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| DC-09 | NOT APPLICABLE | advisory | No import features (`PRODUCT.md:28`) | proposed: maintainer | — |
+| DC-10 | NOT APPLICABLE | contract | Contracts: none (header); the site collects nothing (`SECURITY.md:107-108`) | proposed: maintainer | — |
+| DEL-01 | NOT APPLICABLE | advisory | No staging environment: one production target, `github-pages`, from `main` (`.github/workflows/static.yml:8-13`, `.github/workflows/static.yml:26-27`) | proposed: maintainer | Reassess if staging is added |
+| DEL-02 | NOT TESTED | advisory | The deploy is code (`.github/workflows/static.yml:1-37`); the Pages settings (workflow source, HTTPS enforcement) live in repository settings outside the repository, and drift is not checked | proposed: maintainer | Plan entry 9 |
+| DEL-03 | NOT TESTED | blocker | CI runs on push, pull request and dispatch (`.github/workflows/ci.yml:8-12`) with the source gates at `.github/workflows/ci.yml:34-153`. The final candidate is not frozen or pushed, so no CI run exists for it. `static.yml` does not wait for CI (`.github/workflows/static.yml:8-13`), so a red run alone does not stop publication; required status checks on `main` were not read | proposed: maintainer | Plan entry 4 |
+| DEL-04 | FAIL | blocker | No record of an exercised rollback was found, and no release prints a rollback command. The only documented path is "revert the redesign commit and regenerate the site" (`docs/specs/skills-site/spec.md:88-92`). Not a first deploy, so a disable path does not meet it | proposed: maintainer | Plan entry 5 |
+| DEL-05 | NOT TESTED | advisory | No stake (header), so advisory. Pages deployment behaviour during rollout was not observed | proposed: maintainer | — (advisory, no entry) |
+| DEL-06 | NOT APPLICABLE | advisory | No flag configuration; the artifact is static files (`.github/workflows/static.yml:33-35`) | proposed: maintainer | — |
+| DEL-07 | NOT TESTED | advisory | No `sla` contract, so advisory. Capacity is the hosting provider's; no headroom figure was read | proposed: maintainer | — (advisory, no entry) |
+| DEL-08 | NOT TESTED | advisory | Applies (`ui`). Production cache headers and asset fingerprinting were not read | proposed: maintainer | Plan entry 9 |
+| DEL-09 | NOT TESTED | blocker | production, 2026-10-18 (TLS handshake with `https://mneves75.github.io/skills/` and a read of `GET /repos/mneves75/skills/pages`): `mneves75.github.io` serves TLS 1.3 with a certificate valid from 2026-09-30 to 2026-12-29; the Pages API reports build type workflow, `cname` null and `https_enforced` true. This is current validity only: no certificate-expiry alert and no owner statement about the provider domain were found | proposed: maintainer | Plan entry 3 |
+| ASY-01 | NOT APPLICABLE | advisory | No request handlers or background work (`PRODUCT.md:28`, `SECURITY.md:94`) | proposed: maintainer | — |
+| ASY-02 | NOT APPLICABLE | blocker | No jobs, webhooks or outbound calls; the site loads no third-party resources (`SECURITY.md:71`) | proposed: maintainer | — |
+| ASY-03 | NOT APPLICABLE | blocker | No jobs or queues (`SECURITY.md:94`) | proposed: maintainer | — |
+| ASY-04 | NOT APPLICABLE | blocker | No scheduled jobs in the product (`.github/workflows/static.yml:8-13`) | proposed: maintainer | — |
+| ASY-05 | NOT APPLICABLE | advisory | No application cache (`PRODUCT.md:28`) | proposed: maintainer | — |
+| ASY-06 | NOT APPLICABLE | blocker | No webhooks (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| ASY-07 | NOT APPLICABLE | blocker | No public API or outbound webhooks (`PRODUCT.md:28`) | proposed: maintainer | — |
+| ASY-08 | NOT APPLICABLE | advisory | No external API calls (`SECURITY.md:71`) | proposed: maintainer | — |
+| ASY-09 | NOT APPLICABLE | blocker | No OAuth integration (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| EML-01 | NOT APPLICABLE | blocker | No email is sent (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| EML-02 | NOT APPLICABLE | blocker | No email is sent (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| EML-03 | NOT APPLICABLE | advisory | No email templates (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| EML-04 | NOT APPLICABLE | advisory | No notifications or marketing email (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| CST-01 | NOT TESTED | advisory | Pages artifact and workflow-log retention settings were not read | proposed: maintainer | — (advisory, no entry) |
+| CST-02 | NOT TESTED | advisory | No stake (header), so advisory. No paid provider is named in the repository; no owner statement on spend alerts | proposed: maintainer | — (advisory, no entry) |
+| OBS-01 | NOT APPLICABLE | advisory | No runtime that writes logs; the artifact is static files (`PRODUCT.md:28`) | proposed: maintainer | — |
+| OBS-02 | NOT TESTED | advisory | No stake (header), so advisory. No client error tracker; the site loads no third-party resources (`SECURITY.md:71`) | proposed: maintainer | — (advisory, no entry) |
+| OBS-03 | NOT TESTED | advisory | No stake (header), so advisory. No external uptime check was found or attested | proposed: maintainer | Plan entry 3 |
+| OBS-04 | NOT TESTED | advisory | No stake (header), so advisory. No alert list attested | proposed: maintainer | Plan entry 3 |
+| OBS-05 | NOT TESTED | advisory | No dashboard attested | proposed: maintainer | — (advisory, no entry) |
+| OBS-06 | NOT APPLICABLE | advisory | Single static service, not `multi-service` (`PRODUCT.md:28`) | proposed: maintainer | — |
+| OBS-07 | NOT TESTED | advisory | No stake (header), so advisory. One maintainer (`SECURITY.md:37-38`); no rotation attested | proposed: maintainer | Plan entry 6 |
+| OBS-08 | NOT APPLICABLE | advisory | No paging alerts exist to link runbooks from (OBS-04 row) | proposed: maintainer | Reassess when alerts are added |
+| OBS-09 | NOT TESTED | advisory | No owner statement that incidents on this site get written reviews | proposed: maintainer | — (advisory, no entry) |
+| OBS-10 | NOT TESTED | advisory | No `sla` contract, so advisory. No status page found | proposed: maintainer | — (advisory, no entry) |
+| TST-01 | NOT APPLICABLE | advisory | No business rules: the only script copies a command to the clipboard (`site/copy-command.js:11-19`) | proposed: maintainer | — |
+| TST-02 | NOT APPLICABLE | advisory | No external API dependency (`SECURITY.md:71`) | proposed: maintainer | — |
+| TST-03 | NOT APPLICABLE | blocker | No accounts or payments (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| TST-04 | NOT TESTED | advisory | No stake (header), so advisory. No load test ran; none is claimed | proposed: maintainer | — (advisory, no entry) |
+| TST-05 | NOT APPLICABLE | blocker | No lower environment exists: one target, `github-pages` (`.github/workflows/static.yml:26-27`), and no data or credentials to isolate (`SECURITY.md:107-108`). Always-on: reassess every run | proposed: maintainer | Reassess if staging is added |
+| TST-06 | NOT TESTED | advisory | The suite runs on every change (`.github/workflows/ci.yml:8-12`), and one recorded fix had a failing control first (`docs/specs/skills-site/spec.md:96-99`); a sample of recent fixes was not reviewed. The UI run 2026-10-18 does not cover this row | proposed: maintainer | — (advisory, no entry) |
+| TST-07 | NOT TESTED | advisory | Applies (`ui`). No support matrix and no throttled low-end run; none is claimed | proposed: maintainer | — (advisory, no entry) |
+| BIL-01 | NOT APPLICABLE | blocker | No subscriptions (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| BIL-02 | NOT APPLICABLE | blocker | No subscriptions (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| BIL-03 | NOT APPLICABLE | contract | Contracts: none (header) | proposed: maintainer | — |
+| BIL-04 | NOT APPLICABLE | blocker | No payments (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| BIL-05 | NOT APPLICABLE | blocker | No payments (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| BIL-06 | NOT APPLICABLE | blocker | No metered usage (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| BIL-07 | NOT APPLICABLE | advisory | No contracts or billing (header, `SECURITY.md:117-118`) | proposed: maintainer | — |
+| BIL-08 | NOT APPLICABLE | advisory | No payments (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| API-01 | NOT APPLICABLE | blocker | No public API (`PRODUCT.md:28`) | proposed: maintainer | — |
+| API-02 | NOT APPLICABLE | blocker | No public API (`PRODUCT.md:28`) | proposed: maintainer | — |
+| API-03 | NOT APPLICABLE | blocker | No public API (`PRODUCT.md:28`) | proposed: maintainer | — |
+| API-04 | NOT APPLICABLE | advisory | No public API (`PRODUCT.md:28`) | proposed: maintainer | — |
+| AI-01 | NOT APPLICABLE | advisory | The hosted artifact makes no model call (`site/copy-command.js:1-24` is its only script, loaded at `site/index.html:85`); AI-facing distribution risk is in SEC-23 | proposed: maintainer | — |
+| AI-02 | NOT APPLICABLE | advisory | No model call in the hosted artifact (as AI-01) | proposed: maintainer | — |
+| AI-03 | NOT APPLICABLE | advisory | No model configuration in the hosted artifact (as AI-01) | proposed: maintainer | — |
+| UX-01 | NOT TESTED | advisory | Applies (`ui`). No throttled-network run; none is claimed | proposed: maintainer | — (advisory, no entry) |
+| UX-02 | NOT TESTED | advisory | local, UI run 2026-10-18: the copy control showed the manual-copy fallback when the clipboard was missing or rejected the write, and no false success; the pages load no data, so only this error state exists. Pending: preview identity equals the final candidate | proposed: maintainer | Plan entry 8 |
+| UX-03 | NOT TESTED | advisory | local, UI run 2026-10-18: the fallback says what happened and what to do (`site/copy-command.js:18`). It shows no reference support could trace. Pending: preview identity | proposed: maintainer | Plan entry 8 |
+| UX-04 | NOT APPLICABLE | advisory | No forms (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| UX-05 | NOT APPLICABLE | advisory | No destructive actions (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| UX-06 | NOT TESTED | advisory | local, UI run 2026-10-18: Tab/Enter reached and activated both new guides with a 3px focus outline; ArrowRight scrolled narrow examples; axe found 0 violations and 0 incomplete on desktop catalog and guide; on the narrow dark guide, 0 violations and one contrast rule incomplete on 19 cells scrolled horizontally offscreen. No manual screen-reader pass ran, so the row cannot PASS | proposed: maintainer | Plan entry 8 |
+| UX-07 | NOT APPLICABLE | contract | Contracts: none; no regulated consumer-service activity established (header). Not a legal exemption claim | proposed: maintainer | Reassess if the site starts serving consumers in a market with accessibility law |
+| UX-08 | NOT APPLICABLE | advisory | English-only copy by decision (`PRODUCT.md:30`); no `i18n` | proposed: maintainer | — |
+| UX-09 | NOT TESTED | advisory | local, UI run 2026-10-18: guide links landed on the matching heading. Back, reload and pasted deep links were not exercised. Pending: preview identity | proposed: maintainer | Plan entry 8 |
+| MNT-01 | PASS | advisory | The artifact's only application code is `site/copy-command.js` (24 lines, named handlers); CI syntax-checks it (`.github/workflows/ci.yml:72-73`) and type-checks and lints `tools/` (`.github/workflows/ci.yml:111-117`) | proposed: maintainer | — |
+| MNT-02 | NOT TESTED | advisory | No stake (header), so advisory. A ruleset blocks force-push and deletion on `main` (`SECURITY.md:39-40`); required review and required checks were not read through the API | proposed: maintainer | Plan entry 4 |
+| MNT-03 | NOT TESTED | advisory | Contributions go through pull requests (`CONTRIBUTING.md:38`); a written statement of how releases are cut was not located in this read | proposed: maintainer | — (advisory, no entry) |
+| MNT-04 | NOT TESTED | advisory | An update bot is configured (`.github/dependabot.yml`); recent update history was not read | proposed: maintainer | — (advisory, no entry) |
+| MNT-05 | NOT APPLICABLE | blocker | The artifact has no runtime, framework or database to support: static files with no runtime dependency (`PRODUCT.md:28-31`) | proposed: maintainer | Reassess if a runtime is added |
+| MNT-06 | PASS | advisory | One script in the artifact, used by the landing page (`site/index.html:85`); no unused routes, flags or dependencies in `site/` | proposed: maintainer | — |
+| MNT-07 | PASS | advisory | The largest application file in the artifact is `site/copy-command.js` at 24 lines | proposed: maintainer | — |
+| MNT-08 | PASS | advisory | Site decisions recorded with alternatives (`docs/specs/skills-site/spec.md:23-41`), the chosen direction (`docs/specs/skills-site/spec.md:75-86`) and rollback risk (`docs/specs/skills-site/spec.md:88-92`) | proposed: maintainer | — |
+| MNT-09 | NOT TESTED | advisory | No timed run from a clean checkout | proposed: maintainer | — (advisory, no entry) |
+| MNT-10 | FAIL | advisory | The publish path is documented (`site/README.md:3-4`, `SECURITY.md:44-47`), but no rollback step, rollback owner or recovery owner is written down (DEL-04, OPS-04) | proposed: maintainer | Plan entry 7 |
+| OPS-01 | NOT APPLICABLE | advisory | No accounts (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| OPS-02 | NOT APPLICABLE | advisory | No accounts (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| OPS-03 | PASS | advisory | Dated public changelog (`CHANGELOG.md:10`), rendered on the landing page by the generator (`site/README.md:8`) and kept current by a CI check (`.github/workflows/ci.yml:105-109`) | proposed: maintainer | — |
+| OPS-04 | FAIL | blocker | "One maintainer administers the repository" (`SECURITY.md:37-38`): fewer than two administrators; no owner statement on recovery codes or a second administrator | proposed: maintainer | Plan entry 2 |
+| OPS-05 | NOT TESTED | advisory | No stake (header), so advisory. Solo operator (`SECURITY.md:37-38`); no waiver and no second person attested | proposed: maintainer | Plan entry 6 |
+| OPS-06 | NOT TESTED | advisory | No stake (header), so advisory. Seats are proposed in the header, none accepted; on-call backup unassigned | proposed: maintainer | Plan entry 6 |
+| SEC-01 | NOT APPLICABLE | blocker | Imported: no accounts (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| SEC-02 | NOT APPLICABLE | blocker | Imported: no product accounts (`SECURITY.md:117-118`); maintainer account controls are covered by SEC-17 and SEC-21 | proposed: maintainer | — |
+| SEC-03 | NOT APPLICABLE | blocker | Imported: no sessions (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| SEC-04 | NOT APPLICABLE | contract | Imported: contracts none; no accounts | proposed: maintainer | — |
+| SEC-05 | NOT APPLICABLE | contract | Imported: contracts none; no accounts | proposed: maintainer | — |
+| SEC-06 | NOT APPLICABLE | blocker | Imported: no tenants or roles in the product (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| SEC-07 | NOT APPLICABLE | blocker | Imported: no accounts or object ids (`SECURITY.md:117-118`) | proposed: maintainer | — |
+| SEC-08 | NOT APPLICABLE | blocker | Imported: not multi-tenant | proposed: maintainer | — |
+| SEC-09 | NOT APPLICABLE | advisory | Imported: no impersonation | proposed: maintainer | — |
+| SEC-10 | NOT APPLICABLE | blocker | Imported: no login | proposed: maintainer | — |
+| SEC-11 | PASS | blocker | Imported, source + local, 2026-10-18, `1f9d8fb`: the local-distribution validation boundary and its regression tests | proposed: maintainer | — |
+| SEC-12 | NOT TESTED | blocker | Imported: the secrets scan of the final candidate is pending. Always-on | proposed: maintainer | Plan entry 1 |
+| SEC-13 | FAIL | blocker | Imported, 2026-10-18, `1f9d8fb`: restricted. No waiver granted. Always-on | proposed: maintainer | Plan entry 1 |
+| SEC-14 | NOT APPLICABLE | blocker | Imported: no uploads | proposed: maintainer | — |
+| SEC-15 | PASS | blocker | Imported, source + production, 2026-10-18: passes for the public static risk profile, with the documented deviations kept visible: no HSTS, `X-Content-Type-Options` or frame-protection headers, which Pages cannot send; CSP and referrer policy in markup; CORS without credentials (`SECURITY.md:110-118`). Not full ASVS compliance and not an owner waiver | proposed: maintainer | — |
+| SEC-16 | PASS | blocker | Imported, source + local + production, 2026-10-18: HTTPS enforced (Pages API `https_enforced` true; TLS 1.3 served) and disk encryption on the inspected release device. Scoped to that device; no fleet-wide claim | proposed: maintainer | — |
+| SEC-17 | NOT TESTED | blocker | Imported: the operator access review (collaborators, deploy keys, apps, tokens) is incomplete (`SECURITY.md:48-50` defines it). Approval of an exact production deploy is separate from this inventory | proposed: maintainer | Plan entry 1 |
+| SEC-18 | PASS | blocker | Imported, source + local, 2026-10-18: redaction, isolation and action-state evidence for the local tools. No assurance about external providers' log redaction | proposed: maintainer | — |
+| SEC-19 | NOT APPLICABLE | contract | Imported: contracts none | proposed: maintainer | — |
+| SEC-20 | FAIL | advisory | Imported, 2026-10-18, `1f9d8fb`: restricted. No stake (header), so advisory in this catalog; whether it blocks is the security gate's verdict. No waiver granted | proposed: maintainer | Plan entry 1 |
+| SEC-21 | PASS | advisory | Imported, source + local, 2026-10-18: written compromise runbook (`SECURITY.md:52-67`), plus disk encryption and screen lock on the inspected release device. Scoped to that device; no fleet-wide claim | proposed: maintainer | — |
+| SEC-22 | NOT APPLICABLE | blocker | Imported: no inbound webhooks | proposed: maintainer | — |
+| SEC-23 | FAIL | blocker | Imported, 2026-10-18, frozen seven-file skill manifest (SHA-256 `6e1ee8a7f3f8f47c85f6ea0c09464e5f3d8d1c4ccbdcab14f8119cd4809a570b`): restricted; details in the private release record. No waiver granted | proposed: maintainer | Plan entry 1 |
+| CMP-01 | NOT APPLICABLE | contract | Imported: contracts none | proposed: maintainer | — |
+| CMP-02 | NOT APPLICABLE | contract | Imported: contracts none | proposed: maintainer | — |
+| CMP-03 | NOT APPLICABLE | blocker | Imported: no health data | proposed: maintainer | — |
+| CMP-04 | NOT APPLICABLE | contract | Imported: no health data; contracts none | proposed: maintainer | — |
+| CMP-05 | NOT APPLICABLE | blocker | Imported: no payments | proposed: maintainer | — |
+| CMP-06 | NOT TESTED | blocker | Imported: the erasure procedure is written (`SECURITY.md:92-108`); provider and backup retention and an erasure run were not verified | proposed: maintainer | Plan entry 1 |
+| CMP-07 | NOT APPLICABLE | contract | Imported: contracts none | proposed: maintainer | — |
+| CMP-08 | NOT APPLICABLE | contract | Imported: contracts none | proposed: maintainer | — |
+| CMP-09 | NOT APPLICABLE | blocker | Imported: no accounts; the site collects nothing (`SECURITY.md:107-108`) | proposed: maintainer | — |
+
+## Gate history
+
+| Date | Target | Commit | Verdict | Open blockers | Waivers |
+|---|---|---|---|---|---|

@@ -30,12 +30,15 @@ data loss, wrong money, silent outages and one-person dependencies as much as at
 cheap by reassessing only what a diff touches, and its record lets a release script refuse a
 deploy the gate never saw. The record proves the gate ran; it never authorizes production.
 
-**Objectives and incident reviews are documents, not gates.** `mneves-slo` and
-`mneves-incident-learning` supply evidence that readiness rows OBS-04, OBS-08 and OBS-09 ask
-for, and never decide a verdict. A draft objective blocks nothing, so a number copied from a
-README cannot stop a release. Both are on trial. A skill stays if it behaves better than its
-prompt in `docs/sre-prompts.md`, or behaves the same and is observed loading on its own from a
-plain task description. With neither, it is retired and the prompt stays.
+**Objectives and incident reviews are guides, not skills.** They were tried as two skills,
+`mneves-slo` and `mneves-incident-learning`, under a rule written in advance: a skill stays
+only if it behaves better than a competent prompt with no new wrong behaviour, or the same and
+is observed loading on its own. After four rounds both loaded on their own and stayed out of
+unrelated requests, and some answers improved, but each also made a new claim no input showed
+(a data gap "closed" by a count, a loss ceiling read from a backup schedule). Better on average
+does not excuse a new way to be wrong, so both entrypoints were retired. The procedures live on
+in `docs/sre-guides/` and `docs/sre-prompts.md`, read when someone asks for them, and their
+answers still need checking against the evidence. A draft objective still blocks nothing.
 
 **Original skills carry the `mneves-` prefix.** A rename in 1.3.0 collapsed three near-collisions
 with upstream/community skill names. An adapted third-party skill instead keeps its upstream name,

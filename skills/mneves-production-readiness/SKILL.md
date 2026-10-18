@@ -70,10 +70,6 @@ These are separately installed; this skill works without them.
   deploy. Without it, run the binding gate yourself before any deploy and keep the record.
 - `mneves-verify` performs the independent check. Without it, use a fresh read-only subagent
   given only the rows, their evidence and the rule; if none is available, those rows are BLOCKED.
-- `mneves-slo` writes the objective, burn-rate alert and runbook link that OBS-04 and OBS-08
-  look for; `mneves-incident-learning` writes the review and owned actions OBS-09 looks for.
-  Their output is evidence for those rows, never a verdict, and a draft objective blocks
-  nothing. Without them, the control text is the requirement.
 
 ## Procedure
 

@@ -12,8 +12,10 @@ Skills for AI coding agents. Each installs into any tool that reads `SKILL.md` f
 ## Available Skills
 
 For compact task prompts, bounded retries and model routing, see
-[Using skills with less repeated work](docs/usage-efficiency.md). For objectives and incident
-reviews without installing anything, see the [SRE prompts](docs/sre-prompts.md).
+[Using skills with less repeated work](docs/usage-efficiency.md). Service level objectives and
+incident reviews are not installable skills: read the [SRE guides](docs/sre-guides/README.md)
+or paste one of the [SRE prompts](docs/sre-prompts.md), and check each draft against your
+artifacts.
 
 | Skill | Description |
 |-------|-------------|
@@ -27,8 +29,6 @@ reviews without installing anything, see the [SRE prompts](docs/sre-prompts.md).
 | [mneves-render](skills/mneves-render/) | Build project-local Markdown renderers for HTML, editable DOCX and PDF, with shared design, tested starter templates and content/visual verification |
 | [mneves-security](skills/mneves-security/) | Evidence-backed security/privacy audit, ordered remediation, authorized safe fixes and the mandatory gate before every staging or production deploy, using current OWASP guidance, adversarial review and independent acceptance |
 | [mneves-production-readiness](skills/mneves-production-readiness/) | Gate staging and production deploys on production readiness: a ledger of evidence-backed controls (data, recovery, money, operations, ownership), a verdict per target and a detailed fix plan; security rows delegate to `mneves-security` |
-| [mneves-slo](skills/mneves-slo/) | Specify service level objectives from user outcomes (correct, fresh, fast), compute compliance, burn and budget with defined arithmetic, and draft targets and alerts for the owner to adopt |
-| [mneves-incident-learning](skills/mneves-incident-learning/) | Blameless review of an incident or near miss after impact stops: sourced timeline, planned versus executed, contributing conditions, and actions that count as done only when their effectiveness check passes |
 | [mneves-fable-orchestrator](skills/mneves-fable-orchestrator/) | Route ordinary, bounded and difficult work by capability; models live in one Defaults block; ships [`codex-lane`](skills/mneves-fable-orchestrator/tools/codex-lane) |
 | [mneves-superaudit](skills/mneves-superaudit/) | Bounded audit-and-ship pass: slop, performance, agent DX, PR triage — falsifiable completion criteria, existing authority and requested stops |
 | [mneves-ship-deploy](skills/mneves-ship-deploy/) | Deploy the pushed commit, prove it live, then tag, through dev (when present) and staging without redundant confirmation; explicit approval of the exact candidate before production; ships a release-contract check |
