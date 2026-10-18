@@ -63,7 +63,8 @@ count and keep the correctness follow-up (test, its evidence, owner). Provider-c
 failures stay in the numbers. Report period budget and window burn rate against their own
 populations; a burn rate is a normalised error fraction, not a forecast. Claim completeness
 only against an independent expected count, and durability only as far as the
-acknowledgement's stated guarantee.
+acknowledgement's stated guarantee. Counts establish a gap, not its cause: an attempt, retry,
+outage or loss explanation needs its own source, otherwise it is `unknown`.
 
 ### 4. Propose targets and alerts
 

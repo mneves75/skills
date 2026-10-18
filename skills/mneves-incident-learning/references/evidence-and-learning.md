@@ -34,7 +34,7 @@ Rules:
    depend on it, and keep only those that hold either way.
 3. Human recollection is a source with a clock of "approximate"; it may place an event, it
    never proves one.
-4. A missing source is a finding ("no log of the cache refresh exists"), not a silent gap.
+4. A missing source is a finding ("no log of the cache refresh was supplied"), not a silent gap.
 5. Completeness needs an expected count from an independent source: 99 of 99 retrieved files
    is not complete when the producer wrote 100. With no independent expectation, coverage is
    `unknown`.
@@ -59,13 +59,28 @@ find the artifact that shows the new version serving traffic.
   show where else the event happened: a rollback absent from the production history is "not
   observed in production"; a different target needs its own artifact, otherwise it is
   `unknown`.
+- **Absence, non-execution, intent and reliance need coverage.** "X did not happen", "there is
+  no Y", "nobody checked" and "Z was treated as the signal" are factual claims. Each needs a
+  source whose recorded coverage includes that system, period and population; anything the
+  supplied materials lack is "not observed in these materials", not absent from the system.
+  - A configuration push is reported in a ticket and no deploy log was supplied: whether it ran,
+    and what was checked afterwards, are `unknown`, not "never ran" or "unchecked".
+  - The input never mentions a queue-depth alert or a pre-release load test: whether either
+    exists is `unknown`, not a missing safeguard.
+  - A later message that assumes a step ran shows that message's assumption. It does not show
+    how anyone relied on the earlier message, what their screen showed, or which checks were
+    skipped.
+  - A complete export of the alert rules in one monitoring account for days 1–14 does establish
+    "no alert on job failures in that account in those days"; other accounts and tools stay
+    `unknown`.
 - **Noticed or not.** Record that a step failed or was cancelled from the artifact that shows
-  it, and record whether anyone noticed from evidence (an alert, a reply, a later message that
-  assumes the step ran). When the evidence shows it went unnoticed, that gap is a contributing
-  condition. A cancelled-job record and later chat can establish that a cancellation went
-  unnoticed; they do not establish what the person's interface showed, what they knew, or why
-  they acted. Those stay `unknown`, with a named evidence request (an interview, a screen
-  capture, the tool's own log), never a plausible account.
+  it. Record awareness, or its absence, only from a source whose coverage establishes it (an
+  acknowledgement, a reply, an interview); an awareness gap so established is a contributing
+  condition. A cancelled-job log plus a chat thread show only that the cancellation is not
+  acknowledged in that thread and that a later message assumes the step ran. Whether anyone
+  noticed elsewhere, what they knew or saw, how they relied on the message and why they acted
+  stay `unknown`, with a named evidence request (an interview, a screen capture, the tool's own
+  log), never a plausible account.
 - **Correlation is not mechanism.** A recovery that follows a change in time is a correlation.
   Write it as a hypothesis, with what supports it and what evidence is missing, until an
   artifact shows the mechanism (the data timestamps served after the fix, a replay of the
@@ -76,6 +91,10 @@ find the artifact that shows the new version serving traffic.
 - **The review's own checks.** A test, query, external lookup, reviewer, effect or approval
   counts as having run only with its observed result in hand. One that was planned, requested
   or came back empty is `pending`, never independent proof.
+- **Final claim audit.** Before delivering, read every asserted fact in every section (impact,
+  conditions, decisions, recovery, actions, evidence limits) against the Sources table. Each
+  traces to a row whose coverage includes it; otherwise rewrite it as `unknown`, a hypothesis
+  or a proposed inspection.
 
 ## Durability, delivery and loss
 
@@ -84,7 +103,9 @@ find the artifact that shows the new version serving traffic.
 - A missing acknowledgement does not prove the write failed; the write may have succeeded and
   the acknowledgement been lost. Check the store.
 - Undelivered or missing items are incomplete delivery. Permanent loss needs its own evidence:
-  the source no longer holds the item and no copy, queue or retry remains.
+  the source no longer holds the item and no copy, queue or retry remains. A delivered count
+  below the expected count does not say whether the missing item was attempted, retried or
+  copied; that needs the sender's attempt records for that pipeline and window.
 - On a device or in a native app, separate three things: what server storage holds, what
   existed only on the device (edits not yet synced), and what a device or simulator exercise
   actually showed. A corrupted local database does not by itself prove that local-only data was
@@ -97,7 +118,10 @@ Write the review around the conditions that combined, not a single root cause.
 
 - **Contributing conditions**: each technical, process or organisational condition that made
   the event possible or worse (a missing alert, a cache that served stale data with HTTP 200, a
-  retry that amplified load, an unclear owner).
+  retry that amplified load, an unclear owner). Each cites the source whose coverage shows it.
+  An explanation no source shows is a hypothesis with the inspection that would settle it, or a
+  proposed inspection action, never an asserted deficiency. With sparse facts, the conditions
+  may be `unknown`.
 - **Decisions in context**: for each key decision, what the person knew, what they could see,
   the alternatives open to them, the time pressure, and why the choice made sense then, each
   from a source. A decision that looks wrong afterwards usually had a reason; the reason is the
@@ -172,6 +196,7 @@ Impact: <users, window, signal> — known / unknown, with sources
 | Time (zone) | Original time | Event | Label | Source |
 
 ## Contributing conditions
+Each with its source; what no source covers is unknown or a hypothesis with its inspection.
 
 ## Decisions in context
 

@@ -7,7 +7,8 @@ procedure; they describe no real system.
 
 An edge Worker serves a signed-in "weekly report" page. It renders from a cache that a
 scheduled job refreshes from an upstream database every 5 minutes. The README says "99.9%
-uptime"; nobody owns that number. No customer contract exists.
+uptime"; no owner or adoption record for that number appears in the repository. The owner
+states that no customer contract exists.
 
 ## Indicator specification
 
@@ -74,8 +75,8 @@ history before adopting the rules.
 
 1. Owner decisions: re-export day 13, so the 28-day result can be computed; adopt or change the
    99.5% freshness target (name an owner, a date and a review date); decide whether "99.9%
-   uptime" stays in the README, since it is neither measured nor adopted; approve the draft
-   alerts after checking the traffic assumption.
+   uptime" stays in the README, since no measurement or adoption record for it was found;
+   approve the draft alerts after checking the traffic assumption.
 2. Status: `draft`. It blocks nothing and pages no one until adopted.
 3. Evidence limits: computed from the supplied export only; the 28-day result is unknown
    because day 13 is missing, and the 99.31% figure covers the other 27 days only; views that

@@ -107,6 +107,12 @@ Rules:
    producer (a client-side counter, a sequence number, the source system's export). 99 of 99
    observed items is not complete when 100 were created. When nothing independent records the
    expected count, completeness is `unknown`; name the counter that would close the gap.
+11. **Counts show a gap, not its cause.** 99 delivered against a manifest of 100 establishes one
+   item not delivered. Whether it was attempted, retried, copied elsewhere or permanently lost
+   needs its own evidence: the sender's attempt records, a retry queue, the source's holdings. A
+   complete attempt log for that pipeline and window can establish "no attempt there", not
+   elsewhere. Without such evidence, the cause of the gap is `unknown` in every narrative,
+   including the summary.
 
 ## Checking someone else's numbers
 

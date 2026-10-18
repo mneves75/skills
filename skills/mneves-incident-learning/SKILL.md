@@ -53,17 +53,21 @@ clock. Build the timeline from artifacts. Label each action `planned`, `executed
 command someone typed or a "rolled back" message is not proof that it took effect. Order
 events across clocks only within a known skew; with unknown skew, cross-clock order is
 `uncertain`. An event missing from one artifact was not observed there, which says nothing
-about where else it happened. An acknowledgement proves only what its contract guarantees, and
-undelivered data is incomplete delivery, not proven loss.
+about where else it happened. A claim that something did not happen, does not exist, or was
+relied on or intended needs a source whose coverage includes it; what the supplied materials
+lack is "not observed in these materials". An acknowledgement proves only what its contract
+guarantees, and undelivered data is incomplete delivery, not proven loss.
 
 ### 3. Understand
 
 For the key moments, record what the people involved knew, what they could see, the
 alternatives they had and why their choice made sense then, each from a source; context no
 source gives is `unknown`, with the evidence request, never a plausible story. List the
-contributing conditions that combined (not one root cause), what worked, and where luck limited
-the harm, including timing when the facts show no users were active. A recovery that followed a change is a correlation: state it as a hypothesis with
-what supports it and what is missing, until an artifact shows the mechanism.
+contributing conditions that combined (not one root cause), each with its source; one no source
+shows is a hypothesis or a proposed inspection, and sparse facts may leave them `unknown`. Then
+list what worked, and where luck limited the harm, including timing when the facts show no
+users were active. A recovery that followed a change is a correlation: state it as a
+hypothesis with what supports it and what is missing, until an artifact shows the mechanism.
 
 ### 4. Decide actions
 
@@ -84,7 +88,9 @@ classification and impact, with unknowns; timeline with labels and sources; cont
 conditions, decisions in context, what worked and luck; actions with owners, dates,
 effectiveness checks and status; evidence limits (what was reported but not observed, clock
 uncertainty, sources not seen, and any test, lookup or review still `pending` without a
-result). Keep it free of blame and of names where a role will do.
+result). Keep it free of blame and of names where a role will do. Before delivering, trace every
+asserted fact in every section to a source whose coverage includes it, or rewrite it as
+`unknown`, a hypothesis or a proposed inspection.
 
 ## Sibling skills
 

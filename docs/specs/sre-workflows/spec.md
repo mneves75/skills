@@ -96,7 +96,9 @@ retired without changing a control ID.
     and states that assumption. A forecast needs the remaining budget and a traffic assumption.
 11. **Independent completeness denominator.** Completeness compares durable arrivals with an
     expected count from the producer (client counter, sequence, source export). Without one,
-    completeness is `unknown`; 99 of 99 observed is not complete when 100 were created.
+    completeness is `unknown`; 99 of 99 observed is not complete when 100 were created. A
+    delivered/expected gap establishes incomplete delivery only; whether the missing item was
+    attempted, retried, copied or lost needs its own evidence, otherwise its cause is `unknown`.
 12. **Acknowledgement and loss.** An acknowledgement counts as durable only as far as its stated
     contract guarantees. A missing acknowledgement can follow a successful write; undelivered
     items are incomplete delivery, and permanent loss needs its own evidence. For native apps,
@@ -116,18 +118,22 @@ retired without changing a control ID.
 3. **Planned versus executed.** A runbook step, deploy plan or command someone intended is not
    evidence that it ran. Record each action as `planned`, `executed (observed)` or
    `executed (reported)`. An event absent from one artifact is "not observed there"; a
-   different target needs its own artifact, otherwise it is `unknown`.
+   different target needs its own artifact, otherwise it is `unknown`. Absence, non-execution,
+   intent and reliance are asserted only from a source whose coverage includes that system,
+   period and population; an unmentioned safeguard is `unknown`, not missing.
 4. **Reported versus observed.** "Restored from backup", "rolled back" or "all green" from a
    person or a log line is a claim until an artifact shows it. An acknowledgement, a missing
    delivery or a corrupted local database proves only what its own evidence shows, as in SLO
    contract 12.
-5. **Contributing conditions, not one root cause.** List the conditions that combined, the
-   alternatives considered at the time, the local context of each decision (what the person
-   knew then, from a source; what no source gives, including their interface, knowledge or
-   reason, is `unknown` with an evidence request), what worked and where luck helped (timing
-   with no users active is luck unless a source shows a deliberate choice). A recovery that
-   followed a change is a correlation, stated as a hypothesis with its support and what is missing, until
-   an artifact shows the mechanism. An unnoticed failed or cancelled step is a condition when
+5. **Contributing conditions, not one root cause.** List the conditions that combined, each
+   with its source (one no source shows is a hypothesis or proposed inspection; sparse facts
+   may leave them `unknown`), the alternatives considered at the time, the local context of
+   each decision (what the person knew then, from a source; what no source gives, including
+   their interface, knowledge or reason, is `unknown` with an evidence request), what worked
+   and where luck helped (timing with no users active is luck unless a source shows a
+   deliberate choice). A recovery that followed a change is a correlation, stated as a
+   hypothesis with its support and what is missing, until an artifact shows the mechanism.
+   An unnoticed failed or cancelled step is a condition when
    the evidence shows it went unnoticed; no diagnosis beyond the evidence.
 6. **Actions with effectiveness proof.** Each action has the condition it addresses, an
    observable check that reproduces the relevant scale, platform and failure, and an owner and
@@ -152,6 +158,9 @@ retired without changing a control ID.
   says what it falls back to.
 - A test, lookup, review, effect or approval is reported as run only with its observed result;
   one that was planned, requested or returned empty is `pending`, never independent proof.
+- Every asserted fact in every section of a report traces to a supplied source whose coverage
+  includes it; what the materials lack is "not observed in these materials", and the rest is
+  `unknown`, a hypothesis or a proposed inspection.
 - No private paths, project names, customer data or session identifiers in tracked files.
   Examples are original and synthetic.
 - Sources: public primary references (Google SRE book and workbook chapters on objectives,

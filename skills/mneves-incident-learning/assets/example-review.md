@@ -33,6 +33,8 @@ source here covers access.
 | Log export job history | Day 15, provider dashboard export; completeness not checked against an independent count | Provider UTC | Export runs, days 10–14 (completeness `unknown`) |
 | Job configuration audit log | Day 15, provider export | Provider UTC | Configuration changes, days 1–14 |
 | Deploy history | Day 15, CLI listing of the production account | Provider UTC | Production deploys, days 1–14; other accounts not retrieved |
+| Alert and uptime-check configuration | Day 15, complete export with change history | Provider UTC | Rules and checks in force days 1–14 in the production monitoring account only |
+| Worker source | Day 15, repository at the commit of the D10 deploy | — | Rendering and health-check code |
 | On-call runbook | Day 15, repository copy as of day 12 | — | Steps in force on day 12 |
 | Incident chat | Day 15, full thread export | Client devices, local time (UTC−3), skew unknown | Day 12 07:40–11:30 local |
 | On-call engineer | Day 16 interview | Recollection | Day 12 morning |
@@ -44,7 +46,7 @@ by the thread's own sequence and their order against provider events is `uncerta
 
 | Time | Original | Event | Label | Source |
 |---|---|---|---|---|
-| D11 08:05 | same | Upstream replica rotates its credentials; refresh job starts failing with an auth error | observed | Refresh job history |
+| D11 08:05 | same | Upstream replica rotates its credentials; refresh job starts failing with an auth error | observed | Replica status history, refresh job history |
 | D11 08:05–D12 13:26 | same | Worker keeps serving the last cache with HTTP 200 | observed | Worker log |
 | D12 10:41 (chat clock) | 07:41 local | A user reports "last week's numbers"; on-call acknowledges | observed | Incident chat |
 | D12 11:02 (chat clock) | 08:02 local | "Rolling back the Worker to yesterday's version" | planned | Incident chat |
@@ -61,15 +63,21 @@ it changes nothing in this review.
 
 ## Contributing conditions
 
-- The credential rotation was scheduled by the database provider; no alert covered refresh
-  failures.
-- The Worker treats any cached page as servable; freshness is not checked before rendering.
-- The health check and the uptime monitor test HTTP status only, so both stayed green.
-- The rollback was reported done without a check that it took effect: the runbook has no
-  confirmation step, and no later chat message checks the deploy history. The reported
-  rollback going unchecked is the condition; why it did not reach production is unknown until
-  owner action 2.
-- The log export has no failure alert either (day 13).
+Each condition cites the source that shows it.
+
+- The refresh job failed with an auth error from D11 08:05, when the replica's credentials
+  rotated (replica status history, refresh job history). Whether the provider announced the
+  rotation is unknown: no provider notices were retrieved.
+- No alert rule covered refresh-job or log-export failures in the production monitoring
+  account during days 1–14 (alert configuration export). Rules defined anywhere else were not
+  seen.
+- The Worker renders any cached page without checking the data's age (Worker source).
+- The health check and the uptime check test HTTP status only (Worker source, alert
+  configuration export), so neither could see stale data.
+- The runbook in force has no step to confirm a rollback in the deploy history (runbook), and
+  no message in the exported thread mentions such a check (incident chat, 07:40–11:30 local).
+  Whether anyone checked outside the thread, and why the rollback is not in the production
+  history, are unknown until owner action 2.
 
 ## Decisions in context
 
@@ -79,8 +87,8 @@ it changes nothing in this review.
   step (observed). They said the refresh job's history was not linked from any dashboard they
   used (reported).
 - **Reporting "rolled back" (chat, 08:09 local).** On-call said the CLI printed success
-  (reported); no capture of that output exists. Nothing in the runbook asks for confirmation in
-  the deploy history (observed).
+  (reported); no capture of that output was supplied. Nothing in the runbook asks for
+  confirmation in the deploy history (observed).
 
 ## Recovery
 
@@ -92,8 +100,7 @@ view, but no artifact shows the cache contents being replaced by that run.
 ## What worked
 
 - The per-view freshness log existed, so the impact could be measured to the view.
-- The user report reached on-call through the support channel, and on-call acknowledged it in
-  the same chat thread.
+- A user's report reached on-call, who acknowledged it in the incident chat.
 
 ## Luck
 
@@ -108,9 +115,9 @@ Owners and dates below are proposals by the reviewer; none has been accepted yet
 |---|---|---|---|---|---|---|---|
 | A1 | Worker refuses to render data older than 15 minutes and shows a "data delayed" notice | Stale cache served as good | detect, limit | proposed: report team lead | proposed: D30 | A test with a 20-minute-old cache fails before the change and passes after; an isolated environment with the refresh job paused shows the notice | open |
 | A2 | Alert when two consecutive refresh runs fail, and when the log export misses a day | No alert on refresh or export failure | detect | proposed: on-call lead | proposed: D25 | Pausing the job in an isolated environment pages within 15 minutes; a skipped export opens a ticket | open |
-| A3 | Rotate the replica credential through the secret manager with an expiry warning | Unannounced credential rotation | remove | unassigned | pending | A rotation in an isolated copy raises the warning before the old credential stops working, and the refresh job keeps succeeding | open |
+| A3 | Rotate the replica credential through the secret manager with an expiry warning | Credential rotation broke the refresh job | remove | unassigned | pending | A rotation in an isolated copy raises the warning before the old credential stops working, and the refresh job keeps succeeding | open |
 | A4 | Restore the report store into an isolated target and time it | Cache could be the only copy | recover | proposed: platform owner | proposed: D35 | Timed restore log: start and end times (recovery time), row counts and checksums equal to the source, newest restored record's timestamp (recovery point) | open |
-| A5 | Runbook: after a rollback, confirm the version in the production account's deploy history | Rollback reported, not checked | detect | proposed: on-call lead | proposed: D20 | The next drill's record shows the confirmation step with its output, and a drill rollback aimed at the wrong account is caught by it | open |
+| A5 | Runbook: after a rollback, confirm the version in the production account's deploy history | Runbook has no rollback confirmation step | detect | proposed: on-call lead | proposed: D20 | The next drill's record shows the confirmation step with its output, and a drill rollback aimed at the wrong account is caught by it | open |
 | A6 | Enable nightly backups of the report store | Cache could be the only copy | — | — | — | Backups exist | dropped: a backup without a tested restore does not change recovery; replaced by A4 |
 
 ## Evidence limits
@@ -119,7 +126,11 @@ Owners and dates below are proposals by the reviewer; none has been accepted yet
   accounts' histories were not retrieved, so its target is unknown.
 - Chat clock skew is unknown. Chat events are ordered among themselves by the thread; their
   order against provider events is uncertain. No conclusion here depends on that order: the
-  production history shows no deploy anywhere in days 10–14 after D10.
-- Decisions in context rest on one interview and the runbook; the CLI's output was not captured.
+  production account's history shows no deploy in days 10–14 after D10.
+- Alert coverage comes from one monitoring account's export; rules or checks defined elsewhere
+  were not seen. Provider notices about the rotation were not retrieved; the owner can export
+  them from the provider account.
+- Decisions in context rest on one interview and the runbook; no capture of the CLI's output
+  was supplied.
 - Day 13 view data is missing; impact on that day is unknown, though the stall had ended.
 - Views that failed before the Worker ran are not counted.
