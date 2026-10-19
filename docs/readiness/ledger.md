@@ -8,18 +8,22 @@ Deploy artifact: `site/`, published to GitHub Pages by `.github/workflows/static
 Profile: ui (static HTML/CSS and minimal JavaScript, `PRODUCT.md:28`); stake: none (no `db`, `accounts`, `uploads`, `marketing-email`, `payments` or `sla`, `SECURITY.md:94`, `SECURITY.md:117-118`)
 Regulated: none established. No regulated consumer-service activity is established for these scoped static developer docs; the UX-07 contract gate is inactive, and this is not a legal exemption claim.
 Contracts: none
-Cursors: none
-Baseline: 2026-10-18 at 1f9d8fbc8b1229efb4e465f23665e42314433627 (source snapshot) · provisional · maximum age 90 days · final candidate pending
+Cursors: production b95604c (2026-10-18)
+Baseline: 2026-10-18 at 1f9d8fbc8b1229efb4e465f23665e42314433627 (source snapshot) · maximum age 90 days
+Binding run for production: 2026-10-18 at b95604cb94e90f25abab4d44b68ec533bc0fb314 · verdict ready · 0 open blockers · record `.scratch/readiness/production.json` (valid to 2026-10-19T22:12:00Z)
 Owners: proposed roles only, none accepted · review proposed: maintainer · data proposed: maintainer · delivery and cost proposed: maintainer · on-call proposed: maintainer, backup unassigned · security patching proposed: maintainer · compliance proposed: maintainer · testing proposed: maintainer · scope proposed: maintainer · architecture proposed: maintainer · memory proposed: maintainer
 
-This is a provisional baseline, not a binding gate run. No readiness record was written, no
-cursor moved, and the independent production check is pending. Production readiness is
-**NOT READY**: DEL-03, DEL-04, DEL-09, OPS-04, SEC-12, SEC-13, SEC-17, SEC-23 and CMP-06 are
-open blocker-tier rows, and every security row also depends on the security gate record for the
-final candidate, which does not exist yet. A
-green source gate (CI) is not readiness, and readiness is not release authority: a production
-release still needs the exact candidate's security gate and the owner's approval of that commit
-and target (`SECURITY.md:44-47`). Nothing below waives a control.
+The provisional baseline was followed by a binding production run on 2026-10-18 at
+`b95604c` (tree `5471032…`), the commit deployed as v1.38.0. That run reassessed the always-on
+set and the delta, imported the exact-candidate security rows, and folded in a fresh-context
+independent check of every blocker row claiming PASS or NOT APPLICABLE. The check found MNT-05
+and ASY-02 standing on evidence that does not hold at unit `.`; both are WAIVED, not PASS,
+with the fix owed before 2026-10-25. Eleven rows carry owner waivers: SEC-13, SEC-17, SEC-20,
+SEC-23, CMP-06, DEL-03, DEL-04, DEL-09, OPS-04, MNT-05 and ASY-02. Underlying FAIL and NOT
+TESTED results stay visible, and an expired waiver restores each block. Readiness is a
+precondition, not release authority: the deploy of that exact commit and target was approved
+separately, and its live proof (served bytes matching the gated tree, links, headers profile)
+was checked before the tag. A green source gate (CI) is not readiness.
 
 Evidence is source scope, read 2026-10-18 at `1f9d8fb`, unless a row says otherwise; file and
 line citations refer to that snapshot. The result closeout later edited cited files
@@ -32,7 +36,7 @@ assessed against the frozen seven-file skill manifest; the assessment's scope in
 local-distribution trust boundaries (skills, scripts and tools users run) as well as the hosted
 artifact. Restricted details stay out of this public file.
 
-Totals: 135 rows · NOT APPLICABLE 86 · PASS 10 · FAIL 6 · NOT TESTED 33 · BLOCKED 0 · WAIVED 0.
+Totals: 135 rows · NOT APPLICABLE 84 · PASS 11 · FAIL 1 · NOT TESTED 28 · BLOCKED 0 · WAIVED 11.
 
 | ID | Status | Tier | Evidence (scope, date, commit) | Owner | Next action or waiver |
 |---|---|---|---|---|---|
@@ -60,15 +64,15 @@ Totals: 135 rows · NOT APPLICABLE 86 · PASS 10 · FAIL 6 · NOT TESTED 33 · B
 | DC-10 | NOT APPLICABLE | contract | Contracts: none (header); the site collects nothing (`SECURITY.md:107-108`) | proposed: maintainer | — |
 | DEL-01 | NOT APPLICABLE | advisory | No staging environment: one production target, `github-pages`, from `main` (`.github/workflows/static.yml:8-13`, `.github/workflows/static.yml:26-27`) | proposed: maintainer | Reassess if staging is added |
 | DEL-02 | NOT TESTED | advisory | The deploy is code (`.github/workflows/static.yml:1-37`); the Pages settings (workflow source, HTTPS enforcement) live in repository settings outside the repository, and drift is not checked | proposed: maintainer | Plan entry 9 |
-| DEL-03 | NOT TESTED | blocker | CI runs on push, pull request and dispatch (`.github/workflows/ci.yml:8-12`) with the source gates at `.github/workflows/ci.yml:34-153`. The final candidate is not frozen or pushed, so no CI run exists for it. `static.yml` does not wait for CI (`.github/workflows/static.yml:8-13`), so a red run alone does not stop publication; required status checks on `main` were not read | proposed: maintainer | Plan entry 4 |
-| DEL-04 | FAIL | blocker | No record of an exercised rollback was found, and no release prints a rollback command. The only documented path is "revert the redesign commit and regenerate the site" (`docs/specs/skills-site/spec.md:88-92`). Not a first deploy, so a disable path does not meet it | proposed: maintainer | Plan entry 5 |
+| DEL-03 | WAIVED | blocker | CI runs on push, pull request and dispatch (`.github/workflows/ci.yml:8-12`) with the source gates at `.github/workflows/ci.yml:34-153`. Exact-candidate CI run 39157331955 completed/success on all four jobs before the merge, and the post-merge run 39176499896 passed as well. `static.yml` does not wait for CI (`.github/workflows/static.yml:8-13`), so a red run alone does not stop publication; required status checks on `main` were not read · underlying NOT TESTED; owner waiver @mneves75 to 2026-10-25T23:59:59Z (`.scratch/readiness/production.md`) | @mneves75 | Plan entry 4 |
+| DEL-04 | WAIVED | blocker | No record of an exercised rollback was found, and no release prints a rollback command. The only documented path is "revert the redesign commit and regenerate the site" (`docs/specs/skills-site/spec.md:88-92`). Not a first deploy, so a disable path does not meet it · underlying FAIL; owner waiver @mneves75 to 2026-10-25T23:59:59Z (`.scratch/readiness/production.md`) | @mneves75 | Plan entry 5 |
 | DEL-05 | NOT TESTED | advisory | No stake (header), so advisory. Pages deployment behaviour during rollout was not observed | proposed: maintainer | — (advisory, no entry) |
 | DEL-06 | NOT APPLICABLE | advisory | No flag configuration; the artifact is static files (`.github/workflows/static.yml:33-35`) | proposed: maintainer | — |
 | DEL-07 | NOT TESTED | advisory | No `sla` contract, so advisory. Capacity is the hosting provider's; no headroom figure was read | proposed: maintainer | — (advisory, no entry) |
 | DEL-08 | NOT TESTED | advisory | Applies (`ui`). Production cache headers and asset fingerprinting were not read | proposed: maintainer | Plan entry 9 |
-| DEL-09 | NOT TESTED | blocker | production, 2026-10-18 (TLS handshake with `https://mneves75.github.io/skills/` and a read of `GET /repos/mneves75/skills/pages`): `mneves75.github.io` serves TLS 1.3 with a certificate valid from 2026-09-30 to 2026-12-29; the Pages API reports build type workflow, `cname` null and `https_enforced` true. This is current validity only: no certificate-expiry alert and no owner statement about the provider domain were found | proposed: maintainer | Plan entry 3 |
+| DEL-09 | WAIVED | blocker | production, 2026-10-18 (TLS handshake with `https://mneves75.github.io/skills/` and a read of `GET /repos/mneves75/skills/pages`): `mneves75.github.io` serves TLS 1.3 with a certificate valid from 2026-09-30 to 2026-12-29; the Pages API reports build type workflow, `cname` null and `https_enforced` true. This is current validity only: no certificate-expiry alert and no owner statement about the provider domain were found; the certificate was re-read after the 2026-10-18 deploy and still runs to 2026-12-29 · underlying NOT TESTED; owner waiver @mneves75 to 2026-10-25T23:59:59Z (`.scratch/readiness/production.md`) | @mneves75 | Plan entry 3 |
 | ASY-01 | NOT APPLICABLE | advisory | No request handlers or background work (`PRODUCT.md:28`, `SECURITY.md:94`) | proposed: maintainer | — |
-| ASY-02 | NOT APPLICABLE | blocker | No jobs, webhooks or outbound calls; the site loads no third-party resources (`SECURITY.md:71`) | proposed: maintainer | — |
+| ASY-02 | WAIVED | blocker | The control applies to external calls. The static site makes none, but the distributed autoreview skill sends review input to an external model provider; the only retry helper (`tools/lib/fetch.ts`) has a timeout and capped backoff with no jitter and no `Retry-After` handling and is imported by no tool · underlying NOT TESTED (independent check 2026-10-18); owner waiver @mneves75 to 2026-10-25T23:59:59Z (`.scratch/readiness/production.md`) | @mneves75 | — |
 | ASY-03 | NOT APPLICABLE | blocker | No jobs or queues (`SECURITY.md:94`) | proposed: maintainer | — |
 | ASY-04 | NOT APPLICABLE | blocker | No scheduled jobs in the product (`.github/workflows/static.yml:8-13`) | proposed: maintainer | — |
 | ASY-05 | NOT APPLICABLE | advisory | No application cache (`PRODUCT.md:28`) | proposed: maintainer | — |
@@ -127,7 +131,7 @@ Totals: 135 rows · NOT APPLICABLE 86 · PASS 10 · FAIL 6 · NOT TESTED 33 · B
 | MNT-02 | NOT TESTED | advisory | No stake (header), so advisory. A ruleset blocks force-push and deletion on `main` (`SECURITY.md:39-40`); required review and required checks were not read through the API | proposed: maintainer | Plan entry 4 |
 | MNT-03 | NOT TESTED | advisory | Contributions go through pull requests (`CONTRIBUTING.md:38`); a written statement of how releases are cut was not located in this read | proposed: maintainer | — (advisory, no entry) |
 | MNT-04 | NOT TESTED | advisory | An update bot is configured (`.github/dependabot.yml`); recent update history was not read | proposed: maintainer | — (advisory, no entry) |
-| MNT-05 | NOT APPLICABLE | blocker | The artifact has no runtime, framework or database to support: static files with no runtime dependency (`PRODUCT.md:28-31`) | proposed: maintainer | Reassess if a runtime is added |
+| MNT-05 | WAIVED | blocker | The control has no applicability condition, so it is always on: the repository pins and ships runtimes to users (CI pins Bun 1.4.2, `tools/package.json` requires Bun `>=1.2`, the autoreview helpers require Python 3.10+), while `SECURITY.md:3-5` states only which releases receive fixes. No supported-runtime statement, end-of-life owner or critical-advisory patch deadline exists · underlying FAIL (independent check 2026-10-18); owner waiver @mneves75 to 2026-10-25T23:59:59Z (`.scratch/readiness/production.md`) | @mneves75 | Reassess if a runtime is added |
 | MNT-06 | PASS | advisory | One script in the artifact, used by the landing page (`site/index.html:85`); no unused routes, flags or dependencies in `site/` | proposed: maintainer | — |
 | MNT-07 | PASS | advisory | The largest application file in the artifact is `site/copy-command.js` at 24 lines | proposed: maintainer | — |
 | MNT-08 | PASS | advisory | Site decisions recorded with alternatives (`docs/specs/skills-site/spec.md:23-41`), the chosen direction (`docs/specs/skills-site/spec.md:75-86`) and rollback risk (`docs/specs/skills-site/spec.md:88-92`) | proposed: maintainer | — |
@@ -136,7 +140,7 @@ Totals: 135 rows · NOT APPLICABLE 86 · PASS 10 · FAIL 6 · NOT TESTED 33 · B
 | OPS-01 | NOT APPLICABLE | advisory | No accounts (`SECURITY.md:117-118`) | proposed: maintainer | — |
 | OPS-02 | NOT APPLICABLE | advisory | No accounts (`SECURITY.md:117-118`) | proposed: maintainer | — |
 | OPS-03 | PASS | advisory | Dated public changelog (`CHANGELOG.md:10`), rendered on the landing page by the generator (`site/README.md:8`) and kept current by a CI check (`.github/workflows/ci.yml:105-109`) | proposed: maintainer | — |
-| OPS-04 | FAIL | blocker | "One maintainer administers the repository" (`SECURITY.md:37-38`): fewer than two administrators; no owner statement on recovery codes or a second administrator | proposed: maintainer | Plan entry 2 |
+| OPS-04 | WAIVED | blocker | "One maintainer administers the repository" (`SECURITY.md:37-38`): fewer than two administrators; no owner statement on recovery codes or a second administrator · underlying FAIL; owner waiver @mneves75 to 2026-10-25T23:59:59Z (`.scratch/readiness/production.md`) | @mneves75 | Plan entry 2 |
 | OPS-05 | NOT TESTED | advisory | No stake (header), so advisory. Solo operator (`SECURITY.md:37-38`); no waiver and no second person attested | proposed: maintainer | Plan entry 6 |
 | OPS-06 | NOT TESTED | advisory | No stake (header), so advisory. Seats are proposed in the header, none accepted; on-call backup unassigned | proposed: maintainer | Plan entry 6 |
 | SEC-01 | NOT APPLICABLE | blocker | Imported: no accounts (`SECURITY.md:117-118`) | proposed: maintainer | — |
@@ -150,24 +154,24 @@ Totals: 135 rows · NOT APPLICABLE 86 · PASS 10 · FAIL 6 · NOT TESTED 33 · B
 | SEC-09 | NOT APPLICABLE | advisory | Imported: no impersonation | proposed: maintainer | — |
 | SEC-10 | NOT APPLICABLE | blocker | Imported: no login | proposed: maintainer | — |
 | SEC-11 | PASS | blocker | Imported, source + local, 2026-10-18, `1f9d8fb`: the local-distribution validation boundary and its regression tests | proposed: maintainer | — |
-| SEC-12 | NOT TESTED | blocker | Imported: the secrets scan of the final candidate is pending. Always-on | proposed: maintainer | Plan entry 1 |
-| SEC-13 | FAIL | blocker | Imported, 2026-10-18, `1f9d8fb`: restricted. No waiver granted. Always-on | proposed: maintainer | Plan entry 1 |
+| SEC-12 | PASS | blocker | Imported from the exact-candidate security gate (2026-10-18, `b95604c`): TruffleHog 3.99.2 over the tracked pack, the site pack and the candidate history, with a planted-credential positive control; no finding in project content. Always-on. | imported | Plan entry 1 |
+| SEC-13 | WAIVED | blocker | Imported, 2026-10-18, `1f9d8fb`: restricted. No waiver granted. Always-on · underlying FAIL; owner waiver @mneves75 to 2026-10-25T23:59:59Z (`.scratch/readiness/production.md`) | @mneves75 | Plan entry 1 |
 | SEC-14 | NOT APPLICABLE | blocker | Imported: no uploads | proposed: maintainer | — |
 | SEC-15 | PASS | blocker | Imported, source + production, 2026-10-18: passes for the public static risk profile, with the documented deviations kept visible: no HSTS, `X-Content-Type-Options` or frame-protection headers, which Pages cannot send; CSP and referrer policy in markup; CORS without credentials (`SECURITY.md:110-118`). Not full ASVS compliance and not an owner waiver | proposed: maintainer | — |
 | SEC-16 | PASS | blocker | Imported, source + local + production, 2026-10-18: HTTPS enforced (Pages API `https_enforced` true; TLS 1.3 served) and disk encryption on the inspected release device. Scoped to that device; no fleet-wide claim | proposed: maintainer | — |
-| SEC-17 | NOT TESTED | blocker | Imported: the operator access review (collaborators, deploy keys, apps, tokens) is incomplete (`SECURITY.md:48-50` defines it). Approval of an exact production deploy is separate from this inventory | proposed: maintainer | Plan entry 1 |
+| SEC-17 | WAIVED | blocker | Imported: the operator access review (collaborators, deploy keys, apps, tokens) is incomplete (`SECURITY.md:48-50` defines it). Approval of an exact production deploy is separate from this inventory · underlying NOT TESTED; owner waiver @mneves75 to 2026-10-25T23:59:59Z (`.scratch/readiness/production.md`) | @mneves75 | Plan entry 1 |
 | SEC-18 | PASS | blocker | Imported, source + local, 2026-10-18: redaction, isolation and action-state evidence for the local tools. No assurance about external providers' log redaction | proposed: maintainer | — |
 | SEC-19 | NOT APPLICABLE | contract | Imported: contracts none | proposed: maintainer | — |
-| SEC-20 | FAIL | advisory | Imported, 2026-10-18, `1f9d8fb`: restricted. No stake (header), so advisory in this catalog; whether it blocks is the security gate's verdict. No waiver granted | proposed: maintainer | Plan entry 1 |
+| SEC-20 | WAIVED | advisory | Imported, 2026-10-18, `1f9d8fb`: restricted. No stake (header), so advisory in this catalog; whether it blocks is the security gate's verdict. No waiver granted · underlying FAIL; owner waiver @mneves75 to 2026-10-25T23:59:59Z (`.scratch/readiness/production.md`) | @mneves75 | Plan entry 1 |
 | SEC-21 | PASS | advisory | Imported, source + local, 2026-10-18: written compromise runbook (`SECURITY.md:52-67`), plus disk encryption and screen lock on the inspected release device. Scoped to that device; no fleet-wide claim | proposed: maintainer | — |
 | SEC-22 | NOT APPLICABLE | blocker | Imported: no inbound webhooks | proposed: maintainer | — |
-| SEC-23 | FAIL | blocker | Imported, 2026-10-18, frozen seven-file skill manifest (SHA-256 `6e1ee8a7f3f8f47c85f6ea0c09464e5f3d8d1c4ccbdcab14f8119cd4809a570b`): restricted; details in the private release record. No waiver granted | proposed: maintainer | Plan entry 1 |
+| SEC-23 | WAIVED | blocker | Imported, 2026-10-18, frozen seven-file skill manifest (SHA-256 `6e1ee8a7f3f8f47c85f6ea0c09464e5f3d8d1c4ccbdcab14f8119cd4809a570b`): restricted; details in the private release record. No waiver granted · underlying FAIL; owner waiver @mneves75 to 2026-10-25T23:59:59Z (`.scratch/readiness/production.md`) | @mneves75 | Plan entry 1 |
 | CMP-01 | NOT APPLICABLE | contract | Imported: contracts none | proposed: maintainer | — |
 | CMP-02 | NOT APPLICABLE | contract | Imported: contracts none | proposed: maintainer | — |
 | CMP-03 | NOT APPLICABLE | blocker | Imported: no health data | proposed: maintainer | — |
 | CMP-04 | NOT APPLICABLE | contract | Imported: no health data; contracts none | proposed: maintainer | — |
 | CMP-05 | NOT APPLICABLE | blocker | Imported: no payments | proposed: maintainer | — |
-| CMP-06 | NOT TESTED | blocker | Imported: the erasure procedure is written (`SECURITY.md:92-108`); provider and backup retention and an erasure run were not verified | proposed: maintainer | Plan entry 1 |
+| CMP-06 | WAIVED | blocker | Imported: the erasure procedure is written (`SECURITY.md:92-108`); provider and backup retention and an erasure run were not verified · underlying NOT TESTED; owner waiver @mneves75 to 2026-10-25T23:59:59Z (`.scratch/readiness/production.md`) | @mneves75 | Plan entry 1 |
 | CMP-07 | NOT APPLICABLE | contract | Imported: contracts none | proposed: maintainer | — |
 | CMP-08 | NOT APPLICABLE | contract | Imported: contracts none | proposed: maintainer | — |
 | CMP-09 | NOT APPLICABLE | blocker | Imported: no accounts; the site collects nothing (`SECURITY.md:107-108`) | proposed: maintainer | — |
@@ -176,3 +180,4 @@ Totals: 135 rows · NOT APPLICABLE 86 · PASS 10 · FAIL 6 · NOT TESTED 33 · B
 
 | Date | Target | Commit | Verdict | Open blockers | Waivers |
 |---|---|---|---|---|---|
+| 2026-10-18 | production | b95604c | ready | 0 | SEC-13 SEC-17 SEC-20 SEC-23 CMP-06 DEL-03 DEL-04 DEL-09 OPS-04 MNT-05 ASY-02 |
