@@ -14,7 +14,7 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
-- **1.38.0** (2026-10-18, unreleased candidate): still fifteen default skills. The SLO and
+- **1.38.0** (2026-10-18, released and live): still fifteen default skills. The SLO and
   incident-learning procedures ship as guides in `docs/sre-guides/` plus eight prompts in
   `docs/sre-prompts.md`; the candidate skills `mneves-slo` and `mneves-incident-learning` were
   retired. Under `docs/specs/sre-workflows/spec.md`, a skill stays if it shows better
@@ -29,9 +29,12 @@ measure whether a *target* codebase is ready for agents.
   harness repair, scored 18 semantic cases: baseline 12 met / 6 partial, candidate 14 / 4;
   discovery and all eight non-trigger controls passed, but E2 and E10 added new unsupported
   claims and further answers asserted reliance, cause or measurement, so both skills failed
-  retention and were retired. UI passed only on the earlier seventeen-card local preview.
-  `docs/readiness/` holds a provisional NOT READY
-  baseline. Nothing is deployed, tagged or past the security gate.
+  retention and were retired. UI passed on a local preview whose seven site hashes equal the
+  shipped bytes. Merged as `1f93ab1`, deployed to GitHub Pages with served bytes matching the
+  gated tree, tagged `v1.38.0` and released; CI green before and after the merge. The security
+  gate for `b95604c` is WAIVED (SEC-13, SEC-17, SEC-20, SEC-23, CMP-06) and readiness is `ready`
+  under eleven owner waivers expiring 2026-10-25T23:59:59Z, recorded in
+  `docs/readiness/ledger.md` and `.scratch/readiness/production.json`.
 - **1.37.0** (2026-10-16): fifteen default skills, adding `mneves-production-readiness`, a deploy
   gate for data, recovery, money, operations, UX and maintainability (103 controls plus 32
   security and compliance rows imported from the `mneves-security` gate record). Release
@@ -213,3 +216,11 @@ workspace-data scan plus source reading):
   (only v1.6.0–v1.9.0, v1.19.0, and v1.20.0 are tagged, checked 2026-09-22 with `git ls-remote`).
 - `mneves75.github.io` (user site) does not exist as a repo; linking this project from it needs
   that repo to be created first.
+- Waivers from the 1.38.0 release expire 2026-10-25T23:59:59Z. The two the independent check
+  created are real work: MNT-05 needs a supported-runtime/end-of-life/patch-deadline statement in
+  `SECURITY.md`, and ASY-02 needs jitter plus `Retry-After` in `tools/lib/fetch.ts` with a test,
+  or the external CLI documented as the retry owner. The remaining nine are owner evidence
+  (access review, origin `security.txt`, provider data/action and erasure evidence, rollback
+  drill, certificate-expiry alert, second administrator, frozen CI graph, CI-to-Pages check).
+- `site/README.md:9` still says the fifteen-card catalog "has not been rechecked" although the
+  UI run binds those exact hashes; correct it in the next change that already touches `site/**`.
