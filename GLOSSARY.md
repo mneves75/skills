@@ -4,8 +4,13 @@ Portable procedures and supporting resources installed into coding agents.
 
 ## Language
 
-**Security finding**: An observed or suspected weakness with identified evidence,
-affected assets, severity and confidence. An unconfirmed suspicion is not a verified defect.
+**Security finding**: A candidate weakness that names the lower-trust principal, its input,
+the control, the crossed boundary, the affected resource and the observed result. Its
+disposition is confirmed (carries a severity), needs-validation (one external fact missing;
+no severity) or disproved. An unconfirmed suspicion is not a verified defect.
+
+**Disposition**: Whether a security finding is true: confirmed, needs-validation or
+disproved. Distinct from a gate's verdict (pass, block, waived) and from a fix state.
 
 **Evidence scope**: The environment and surface a check actually establishes, such as
 source configuration, local behavior, deployed behavior or an owner's dated attestation.

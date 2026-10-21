@@ -44,7 +44,8 @@ Reproduce locally and minimally. Use the project's own test, build and dev comma
 dummy principals and fixtures, and stop at the first observable boundary result (a wrong
 response, an unauthorized dummy record, a sanitizer report). Run third-party or otherwise
 untrusted target code only in a sandbox with no external network, an allowlisted
-environment, writes confined to a scratch directory and resource limits; without one, keep
+environment, writes confined to a scratch directory, resource limits and no dependency
+installs or fetches during the build; without one, keep
 the candidate needs-validation and give the safe check. Never probe deployed, shared or
 third-party systems beyond the live checks the release procedure authorizes, and never
 attempt availability attacks, persistence or real user data.
@@ -130,7 +131,7 @@ owner-observable) result, with actual files, symbols, routes or policies. A miss
 practice with no reachable violation is a hardening note; self-impact, intended
 same-principal authority and a parser crash with no named boundary are not findings.
 
-Each candidate gets one verdict:
+Each candidate gets one disposition (distinct from the deploy gate's verdict):
 
 - **confirmed**: source trace and bounded local evidence establish all six; it carries a
   severity.
@@ -142,8 +143,8 @@ Each candidate gets one verdict:
 
 The agent that found a candidate never confirms it. A fresh verifier in the reviewer role
 (`mneves-verify` when installed, otherwise a fresh read-only context; a different model
-for production) gets the candidate and source but not the finder's reasoning and tries to
-disprove it. A candidate is confirmed only when it survives that attempt and positive
+for production) gets the candidate's source trace and evidence, but not the finder's
+conclusion or severity, and tries to disprove it. A candidate is confirmed only when it survives that attempt and positive
 evidence establishes all six elements; failing to refute it is not enough. Severity follows demonstrated impact, never the class name:
 
 - **Critical**: an unauthenticated actor gains code execution, full data-store access or
@@ -208,7 +209,7 @@ migration files only with schema confidence, tests and recovery notes. Files wri
 locally are not policies applied remotely. Do not use admin/service identities to prove
 ordinary-user isolation.
 
-Record each item's verdict (confirmed, needs-validation, disproved) and, for confirmed
+Record each item's disposition (confirmed, needs-validation, disproved) and, for confirmed
 ones, its fix state: proposed, fixed-and-verified, awaiting-application, manual-action,
 blocked or waived. Mark fixed only after an actual code/config
 change and concrete verification. Record source/local/staging/production evidence

@@ -66,7 +66,7 @@ also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use 
 </tr>
 <tr>
 <td><a href="#mneves-security"><code>mneves-security</code></a></td>
-<td>audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy</td>
+<td>hunt vulnerabilities, audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy</td>
 <td>&quot;audit security and privacy; fix confirmed local issues; do not deploy&quot;</td>
 </tr>
 <tr>
@@ -135,7 +135,7 @@ database/resource isolation, auth failures, headers/cookies, validation, secrets
 keys, rate/cost protection, bot controls/CORS, logging/errors and dependencies, with
 AI/agentic/mobile checks when those surfaces exist. A full audit also hunts the attack
 classes the inventory makes reachable (HTTP framing, client side, CI and release, cloud,
-messaging, data lifecycle, local IPC, native code) and ends with a coverage critic. A
+messaging, resource spend, data lifecycle, local IPC, native code, agents) and ends with a coverage critic. A
 candidate becomes a finding only when it names the principal, input, control, boundary,
 affected resource and observed result, and a fresh verifier failed to disprove it.</p>
 <p><strong>When to use it.</strong> You want an engineering security/privacy audit of an MVP, SaaS, API

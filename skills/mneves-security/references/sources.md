@@ -57,7 +57,8 @@ Cloudflare's separately installed
 It is not shipped here; without it, this skill's attack classes and coverage critic apply.
 Its [harness write-up](https://blog.cloudflare.com/build-your-own-vulnerability-harness)
 is the evidence for the disproof step and partial-coverage rule: one run found about half
-of what repeated runs found, and a separate disprover rejected fabricated findings.
+of what repeated runs found, and unsupported candidates were rejected by a validator that
+could not file findings of its own and by requiring a proof that runs on unmodified source.
 
 Legal readiness uses relevant official regulatory guidance only when jurisdiction and
 processing are known. Request legal/content ownership for unresolved interpretations.

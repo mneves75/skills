@@ -7,7 +7,9 @@ candidate is a coverage note, not a pass: say what was traced.
 
 Every class ends in the same test: name the lower-trust principal, its input or action, the
 control that should stop it, the boundary crossed, the affected principal or resource and the
-observed result. Without all six it is a hardening note or a needs-validation record.
+observed result. Without all six it is a hardening note; it is needs-validation only when
+the source trace is complete and exactly one external fact (a provider setting, a deployed
+policy, a runtime identity) is missing. Needs-validation is never a parking place.
 
 ## Core classes (every target)
 
@@ -118,7 +120,7 @@ become hunting work in this run or a named coverage gap in the report. Stop when
 adds nothing, or when the agreed budget ends; record which.
 
 One pass finds only part of what repeated passes find, so a single run reports its coverage as
-partial. A later run reads the earlier report: a disproved claim stays suppressed only while its
+partial. A later run reads the earlier report: a disproved claim (same area, sink and boundary) stays suppressed only while its
 source and the assumptions its disproof rested on (provider policy, identity, dependency
 versions, topology) are unchanged; any change makes it current work again. Public buckets,
 unpinned actions and unknown fields are leads to trace, not findings by themselves.

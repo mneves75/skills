@@ -30,7 +30,7 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 | [`autoreview`](#autoreview) | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
 | [`mneves-handoff`](#mneves-handoff) | hand a task to another agent, review first | "handoff the flaky login test" |
 | [`mneves-render`](#mneves-render) | build repeatable HTML, Word and PDF exports from Markdown | "write a renderer for my Markdown reports" |
-| [`mneves-security`](#mneves-security) | audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy | "audit security and privacy; fix confirmed local issues; do not deploy" |
+| [`mneves-security`](#mneves-security) | hunt vulnerabilities, audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy | "audit security and privacy; fix confirmed local issues; do not deploy" |
 | [`mneves-production-readiness`](#mneves-production-readiness) | check an app is ready for paying customers before each staging or production deploy | "is this ready for production? give me the fix plan" |
 | [`imagegen-frontend-mobile`](#imagegen-frontend-mobile) | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
 | [`mneves-chatgpt-search`](#mneves-chatgpt-search) | improve ChatGPT Search discovery and measure citations/referrals | "improve this site's ChatGPT Search visibility" |
@@ -55,7 +55,7 @@ database/resource isolation, auth failures, headers/cookies, validation, secrets
 keys, rate/cost protection, bot controls/CORS, logging/errors and dependencies, with
 AI/agentic/mobile checks when those surfaces exist. A full audit also hunts the attack
 classes the inventory makes reachable (HTTP framing, client side, CI and release, cloud,
-messaging, data lifecycle, local IPC, native code) and ends with a coverage critic. A
+messaging, resource spend, data lifecycle, local IPC, native code, agents) and ends with a coverage critic. A
 candidate becomes a finding only when it names the principal, input, control, boundary,
 affected resource and observed result, and a fresh verifier failed to disprove it.
 
