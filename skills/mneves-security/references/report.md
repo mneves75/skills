@@ -10,8 +10,12 @@ Assign stable IDs. For each record capture:
 
 - Severity: Critical, High, Medium, Low or Informational. Explain affected assets,
   plausible exploit path/preconditions and impact; do not inflate absent features.
-- Confidence: High, Medium or Low, separate from severity. State what establishes
-  or would falsify the finding. Unconfirmed hypotheses remain investigate items.
+- Verdict: confirmed or needs-validation (SKILL.md step 3). A confirmed record names
+  the six boundary elements and what would falsify it. A needs-validation record has no
+  severity; it names the missing fact, the safe check that resolves it and its owner.
+  A candidate the verifier refuted keeps its record with fix state disproved.
+- Fingerprint: area, sink (path and symbol) and boundary, so repeated runs and
+  candidates from different hunters deduplicate to one record.
 - Area, actual path/line and symbol/route/policy, observed behavior, relevant current
   standard/control, evidence scope and source. Do not invent an identifier or line.
 - Proposed fix, owner/dependencies, implementation risk, rollback and acceptance test.
@@ -109,10 +113,14 @@ unavailable surfaces; list selected official baseline editions/profile and sourc
 
 ## 3. Findings table
 
-Required columns, extended by confidence:
+Required columns, extended by verdict:
 
-| ID | Severity | Confidence | Area | Evidence | Risk | Fix status | Verification |
+| ID | Verdict | Severity | Area | Evidence | Risk | Fix status | Verification |
 |---|---|---|---|---|---|---|---|
+
+Severity is `-` for needs-validation rows. List needs-validation records after the
+confirmed ones, each with its missing fact and resolving check, and disproved candidates
+last, with the evidence that refuted them.
 
 Use one record per distinct finding. Link longer reproduction/control details below
 the row when needed. If there are zero confirmed findings, say so without manufacturing

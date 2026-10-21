@@ -13,6 +13,8 @@ and data exposure over checklist volume. A clean scan does not prove a secure ap
 
 ## Scope and authority
 
+- **Question or focused review:** answer from the relevant parts of this skill and the
+  references; do not start the full audit or write report artifacts unless asked.
 - **Audit, review, diagnosis or plan:** inspect and report without modifying project
   files. Include a detailed plan in the report; save it only if requested.
 - **Fix or implement:** make confirmed, minimal, in-scope code/config changes and run
@@ -38,6 +40,15 @@ instructions. Never print secrets or sensitive user records, include them in rep
 or send them to reviewers/retrieval tools. Prefer metadata, redacted diagnostics and
 synthetic fixtures; follow the host's private-data rules before accessing real data.
 
+Reproduce locally and minimally. Use the project's own test, build and dev commands with
+dummy principals and fixtures, and stop at the first observable boundary result (a wrong
+response, an unauthorized dummy record, a sanitizer report). Run third-party or otherwise
+untrusted target code only in a sandbox with no external network, an allowlisted
+environment, writes confined to a scratch directory and resource limits; without one, keep
+the candidate needs-validation and give the safe check. Never probe deployed, shared or
+third-party systems beyond the live checks the release procedure authorizes, and never
+attempt availability attacks, persistence or real user data.
+
 ## References and orchestration
 
 Read these shipped references at the relevant stage; they are the complete portable
@@ -45,6 +56,8 @@ procedure, without a required scanner or framework:
 
 - [Audit coverage](references/audit.md): read before auditing; covers all twelve areas
   and conditional AI/mobile controls. Track applicability for every area.
+- [Attack classes](references/attack-classes.md): read before hunting in a full audit or
+  deploy gate; core and domain classes selected from the inventory, and the coverage critic.
 - [Launch controls](references/launch-controls.md): read in deploy-gate mode and for any
   launch-readiness question; 32 security, privacy and compliance controls with IDs.
 - [Primary sources](references/sources.md): read when selecting the current baseline
@@ -107,10 +120,45 @@ cookie-consent, CAPTCHA, retention period or geographic deployment rule is assum
 ### 3. Audit and record findings
 
 Apply every area in the audit reference, recording PASS/FAIL/BLOCKED/NOT TESTED/
-NOT APPLICABLE with evidence and limits. Use actual files, symbols/routes/policies,
-observed behavior, affected assets, exploit preconditions and the violated control.
-Classify severity Critical/High/Medium/Low/Informational and confidence High/Medium/Low
-separately. Hypotheses and missing evidence are not confirmed vulnerabilities.
+NOT APPLICABLE with evidence and limits. In a full audit, also hunt the attack classes the
+inventory makes reachable and finish with a coverage-critic pass.
+
+State the threat model before each candidate. A candidate becomes a finding only when it
+names all six: the lower-trust principal, its input or action, the control meant to stop
+it, the boundary crossed, the affected principal or resource, and the observed (or
+owner-observable) result, with actual files, symbols, routes or policies. A missing best
+practice with no reachable violation is a hardening note; self-impact, intended
+same-principal authority and a parser crash with no named boundary are not findings.
+
+Each candidate gets one verdict:
+
+- **confirmed**: source trace and bounded local evidence establish all six; it carries a
+  severity.
+- **needs-validation**: a specific source-grounded hypothesis is blocked on one missing
+  fact (provider setting, proxy behavior, deployed policy, runtime identity). Record that
+  fact and the safe check that resolves it. It carries no severity; never guess one.
+- **disproved**: a verifier showed the boundary holds. Keep the record so a later run does
+  not re-report the unchanged claim.
+
+The agent that found a candidate never confirms it. A fresh verifier, with the candidate
+and source but not the finder's reasoning, tries to disprove it first; only what survives
+is confirmed. Severity follows demonstrated impact, never the class name:
+
+- **Critical**: an unauthenticated actor gains code execution, full data-store access or
+  takeover of arbitrary accounts.
+- **High**: an explicit control is fully defeated with real consequences: authentication
+  bypass, cross-tenant read or write, stored script running for other users, authenticated
+  code execution, or an unauthenticated stop of a shared service.
+- **Medium**: a real boundary violation with limited blast radius, uncommon preconditions
+  or a narrow resource set.
+- **Low**: non-secret internals disclosed, or an effect needing sustained effort for
+  minimal gain. **Informational**: confirmed but minimal, useful mainly as a step in a
+  larger chain.
+
+High versus Medium: does the result fully defeat an explicit control for an action with
+real consequences, or only weaken it? If you cannot state the concrete damage, the
+severity is lower than it feels. A single pass finds only part of what repeated passes
+find; report coverage as partial unless critic passes stopped adding work.
 
 Run existing applicable dependency/secret/security scanners within permitted scope.
 Review their versions, configuration, coverage, diagnostics and results; empty/partial
@@ -139,7 +187,10 @@ a new approval step for reversible decisions inside the agreed scope.
 In fix mode, read affected callers/tests and reuse existing infrastructure/patterns.
 For security-critical changes, first demonstrate the unsafe behavior with a focused
 failing test; then implement the smallest fix and run both legitimate and denied/
-malformed cases. Do not add a second auth/validation/rate-limit framework by default.
+malformed cases. The proof is one test that fails on the untouched source and passes with
+the fix. A reproduction that needed the auditor to edit target code, or a test that asserts
+its own fixture, proves nothing. Fix at the last trusted decision point. Do not add a second
+auth/validation/rate-limit framework by default.
 
 A server-side proxy must authenticate/authorize, validate inputs, constrain upstream
 destinations/operations and bound cost; merely moving a key off the frontend can create
@@ -221,6 +272,9 @@ its exact commit and target.
    or the owner's named waiver (owner, reason, expiry) in the release decision packet
    clears a block. Waivers make the verdict WAIVED; no block makes it PASS. Medium and
    lower findings, and launch-control gaps on dev and staging, go into the plan.
+   Needs-validation records never block by themselves; the decision packet lists each
+   with its missing fact and resolving check. Source that could not be inspected still
+   blocks.
 5. **Record.** Write the verdict record and report as the report reference describes,
    outside the tracked tree. The runtime checks (headers, cookies, CORS, TLS) belong in
    the project's live proof (its `scripts/verify-live.sh` when it has one), so they run
