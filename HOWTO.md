@@ -27,21 +27,21 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 
 | Skill | Use it when you want to… | Say something like |
 |---|---|---|
-| `autoreview` | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
-| `mneves-handoff` | hand a task to another agent, review first | "handoff the flaky login test" |
-| `mneves-render` | build repeatable HTML, Word and PDF exports from Markdown | "write a renderer for my Markdown reports" |
-| `mneves-security` | audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy | "audit security and privacy; fix confirmed local issues; do not deploy" |
-| `mneves-production-readiness` | check an app is ready for paying customers before each staging or production deploy | "is this ready for production? give me the fix plan" |
-| `imagegen-frontend-mobile` | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
-| `mneves-chatgpt-search` | improve ChatGPT Search discovery and measure citations/referrals | "improve this site's ChatGPT Search visibility" |
-| `mneves-eli5` | explain a thing to a specific audience | "explain OAuth to my dad" |
-| `mneves-expert-review` | stress-test a plan or answer before it ships | "challenge this design" |
-| `mneves-verify` | get an independent PASS/FAIL before "done" | "verify it", "prove it" |
-| `mneves-fable-orchestrator` | route independent work by capability | "delegate the backend to codex" |
-| `mneves-agent-readiness` | measure how agent-friendly a repo is | "why does the agent struggle here?" |
-| `mneves-teach-back-srs` | learn a codebase with spaced repetition | "let me explain the auth flow" |
-| `mneves-superaudit` | run a bounded audit-and-cleanup pass over a repo | "superaudit this repo, slop and perf only" |
-| `mneves-ship-deploy` | prepare verified staging, then approve the exact candidate before production | "ship-staging" or "ship-prod" |
+| [`autoreview`](#autoreview) | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
+| [`mneves-handoff`](#mneves-handoff) | hand a task to another agent, review first | "handoff the flaky login test" |
+| [`mneves-render`](#mneves-render) | build repeatable HTML, Word and PDF exports from Markdown | "write a renderer for my Markdown reports" |
+| [`mneves-security`](#mneves-security) | audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy | "audit security and privacy; fix confirmed local issues; do not deploy" |
+| [`mneves-production-readiness`](#mneves-production-readiness) | check an app is ready for paying customers before each staging or production deploy | "is this ready for production? give me the fix plan" |
+| [`imagegen-frontend-mobile`](#imagegen-frontend-mobile) | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
+| [`mneves-chatgpt-search`](#mneves-chatgpt-search) | improve ChatGPT Search discovery and measure citations/referrals | "improve this site's ChatGPT Search visibility" |
+| [`mneves-eli5`](#mneves-eli5) | explain a thing to a specific audience | "explain OAuth to my dad" |
+| [`mneves-expert-review`](#mneves-expert-review) | stress-test a plan or answer before it ships | "challenge this design" |
+| [`mneves-verify`](#mneves-verify) | get an independent PASS/FAIL before "done" | "verify it", "prove it" |
+| [`mneves-fable-orchestrator`](#mneves-fable-orchestrator) | route independent work by capability | "delegate the backend to codex" |
+| [`mneves-agent-readiness`](#mneves-agent-readiness) | measure how agent-friendly a repo is | "why does the agent struggle here?" |
+| [`mneves-teach-back-srs`](#mneves-teach-back-srs) | learn a codebase with spaced repetition | "let me explain the auth flow" |
+| [`mneves-superaudit`](#mneves-superaudit) | run a bounded audit-and-cleanup pass over a repo | "superaudit this repo, slop and perf only" |
+| [`mneves-ship-deploy`](#mneves-ship-deploy) | prepare verified staging, then approve the exact candidate before production | "ship-staging" or "ship-prod" |
 
 ---
 
