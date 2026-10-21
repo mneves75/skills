@@ -52,7 +52,8 @@ lets an unverified email, phone or federated identity take over an existing acco
 that can be skipped or reused; passkey and API-key scoping and rotation.
 
 **Client side and browser** (SPAs, extensions, webviews, service workers). DOM sinks fed by
-URL, storage or messages; `postMessage` handlers that skip the origin check or trust `*`;
+URL, storage or messages; `message` handlers that act on data without checking `event.origin`, and `postMessage`
+calls that send confidential data with target origin `*`;
 prototype pollution reaching a gadget; DOM clobbering; service-worker scope and cache poisoning
 that outlives logout; tokens in storage readable by any script; cross-site leaks through frame
 counts, timing or error events; clickjacking of consequential actions; open redirects chained
@@ -118,4 +119,6 @@ adds nothing, or when the agreed budget ends; record which.
 
 One pass finds only part of what repeated passes find, so a single run reports its coverage as
 partial. A later run reads the earlier report: a disproved claim stays suppressed only while its
-source is unchanged; changed source makes its unit current work again.
+source and the assumptions its disproof rested on (provider policy, identity, dependency
+versions, topology) are unchanged; any change makes it current work again. Public buckets,
+unpinned actions and unknown fields are leads to trace, not findings by themselves.

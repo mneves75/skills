@@ -167,7 +167,7 @@ claims NOT TESTED. A fallback never replaces a security audit.
   rules require.
 
 ### CMP-06 Erasure everywhere
-`blocker` · applies: `accounts` · area: privacy and compliance readiness
+`blocker` · applies: `accounts` or other stored personal data · area: privacy and compliance readiness
 - Fallback: a deletion request reaches every table, file store, search index, analytics tool,
   log and processor; backups keep erased data out of use until they expire, and restores re-apply
   erasures.

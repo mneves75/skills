@@ -21,8 +21,9 @@ without it, this skill still covers the security slice completely.
   control Yes. Before a deploy, configuration evidence for that target meets a `runtime`
   control; its live check then joins the release's live proof.
 - **Findings.** A failed control that is exploitable is a finding with a verdict and,
-  when confirmed, a severity, recorded once and cited from the row. A missing control is also a finding: name
-  what the product lacks and the smallest durable way to add it.
+  when confirmed, a severity, recorded once and cited from the row. A missing control is a No in its row and a plan
+  item, not a vulnerability finding: name what the product lacks and the smallest durable way
+  to add it.
 - **Plan.** Every applicable control that is not Yes gets a remediation step: what to build,
   fix, configure or decide, its owner type (code, database, provider, legal, manual QA) and an
   acceptance check.

@@ -8,12 +8,13 @@ reports compact without dropping sections or silently replacing missing proof wi
 
 Assign stable IDs. For each record capture:
 
-- Severity: Critical, High, Medium, Low or Informational. Explain affected assets,
-  plausible exploit path/preconditions and impact; do not inflate absent features.
-- Verdict: confirmed or needs-validation (SKILL.md step 3). A confirmed record names
-  the six boundary elements and what would falsify it. A needs-validation record has no
-  severity; it names the missing fact, the safe check that resolves it and its owner.
-  A candidate the verifier refuted keeps its record with fix state disproved.
+- Verdict: confirmed, needs-validation or disproved (SKILL.md step 3). A confirmed
+  record names the six boundary elements and what would falsify it. A needs-validation
+  record names the missing fact, the safe check that resolves it and its owner. A
+  disproved record names the evidence that refuted it and the assumptions that evidence
+  rests on (source, provider policy, identity, dependency versions, topology).
+- Severity: Critical, High, Medium, Low or Informational, for confirmed records only, per
+  the SKILL.md anchors; `-` otherwise.
 - Fingerprint: area, sink (path and symbol) and boundary, so repeated runs and
   candidates from different hunters deduplicate to one record.
 - Area, actual path/line and symbol/route/policy, observed behavior, relevant current
@@ -21,8 +22,8 @@ Assign stable IDs. For each record capture:
 - Proposed fix, owner/dependencies, implementation risk, rollback and acceptance test.
 - Fix state and verification state, with exact commands/outcomes and environment.
 
-Fix states are proposed, confirmed, fixed-and-verified, awaiting-application,
-manual-action, blocked, disproved or waived. A policy file can be fixed locally while
+The fix state tracks remediation of a confirmed finding, separately from its verdict:
+proposed, fixed-and-verified, awaiting-application, manual-action, blocked or waived. A policy file can be fixed locally while
 application to its provider remains awaiting-application. Keep both scopes explicit.
 A waiver names its owner, scope, reason and expiry; it does not turn a failed check
 into PASS or permit an unapproved release.

@@ -78,7 +78,7 @@ the fixed diff. Use installed `mneves-verify` for independent acceptance; withou
 give a fresh verifier the frozen criteria, artifacts and stopping condition. Security
 acceptance uses a different model from the builder. If an independent reviewer or
 required distinct-model verifier is unavailable, mark that gate and overall assurance
-BLOCKED, retain the useful audit/report, and complete other permitted work. A self-review
+BLOCKED (in the deploy gate this blocks production only; see step 3 there), retain the useful audit/report, and complete other permitted work. A self-review
 is preliminary evidence, never a replacement for independent acceptance.
 
 ## Execution
@@ -140,9 +140,11 @@ Each candidate gets one verdict:
 - **disproved**: a verifier showed the boundary holds. Keep the record so a later run does
   not re-report the unchanged claim.
 
-The agent that found a candidate never confirms it. A fresh verifier, with the candidate
-and source but not the finder's reasoning, tries to disprove it first; only what survives
-is confirmed. Severity follows demonstrated impact, never the class name:
+The agent that found a candidate never confirms it. A fresh verifier in the reviewer role
+(`mneves-verify` when installed, otherwise a fresh read-only context; a different model
+for production) gets the candidate and source but not the finder's reasoning and tries to
+disprove it. A candidate is confirmed only when it survives that attempt and positive
+evidence establishes all six elements; failing to refute it is not enough. Severity follows demonstrated impact, never the class name:
 
 - **Critical**: an unauthenticated actor gains code execution, full data-store access or
   takeover of arbitrary accounts.
@@ -157,8 +159,15 @@ is confirmed. Severity follows demonstrated impact, never the class name:
 
 High versus Medium: does the result fully defeat an explicit control for an action with
 real consequences, or only weaken it? If you cannot state the concrete damage, the
-severity is lower than it feels. A single pass finds only part of what repeated passes
-find; report coverage as partial unless critic passes stopped adding work.
+severity is lower than it feels. Launch controls that set a minimum severity (SEC-12,
+SEC-13) define the impact themselves and take precedence. Unless the task sets a budget,
+run one coverage-critic pass. A single pass finds only part of what repeated passes find,
+so coverage is always reported as partial: a quiet critic ends this run's hunting, it
+does not certify completeness.
+
+Vulnerability findings and launch-control gaps are separate records. A missing launch
+control (a runbook, a disclosure policy, a rotation record) is a No in its row and a plan
+item; it needs no attacker narrative and the six-element contract does not apply to it.
 
 Run existing applicable dependency/secret/security scanners within permitted scope.
 Review their versions, configuration, coverage, diagnostics and results; empty/partial
@@ -199,8 +208,9 @@ migration files only with schema confidence, tests and recovery notes. Files wri
 locally are not policies applied remotely. Do not use admin/service identities to prove
 ordinary-user isolation.
 
-Record each item's state: proposed, confirmed, fixed-and-verified, awaiting-application,
-manual-action, blocked, disproved or waived. Mark fixed only after an actual code/config
+Record each item's verdict (confirmed, needs-validation, disproved) and, for confirmed
+ones, its fix state: proposed, fixed-and-verified, awaiting-application, manual-action,
+blocked or waived. Mark fixed only after an actual code/config
 change and concrete verification. Record source/local/staging/production evidence
 separately; neither a build nor a middleware file proves live headers or protection.
 
@@ -273,8 +283,10 @@ its exact commit and target.
    clears a block. Waivers make the verdict WAIVED; no block makes it PASS. Medium and
    lower findings, and launch-control gaps on dev and staging, go into the plan.
    Needs-validation records never block by themselves; the decision packet lists each
-   with its missing fact and resolving check. Source that could not be inspected still
-   blocks.
+   with its missing fact and resolving check. A fact that an applicable production launch
+   control or independent acceptance depends on leaves that prerequisite BLOCKED or NOT
+   TESTED, never Yes, so production still blocks through it. Source that could not be
+   inspected still blocks.
 5. **Record.** Write the verdict record and report as the report reference describes,
    outside the tracked tree. The runtime checks (headers, cookies, CORS, TLS) belong in
    the project's live proof (its `scripts/verify-live.sh` when it has one), so they run
