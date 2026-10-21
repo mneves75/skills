@@ -286,8 +286,7 @@ its exact commit and target.
    Needs-validation records never block by themselves; the decision packet lists each
    with its missing fact and resolving check. A fact that an applicable production launch
    control or independent acceptance depends on leaves that prerequisite BLOCKED or NOT
-   TESTED, never Yes, so production still blocks through it. Source that could not be
-   inspected still blocks.
+   TESTED, never Yes, so production still blocks through it.
 5. **Record.** Write the verdict record and report as the report reference describes,
    outside the tracked tree. The runtime checks (headers, cookies, CORS, TLS) belong in
    the project's live proof (its `scripts/verify-live.sh` when it has one), so they run

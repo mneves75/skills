@@ -117,7 +117,8 @@ Required columns, extended by disposition:
 | ID | Disposition | Severity | Area | Evidence | Risk | Fix status | Verification |
 |---|---|---|---|---|---|---|---|
 
-List needs-validation records after the confirmed ones, each with its missing fact and resolving check, and disproved candidates
+Fix status is `-` for needs-validation and disproved rows. List needs-validation records
+after the confirmed ones, each with its missing fact and resolving check, and disproved candidates
 last, with the evidence that refuted them.
 
 Use one record per distinct finding. Link longer reproduction/control details below

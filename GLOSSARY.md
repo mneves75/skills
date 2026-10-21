@@ -4,10 +4,11 @@ Portable procedures and supporting resources installed into coding agents.
 
 ## Language
 
-**Security finding**: A candidate weakness that names the lower-trust principal, its input,
-the control, the crossed boundary, the affected resource and the observed result. Its
-disposition is confirmed (carries a severity), needs-validation (one external fact missing;
-no severity) or disproved. An unconfirmed suspicion is not a verified defect.
+**Security finding**: A recorded candidate weakness with a disposition. A confirmed finding
+names the lower-trust principal, its input, the control, the crossed boundary, the affected
+resource and the observed result, and carries a severity; a needs-validation record has a
+complete trace missing one external fact and no severity; a disproved record keeps the
+refuting evidence. An unconfirmed suspicion is not a verified defect.
 
 **Disposition**: Whether a security finding is true: confirmed, needs-validation or
 disproved. Distinct from a gate's verdict (pass, block, waived) and from a fix state.
