@@ -1,6 +1,6 @@
 ---
 name: mneves-security
-description: Audit application security and privacy against current OWASP guidance and gate every staging or production deploy; use for evidence-backed remediation plans, authorized safe fixes and the pre-deploy verdict.
+description: Audit application security and privacy against current OWASP guidance and gate every staging or production deploy; use for vulnerability hunting, remediation plans, authorized safe fixes and the pre-deploy verdict.
 license: Apache-2.0
 ---
 

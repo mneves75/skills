@@ -196,8 +196,14 @@ one to one, and each row takes the status its report gives. A security `block` k
 gate's verdict `not-ready` for that target: each listed security blocker counts as an open
 blocker here until the security gate clears it, including gate-step blockers such as
 `gate:audit` or `gate:independent-acceptance`. A security `waived` row stays waived, with the
-security waiver's owner and expiry. With no record for that commit and target, run the security
-gate first or, without that skill, use the mapping below and the fallbacks.
+security waiver's owner and expiry. Gate-step blockers count only when the record's `blockers`
+field lists them (on dev and staging an unavailable reviewer is a plan item there). With no
+record for that commit and target, a provisional pass (before the security gate has run on the
+final tree) uses the mapping below and the fallbacks; a binding pass runs the security gate
+first or, without that skill, uses the same mapping and fallbacks.
+
+Security evidence kinds map to these scopes: `source` → source, `test` → local, `runtime` →
+the target's own scope (staging or production), `owner` → owner-attested.
 
 Map its launch-checklist subjects to rows: privacy disclosure → CMP-09; data map, retention,
 deletion and export → CMP-06 and DC-10; access control → SEC-06, SEC-07, SEC-08; server-side

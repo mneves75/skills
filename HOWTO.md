@@ -53,7 +53,11 @@ plan. In fix mode it applies minimal confirmed patches, tests legitimate and den
 behavior, and runs adversarial review and independent acceptance. It covers privacy,
 database/resource isolation, auth failures, headers/cookies, validation, secrets, API
 keys, rate/cost protection, bot controls/CORS, logging/errors and dependencies, with
-AI/agentic/mobile checks when those surfaces exist.
+AI/agentic/mobile checks when those surfaces exist. A full audit also hunts the attack
+classes the inventory makes reachable (HTTP framing, client side, CI and release, cloud,
+messaging, data lifecycle, local IPC, native code) and ends with a coverage critic. A
+candidate becomes a finding only when it names the principal, input, control, boundary,
+affected resource and observed result, and a fresh verifier failed to disprove it.
 
 **When to use it.** You want an engineering security/privacy audit of an MVP, SaaS, API
 or AI application, or safe implementation of its confirmed remediation items. Audit
@@ -84,8 +88,9 @@ independent verification. Do not merge, change provider settings or deploy.
 For a read-only assessment, say “audit only; do not change project files.” Claude Code
 users can invoke `/mneves-security`; other agents can name it directly.
 
-**Evidence.** Expect the eight-section engineering report, findings with severity and
-confidence, a source coverage ledger, exact checks/results, manual actions and launch
+**Evidence.** Expect the eight-section engineering report, confirmed findings with a
+severity, needs-validation records with the missing fact and the safe check that settles
+it (no severity, and they never block a deploy by themselves), a source coverage ledger, exact checks/results, manual actions and launch
 blockers. Local migrations and header files do not prove deployed policies or headers.
 A public provider key is evaluated under its actual contract, not automatically labeled
 a secret. NOT APPLICABLE needs evidence; blocked/untested controls never become PASS.

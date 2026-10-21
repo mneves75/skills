@@ -2,7 +2,7 @@
 name: mneves-fable-orchestrator
 description: Route non-trivial work across agents. Use for delegation, parallel work, Codex dispatch, or long-running implementation.
 license: Apache-2.0
-compatibility: Codex dispatch needs the Codex CLI (`codex`) logged in, bash, and python3 on PATH; `tools/codex-lane` is symlinked onto PATH. Without Codex the routing rules still apply to your harness's own subagents.
+compatibility: Codex dispatch needs the Codex CLI (`codex`) logged in, bash, and python3 on PATH; put `tools/codex-lane` on PATH (symlink or alias) for lane commands. Without Codex the routing rules still apply to your harness's own subagents.
 ---
 
 # Fable Orchestrator

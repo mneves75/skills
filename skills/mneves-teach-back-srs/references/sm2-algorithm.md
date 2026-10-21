@@ -53,21 +53,22 @@ A card is "struggling" when:
 
 ## Interval Progression Examples
 
-Starting from EF=2.5, perfect recalls (q=5):
+Starting from EF=2.5, perfect recalls (q=5). The helper updates EF first, then multiplies the
+previous interval by the new EF:
 ```
-Review 1: 1 day   (EF stays 2.5 + 0.1 = 2.6)
-Review 2: 6 days  (EF = 2.7)
-Review 3: 16 days (6 * 2.7 = 16.2 → 16)
-Review 4: 45 days (16 * 2.8 = 44.8 → 45)
-Review 5: 130 days (45 * 2.9 = 130.5 → 131)
+Review 1: 1 day    (EF = 2.5 + 0.1 = 2.6)
+Review 2: 6 days   (EF = 2.7)
+Review 3: 17 days  (6 * 2.8 = 16.8 → 17)
+Review 4: 49 days  (17 * 2.9 = 49.3 → 49)
+Review 5: 147 days (49 * 3.0 = 147)
 ```
 
-With mediocre recalls (q=3):
+With mediocre recalls (q=3), each review changes EF by 0.1 - 2 * (0.08 + 2 * 0.02) = -0.14:
 ```
-Review 1: 1 day   (EF = 2.5 + 0.1 - 2*0.14 = 2.32)
-Review 2: 6 days  (EF = 2.32 - 0.18 = 2.14)
-Review 3: 13 days (6 * 2.14 = 12.8 → 13)
-Review 4: 26 days (13 * 1.96 = 25.5 → 26)
+Review 1: 1 day   (EF = 2.36)
+Review 2: 6 days  (EF = 2.22)
+Review 3: 12 days (6 * 2.08 = 12.48 → 12)
+Review 4: 23 days (12 * 1.94 = 23.28 → 23)
 ```
 
 Notice how quality=3 barely passes but steadily decreases EF, making reviews more frequent; the algorithm adapts to difficulty.

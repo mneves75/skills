@@ -1,6 +1,6 @@
 ---
 name: mneves-expert-review
-description: Stress-test a high-stakes draft or decision. Use for rigorous review, alternatives, evidence, and trade-offs.
+description: Stress-test a high-stakes draft or decision. Use for rigorous review, alternatives, evidence, and trade-offs; not for code diffs.
 license: Apache-2.0
 ---
 
