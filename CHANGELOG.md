@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.39.0] - 2026-10-21
+
+### Added
+- **`mneves-security` attack classes** (`references/attack-classes.md`): core classes (indirect injection, access paths, business logic, feature abuse, cryptography) and domain classes selected from the inventory (HTTP framing and identity, client side, CI and release, cloud, messaging, resource spend, data lifecycle, local IPC, native code, agents), closed by a coverage-critic pass. Written in this repository's words, informed by Cloudflare's MIT `security-audit` skill (`c1c8a8c`, credited in `NOTICE`).
+
+### Changed
+- **`mneves-security` candidate contract**: a finding names the lower-trust principal, its input, the control, the crossed boundary, the affected resource and the observed result; one verdict field (confirmed, needs-validation, disproved) replaces the confidence column; only confirmed findings carry a severity, set by written anchors; the finder never confirms its own candidate, a fresh verifier tries to disprove it first and confirmation needs positive proof.
+- **`mneves-security` evidence rules**: local, minimal reproduction with dummy principals; untrusted target code only in a sandbox; a fix is proven by one test that fails on untouched source and passes with the fix; coverage is always reported as partial; disproofs expire with the assumptions they rested on.
+- **Deploy gate**: unchanged blocking policy (confirmed Critical or High); needs-validation records never block by themselves and are listed in the decision packet, while a missing fact behind a production launch control keeps that control BLOCKED. Missing launch controls are rows and plan items, not exploit findings.
+- **Cross-skill consistency**: `mneves-superaudit` releases name the security gate; `mneves-ship-deploy` drops author-only paths, gains fallbacks for unshipped review and browser tools, and shows the WAIVED tag form; `mneves-production-readiness` maps security evidence kinds to its scopes, imports gate-step blockers only from the record and aligns CMP-06 applicability; descriptions gain negative scope.
+- **Guide page**: commands and the summary table wrap at phone width, prose is capped near 70 characters, the page links back to the catalog and each table row links to its section.
+- **Model defaults** re-verified on 2026-10-21; ids unchanged.
+
+### Fixed
+- **`mneves-teach-back-srs`**: SM-2 interval examples now match the shipped helper (q=5 gives 1, 6, 17, 49, 147 days), and card rules cite the right step.
+- **`autoreview`**: the engine reference no longer names a model outside the helper's defaults.
+
 ## [1.38.0] - 2026-10-18
 
 ### Added
