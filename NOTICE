@@ -33,8 +33,9 @@ name collision):
 https://github.com/openclaw/agent-skills/tree/711711b86294673feced9d1cb636b539daf3c218/skills/handoff
 Copyright (c) 2026 openclaw. Distributed under the MIT License included in that skill's directory.
 
-The mneves-security attack classes, candidate contract, severity anchors and disproof step
-are written in this repository's words, informed by Cloudflare's security-audit skill:
+The mneves-security attack classes, candidate contract and disproof step are written in this
+repository's words, informed by Cloudflare's security-audit skill; the Critical severity anchor
+and the High/Medium discriminator adapt its wording:
 https://github.com/cloudflare/security-audit-skill/tree/c1c8a8c/skills/security-audit
 Copyright (c) 2025-2026 Cloudflare, Inc. Distributed under the MIT License. No upstream file is included.
 
