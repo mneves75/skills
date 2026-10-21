@@ -51,6 +51,15 @@ to another. For a discovered Supabase project, start with official
 [storage access](https://supabase.com/docs/guides/storage/security/access-control).
 These links do not make Supabase a required dependency or prove deployed policies.
 
+For a deeper multi-agent hunt with a coverage ledger and schema-validated findings, use
+Cloudflare's separately installed
+[security-audit](https://github.com/cloudflare/security-audit-skill) skill when present.
+It is not shipped here; without it, this skill's attack classes and coverage critic apply.
+Its [harness write-up](https://blog.cloudflare.com/build-your-own-vulnerability-harness)
+is the evidence for the disproof step and partial-coverage rule: one run found about half
+of what repeated runs found, and unsupported candidates were rejected by a validator that
+could not file findings of its own and by requiring a proof that runs on unmodified source.
+
 Legal readiness uses relevant official regulatory guidance only when jurisdiction and
 processing are known. Request legal/content ownership for unresolved interpretations.
 Do not send source, records or private dependency metadata to search services. Retrieval

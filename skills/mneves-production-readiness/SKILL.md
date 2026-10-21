@@ -1,6 +1,6 @@
 ---
 name: mneves-production-readiness
-description: Gate staging and production deploys on production readiness (data, recovery, money, operations, ownership); use for launch reviews, deploy gates or a readiness fix plan.
+description: Gate staging and production deploys on production readiness (data, recovery, money, operations, ownership); use for launch reviews, deploy gates or a readiness fix plan; security rows come from mneves-security.
 license: Apache-2.0
 ---
 

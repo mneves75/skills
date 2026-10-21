@@ -1,6 +1,6 @@
 # Gates, profile and freshness
 
-Catalog version: **1**. Read this before deciding scope or a verdict.
+Catalog version: **2**. Read this before deciding scope or a verdict.
 
 ## Profile
 
@@ -185,6 +185,10 @@ Control IDs are never renumbered or reused. A retired control stays listed as re
 replacement. A material change to a control's meaning, tier or evidence raises the catalog
 version; a ledger on an older version reassesses the changed controls, or runs a baseline when
 the change list is unknown.
+
+| Version | Changed controls |
+|---|---|
+| 2 | CMP-06 applies to any stored personal data, not only `accounts` |
 
 ## Interaction with other gates
 
