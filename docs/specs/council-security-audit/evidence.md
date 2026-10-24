@@ -27,7 +27,7 @@ commit that carries the change — plus the commands that reproduce the release 
 | The security policy implied source inspection happens inside the sandbox | low | `SECURITY.md` | fixed: source inspection is read-only, only target-controlled execution is sandboxed | `78d2be7` |
 | The adaptation described its link changes as link-only | low | `skills/*/README.md` | fixed: the backticked-basename convention is described too | `1acf6e6` |
 | The defaults guard covers only `SKILL.md`, so a model id in a reference file would pass CI | low | `tools/scripts/check-defaults-block.sh` | follow-up, not fixed here: it changes the orchestrator's own guard | — |
-| Both validators accept an empty ledger and empty findings, so they cannot prove a run did the work | medium | `skills/security-audit/` | documented upstream gap: forking the pinned validators and their 65 tests was rejected in favour of stating the limitation | `c11aa07` |
+| Both validators accept an empty ledger and empty findings, so they cannot prove a run did the work | medium | `skills/security-audit/` | documented upstream gap: forking the pinned validators and their 65 tests was rejected in favour of stating the limitation | `5499adc` |
 | `tools/readiness-check.test.ts:50`, the descendant-reaping assertion, failed once | low | `tools/` | disproved as caused by this change: `tools/` is byte-identical to four earlier trees whose runs passed, and a rerun of the same tree passed. No commit changes it | — |
 
 ## Checks a reader can re-run
