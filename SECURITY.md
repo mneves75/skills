@@ -95,8 +95,8 @@ operating-system updates.
   keeps its own sessions under its own configuration.
 - `security-audit` writes its audit to a directory outside the target (conventional default
   `~/security-audit-skill/<repo-name>/run-<N>/`): the coverage ledger, findings, evidence and
-  reports. It never prunes them, and it reads source and runs target-controlled commands only
-  inside the sandbox the skill requires.
+  reports. It never prunes them. Source inspection stays read-only, and it runs
+  target-controlled builds, tests or browsers only inside the sandbox the skill requires.
 - The other skills are Markdown procedures. What your agent sends, and where, follows your
   agent's own configuration.
 

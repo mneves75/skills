@@ -78,16 +78,17 @@ basenames are navigation pointers rather than links. The browser transcript now 
 ## Deploy gate and independent acceptance
 
 Three full deploy-gate audits completed, one per tree, each covering the whole first-party source,
-all twelve areas and the 32 launch controls. Three further trees were blocked by independent
-acceptance alone after their audit was superseded mid-run; those were acceptance rounds, not
-completed audits, and they are labelled as such below. No run reused another tree's verdict.
+all twelve areas and the 32 launch controls: `42fcbea6`, `4e32d14` and `011b22e7`. Two further
+trees, `f46c7a3e` and `dae02fb`, were blocked by independent acceptance after the audit for them
+was superseded mid-run, so they are acceptance rounds rather than completed audits, and the table
+labels them that way. No run reused another tree's verdict.
 
 | # | Tree | Kind | Outcome | What blocked it | Fixed by |
 |---|---|---|---|---|---|
 | 1 | `42fcbea6` | full audit | BLOCK | independent acceptance cannot be self-issued from the builder's seat; one Medium finding F-1 (the security policy omitted both new stores) | `860332d` |
 | 2 | `f46c7a3e` | acceptance only | BLOCK | F-1 only partly closed: "no tool keeps another copy" ignored stores member CLIs write themselves | `ea2169e` |
 | 3 | `dae02fb` | acceptance only | BLOCK | one sentence let "do not" govern "confine reads", contradicting the Claude row | `7883500` |
-| 4 | `4e32d14` | full audit (WAIVED pre-acceptance) | BLOCK on acceptance | the plan asserted review and gate history with no in-tree evidence, and repeated the blanket read-scope claim | `1acf6e6` |
+| 4 | `4e32d14` | full audit, verdict WAIVED pre-acceptance | BLOCK at acceptance | the plan asserted review and gate history with no in-tree evidence, and repeated the blanket read-scope claim | `1acf6e6` |
 | 5 | `011b22e7` | full audit | BLOCK | CI `check` was red when the audit observed it, and acceptance was still pending; the failure reproduced as a flake and the rerun of the same tree passed | this commit |
 
 This record lists the findings those seats raised and how each ended. It is not a claim to have
