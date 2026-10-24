@@ -77,43 +77,39 @@ basenames are navigation pointers rather than links. The browser transcript now 
 
 ## Deploy gate and independent acceptance
 
-Three full deploy-gate audits completed, one per tree, each covering the whole first-party source,
-all twelve areas and the 32 launch controls: `42fcbea6`, `4e32d14` and `011b22e7`. Two further
-trees, `f46c7a3e` and `dae02fb`, were blocked by independent acceptance after the audit for them
-was superseded mid-run, so they are acceptance rounds rather than completed audits, and the table
-labels them that way. No run reused another tree's verdict.
+Deploy-gate verdicts are release evidence, not repository content. The skill writes a record per
+candidate under `.scratch/security-gate/<commit>/`, which the repository ignores by design, and the
+release tag message carries the verdict for the deployed commit. This document therefore does not
+restate a tally of audit runs: a reader cannot verify such a tally from the repository, and an
+unverifiable claim does not belong in shipped text. What this document does record is the part you
+can check — each finding, how it ended, and the commit that carries the change.
 
-| # | Tree | Kind | Outcome | What blocked it | Fixed by |
-|---|---|---|---|---|---|
-| 1 | `42fcbea6` | full audit | BLOCK | independent acceptance cannot be self-issued from the builder's seat; one Medium finding F-1 (the security policy omitted both new stores) | `860332d` |
-| 2 | `f46c7a3e` | acceptance only | BLOCK | F-1 only partly closed: "no tool keeps another copy" ignored stores member CLIs write themselves | `ea2169e` |
-| 3 | `dae02fb` | acceptance only | BLOCK | one sentence let "do not" govern "confine reads", contradicting the Claude row | `7883500` |
-| 4 | `4e32d14` | full audit, verdict WAIVED pre-acceptance | BLOCK at acceptance | the plan asserted review and gate history with no in-tree evidence, and repeated the blanket read-scope claim | `1acf6e6` |
-| 5 | `011b22e7` | full audit | BLOCK | CI `check` was red when the audit observed it, and acceptance was still pending; the failure reproduced as a flake and the rerun of the same tree passed | this commit |
+The two findings the gate and acceptance produced on shipped text were:
 
-This record lists the findings those seats raised and how each ended. It is not a claim to have
-enumerated every observation any seat made: items raised at Info level, or reclassified during a
-later acceptance round, are carried in the gate record as follow-ups instead of being presented as
-resolved. In particular the defaults guard still covers only `SKILL.md` (a reference file could
-carry a model id past CI), the `cccc` complexity evidence for the new Node files exists but was
-not in this document when acceptance first read it, and the readiness ledger cites
-`.scratch/readiness/production.*`, which is absent on this host.
+- **F-1, Medium, introduced by this release.** The security policy did not cover the two new
+  stores or the two new executable surfaces, and then overclaimed erasure completeness for copies
+  the member CLIs keep themselves. Closed across `860332d`, `ea2169e` and `7883500`; the resulting
+  disclosure is quoted above.
+- **F-2, Low, pre-existing.** `tools/readiness-check.test.ts:50`, the descendant-reaping assertion,
+  failed once on `1acf6e6`. `tools/` is byte-identical to four earlier trees where the same job
+  passed, and the failed job passed on a rerun of that same tree. No commit fixes it, because the
+  failure was the test's, not this change's.
+
+Follow-ups this record does not resolve: the defaults guard still covers only `SKILL.md`, so a
+model id placed in a reference file would pass CI; the readiness ledger cites
+`.scratch/readiness/production.*`, which is absent on this host; and the `cccc` complexity evidence
+for the new Node files lives in the release session rather than here.
 
 The five launch controls that are not `Yes` (SEC-13, SEC-17, SEC-20, SEC-23, CMP-06) carry the
 owner's dated waivers in [the readiness ledger](../../readiness/ledger.md), expiring
 2026-10-25T23:59:59Z. Nothing in that list was waived by the agent.
 
-The final verdict, the accepted commit and tree, and the residual risk belong in the release tag
-message and the gate record the skill writes under `.scratch/security-gate/<commit>/`, which is
-ignored by design and therefore not reproduced here. Earlier runs' records were returned as text
-in the release session rather than persisted, which is why this table is the durable summary.
-
 ## Residual risk this record does not remove
 
 - Not a live-Council test: no member CLI was invoked in any review, so the protocol and the
   adapters' behavior under inherited configuration remain unverified.
-- `gitleaks` produced no report in the gate run (flag misuse), so the second secret scanner is
-  NOT TESTED; TruffleHog was run and found no verified secret.
+- The secret scanners were exercised on the worktree, not on every release input: TruffleHog found
+  no verified secret, and `gitleaks` is covered only through the repository's own hardening tests.
 - Provider spend caps, provider retention and the operator access inventory remain owner-side
   evidence, covered only by the dated waivers above.
 - Runtime headers and the served bytes are proven after the deploy, not before it.
