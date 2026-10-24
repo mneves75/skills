@@ -19,7 +19,7 @@ them, then reach the full usage guide and source.
 
 ## Operating Context
 
-The source repository ships fifteen original/adapted skills and a separately installed
+The source repository ships seventeen original/adapted skills and a separately installed
 collection of thirty-six pstack skills. Visitors install through the skills CLI or a
 Git clone, then use the procedures in their existing coding-agent session.
 

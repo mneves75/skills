@@ -21,7 +21,7 @@ blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--line);c
 <body>
 <main>
 <h1>How to use these skills</h1>
-<p>Fifteen skills, one install. This page shows what each one does, how to trigger it, and what a
+<p>Seventeen skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the <a href="https://github.com/mneves75/skills/blob/main/README.md">README</a>; for the exact
 procedure an agent follows, open <code>skills/&lt;name&gt;/SKILL.md</code>. Service level objectives and
 incident reviews are not skills: use the <a href="https://github.com/mneves75/skills/blob/main/docs/sre-guides/README.md">SRE guides</a> and
@@ -53,6 +53,11 @@ also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use 
 <td>&quot;use autoreview on my local changes, including P3 findings&quot;</td>
 </tr>
 <tr>
+<td><code>council</code></td>
+<td>get independent members to argue with a plan before you commit to it</td>
+<td>&quot;convene the council on this migration plan, two rounds&quot;</td>
+</tr>
+<tr>
 <td><code>mneves-handoff</code></td>
 <td>hand a task to another agent, review first</td>
 <td>&quot;handoff the flaky login test&quot;</td>
@@ -66,6 +71,11 @@ also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use 
 <td><code>mneves-security</code></td>
 <td>audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy</td>
 <td>&quot;audit security and privacy; fix confirmed local issues; do not deploy&quot;</td>
+</tr>
+<tr>
+<td><code>security-audit</code></td>
+<td>run a deep, coverage-led source audit with a ledger and machine-readable findings</td>
+<td>&quot;full security audit of this codebase, with the coverage ledger&quot;</td>
 </tr>
 <tr>
 <td><code>mneves-production-readiness</code></td>
@@ -168,6 +178,56 @@ different-model verifier; when unavailable, the useful report remains available 
 that assurance gate is BLOCKED. The skill provides engineering readiness, not legal
 advice or a promise of complete security. Release actions retain explicit task/host authority.</p>
 <p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-security/SKILL.md">SKILL.md</a>.</p>
+<hr>
+<h2 id="security-audit">security-audit</h2>
+<p><strong>What it does.</strong> Runs a deep, read-only source audit in six phases: reconnaissance, hunting in
+waves assigned from a coverage ledger, candidate validation by a fresh verifier, structured
+output, independent verification of the final records, and a target-neutral report. The ledger
+is the point: it is a deterministic list of source units the run must cover, updated after every
+agent returns, so &quot;nothing found here&quot; is a claim scoped to the units actually read. Findings
+land in <code>findings.json</code> with exactly three verdicts — <code>confirmed</code>, <code>needs_validation</code>,
+<code>rejected</code> — and the shipped Node validators check the records against <code>report-schema.json</code> and
+the coverage claim against the ledger.</p>
+<p>It audits source and bounded local execution. It does not probe deployments, gate a release, or
+change the target: remediation, privacy/OWASP readiness and deploy verdicts stay with
+<code>mneves-security</code>.</p>
+<p><strong>Triggers.</strong> &quot;full security audit of this codebase&quot;, &quot;deep source review&quot;, &quot;pen-test review of
+the source&quot;, or a request that names the coverage ledger or the findings JSON. A focused
+question about one finding, an audit of a running deployment, or authorized fixes do not need
+the full workflow — loading the skill is guidance until you ask for the complete run.</p>
+<p><strong>Prerequisites.</strong> A coding agent that can run parallel subagents, Node.js for the validators,
+and an OS-enforced sandbox for any target-controlled build, test, browser or fuzzer. Source
+inspection stays read-only; artifacts go to a fresh directory outside the target by default, and
+writing inside the target needs your approval plus a directory version control ignores.</p>
+<p><strong>Example</strong> (illustrative). You point it at a service and set a spend ceiling:</p>
+<pre tabindex="0"><code>full security audit of this repo, standard profile, budget 40 agents
+</code></pre>
+<ol>
+<li>It reads prior runs, writes <code>run-metadata.json</code>, and seeds <code>coverage-ledger.json</code> with stable
+unit IDs for the in-scope surfaces.</li>
+<li>Hunters take disjoint ledger units and return structured candidates, not prose.</li>
+<li>Each candidate goes to a fresh source verifier; duplicates consolidate by fingerprint.</li>
+<li>Survivors are written with their verdicts and checked:
+<code>node validate-findings.cjs findings.json</code> and
+<code>node validate-coverage-ledger.cjs coverage-ledger.json</code>.</li>
+<li>Fresh agents re-check the final records and reconciliation corrects what they find.</li>
+<li>It derives <code>REPORT.md</code>, <code>FINDINGS-DETAIL.md</code> and <code>NEEDS-VALIDATION.md</code> from those records, so
+prose and JSON cannot drift apart. If the budget runs out, the run ends as <code>incomplete</code> with
+the unvalidated fingerprints named — never as a clean pass.</li>
+</ol>
+<p><strong>Tips.</strong></p>
+<ul>
+<li>Set the profile and budget first. Profiles are <code>quick</code>, <code>standard</code> (default) and <code>deep</code>; the
+budget is a maximum number of agent invocations across all phases, and a strict one stops
+hunting instead of being exceeded silently.</li>
+<li>Re-run against the previous ledger and findings rather than starting over: unchanged units are
+revalidated, and the delta is the report.</li>
+<li><code>needs_validation</code> is a real outcome, not a soft finding. It carries no severity and does not
+block a release on its own.</li>
+<li>The validators check structure and coverage, not truth. A green validator run proves neither a
+finding nor the absence of one.</li>
+</ul>
+<p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/security-audit/SKILL.md">SKILL.md</a>.</p>
 <hr>
 <h2 id="mneves-production-readiness">mneves-production-readiness</h2>
 <p><strong>What it does.</strong> Checks that an app will not lose or corrupt data, charge wrongly, fail
@@ -397,6 +457,52 @@ independent judge. The panel argues; the verifier runs things.</li>
 <li>Ask for the challenge-the-premise alternative explicitly if it does not surface it. That is
 the one you cannot produce yourself, and it is reported even when rejected.</li>
 </ul>
+<hr>
+<h2 id="council">council</h2>
+<p><strong>What it does.</strong> Convenes independent members on one plan. The lead drafts it, every available
+member answers independently, and the lead revises for exactly the number of rounds you asked
+for — no extra round for unanimity, no fewer for disagreement. Members never see each other&#39;s
+replies; after round one each sees only the lead&#39;s changes and its own previous reply, which is
+what keeps the answers independent instead of converging on the first opinion. You get the final
+plan plus a faithful account of the objections, failures and skipped members.</p>
+<p>Council is advice, not evidence. Agreement between members is not correctness, a test suite, an
+independent verifier, or a deploy gate.</p>
+<p><strong>Triggers.</strong> &quot;council&quot;, &quot;convene the council&quot;, &quot;two rounds of deliberation on this plan&quot;, &quot;get
+a second opinion before I commit to this design&quot;. Not for ordinary delegation, code review, or
+verification — those have their own skills.</p>
+<p><strong>Prerequisites.</strong> Bash, a private writable directory for the session, at least one authenticated
+member CLI among Claude, Codex and Cursor, and your authorization to send the task and the
+selected context to those providers. Members are capability-checked first: a missing binary, a
+missing flag, or an untrusted workspace is a skip, not a reason to add a bypass flag. When no
+member survives the check, the skill says so and returns your solo plan marked <strong>un-counciled</strong>
+rather than inventing replies.</p>
+<p><strong>Example</strong> (illustrative). You are about to migrate a billing table:</p>
+<pre tabindex="0"><code>convene the council on this migration plan — two rounds
+</code></pre>
+<ol>
+<li>It parses the request, fixes the round count at two, and leaves the host you are talking to out
+of the member list.</li>
+<li>It records each member&#39;s version and skip reason, then writes <code>task.md</code> and an honest
+<code>plan-v1.md</code> into a private session directory.</li>
+<li>Round one: each member gets the task and the plan, and answers <code>SHIP IT</code>, <code>SHIP WITH CHANGES</code> or <code>RETHINK</code> with its strongest problems.</li>
+<li>It reads the actual replies, rewrites the plan, and records what changed and what it rejected.
+A suggestion is described by content, never attributed to another member.</li>
+<li>Round two: each member sees only the revision and its own round-one reply.</li>
+<li>It returns the final plan, the objections it did not adopt, and the session path holding the
+prompts, replies and logs. It does not start implementing.</li>
+</ol>
+<p><strong>Tips.</strong></p>
+<ul>
+<li>Ask for the rounds you actually want. One is the default, ten is the cap, and a larger number is
+refused rather than quietly truncated.</li>
+<li>Unanimity in round one is not a reason to skip the rounds you asked for: the second round is
+where a member that folded early has to defend its answer against the revision.</li>
+<li>Decide what context may leave your machine before you council a private task. The prompt-only
+mode exists for that, and it does not remove the provider disclosure.</li>
+<li>Pair it with <code>mneves-verify</code> once the plan becomes a change: the council argues about the plan,
+the verifier checks the artifact.</li>
+</ul>
+<p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/council/SKILL.md">SKILL.md</a>.</p>
 <hr>
 <h2 id="mneves-verify">mneves-verify</h2>
 <p><strong>What it does.</strong> Separates the builder from the judge. A fresh context, ideally a different

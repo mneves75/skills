@@ -15,6 +15,8 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 .
 ├── skills/
 │   ├── autoreview/                # Portable AI review CLI + security tests (MIT)
+│   ├── council/                   # Bounded independent CLI plan deliberation (MIT, adapted)
+│   ├── security-audit/            # Six-phase source audit + Node validators (MIT, adapted)
 │   ├── imagegen-frontend-mobile/   # Mobile screen/flow image generation (MIT)
 │   ├── mneves-agent-readiness/    # Codebase readiness assessment (pairs with tools/)
 │   ├── mneves-chatgpt-search/     # ChatGPT discovery, crawler access, citations and referral attribution
@@ -64,6 +66,8 @@ bash tools/scripts/build-site.test     # real build: catalog/guide equality, pla
 bash tools/scripts/check-site-copy.sh <site-url>   # real browser copy cases; needs agent-browser and the host's approved launch route
 npx skills@latest add . --list          # what the skills CLI will discover
 python3 skills/autoreview/scripts/run-tests.py  # isolated unit/integration/security suite
+node skills/security-audit/validate-findings.test.cjs          # validator: planted valid/invalid findings records
+node skills/security-audit/validate-coverage-ledger.test.cjs   # validator: planted valid/invalid coverage ledgers
 python3 skills/mneves-render/tests/test_check_ast.py  # actual Pandoc content-policy controls
 python3 skills/mneves-render/tests/test_starters.py   # Pandoc + WeasyPrint + Poppler acceptance
 python3 skills/autoreview/scripts/check-cccc.py /absolute/path/to/cccc  # real complexity controls
@@ -89,8 +93,9 @@ bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no net
   clean when written in Bash. Python helpers use Python 3.10+ and the standard library;
   each helper states its own floor and that claim must match the syntax it actually uses.
   Executable skills are `autoreview`, `mneves-fable-orchestrator`, `mneves-ship-deploy`,
-  `mneves-teach-back-srs`, and `mneves-render`;
-  the repository copy is canonical and each ships its relevant verification procedure
+  `mneves-teach-back-srs`, `security-audit`, and `mneves-render`; `security-audit`'s executables
+  are dependency-free Node validators that need Node.js, not Python. The repository copy is
+  canonical and each ships its relevant verification procedure
   (`codex-lane.test` runs against a fake `codex` on `PATH`, so it never spends quota).
 - No `any` / `as any` in `tools/`; use `unknown` + a narrowing guard. ast-grep blocks it.
 - No personal paths, machine layout, secrets or client names in shipped files; a skill must work

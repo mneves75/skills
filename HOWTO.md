@@ -1,6 +1,6 @@
 # How to use these skills
 
-Fifteen skills, one install. This page shows what each one does, how to trigger it, and what a
+Seventeen skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the [README](README.md); for the exact
 procedure an agent follows, open `skills/<name>/SKILL.md`. Service level objectives and
 incident reviews are not skills: use the [SRE guides](docs/sre-guides/README.md) and
@@ -28,9 +28,11 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 | Skill | Use it when you want to… | Say something like |
 |---|---|---|
 | `autoreview` | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
+| `council` | get independent members to argue with a plan before you commit to it | "convene the council on this migration plan, two rounds" |
 | `mneves-handoff` | hand a task to another agent, review first | "handoff the flaky login test" |
 | `mneves-render` | build repeatable HTML, Word and PDF exports from Markdown | "write a renderer for my Markdown reports" |
 | `mneves-security` | audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy | "audit security and privacy; fix confirmed local issues; do not deploy" |
+| `security-audit` | run a deep, coverage-led source audit with a ledger and machine-readable findings | "full security audit of this codebase, with the coverage ledger" |
 | `mneves-production-readiness` | check an app is ready for paying customers before each staging or production deploy | "is this ready for production? give me the fix plan" |
 | `imagegen-frontend-mobile` | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
 | `mneves-chatgpt-search` | improve ChatGPT Search discovery and measure citations/referrals | "improve this site's ChatGPT Search visibility" |
@@ -99,6 +101,64 @@ that assurance gate is BLOCKED. The skill provides engineering readiness, not le
 advice or a promise of complete security. Release actions retain explicit task/host authority.
 
 Procedure: [SKILL.md](skills/mneves-security/SKILL.md).
+
+---
+
+## security-audit
+
+**What it does.** Runs a deep, read-only source audit in six phases: reconnaissance, hunting in
+waves assigned from a coverage ledger, candidate validation by a fresh verifier, structured
+output, independent verification of the final records, and a target-neutral report. The ledger
+is the point: it is a deterministic list of source units the run must cover, updated after every
+agent returns, so "nothing found here" is a claim scoped to the units actually read. Findings
+land in `findings.json` with exactly three verdicts — `confirmed`, `needs_validation`,
+`rejected` — and the shipped Node validators check the records against `report-schema.json` and
+the coverage claim against the ledger.
+
+It audits source and bounded local execution. It does not probe deployments, gate a release, or
+change the target: remediation, privacy/OWASP readiness and deploy verdicts stay with
+`mneves-security`.
+
+**Triggers.** "full security audit of this codebase", "deep source review", "pen-test review of
+the source", or a request that names the coverage ledger or the findings JSON. A focused
+question about one finding, an audit of a running deployment, or authorized fixes do not need
+the full workflow — loading the skill is guidance until you ask for the complete run.
+
+**Prerequisites.** A coding agent that can run parallel subagents, Node.js for the validators,
+and an OS-enforced sandbox for any target-controlled build, test, browser or fuzzer. Source
+inspection stays read-only; artifacts go to a fresh directory outside the target by default, and
+writing inside the target needs your approval plus a directory version control ignores.
+
+**Example** (illustrative). You point it at a service and set a spend ceiling:
+
+```
+full security audit of this repo, standard profile, budget 40 agents
+```
+
+1. It reads prior runs, writes `run-metadata.json`, and seeds `coverage-ledger.json` with stable
+   unit IDs for the in-scope surfaces.
+2. Hunters take disjoint ledger units and return structured candidates, not prose.
+3. Each candidate goes to a fresh source verifier; duplicates consolidate by fingerprint.
+4. Survivors are written with their verdicts and checked:
+   `node validate-findings.cjs findings.json` and
+   `node validate-coverage-ledger.cjs coverage-ledger.json`.
+5. Fresh agents re-check the final records and reconciliation corrects what they find.
+6. It derives `REPORT.md`, `FINDINGS-DETAIL.md` and `NEEDS-VALIDATION.md` from those records, so
+   prose and JSON cannot drift apart. If the budget runs out, the run ends as `incomplete` with
+   the unvalidated fingerprints named — never as a clean pass.
+
+**Tips.**
+- Set the profile and budget first. Profiles are `quick`, `standard` (default) and `deep`; the
+  budget is a maximum number of agent invocations across all phases, and a strict one stops
+  hunting instead of being exceeded silently.
+- Re-run against the previous ledger and findings rather than starting over: unchanged units are
+  revalidated, and the delta is the report.
+- `needs_validation` is a real outcome, not a soft finding. It carries no severity and does not
+  block a release on its own.
+- The validators check structure and coverage, not truth. A green validator run proves neither a
+  finding nor the absence of one.
+
+Procedure: [SKILL.md](skills/security-audit/SKILL.md).
 
 ---
 
@@ -387,6 +447,61 @@ recommendation or architecture decision.
   independent judge. The panel argues; the verifier runs things.
 - Ask for the challenge-the-premise alternative explicitly if it does not surface it. That is
   the one you cannot produce yourself, and it is reported even when rejected.
+
+---
+
+## council
+
+**What it does.** Convenes independent members on one plan. The lead drafts it, every available
+member answers independently, and the lead revises for exactly the number of rounds you asked
+for — no extra round for unanimity, no fewer for disagreement. Members never see each other's
+replies; after round one each sees only the lead's changes and its own previous reply, which is
+what keeps the answers independent instead of converging on the first opinion. You get the final
+plan plus a faithful account of the objections, failures and skipped members.
+
+Council is advice, not evidence. Agreement between members is not correctness, a test suite, an
+independent verifier, or a deploy gate.
+
+**Triggers.** "council", "convene the council", "two rounds of deliberation on this plan", "get
+a second opinion before I commit to this design". Not for ordinary delegation, code review, or
+verification — those have their own skills.
+
+**Prerequisites.** Bash, a private writable directory for the session, at least one authenticated
+member CLI among Claude, Codex and Cursor, and your authorization to send the task and the
+selected context to those providers. Members are capability-checked first: a missing binary, a
+missing flag, or an untrusted workspace is a skip, not a reason to add a bypass flag. When no
+member survives the check, the skill says so and returns your solo plan marked **un-counciled**
+rather than inventing replies.
+
+**Example** (illustrative). You are about to migrate a billing table:
+
+```
+convene the council on this migration plan — two rounds
+```
+
+1. It parses the request, fixes the round count at two, and leaves the host you are talking to out
+   of the member list.
+2. It records each member's version and skip reason, then writes `task.md` and an honest
+   `plan-v1.md` into a private session directory.
+3. Round one: each member gets the task and the plan, and answers `SHIP IT`, `SHIP WITH
+   CHANGES` or `RETHINK` with its strongest problems.
+4. It reads the actual replies, rewrites the plan, and records what changed and what it rejected.
+   A suggestion is described by content, never attributed to another member.
+5. Round two: each member sees only the revision and its own round-one reply.
+6. It returns the final plan, the objections it did not adopt, and the session path holding the
+   prompts, replies and logs. It does not start implementing.
+
+**Tips.**
+- Ask for the rounds you actually want. One is the default, ten is the cap, and a larger number is
+  refused rather than quietly truncated.
+- Unanimity in round one is not a reason to skip the rounds you asked for: the second round is
+  where a member that folded early has to defend its answer against the revision.
+- Decide what context may leave your machine before you council a private task. The prompt-only
+  mode exists for that, and it does not remove the provider disclosure.
+- Pair it with `mneves-verify` once the plan becomes a change: the council argues about the plan,
+  the verifier checks the artifact.
+
+Procedure: [SKILL.md](skills/council/SKILL.md).
 
 ---
 

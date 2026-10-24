@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.40.0] - 2026-10-23
+
+### Added
+- **`council`**: an attributed adaptation of Kitze's bounded multi-CLI deliberation protocol, with independent exact-round replies, faithful objection transcripts, private collision-resistant sessions, provider-disclosure boundaries, supervised timeouts, and capability-checked Claude/Codex/Cursor read-only adapters; unsupported CLIs skip explicitly and Gemini's headless auto-YOLO path is not shipped.
+- **`security-audit`**: Cloudflare's six-phase source-audit harness with deterministic coverage ledgers, prior-run revalidation, independent candidate/final verification, three finding verdicts, sandbox/write-isolation rules, machine-readable reports, and zero-dependency Node validators with their complete test suites.
+- **Implementation plan**: `plans/003-council-security-audit.md` records the source pins, design alternatives, acceptance gates and release evidence.
+
+### Changed
+- **`mneves-security`**: explicit Cloudflare-style deep audits route to the optional `security-audit` sibling without duplicate full audits; the existing twelve-area audit, remediation and deploy-gate contracts remain the complete fallback.
+- **`mneves-fable-orchestrator`**: explicit council requests route to the optional `council` sibling; ordinary delegation and verification stay distinct. The Defaults block gains one local fallback lane for hosts where no Claude or Codex seat can run, and every id in it was re-verified against the vendors' current catalogs on 2026-10-23.
+- **Fallback discipline**: a substituted seat is announced and reported, never used when a model is named or a different reviewer is required, and never treated as cross-model review.
+- **Catalog and docs**: seventeen default skills, with Council and security-audit guides, landing cards, usage-efficiency notes, provenance and CI execution for both Node validator suites.
+
 ## [1.38.0] - 2026-10-18
 
 ### Added

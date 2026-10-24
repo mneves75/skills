@@ -21,6 +21,8 @@ an approved implementation continues without repeated permission for the same ac
 | Skill | Avoidable repeated work removed or bounded |
 |---|---|
 | autoreview | Git filter/line-ending details load on the relevant collection branch; reuse the current frozen review instead of launching copies |
+| council | Use one bounded exact-round session, invoke each available supported member once per round, retain only the relevant own-history and failure evidence, and never imply agreement is verification |
+| security-audit | Choose quick/standard/deep and a strict agent budget up front; reserve critics and validation before hunting, persist coverage state, and revalidate changed source instead of repeating unchanged work |
 | imagegen-frontend-mobile | Reuse supplied screens/assets/style and generate only the requested set plus justified corrections |
 | mneves-chatgpt-search | Preserve working discovery infrastructure; route audit, local fixes and measurement separately, refreshing only relevant official guidance |
 | mneves-agent-readiness | Choose one requested assessment/output mode; static/manual triage does not masquerade as a runtime maturity score |

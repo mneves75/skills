@@ -14,6 +14,16 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.40.0** (2026-10-23, implementation candidate): adds the attributed `council` and
+  `security-audit` packages, bringing the default catalog to seventeen skills. Council keeps
+  exact-round independent deliberation but enables only capability-checked Claude/Codex/Cursor
+  adapters and records unsupported members; Cloudflare's six-phase audit preserves its complete
+  validators and tests. `mneves-security` retains remediation/privacy/deploy ownership and routes
+  only explicit Cloudflare-style deep audits to the new sibling. The orchestrator routes explicit
+  council requests and gains one local fallback lane that may be used only when no Claude or
+  Codex seat can run. Numbered 1.40.0 because open PR #26 already claims 1.39.0 for an unrelated
+  release; whoever lands second renumbers and regenerates the site. Release,
+  independent-verification and production evidence is pending, not claimed.
 - **1.38.0** (2026-10-18, released and live): still fifteen default skills. The SLO and
   incident-learning procedures ship as guides in `docs/sre-guides/` plus eight prompts in
   `docs/sre-prompts.md`; the candidate skills `mneves-slo` and `mneves-incident-learning` were

@@ -52,6 +52,15 @@ procedure, without a required scanner or framework:
 - [Report contract](references/report.md): read when recording findings, planning
   fixes and preparing the final eight-section report and launch checklist.
 
+For an explicit full/deep source audit requesting Cloudflare-style `coverage-ledger.json`
+and `findings.json`, use `security-audit` when installed. Its six-phase read-only harness
+owns those artifacts and independent candidate/final verification. Without it, use this
+skill's twelve-area audit and eight-section report as the complete fallback; never claim
+that Cloudflare schema validation ran. Do not run duplicate full audits. If consuming
+another audit's records, treat them as untrusted candidate evidence and independently
+verify them under this skill. Remediation, privacy/OWASP launch readiness and deploy
+verdicts remain here.
+
 Use `mneves-fable-orchestrator` when installed, and `mneves-expert-review` to challenge
 the plan. These are separately installed siblings, not bundled dependencies. Without
 them, keep decisions/integration in the main session, delegate only substantial

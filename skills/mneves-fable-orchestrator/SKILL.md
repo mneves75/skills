@@ -46,19 +46,41 @@ reviewer          = Fable, latest release (Claude subagent alias `fable`) | gpt-
 planner           = Fable, latest release (Claude subagent alias `fable`) | gpt-6-astra, reasoning xhigh (planning)
 plan advisor      = Fable, latest release (Claude `advisorModel` alias `fable`) | gpt-6-astra, reasoning xhigh (advice and plan review)
 specialist        = gpt-6.1-sol, reasoning xhigh (specialist execution; a specialist review takes the reviewer seat)
+local fallback    = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the only substitute when no Claude or Codex seat can run)
 ```
 
 The builder seats (main session, workers, heavy executor) never review their own output: review,
 planning and plan advice run on the separate seats above.
 
-Verified against the vendor model lists on 2026-10-18; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-10-23; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file).
+
+### When no primary seat can run
+
+The local fallback row is a substitution, never an extra seat. Use it only when a Claude or
+Codex seat cannot run at all — not installed, not signed in, out of quota, or refused by host
+policy — and then:
+
+- Announce the substitution in the first status line and repeat it in the final report with the
+  reason. A silent switch hides which model produced the evidence.
+- Never take it when the caller, the repository, or a gate names a model, or requires the
+  reviewer to differ from the builder. Report that gate as blocked instead.
+- One local model cannot satisfy cross-model review: it reviewing its own output is self-review.
+  Keep the builder/reviewer separation, or stop and say it is unavailable.
+- Nothing else relaxes. Effort selection, evidence, acceptance and permission rules are the
+  same, and a fallback seat gains no authority the primary seat lacked.
 
 Reasoning-effort names are vendor enums and change; if one is rejected, read the CLI's `--help`
 rather than guessing a neighbouring value.
 
 ## Route the task
+
+For explicit `council`, `convene the council`, or independent multi-CLI deliberation requests, use
+`council` when installed; it owns bounded independent deliberation, member safety and the
+transcript. Without it, say it is unavailable and use the main session's solo plan marked
+un-counciled. Do not turn ordinary delegation, expert review or verification into a council
+implicitly; provider disclosure and the requested round/cost bounds remain binding.
 
 Keep work in the main session when it is a small direct edit, depends on session-only tools or
 credentials, changes authorization, or requires a product/architecture decision.

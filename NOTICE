@@ -33,6 +33,18 @@ name collision):
 https://github.com/openclaw/agent-skills/tree/711711b86294673feced9d1cb636b539daf3c218/skills/handoff
 Copyright (c) 2026 openclaw. Distributed under the MIT License included in that skill's directory.
 
+The council skill is adapted from Kitze's Council:
+https://github.com/kitze/council/tree/1a3c7c303fd4ee671d7c4e2fabfd43d213aba115
+Copyright (c) 2026 Kitze. Distributed under the MIT License included in that skill's directory.
+Local modifications include capability-checked read-only adapters, privacy and session bounds,
+unsupported-member handling, and explicit advisory rather than verification semantics.
+
+The security-audit skill is adapted from Cloudflare's security-audit-skill:
+https://github.com/cloudflare/security-audit-skill/tree/c1c8a8c1471069fb0e188eeaff69b8e8db6564a8
+Copyright (c) 2025-2026 Cloudflare, Inc. Distributed under the MIT License included in that skill's directory.
+Local modifications include Agent Skills metadata, reference layout/routing, and optional-sibling
+and host-authorization boundaries; upstream validators and tests are preserved.
+
 Original repository work is licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at

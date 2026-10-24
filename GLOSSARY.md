@@ -7,6 +7,14 @@ Portable procedures and supporting resources installed into coding agents.
 **Security finding**: An observed or suspected weakness with identified evidence,
 affected assets, severity and confidence. An unconfirmed suspicion is not a verified defect.
 
+**Deep source audit**: A coverage-led, read-only scan of a codebase that records which source
+units it read and returns confirmed, needs-validation or rejected findings. It is not a deploy
+gate and it does not change the target.
+
+**Council**: Bounded independent deliberation over a plan by separate agent CLIs, one reply per
+member per requested round. It produces advice and a faithful objection record, never
+verification.
+
 **Evidence scope**: The environment and surface a check actually establishes, such as
 source configuration, local behavior, deployed behavior or an owner's dated attestation.
 
