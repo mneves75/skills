@@ -32,7 +32,9 @@ The observable result is that `npx skills@latest add . --list` discovers `counci
 - `1.39.0` was already claimed by open PR #26, an unrelated skills-review release at `6649bc9`. Two candidates cannot share a version, tag or changelog heading, so this work is numbered `1.40.0`; the branch that lands second renumbers and regenerates the site.
 - `tools/` has 10 failing `bun test` cases (`bounds git/find/find/grep/ls: fast|slow`) on this macOS host. The identical 10 fail on a clean worktree at `origin/main` `b72fadd`, so they are pre-existing and not caused by this change; CI runs them on Ubuntu, where the merged 1.38.0 checks were green. They stay out of scope and are reported.
 - The landing page carried two stale `Fifteen` claims (hero intro and meta description) that no gate checks. A browser render found them; both now read seventeen.
-- 17 of the 20 Cloudflare files are byte-identical to the pin. Only `SKILL.md` is adapted and only the cross-file Markdown links in `ATTACK-CLASSES.md` and `RECONNAISSANCE.md` become backticked basenames resolved through the skill's reference map, so reference-to-reference links disappear without losing text.
+- 17 of the 20 Cloudflare files were byte-identical to the pin; the adversarial review found an inherited contradiction between the Phase 5 dispatch and the completion condition for `rejected` records, so one reference file was corrected and 16 of 20 stay byte-identical.
+- The adversarial review on the Codex seat found that no Council adapter confines reads to the working directory: Cursor's documented default is system-wide read, and Codex's read-only sandbox removes writes, not reads. The skill now states independence as a protocol obligation with each adapter's real read scope, and names Cursor's argument-vector exposure.
+- The same review found the fallback trigger worded so that one unavailable primary seat could read as sufficient; it now requires that no authorized primary seat for that role can run and records each failure.
 
 ## Decision Log
 

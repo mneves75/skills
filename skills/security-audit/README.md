@@ -75,4 +75,6 @@ The upstream suite has positive controls, planted invalid fixtures, Unicode/cont
 
 Copyright (c) 2025-2026 Cloudflare, Inc. Distributed under the [MIT License](LICENSE).
 
-Local changes are concise Agent Skills metadata, a narrower full-audit trigger, the optional `mneves-security` relationship, explicit host authorization for output, one-level `references/` links, and this documentation. The six-phase process, execution/write isolation, coverage and prior-run rules, verdicts, independent verification, validators, and tests are preserved from the pinned source.
+Local changes are concise Agent Skills metadata, a narrower full-audit trigger, the optional `mneves-security` relationship, explicit host authorization for output, one-level `references/` links, one correction of an inherited contradiction (see below), and this documentation. Sixteen of the twenty upstream files are byte-identical to the pin. The six-phase process, execution/write isolation, coverage and prior-run rules, verdicts, independent verification, validators, and tests are preserved from the pinned source.
+
+The correction: upstream requires every retained record to pass Phase 5, while Phase 5 only dispatches `confirmed` and `needs_validation` records, so a run that correctly retains a `rejected` record could never complete. `references/VALIDATION-AND-REPORTING.md` now states that a `rejected` record keeps the independent Phase 3 disproof that produced it. Nothing in the schema, validators or tests changes.

@@ -46,7 +46,7 @@ reviewer          = Fable, latest release (Claude subagent alias `fable`) | gpt-
 planner           = Fable, latest release (Claude subagent alias `fable`) | gpt-6-astra, reasoning xhigh (planning)
 plan advisor      = Fable, latest release (Claude `advisorModel` alias `fable`) | gpt-6-astra, reasoning xhigh (advice and plan review)
 specialist        = gpt-6.1-sol, reasoning xhigh (specialist execution; a specialist review takes the reviewer seat)
-local fallback    = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the only substitute when no Claude or Codex seat can run)
+local fallback    = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the only substitute when no Claude or Codex seat for that role can run)
 ```
 
 The builder seats (main session, workers, heavy executor) never review their own output: review,
@@ -58,9 +58,7 @@ appear nowhere else in this file).
 
 ### When no primary seat can run
 
-The local fallback row is a substitution, never an extra seat. Use it only when a Claude or
-Codex seat cannot run at all — not installed, not signed in, out of quota, or refused by host
-policy — and then:
+The local fallback row is a substitution, never an extra seat. Use it only when no authorized primary seat for that role can run — not installed, not signed in, out of quota, or refused by host policy — and record why each applicable primary failed. Host-policy or task restrictions on a provider are not a reason to route around them. Then:
 
 - Announce the substitution in the first status line and repeat it in the final report with the
   reason. A silent switch hides which model produced the evidence.

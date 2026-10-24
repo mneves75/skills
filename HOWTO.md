@@ -454,9 +454,9 @@ recommendation or architecture decision.
 
 **What it does.** Convenes independent members on one plan. The lead drafts it, every available
 member answers independently, and the lead revises for exactly the number of rounds you asked
-for — no extra round for unanimity, no fewer for disagreement. Members never see each other's
-replies; after round one each sees only the lead's changes and its own previous reply, which is
-what keeps the answers independent instead of converging on the first opinion. You get the final
+for — no extra round for unanimity, no fewer for disagreement. Members are never shown each
+other's replies; after round one each is shown only the lead's changes and its own previous
+reply, which is what keeps the answers from converging on the first opinion. You get the final
 plan plus a faithful account of the objections, failures and skipped members.
 
 Council is advice, not evidence. Agreement between members is not correctness, a test suite, an
@@ -498,6 +498,10 @@ convene the council on this migration plan — two rounds
   where a member that folded early has to defend its answer against the revision.
 - Decide what context may leave your machine before you council a private task. The prompt-only
   mode exists for that, and it does not remove the provider disclosure.
+- Independence here is a protocol rule, not an operating-system sandbox: no adapter limits a
+  member's reads to the working directory, so treat a member as able to read anything you can.
+  What the run controls is what each member is given — never another member's reply, never the
+  session path.
 - Pair it with `mneves-verify` once the plan becomes a change: the council argues about the plan,
   the verifier checks the artifact.
 

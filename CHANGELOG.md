@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`mneves-security`**: explicit Cloudflare-style deep audits route to the optional `security-audit` sibling without duplicate full audits; the existing twelve-area audit, remediation and deploy-gate contracts remain the complete fallback.
 - **`mneves-fable-orchestrator`**: explicit council requests route to the optional `council` sibling; ordinary delegation and verification stay distinct. The Defaults block gains one local fallback lane for hosts where no Claude or Codex seat can run, and every id in it was re-verified against the vendors' current catalogs on 2026-10-23.
 - **Fallback discipline**: a substituted seat is announced and reported, never used when a model is named or a different reviewer is required, and never treated as cross-model review.
+- **Review corrections**: Council now states independence as a protocol obligation and names each adapter's real read scope, including Cursor's documented system-wide read default and its prompt appearing in the argument vector; `security-audit` corrects one inherited contradiction so a retained `rejected` record keeps its Phase 3 disproof instead of being required to pass a Phase 5 step that never receives it.
 - **Catalog and docs**: seventeen default skills, with Council and security-audit guides, landing cards, usage-efficiency notes, provenance and CI execution for both Node validator suites.
 
 ## [1.38.0] - 2026-10-18
