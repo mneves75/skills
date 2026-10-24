@@ -18,8 +18,11 @@ The observable result is that `npx skills@latest add . --list` discovers `counci
 - [x] (2026-10-23) Complete catalog, generated site, release metadata and CI/docs alignment.
 - [x] (2026-10-23) Structural gates: skill layout, `skills-ref validate` on all 17 skills, `npx skills add --list` discovery, both Cloudflare suites (34 + 31 tests), `ast-grep`, Python syntax, `build-site.sh` + `build-site.test` (38 controls), defaults guard + its planted controls, readiness catalog + its 14 planted violations, Python and Node package tests, hook, `codex-lane`, ship-deploy contract (173 tests), release guards, SRS, render AST and starters (8 + 10 tests), autoreview (345 tests), `sync-pstack.test` (39 checks).
 - [x] (2026-10-23) Real-browser check of the seventeen-card site at 1440x900 and 390x844, including the copy control's three scenarios and both new guide anchors.
-- [ ] Adversarial review of the frozen candidate and independent verification; fix confirmed findings.
-- [ ] Commit/push the candidate, inspect CI, complete exact-candidate security/readiness and production approval, then merge/tag/deliver and clean only task-owned scratch/branches.
+- [x] (2026-10-23) Real-browser check of the seventeen-card site at 1440x900 and 390x844, including the copy control's three scenarios and both new guide anchors; transcript kept in ignored `.scratch/evidence/browser-ea2169e.log` naming the candidate.
+- [x] (2026-10-23) Two independent adversarial reviews on different models: one on the Codex seat (four findings) and one in a fresh context (eight findings and one upstream gap). Nine of twelve were real and are fixed here; the upstream validator gap and two disclosure-only items are documented instead.
+- [x] (2026-10-23) `mneves-verify` in a fresh context: PASS on all nine frozen criteria, with two non-blocking caveats (browser claim without a persisted artifact; backticked companion basenames are navigation pointers, not links). The browser transcript was added afterwards.
+- [ ] Production security gate and independent acceptance; the gate has run three times on successive trees and blocked on real defects each time (F-1 erasure contract; a contradictory read-confinement sentence), all since fixed. CI and a final different-model acceptance are the remaining conditions.
+- [ ] Merge, tag and prove the live site only after the gate verdict and the acceptance pass; the owner's five dated control waivers expire 2026-10-25T23:59:59Z.
 
 ## Surprises & Discoveries
 
