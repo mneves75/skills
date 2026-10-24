@@ -19,7 +19,8 @@ for this repository.
 
 Everything shipped here: skill instructions (`skills/*/SKILL.md`), the shipped shell script
 (`skills/mneves-fable-orchestrator/tools/codex-lane`), the Python helper
-(`skills/mneves-teach-back-srs/scripts/srs_db.py`), the Bun/TypeScript tool (`tools/`),
+(`skills/mneves-teach-back-srs/scripts/srs_db.py`), the Node validators and their tests
+(`skills/security-audit/validate-*.cjs`, `*.test.cjs`), the Bun/TypeScript tool (`tools/`),
 the autoreview CLI and its packaged tests (`skills/autoreview/`),
 the git hook (`.githooks/`), and the GitHub workflows.
 
@@ -86,6 +87,15 @@ operating-system updates.
   them. A lane owns `<lane>.json` and, per run, `<lane>.<UTC stamp>.<pid>.jsonl`, `.last.txt`
   and `.stderr.log`. To erase it, `drop` the lane, then delete exactly those names; never a
   `<lane>.*` glob, which also matches dotted lanes such as `job.extra`.
+- `council` keeps each deliberation in a private session directory outside your project
+  (conventional default `~/.council/`): the task, the plan, and every member's prompt, reply
+  and log. It never prunes them, and it starts other authenticated CLIs (Claude, Codex or
+  Cursor), each under a read-only or restricted configuration. The task and plan you approve
+  leave your machine to those providers under their own retention terms.
+- `security-audit` writes its audit to a directory outside the target (conventional default
+  `~/security-audit-skill/<repo-name>/run-<N>/`): the coverage ledger, findings, evidence and
+  reports. It never prunes them, and it reads source and runs target-controlled commands only
+  inside the sandbox the skill requires.
 - The other skills are Markdown procedures. What your agent sends, and where, follows your
   agent's own configuration.
 
@@ -96,7 +106,9 @@ keeps no copy. To erase:
 
 1. **Local files the tools wrote.** Delete the readiness reports you asked for (`--output`),
    autoreview's `--output`, `--json-output` and `--status-output` files, `.ai-learn/srs.db`
-   and any SRS exports, and the `codex-lane` files listed above. Each lives where you chose or
+   and any SRS exports, the `codex-lane` files listed above, the `council` session directory
+   (delete each session whole, after reading it, rather than a wildcard that could match
+   another run), and the `security-audit` output directories. Each lives where you chose or
    where this file says; no tool keeps another copy.
 2. **Provider copies.** Review inputs sent by autoreview, and prompts your agent sends while
    following a skill, are kept under that provider's own retention terms. Delete them through
