@@ -64,8 +64,7 @@ The local fallback row is a substitution, never an extra seat. Use it only when 
   reason. A silent switch hides which model produced the evidence.
 - Never take it when the caller, the repository, or a gate names a model, or requires the
   reviewer to differ from the builder. Report that gate as blocked instead.
-- One local model cannot satisfy cross-model review: it reviewing its own output is self-review.
-  Keep the builder/reviewer separation, or stop and say it is unavailable.
+- One local model cannot satisfy cross-model review: it reviewing its own output is self-review, and two sessions of the same model are still self-review. If no other model can review, report the review gate blocked instead of running it.
 - Nothing else relaxes. Effort selection, evidence, acceptance and permission rules are the
   same, and a fallback seat gains no authority the primary seat lacked.
 

@@ -13,7 +13,7 @@ The six phases are:
 5. **Independent record verification** — fresh agents verify final source claims; material replacements receive another independent verifier.
 6. **Target-neutral reporting** — derive `REPORT.md`, `FINDINGS-DETAIL.md`, and `NEEDS-VALIDATION.md` from the final records and ledger.
 
-Only `confirmed` records receive severity. `needs_validation` records have an exact unresolved fact and no severity; `rejected` records preserve disproved claims. The JSON validators establish structure and ledger consistency, not factual correctness. No single run is complete; prior runs guide new coverage and changed-source revalidation rather than suppressing it.
+Only `confirmed` records receive severity. `needs_validation` records have an exact unresolved fact and no severity; `rejected` records preserve disproved claims. The JSON validators establish structure and ledger consistency, not factual correctness or that the run completed its phases — an empty ledger and an empty findings array both pass. Completeness is the procedure's contract, checked by the parent against the ledger, not by the validators. No single run is complete; prior runs guide new coverage and changed-source revalidation rather than suppressing it.
 
 ## Requirements and boundaries
 

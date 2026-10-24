@@ -35,6 +35,7 @@ The observable result is that `npx skills@latest add . --list` discovers `counci
 - 17 of the 20 Cloudflare files were byte-identical to the pin; the adversarial review found an inherited contradiction between the Phase 5 dispatch and the completion condition for `rejected` records, so one reference file was corrected and 16 of 20 stay byte-identical.
 - The adversarial review on the Codex seat found that no Council adapter confines reads to the working directory: Cursor's documented default is system-wide read, and Codex's read-only sandbox removes writes, not reads. The skill now states independence as a protocol obligation with each adapter's real read scope, and names Cursor's argument-vector exposure.
 - The same review found the fallback trigger worded so that one unavailable primary seat could read as sufficient; it now requires that no authorized primary seat for that role can run and records each failure.
+- A3 (upstream gap, not fixed here): both validators accept an empty ledger and an empty `findings.json`, so they cannot prove a run did the work. Adding a strict completion mode (`--require-complete`, plus a cross-check that every `candidate` fingerprint reached `findings.json`) would fork the pinned validators and their 65 tests; the procedure states the limitation instead and the change is proposed upstream before it is adopted here. The strongest rejected alternative is a local strict wrapper script, which duplicates the validators' parsing and would drift from them.
 
 ## Decision Log
 
