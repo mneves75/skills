@@ -39,13 +39,6 @@ export function getAdapter(language: Language): LanguageAdapter | undefined {
 }
 
 /**
- * Get all available adapters
- */
-export function getAllAdapters(): LanguageAdapter[] {
-	return Object.values(ADAPTERS) as LanguageAdapter[];
-}
-
-/**
  * Check if a language has an adapter
  */
 export function hasAdapter(language: Language): boolean {

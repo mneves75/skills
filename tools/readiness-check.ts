@@ -61,10 +61,7 @@ import { installCommandSignalHandlers } from "./lib/command.js";
 import { EXIT_CODES } from "./lib/constants.js";
 import { createFileCache, type FileCache } from "./lib/file-cache.js";
 // Import v2 modules
-import {
-	detectLanguage,
-	type Language,
-} from "./lib/language-detection.js";
+import { detectLanguage, LANGUAGES, type Language } from "./lib/language-detection.js";
 import {
 	type AppScore,
 	aggregateOrgScore,
@@ -1309,7 +1306,7 @@ function showHelp(): void {
 				{ long: "format", short: "f", arg: "md|json|html", description: "Output format (default: md)" },
 				{ long: "output", short: "o", arg: "file", description: "Write to file instead of stdout" },
 				{ long: "scoring", arg: "weighted|strict|average", description: "Scoring mode (default: weighted)" },
-				{ long: "language", arg: "lang", description: "Force language (override detection)" },
+				{ long: "language", arg: "lang", description: `Force language (override detection): ${LANGUAGES.join("|")}` },
 				{ long: "app", arg: "path", description: "Assess single app in monorepo" },
 				{ long: "skip-tests", description: "Skip long-running test execution" },
 				{ long: "skip-build", description: "Skip build verification" },
@@ -1344,9 +1341,9 @@ async function main(): Promise<number> {
 		return EXIT_CODES.SUCCESS;
 	}
 
-	const format = getOption(args, "format") || getOption(args, "f") || "md";
+	const format = getOption(args, "format") ?? getOption(args, "f") ?? "md";
 	const outputFile = getOption(args, "output") || getOption(args, "o");
-	const scoringOption = getOption(args, "scoring") || "weighted";
+	const scoringOption = getOption(args, "scoring") ?? "weighted";
 	const languageOption = getOption(args, "language");
 	const appPath = getOption(args, "app");
 	const skipTests = hasFlag(args, "skip-tests");
@@ -1363,9 +1360,9 @@ async function main(): Promise<number> {
 	if (!["md", "json", "html"].includes(format)) return invalid("format", format, "md|json|html");
 	if (!isScoringMode(scoringOption)) return invalid("scoring", scoringOption, "weighted|strict|average");
 	const scoringMode = scoringOption;
-	const supportedLanguages: readonly string[] = getSupportedLanguages();
-	if (languageOption !== undefined && !supportedLanguages.includes(languageOption)) {
-		return invalid("language", languageOption, supportedLanguages.join("|"));
+	const languages: readonly string[] = LANGUAGES;
+	if (languageOption !== undefined && !languages.includes(languageOption)) {
+		return invalid("language", languageOption, languages.join("|"));
 	}
 	const languageOverride = languageOption as Language | undefined;
 	if (minLevelOption !== undefined && !/^[1-5]$/.test(minLevelOption)) {

@@ -79,7 +79,9 @@ test("checker rejects invalid option values instead of passing a CI gate vacuous
 	try {
 		// Positive control: a valid gate the fixture cannot meet still fails with the gate's code.
 		expect((await run("--min-level=5")).code).toBe(1);
-		for (const flag of ["--min-level=L5", "--min-level=0", "--min-level=6", "--min-level=3x", "--scoring=bogus", "--format=bogus", "--language=cobol"]) {
+		// A language without an adapter still runs on the fallback checks, as before.
+		expect((await run("--language=php")).code).toBe(0);
+		for (const flag of ["--min-level=L5", "--min-level=0", "--min-level=6", "--min-level=3x", "--scoring=bogus", "--scoring=", "--format=bogus", "--format=", "--language=cobol"]) {
 			const { code, stderr } = await run(flag);
 			expect({ flag, code }).toEqual({ flag, code: 2 });
 			expect(stderr).toContain(flag.slice(2, flag.indexOf("=")));

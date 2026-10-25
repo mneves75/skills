@@ -543,19 +543,6 @@ export function aggregateOrgScore(
 // ============================================================================
 
 /**
- * Generate a summary line for an app score
- */
-export function formatAppSummary(appScore: AppScore): string {
-	const levelName = LEVEL_NAMES[appScore.level];
-	const passedTotal = appScore.checks.filter(
-		(c) => !c.skipped && c.pass,
-	).length;
-	const total = appScore.checks.filter((c) => !c.skipped).length;
-
-	return `${appScore.app.name}: L${appScore.level} (${levelName}) - ${appScore.score}% (${passedTotal}/${total} checks)`;
-}
-
-/**
  * Generate a summary line for org score
  */
 export function formatOrgSummary(orgScore: OrgScore): string {

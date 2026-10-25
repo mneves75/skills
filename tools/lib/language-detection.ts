@@ -18,19 +18,22 @@ import path from "node:path";
 /**
  * Supported programming languages for detection
  */
-export type Language =
-	| "typescript"
-	| "javascript"
-	| "go"
-	| "python"
-	| "rust"
-	| "java"
-	| "kotlin"
-	| "swift"
-	| "csharp"
-	| "ruby"
-	| "php"
-	| "unknown";
+export const LANGUAGES = [
+	"typescript",
+	"javascript",
+	"go",
+	"python",
+	"rust",
+	"java",
+	"kotlin",
+	"swift",
+	"csharp",
+	"ruby",
+	"php",
+	"unknown",
+] as const;
+
+export type Language = (typeof LANGUAGES)[number];
 
 /**
  * Source of a language detection signal
