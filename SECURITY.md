@@ -17,12 +17,15 @@ for this repository.
 
 ## Scope
 
-Everything shipped here: skill instructions (`skills/*/SKILL.md`), the shipped shell script
-(`skills/mneves-fable-orchestrator/tools/codex-lane`), the Python helper
-(`skills/mneves-teach-back-srs/scripts/srs_db.py`), the Node validators and their tests
-(`skills/security-audit/validate-*.cjs`, `*.test.cjs`), the Bun/TypeScript tool (`tools/`),
-the autoreview CLI and its packaged tests (`skills/autoreview/`),
-the git hook (`.githooks/`), and the GitHub workflows.
+Everything shipped here: skill instructions (`skills/*/SKILL.md`), the orchestrator's shell
+script and its test (`skills/mneves-fable-orchestrator/tools/codex-lane`, `codex-lane.test`),
+the release contract checker, reference release scripts and their tests
+(`skills/mneves-ship-deploy/scripts/`, `assets/*.sh`, `tests/`), the render content-policy
+filter, starters and tests (`skills/mneves-render/scripts/check_ast.py`, `assets/`, `tests/`),
+the SRS helper and its test (`skills/mneves-teach-back-srs/scripts/srs_db.py`, `tests/`), the
+Node validators and their tests (`skills/security-audit/validate-*.cjs`, `*.test.cjs`), the
+Bun/TypeScript tool (`tools/`), the autoreview CLI and its packaged tests
+(`skills/autoreview/`), the git hook (`.githooks/`), and the GitHub workflows.
 
 Skill files are instructions executed by an AI agent with your permissions. Treat a skill
 you did not read like a script you did not read.

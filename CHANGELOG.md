@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Readiness tool tests**: `shared.test.ts` warms each fake command once before the timed run, so macOS's first-exec cost of a new file no longer exceeds the 150 ms deadline under test; every bound is unchanged.
+- **`SECURITY.md`**: the scope now lists every shipped executable, including the `mneves-ship-deploy` and `mneves-render` scripts and tests.
+
 ## [1.40.0] - 2026-10-23
 
 ### Added
