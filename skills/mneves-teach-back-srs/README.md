@@ -2,18 +2,18 @@
 
 **Learn any codebase deeply through spaced-repetition teach-back sessions.**
 
-You explain what you know. Claude cross-references the actual code, finds gaps in your mental model, asks Socratic follow-ups, and generates flashcards. Cards are scheduled using the SM-2 algorithm (same as Anki) in a per-project SQLite database.
+You explain what you know. The agent cross-references the actual code, finds gaps in your mental model, asks Socratic follow-ups, and generates flashcards. Cards are scheduled using the SM-2 algorithm (same as Anki) in a per-project SQLite database.
 
 **Works with**: Claude Code, Cursor, VS Code, Codex, Windsurf, Aider, and any tool supporting the Agent Skills specification.
 
 ## How It Works
 
 ```
-You explain → Claude verifies against code → Socratic follow-ups → Cards from gaps → SM-2 scheduling
+You explain → the agent verifies against code → Socratic follow-ups → Cards from gaps → SM-2 scheduling
 ```
 
 1. **Teach-back session**: You explain a module, data flow, or architectural decision
-2. **Gap analysis**: Claude reads the actual code and identifies misconceptions, blind spots, and vague areas
+2. **Gap analysis**: The agent reads the actual code and identifies misconceptions, blind spots, and vague areas
 3. **Socratic probing**: 3-5 targeted follow-up questions with specific file:line references
 4. **Card generation**: Flashcards created from every gap found, stored in SQLite
 5. **Spaced review**: SM-2 algorithm schedules reviews at optimal intervals for retention
@@ -21,10 +21,10 @@ You explain → Claude verifies against code → Socratic follow-ups → Cards f
 ## Quick Start
 
 ```bash
-# In any project directory, tell Claude:
+# In any project directory, tell your agent:
 "Let me explain how the auth system works"
 
-# Claude will:
+# The agent will:
 # 1. Initialize .ai-learn/srs.db (auto-gitignored)
 # 2. Listen to your explanation
 # 3. Cross-reference the actual code
@@ -103,8 +103,13 @@ mneves-teach-back-srs/
 ├── README.md                   # This file
 ├── scripts/
 │   └── srs_db.py               # SQLite DB manager + SM-2 engine (stdlib only)
-└── references/
-    └── sm2-algorithm.md        # Algorithm deep-dive, interval progression examples
+├── references/
+│   ├── teach-back.md           # Mode 1: the teach-back session steps
+│   ├── modes.md                # Review and other session modes
+│   ├── card-quality.md         # Rules every generated card must meet
+│   └── sm2-algorithm.md        # Algorithm deep-dive, interval progression examples
+└── tests/
+    └── test_srs_db.py          # Helper tests on a temporary database
 ```
 
 ## Requirements

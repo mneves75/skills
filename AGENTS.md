@@ -21,7 +21,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── mneves-agent-readiness/    # Codebase readiness assessment (pairs with tools/)
 │   ├── mneves-chatgpt-search/     # ChatGPT discovery, crawler access, citations and referral attribution
 │   ├── mneves-eli5/               # Feynman explainer, audience-calibrated
-│   ├── mneves-expert-review/      # Expert-panel review/optimization pass (+ references/)
+│   ├── mneves-expert-review/      # Expert-panel review/optimization pass
 │   ├── mneves-handoff/            # Discussion-first handoff prompt for another agent (MIT, adapted)
 │   ├── mneves-render/             # Project-local Markdown -> HTML, editable DOCX and PDF
 │   ├── mneves-production-readiness/ # Deploy gate: readiness ledger, verdict per target, fix plan (+ references/)

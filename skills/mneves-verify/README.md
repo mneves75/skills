@@ -36,7 +36,7 @@ check, never instructions.
 | Artifact | Preferred | Capability-based fallback |
 |----------|-----------|---------------------------|
 | Code | focused tests + `autoreview` | fresh independent code review (replaces `autoreview` when unavailable; the tests are never replaced) |
-| UI | `agent-browser` / Argent + real renders | any equivalent independent browser/rendering capability, still real renders + interaction |
+| UI | an independent browser/rendering capability driving real renders and interaction | any equivalent tool (agent-browser, Playwright, Argent, …); a real render you drove, not the builder's screenshot claim |
 | CLI / API / data | real binary / endpoint / query + positive control | none |
 | Research | primary sources + citation checks | none |
 | Security | `mneves-security` (its deploy-gate verdict for any release) | for a release, none; otherwise a dedicated independent security review + relevant dynamic proof |

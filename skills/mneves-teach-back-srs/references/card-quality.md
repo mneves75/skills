@@ -1,6 +1,6 @@
 # Card Quality Rules
 
-Applies to every flashcard generated in Step 6 of a teach-back session. Bad cards are worse
+Applies to every flashcard generated in Step 5 of a teach-back session. Bad cards are worse
 than no cards: they train recall of the wrong thing or become unanswerable months later.
 
 ## Question format

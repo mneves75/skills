@@ -44,7 +44,7 @@ Stop when:         the falsifiable condition, plus the retry bound
 ```
 
 Every brief also states, verbatim in substance: you share this tree with other workers, preserve
-changes you did not make, do not spawn subagents, do not run OptMem, and do not commit or push.
+changes you did not make, do not spawn subagents, do not run cross-session memory tools, and do not commit or push.
 Delegation never widens authorization — a worker inherits the task's scope and nothing more.
 
 ## Return contract

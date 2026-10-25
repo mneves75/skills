@@ -1,6 +1,6 @@
 ---
 name: mneves-render
-description: Build repeatable project-local renderers from Markdown to HTML, editable DOCX and PDF, with shared styling and content and visual checks.
+description: Build repeatable project-local renderers from Markdown to HTML, editable DOCX and PDF, with shared styling and content and visual checks; use when asked to export Markdown to HTML, Word or PDF.
 license: Apache-2.0
 compatibility: "Starters need Pandoc, Python 3.10+ and WeasyPrint or an equivalent PDF engine; optional acceptance tests use Poppler and LibreOffice."
 ---

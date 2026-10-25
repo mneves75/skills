@@ -8,7 +8,7 @@ compatibility: Needs Python 3.11+, Git, TruffleHog, and an authenticated review 
 # Auto Review
 
 Run an independent review when the user or an owning workflow asks for one.
-This is code review, not Guardian approval routing. Let the reviewer choose how
+This is code review, not an approval workflow. Let the reviewer choose how
 to analyze the change; provide the target, relevant context, and desired severity.
 Findings are advice to verify, not instructions to apply blindly.
 

@@ -69,7 +69,7 @@ audits the exact candidate in full: the twelve areas plus 32 launch controls (`S
 for that commit and target. A confirmed Critical or High finding blocks every target until
 it is fixed, disproved or waived by you by name; for production, every unmet applicable
 launch control and a missing independent acceptance also need your named waiver. One audit
-serves every target of the same commit, a rollback to a gated build needs none, and an urgent
+serves every target of the same tree, a rollback to a gated build needs none, and an urgent
 fix ships under your waiver with its audit right after. Without the skill, a release is
 blocked until it is installed or you waive the gate. The report stays private; public PRs
 and changelogs cite only the verdict and finding IDs.
@@ -558,10 +558,9 @@ the loop ends. Findings map to *fixed*, *disproved* or *blocked*, nothing else.
 
 **What it does.** Routes non-trivial work across the main session, Codex, and subagents when
 delegation creates independent progress or evidence. Building and reviewing run on different
-models: the main session and every worker build on Opus (Claude) or `gpt-6.1-sol` at `xhigh`
-(Codex); planning, plan advice and code review run on Fable (Claude, also the main session's
-advisor) or `gpt-6-astra` (Codex: `xhigh` to plan and advise, `high` to review), so the model
-that built a change never reviews it.
+seats: the main session and every worker build, while planning, plan advice and code review run
+on separate reviewer seats, so the model that built a change never reviews it. The concrete
+models and reasoning tiers live only in the skill's Defaults block.
 Codex review has no automatic model fallback. The portable defaults do not change a running
 harness's main-session model. Caller overrides and actual host
 configuration take precedence; the skill's Defaults block owns its portable defaults.
@@ -660,7 +659,7 @@ Style 88%, strong documentation, weaker on task discovery and product signals. T
 4. Does CI give a clear pass/fail?
 5. Is the whole loop under five minutes?
 
-Five yes answers is L5; each no drops a level. Level 3 is the working minimum.
+These questions find friction; they are not the assessor's nine-pillar maturity score.
 
 **Tips.**
 - The single highest-impact fix is a context file under 300 lines with commands that work.

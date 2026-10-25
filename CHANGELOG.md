@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Readiness tool tests**: `shared.test.ts` warms each fake command once before the timed run, so macOS's first-exec cost of a new file no longer exceeds the 150 ms deadline under test; every bound is unchanged.
 - **`SECURITY.md`**: the scope now lists every shipped executable, including the `mneves-ship-deploy` and `mneves-render` scripts and tests.
+- **`mneves-ship-deploy`**: the stop rule and repo-identity check no longer name the author's paths or account, so a stranger's own repository qualifies; the security gate now runs after the readiness ledger commit too; live proof names a driver-agnostic browser or device capability; the description is capability and trigger only.
+- **Model ids**: `HOWTO.md` and autoreview's engine reference no longer restate model ids or tiers outside the orchestrator's Defaults block.
+- **Docs drift**: the readiness README's quick start works from a clone (the CLI is not in a skill install); HOWTO no longer equates the five questions with a maturity level and binds gate reuse to the tree; the AGENTS tree, teach-back README tree and card-quality step number match the files; superaudit briefs say "cross-session memory tools" instead of an undefined product name; verify and orchestrator READMEs match their skills.
+- **`council`**: its requirements line moves from frontmatter into the body, because `compatibility` is reserved for skills that ship an executable. **`mneves-render`**: the description gains its trigger.
 
 ## [1.40.0] - 2026-10-23
 
