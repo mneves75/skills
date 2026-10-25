@@ -973,11 +973,11 @@ const pySpecificRunners: Record<string, CheckRunner> = {
 		return { pass: false, details: "No dependency manifest" };
 	},
 
-	"no-lint-ignores": async (ctx: CheckContext): Promise<CheckResult> => {
+	"no-lint-ignores": async (_ctx: CheckContext): Promise<CheckResult> => {
 		return { pass: true, details: "Assumed clean (not scanned)" };
 	},
 
-	"npm-scripts": async (ctx: CheckContext): Promise<CheckResult> => {
+	"npm-scripts": async (_ctx: CheckContext): Promise<CheckResult> => {
 		// Not applicable to Python
 		return { pass: true, skipped: true, details: "N/A for Python" };
 	},

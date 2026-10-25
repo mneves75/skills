@@ -228,8 +228,9 @@ workspace-data scan plus source reading):
   that repo to be created first.
 - Waivers from the 1.38.0 release expire 2026-10-25T23:59:59Z. The two the independent check
   created are real work: MNT-05 needs a supported-runtime/end-of-life/patch-deadline statement in
-  `SECURITY.md`, and ASY-02 needs jitter plus `Retry-After` in `tools/lib/fetch.ts` with a test,
-  or the external CLI documented as the retry owner. The remaining nine are owner evidence
+  `SECURITY.md`, and ASY-02 needs the external review CLI documented as the retry owner
+  (`tools/lib/fetch.ts`, the unused retry helper the ledger cites, was deleted as dead code on
+  2026-10-25; the readiness tool's own code now makes no network calls). The remaining nine are owner evidence
   (access review, origin `security.txt`, provider data/action and erasure evidence, rollback
   drill, certificate-expiry alert, second administrator, frozen CI graph, CI-to-Pages check).
 - `site/README.md:9` still says the fifteen-card catalog "has not been rechecked" although the

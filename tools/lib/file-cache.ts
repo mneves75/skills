@@ -201,30 +201,3 @@ export function createFileCache(): FileCache {
 		},
 	};
 }
-
-// ============================================================================
-// Singleton for global use (optional)
-// ============================================================================
-
-let globalCache: FileCache | null = null;
-
-/**
- * Get or create the global file cache
- * Use this when you don't want to pass cache through context
- */
-export function getGlobalCache(): FileCache {
-	if (!globalCache) {
-		globalCache = createFileCache();
-	}
-	return globalCache;
-}
-
-/**
- * Clear the global cache
- * Call this at the start of each assessment run
- */
-export function clearGlobalCache(): void {
-	if (globalCache) {
-		globalCache.clear();
-	}
-}

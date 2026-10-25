@@ -37,7 +37,6 @@ import path from "node:path";
 import process from "node:process";
 import {
 	getAdapter,
-	getAllAdapters,
 	getSupportedLanguages,
 	goAdapter,
 	javaAdapter,
@@ -46,7 +45,7 @@ import {
 	rustAdapter,
 	typescriptAdapter,
 } from "./lib/adapters/index.js";
-import { type DetectedApp, type DiscoveryResult, discoverApps } from "./lib/app-discovery.js";
+import { type DetectedApp, discoverApps } from "./lib/app-discovery.js";
 import {
 	type CheckContext,
 	type CheckOptions,
@@ -57,21 +56,13 @@ import {
 	PILLAR_NAMES,
 	type Pillar,
 } from "./lib/check-registry.js";
+import { generateHelp, getOption, hasFlag, hasHelpFlag, parseArgs } from "./lib/cli.js";
 import { installCommandSignalHandlers } from "./lib/command.js";
+import { EXIT_CODES } from "./lib/constants.js";
 import { createFileCache, type FileCache } from "./lib/file-cache.js";
-import {
-	EXIT_CODES,
-	generateHelp,
-	getOption,
-	getOptionInt,
-	hasFlag,
-	hasHelpFlag,
-	parseArgs,
-} from "./lib/index.js";
 // Import v2 modules
 import {
 	detectLanguage,
-	detectLanguageQuick,
 	type Language,
 } from "./lib/language-detection.js";
 import {
@@ -79,10 +70,8 @@ import {
 	aggregateOrgScore,
 	calculateAppScore,
 	DEFAULT_PILLAR_WEIGHTS,
-	formatAppSummary,
 	formatOrgSummary,
 	getTopRecommendations,
-	type OrgScore,
 	type ScoringConfig,
 	type ScoringMode,
 } from "./lib/scoring.js";
@@ -542,7 +531,6 @@ function renderHtml(report: ReadinessReport): string {
 		const checksHtml = p.checks
 			.filter(c => !c.skipped)
 			.map(c => {
-				const icon = c.pass ? "check" : "x";
 				const iconColor = c.pass ? "var(--green)" : "var(--red)";
 				const iconSvg = c.pass
 					? `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="${iconColor}" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>`
@@ -1339,6 +1327,10 @@ function showHelp(): void {
 	);
 }
 
+function isScoringMode(value: string): value is ScoringMode {
+	return value === "weighted" || value === "strict" || value === "average";
+}
+
 async function main(): Promise<number> {
 	const startTime = Date.now();
 
@@ -1354,19 +1346,36 @@ async function main(): Promise<number> {
 
 	const format = getOption(args, "format") || getOption(args, "f") || "md";
 	const outputFile = getOption(args, "output") || getOption(args, "o");
-	const scoringMode = (getOption(args, "scoring") || "weighted") as ScoringMode;
-	const languageOverride = getOption(args, "language") as Language | undefined;
+	const scoringOption = getOption(args, "scoring") || "weighted";
+	const languageOption = getOption(args, "language");
 	const appPath = getOption(args, "app");
 	const skipTests = hasFlag(args, "skip-tests");
 	const skipBuild = hasFlag(args, "skip-build");
 	const verbose = hasFlag(args, "verbose") || hasFlag(args, "v");
-	const minLevel = getOptionInt(args, "min-level");
+	const minLevelOption = getOption(args, "min-level");
 	const generateNotes = hasFlag(args, "notes");
+
+	// A mistyped value must fail loudly: a silent default would pass a CI gate vacuously.
+	const invalid = (option: string, value: string, allowed: string) => {
+		console.error(`readiness-check: invalid --${option}=${value} (expected ${allowed}; see --help)`);
+		return EXIT_CODES.FATAL_ERROR;
+	};
+	if (!["md", "json", "html"].includes(format)) return invalid("format", format, "md|json|html");
+	if (!isScoringMode(scoringOption)) return invalid("scoring", scoringOption, "weighted|strict|average");
+	const scoringMode = scoringOption;
+	const supportedLanguages: readonly string[] = getSupportedLanguages();
+	if (languageOption !== undefined && !supportedLanguages.includes(languageOption)) {
+		return invalid("language", languageOption, supportedLanguages.join("|"));
+	}
+	const languageOverride = languageOption as Language | undefined;
+	if (minLevelOption !== undefined && !/^[1-5]$/.test(minLevelOption)) {
+		return invalid("min-level", minLevelOption, "1-5");
+	}
+	const minLevel = minLevelOption === undefined ? undefined : Number(minLevelOption);
 
 	// Progress logging
 	const isStructuredOutput = format === "json";
 	const log = isStructuredOutput ? console.error.bind(console) : console.log.bind(console);
-	const progressStream = isStructuredOutput ? process.stderr : process.stdout;
 
 	log(`Agent Readiness Check v${VERSION} (Factory.ai Framework)`);
 	log("=".repeat(50));

@@ -7,7 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- **Readiness tool dead code**: eight unused `tools/lib` modules (`fetch`, `progress`, `repo`, `result`, `signals`, `refs`, `types` and the `index` barrel), unused constants, check-category sets, cache singleton and dependency helpers, about 2,100 lines carried over from another project with its file names. The tool's own code now makes no network calls.
+
 ### Fixed
+- **Readiness CI gate**: an invalid `--min-level` (`L5`, `0`, `3x`), `--scoring`, `--format` or `--language` now exits 2 with the expected values instead of silently passing the gate or reporting a scoring mode it never applied.
+- **Readiness `error-budgets` check**: README matching uses whole words, so "slow" or "slides" no longer count as SLO documentation.
+- **Readiness signal tests**: allow 500 ms for SIGKILLed descendants to disappear before asserting, which failed intermittently under heavy load; the control with cleanup disabled still fails.
+- **Lint gate**: `tools/biome.json` makes unused imports, variables and parameters errors (21 removed); a planted unused import now fails `bun run lint`. `tsconfig` adds `exactOptionalPropertyTypes`.
+- **Bun pin**: CI and `tools/package.json` (`packageManager`, `engines`) agree on Bun 1.4.4, the version that wrote the lockfile.
+- **Python floors**: every helper entry point states its floor (autoreview 3.11+, SRS and changelog rows 3.10+); CI syntax-checks the autoreview live harness that no other step runs.
+- **Small fixes**: `install-cccc.py` sends its own User-Agent instead of another client's; `build-site.sh` honours `TMPDIR`.
 - **Readiness tool tests**: `shared.test.ts` warms each fake command once before the timed run, so macOS's first-exec cost of a new file no longer exceeds the 150 ms deadline under test; every bound is unchanged.
 - **`SECURITY.md`**: the scope now lists every shipped executable, including the `mneves-ship-deploy` and `mneves-render` scripts and tests.
 - **`mneves-ship-deploy`**: the stop rule and repo-identity check no longer name the author's paths or account, so a stranger's own repository qualifies; the security gate now runs after the readiness ledger commit too; live proof names a driver-agnostic browser or device capability; the description is capability and trigger only.

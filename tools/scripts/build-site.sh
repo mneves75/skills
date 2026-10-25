@@ -7,7 +7,7 @@ set -euo pipefail
 root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)
 
 # Write to a file first: the CLI's piped stdout can close before the full HTML flushes.
-rendered=$(mktemp /tmp/skills-howto.XXXXXX)
+rendered=$(mktemp "${TMPDIR:-/tmp}/skills-howto.XXXXXX")
 trap 'rm -f -- "$rendered"' EXIT
 bunx --silent marked@18.0.13 --gfm -i "$root/HOWTO.md" --output "$rendered"
 

@@ -357,8 +357,6 @@ export function calculateAppScore(
 	checks: CheckResultWithMeta[],
 	config: ScoringConfig = { mode: "weighted" },
 ): AppScore {
-	const startTime = Date.now();
-
 	// Calculate pillar scores
 	const pillars = calculatePillarScores(checks);
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rewrite the changelog rows in site/index.html from the top four CHANGELOG.md entries.
+"""Rewrite the changelog rows in site/index.html from the top four CHANGELOG.md entries; Python 3.10+.
 
 Rows go between `<!-- changelog:start -->` and `<!-- changelog:end -->`. Each row is the
 version, the date, and the first sentence of the entry's first bullet (bold and links dropped,

@@ -26,7 +26,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version: 1.4.2
+          bun-version: 1.4.4
 
       - name: Install ast-grep
         run: npm install -g @ast-grep/cli@0.45.2
@@ -64,7 +64,7 @@ jobs:
         run: bash tools/scripts/sync-pstack.test
 
       - name: Shell syntax
-        run: bash -n skills/mneves-fable-orchestrator/tools/codex-lane skills/mneves-fable-orchestrator/tools/codex-lane.test .githooks/pre-commit .githooks/pre-commit.test tools/scripts/build-site.sh tools/scripts/build-site.test tools/scripts/check-site-copy.sh tools/scripts/check-defaults-block.sh tools/scripts/sync-pstack.sh tools/scripts/sync-pstack.test skills/mneves-ship-deploy/assets/release.sh skills/mneves-ship-deploy/assets/verify-live.sh skills/mneves-ship-deploy/assets/release-guards.test.sh
+        run: bash -n skills/mneves-fable-orchestrator/tools/codex-lane skills/mneves-fable-orchestrator/tools/codex-lane.test .githooks/pre-commit .githooks/pre-commit.test tools/scripts/build-site.sh tools/scripts/build-site.test tools/scripts/check-site-copy.sh tools/scripts/check-defaults-block.sh tools/scripts/sync-pstack.sh tools/scripts/sync-pstack.test skills/mneves-ship-deploy/assets/release.sh skills/mneves-ship-deploy/assets/verify-live.sh skills/mneves-ship-deploy/assets/release-guards.test.sh skills/autoreview/scripts/test-review-harness
 
       - name: codex-lane e2e (fake codex, no provider calls)
         run: bash skills/mneves-fable-orchestrator/tools/codex-lane.test
@@ -89,7 +89,7 @@ jobs:
           bash tools/scripts/check-defaults-block.test
 
       - name: Python syntax
-        run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py skills/mneves-ship-deploy/scripts/release-contract-check.py skills/mneves-ship-deploy/scripts/run-tests.py skills/mneves-ship-deploy/tests/test_release_contract_check.py tools/scripts/check-readiness-catalog.py
+        run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py skills/mneves-ship-deploy/scripts/release-contract-check.py skills/mneves-ship-deploy/scripts/run-tests.py skills/mneves-ship-deploy/tests/test_release_contract_check.py tools/scripts/check-readiness-catalog.py skills/autoreview/scripts/test-review-harness.py
 
       - name: Security audit validator suites and syntax
         run: |

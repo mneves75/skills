@@ -78,7 +78,7 @@ export interface CheckResult {
 	/** Whether the check was skipped (e.g., --skip-tests) */
 	skipped?: boolean;
 	/** Tool that provides this capability (e.g., "ESLint", "golangci-lint") */
-	tool?: string;
+	tool?: string | undefined;
 	/** Path to the configuration file */
 	configPath?: string;
 	/** Confidence in the result (0-100) */

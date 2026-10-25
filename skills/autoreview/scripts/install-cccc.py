@@ -36,7 +36,7 @@ def target(system: str, machine: str) -> str:
 
 def download(url: str) -> bytes:
     request = urllib.request.Request(url, headers={
-        "User-Agent": "OpenAI File Downloader, XaiImageApiFetch/1.0"})
+        "User-Agent": "autoreview-install-cccc"})
     with urllib.request.urlopen(request, timeout=60) as response:
         if not response.geturl().startswith("https://"):
             raise ValueError("Download redirected outside HTTPS")

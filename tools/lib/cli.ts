@@ -222,27 +222,6 @@ export function getOption(
 }
 
 /**
- * Gets an option value as integer.
- *
- * @param args - Parsed arguments
- * @param long - Long option name
- * @param short - Short option name (optional)
- * @param defaultValue - Default value if not found or invalid
- * @returns The option value as integer or default
- */
-export function getOptionInt(
-	args: ParsedArgs,
-	long: string,
-	short?: string,
-	defaultValue = 0,
-): number {
-	const value = getOption(args, long, short);
-	if (value === undefined) return defaultValue;
-	const parsed = Number.parseInt(value, 10);
-	return Number.isNaN(parsed) ? defaultValue : parsed;
-}
-
-/**
  * Checks if a flag is present.
  *
  * @param args - Parsed arguments

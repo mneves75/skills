@@ -16,7 +16,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Language } from "./language-detection.js";
-import { detectLanguageQuick } from "./language-detection.js";
 
 // ============================================================================
 // Types
@@ -77,7 +76,7 @@ export interface DiscoveryResult {
 	/** All discovered apps */
 	apps: DetectedApp[];
 	/** Workspace configuration if present */
-	workspaceConfig?: WorkspaceConfig;
+	workspaceConfig?: WorkspaceConfig | undefined;
 }
 
 /**
@@ -109,21 +108,6 @@ const MANIFEST_TO_LANGUAGE: Record<ManifestType, Language> = {
 	Gemfile: "ruby",
 	"composer.json": "php",
 };
-
-/**
- * Directories that indicate an "apps" location
- */
-const APP_DIRECTORIES = new Set([
-	"apps",
-	"services",
-	"packages",
-	"modules",
-	"projects",
-	"cmd", // Go convention
-	"internal", // Go convention
-	"crates", // Rust convention
-	"members", // Rust convention
-]);
 
 /**
  * Directories to skip during discovery

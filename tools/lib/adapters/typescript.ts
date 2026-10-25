@@ -809,7 +809,7 @@ const tsSpecificRunners: Record<string, CheckRunner> = {
 		return { pass: false, details: "No package.json found" };
 	},
 
-	"no-lint-ignores": async (ctx: CheckContext): Promise<CheckResult> => {
+	"no-lint-ignores": async (_ctx: CheckContext): Promise<CheckResult> => {
 		// This would require scanning source files - mark as pass by default
 		// A thorough implementation would grep for eslint-disable, @ts-expect-error, etc.
 		return { pass: true, details: "Assumed clean (not scanned)" };

@@ -7,7 +7,6 @@
  * Also supports requirements.txt as fallback.
  */
 
-import path from "node:path";
 import type {
 	Dependency,
 	DependencyManifest,
@@ -211,7 +210,7 @@ export async function parsePyProject(
  */
 export async function parseRequirementsTxt(
 	filepath: string,
-	options: ParseOptions = {},
+	_options: ParseOptions = {},
 ): Promise<DependencyManifest | null> {
 	try {
 		const file = Bun.file(filepath);
