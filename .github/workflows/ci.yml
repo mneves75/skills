@@ -124,6 +124,9 @@ jobs:
       - name: Pre-commit hook test
         run: bash .githooks/pre-commit.test
 
+      - name: Pages publication guard (real Git, fake CI provider)
+        run: python3 tools/scripts/check-pages.test.py
+
       - name: Generated site files are current
         run: |
           bash tools/scripts/build-site.test

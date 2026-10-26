@@ -1,7 +1,11 @@
 # site/ (GitHub Pages)
 
-Published at https://mneves75.github.io/skills/ by `.github/workflows/static.yml` on every push
-that touches this directory.
+Published at https://mneves75.github.io/skills/ by `.github/workflows/static.yml` after CI
+succeeds on the current `main` commit. Manual rollback uses
+`gh workflow run static.yml -f ref=<earlier tag or commit>`; the selected commit must be on
+`main` and its latest CI push run on `main` must have succeeded. Missing, failed or unfinished
+CI evidence stops publication. `python3 tools/scripts/check-pages.test.py` exercises this
+guard with real Git commits and a fake CI provider; it does not publish the site.
 
 - `index.html`: landing page. Hand-written, self-contained; edit directly.
 - `howto.html`: rendered from [HOWTO.md](../HOWTO.md) by `tools/scripts/build-site.sh`. Do not edit by hand.

@@ -18,6 +18,7 @@ on:
         required: false
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -43,9 +44,14 @@ jobs:
       - name: Publish only the main tip, or a commit on main when dispatched
         env:
           EVENT: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [ "$EVENT" = workflow_dispatch ]; then
             git merge-base --is-ancestor HEAD origin/main
+            conclusion=$(gh run list --workflow ci.yml --commit "$(git rev-parse HEAD)" \
+              --branch main --event push --limit 1 --json conclusion --jq '.[0].conclusion')
+            test "$conclusion" = success \
+              || { echo "Selected commit has no successful CI push run on main" >&2; exit 1; }
           else
             test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" \
               || { echo "HEAD is not the main tip; refusing an automatic deploy" >&2; exit 1; }

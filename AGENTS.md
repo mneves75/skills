@@ -53,6 +53,7 @@ python3 -m venv .scratch/skills-ref && .scratch/skills-ref/bin/pip install --req
 bun run typecheck && bun run lint && bun test   # from tools/
 ast-grep scan --config sgconfig.yml .   # from repo root
 bash .githooks/pre-commit.test          # hook e2e test
+python3 tools/scripts/check-pages.test.py  # actual Pages guard: real Git, fake CI provider
 bash skills/mneves-fable-orchestrator/tools/codex-lane.test   # codex-lane e2e against a fake codex (no quota)
 python3 skills/mneves-ship-deploy/scripts/run-tests.py        # release contract check: planted violations, read-only
 bash skills/mneves-ship-deploy/assets/release-guards.test.sh  # reference release guards: throwaway repo, fake wrangler
