@@ -1,11 +1,12 @@
 import { expect, test } from "bun:test";
-import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import type { CheckContext, LanguageAdapter } from "../check-registry.js";
 import { createFileCache } from "../file-cache.js";
 import { goAdapter } from "./go.js";
 import { pythonAdapter } from "./python.js";
+import { rustAdapter } from "./rust.js";
 import { typescriptAdapter } from "./typescript.js";
 
 const cases: {
@@ -56,6 +57,7 @@ async function run(
 	adapter: LanguageAdapter,
 	check: string,
 	files: Record<string, string>,
+	unreadable: string[] = [],
 ) {
 	const directory = await mkdtemp(join(tmpdir(), "readiness-suppress-"));
 	try {
@@ -63,6 +65,7 @@ async function run(
 			await mkdir(join(directory, dirname(file)), { recursive: true });
 			await Bun.write(join(directory, file), body);
 		}
+		for (const file of unreadable) await chmod(join(directory, file), 0o000);
 		const ctx: CheckContext = {
 			app: {
 				id: ".",
@@ -126,5 +129,19 @@ for (const adapter of [goAdapter, pythonAdapter]) {
 	test(`${adapter.language} npm-scripts: fails without a task runner`, async () => {
 		const missing = await run(adapter, "npm-scripts", { "README.md": "# x\n", "Makefile": "# no targets\n" });
 		expect(missing).toMatchObject({ pass: false });
+	});
+}
+
+test("an unreadable source file is skipped, not a failed check", async () => {
+	const result = await run(typescriptAdapter, "no-lint-ignores", { "src/a.ts": "clean\n", "src/locked.ts": "// eslint-disable\n" }, ["src/locked.ts"]);
+	expect(result).toMatchObject({ pass: true, details: "0 lint suppression comments" });
+});
+
+for (const adapter of [goAdapter, pythonAdapter, rustAdapter]) {
+	test(`${adapter.language} npm-scripts: reads Makefile targets, not variables`, async () => {
+		const variablesOnly = await run(adapter, "npm-scripts", { Makefile: "CC:=gcc\nCFLAGS ::= -O2\n" });
+		expect(variablesOnly).toMatchObject({ pass: false });
+		const targets = await run(adapter, "npm-scripts", { Makefile: "py312:\n\ttox\nlint.fix:\n\truff\n" });
+		expect(targets).toMatchObject({ pass: true, details: "2 Makefile targets" });
 	});
 }

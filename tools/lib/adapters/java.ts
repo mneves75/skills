@@ -22,7 +22,7 @@ import {
 	readText,
 } from "../check-registry.js";
 import { runCommand } from "../command.js";
-import { createLanguageAdapter } from "./base.js";
+import { createLanguageAdapter, findTaskRunner } from "./base.js";
 
 // ============================================================================
 // Helper Functions
@@ -554,16 +554,7 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 			}
 		}
 
-		// Check for Makefile as fallback
-		const makefile = await readText(path.join(ctx.app.path, "Makefile"));
-		if (makefile) {
-			const targets = makefile.match(/^[a-zA-Z_-]+:/gm);
-			if (targets && targets.length > 0) {
-				return { pass: true, details: `${targets.length} Makefile targets` };
-			}
-		}
-
-		return { pass: false, details: "No task runner configured" };
+		return findTaskRunner(ctx.app.path);
 	},
 
 	"watch-mode": async (ctx: CheckContext): Promise<CheckResult> => {

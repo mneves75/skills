@@ -21,7 +21,7 @@ import {
 	readText,
 } from "../check-registry.js";
 import { runCommand } from "../command.js";
-import { createLanguageAdapter } from "./base.js";
+import { createLanguageAdapter, findTaskRunner } from "./base.js";
 
 // ============================================================================
 // Rust-Specific Check Runners
@@ -445,28 +445,8 @@ const rustSpecificRunners: Record<string, CheckRunner> = {
 	// TASK DISCOVERY (Rust-specific)
 	// =========================================================================
 
-	"npm-scripts": async (ctx: CheckContext): Promise<CheckResult> => {
-		// Not applicable for Rust - check for Makefile targets or Cargo aliases
-		const makefile = await readText(path.join(ctx.app.path, "Makefile"));
-		if (makefile) {
-			const targets = makefile.match(/^[a-zA-Z_-]+:/gm);
-			if (targets && targets.length > 0) {
-				return { pass: true, details: `${targets.length} Makefile targets` };
-			}
-		}
-
-		// Check for cargo-make
-		if (await fileExists(path.join(ctx.app.path, "Makefile.toml"))) {
-			return { pass: true, tool: "cargo-make", configPath: "Makefile.toml" };
-		}
-
-		// Check for just
-		if (await fileExists(path.join(ctx.app.path, "Justfile"))) {
-			return { pass: true, tool: "Just", configPath: "Justfile" };
-		}
-
-		return { pass: false, details: "No task runner configured" };
-	},
+	"npm-scripts": async (ctx: CheckContext): Promise<CheckResult> =>
+		findTaskRunner(ctx.app.path, ["Makefile.toml"]),
 
 	"watch-mode": async (ctx: CheckContext): Promise<CheckResult> => {
 		const cargoToml = await readText(path.join(ctx.app.path, "Cargo.toml"));

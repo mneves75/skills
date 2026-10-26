@@ -16,7 +16,7 @@ Supported runtimes for the shipped executables:
 The maintainer (@mneves75) owns these floors: when a runtime line reaches upstream end of
 life, the next release raises the floor. A critical advisory in a supported runtime, a locked
 dependency or a pinned action is fixed, or the affected path disabled, within 7 days of
-publication. CI's `bun audit` scan and Dependabot alerts are how such an advisory is found.
+publication. CI's `bun audit`, which fails the build on any advisory in the locked tools, and Dependabot alerts are how such an advisory is found.
 
 ## Reporting a Vulnerability
 

@@ -35,7 +35,7 @@ jobs:
           bun install --frozen-lockfile
           echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
 
-      - name: Advisory scan of the locked tools
+      - name: Fail on any advisory in the locked tools
         working-directory: tools
         run: bun audit
 

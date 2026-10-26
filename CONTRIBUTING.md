@@ -25,7 +25,7 @@ description: Clear description of what this skill does and when to use it.
 
 4. Add longer documentation or linked references when they help; keep all examples portable.
 5. Update the README catalog, HOWTO, AGENTS tree, VERSION, changelog and README badge;
-   regenerate the site with `tools/scripts/build-site.sh`.
+   regenerate the site with `tools/scripts/build-site.sh` (after `bun install` in `tools/`).
 6. Run `npx skills@latest add . --list`, the Agent Skills validator and the repository gates.
 7. Submit a pull request. The `mneves-chatgpt-search` entry illustrates a Markdown-only
    skill with optional reference branches and explicit evidence limits.
@@ -44,7 +44,7 @@ records the audience and constraints; `DESIGN.md` records the landing page's act
 visual system, with extensions in `.impeccable/design.json`. Surface briefs are
 development documentation and stay outside the published `site/` directory.
 
-Preserve the landing changelog markers and run `tools/scripts/build-site.sh` followed
+Preserve the landing changelog markers and, after `bun install` in `tools/`, run `tools/scripts/build-site.sh` followed
 by `bash tools/scripts/build-site.test`. Inspect desktop, tablet and narrow mobile
 renders, keyboard navigation, light/dark contrast and reduced motion. When
 `agent-browser` is available, run `bash tools/scripts/check-site-copy.sh <site-url>`

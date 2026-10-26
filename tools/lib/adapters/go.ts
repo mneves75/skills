@@ -686,7 +686,7 @@ const goSpecificRunners: Record<string, CheckRunner> = {
 		return { pass: false, details: "No go.sum" };
 	},
 
-	// no-unsafe-types → no-any-casts (Go interface{}/any)
+	// no-unsafe-types: uses of package unsafe (Rust counts `unsafe` blocks)
 	"no-unsafe-types": async (ctx: CheckContext): Promise<CheckResult> => {
 		const count = await countSourceMatches(ctx.app.path, ["go"], /\bunsafe\.(Pointer|Slice|String|StringData|SliceData|Add)\b/);
 		return { pass: count < 5, details: `${count} uses of package unsafe` };

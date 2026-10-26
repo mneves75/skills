@@ -8,6 +8,7 @@
  * while inheriting common patterns from the shared check library.
  */
 
+import { readdir } from "node:fs/promises";
 import path from "node:path";
 import type { CheckResult, CheckRunner, LanguageAdapter } from "../check-registry.js";
 import { fileExists, readText } from "../check-registry.js";
@@ -110,20 +111,30 @@ const SCAN_SKIP_DIRS = new Set([
 	"site-packages",
 ]);
 
+/** Files under `dir` with one of `extensions`; skipped and hidden directories are never entered, symlinks never followed. */
+async function* sourceFiles(dir: string, extensions: ReadonlySet<string>): AsyncGenerator<string> {
+	const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
+	for (const entry of entries) {
+		if (entry.name.startsWith(".") || SCAN_SKIP_DIRS.has(entry.name)) continue;
+		const full = path.join(dir, entry.name);
+		if (entry.isDirectory()) yield* sourceFiles(full, extensions);
+		else if (entry.isFile() && extensions.has(path.extname(entry.name).slice(1))) yield full;
+	}
+}
+
 /**
  * Count source lines under `root` matching `pattern` in files with the given extensions.
- * Hidden directories (`.git`, `.venv`) and SCAN_SKIP_DIRS are not scanned.
+ * Hidden directories (`.git`, `.venv`) and SCAN_SKIP_DIRS are not scanned; unreadable files are skipped.
  */
 export async function countSourceMatches(
 	root: string,
 	extensions: readonly string[],
 	pattern: RegExp,
 ): Promise<number> {
-	const glob = new Bun.Glob(`**/*.{${extensions.join(",")}}`);
 	let count = 0;
-	for await (const file of glob.scan({ cwd: root, onlyFiles: true, followSymlinks: false })) {
-		if (file.split("/").some((part) => SCAN_SKIP_DIRS.has(part))) continue;
-		const text = await Bun.file(path.join(root, file)).text();
+	for await (const file of sourceFiles(root, new Set(extensions))) {
+		const text = await readText(file);
+		if (text === null) continue;
 		for (const line of text.split("\n")) if (pattern.test(line)) count++;
 	}
 	return count;
@@ -134,7 +145,8 @@ export async function countSourceMatches(
  * or one of `extraFiles` (the language's own runners).
  */
 export async function findTaskRunner(appPath: string, extraFiles: readonly string[] = []): Promise<CheckResult> {
-	const targets = (await readText(path.join(appPath, "Makefile")))?.match(/^[a-zA-Z_-]+:/gm)?.length ?? 0;
+	// A target line is `name:` or `name::`; `NAME:=` and `NAME::=` assign variables.
+	const targets = (await readText(path.join(appPath, "Makefile")))?.match(/^[\w][\w./-]*[ \t]*::?(?!:?=)/gm)?.length ?? 0;
 	if (targets > 0) return { pass: true, configPath: "Makefile", details: `${targets} Makefile targets` };
 	for (const file of ["justfile", "Justfile", "Taskfile.yml", "Taskfile.yaml", ...extraFiles]) {
 		if (await fileExists(path.join(appPath, file))) return { pass: true, configPath: file };
