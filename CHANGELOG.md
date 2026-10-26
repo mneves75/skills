@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.41.0] - 2026-10-26
+
+Includes the 1.39.0 work that was reviewed in PR #26 but never reached `main`.
+
+### Added
+- **`mneves-security` attack classes** (`references/attack-classes.md`): core classes (indirect injection, access control, business logic, feature abuse, cryptography) and domain classes selected from the inventory (HTTP framing and identity, client side, CI and release, cloud, messaging, resource spend, data lifecycle, local IPC, native code, agents), closed by a coverage-critic pass. Written in this repository's words, informed by Cloudflare's MIT `security-audit` skill (`c1c8a8c`, credited in `NOTICE`).
+
+### Changed
+- **`mneves-security` candidate contract**: a finding names the lower-trust principal, its input, the control, the crossed boundary, the affected resource and the observed result; one disposition field (confirmed, needs-validation, disproved) replaces the confidence column; only confirmed findings carry a severity, set by written anchors; the finder never confirms its own candidate, a fresh verifier tries to disprove it first and confirmation needs positive proof.
+- **`mneves-security` evidence rules**: local, minimal reproduction with dummy principals; untrusted target code only in a sandbox; a fix is proven by one test that fails on untouched source and passes with the fix; coverage is always reported as partial; disproofs expire with the assumptions they rested on.
+- **Deploy gate**: unchanged blocking policy (confirmed Critical or High); needs-validation records never block by themselves and are listed in the decision packet, while a missing fact behind a production launch control keeps that control BLOCKED. Missing launch controls are rows and plan items, not exploit findings.
+- **Cross-skill consistency**: `mneves-superaudit` releases name the security gate; `mneves-ship-deploy` drops author-only paths, gains fallbacks for unshipped review and browser tools, and shows the WAIVED tag form; `mneves-production-readiness` maps security evidence kinds to its scopes, imports gate-step blockers only from the record and aligns CMP-06 applicability (readiness catalog version 2: a version-1 ledger reassesses CMP-06); descriptions gain negative scope.
+- **Guide page**: commands and the summary table wrap at phone width, prose is capped near 70 characters, the page links back to the catalog and each table row links to its section.
+- **Readiness checks that never looked**: `no-lint-ignores` (TypeScript, Go, Python) and Go `no-unsafe-types` returned a fixed pass; they now count suppression comments (`eslint-disable`, `biome-ignore`, `//nolint`, `#nosec`, `# noqa`, `# type: ignore` and similar) and `unsafe` package uses in the project's own sources, skipping vendored, generated and hidden trees. Go and Python `npm-scripts` were skipped; they now pass on Makefile targets, a justfile or Taskfile, and for Python nox, tox, poe, pdm or hatch scripts, as the Rust and Java adapters already did. Scores for Go, Python and TypeScript projects can change.
+- **Supply chain**: ast-grep, skills-ref and marked are exact `tools/` devDependencies, so `bun.lock` records their sha512 and CI installs them with `--frozen-lockfile` instead of `npm install -g` or `npx` by version; CI runs `bun audit` on the locked tree. The render job installs WeasyPrint with `--require-hashes` from `.github/requirements/render-starters.txt`. `build-site.sh` runs the locked marked and needs `bun install` in `tools/` first.
+- **Pages publication**: `static.yml` deploys a `main` commit only after CI succeeds on it, refuses any commit not on `main`, and takes a `ref` for a one-command rollback (`gh workflow run static.yml -f ref=<tag>`). It now runs after every successful CI run on `main`, not only when `site/` changes.
+- **`SECURITY.md`**: supported runtimes (Bun 1.4.4+, Python 3.10+/3.11+ by helper, a maintained Node.js line), their end-of-life owner and a 7-day deadline for critical advisories.
+- **`autoreview`**: the README names the engine CLI as the owner of provider retries, backoff and rate limits.
+- **Model defaults** re-verified on 2026-10-26; ids unchanged.
+
 ### Removed
 - **Readiness tool dead code**: nine unused `tools/lib` modules (`fetch`, `progress`, `repo`, `result`, `signals`, `refs`, `types` and the `index` and `readiness/index` barrels), unused constants, check-category sets, cache singleton and dependency helpers, about 2,200 lines carried over from another project with its file names. The tool's own code now makes no network calls.
 
@@ -15,7 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Readiness `error-budgets` check**: README matching uses whole words, so "slow" or "slides" no longer count as SLO documentation.
 - **Readiness signal tests**: allow 500 ms for SIGKILLed descendants to disappear before asserting, which failed intermittently under heavy load; the control with cleanup disabled still fails.
 - **Lint gate**: `tools/biome.json` makes unused imports, variables and parameters errors (21 removed); a planted unused import now fails `bun run lint`. `tsconfig` adds `exactOptionalPropertyTypes`.
-- **Bun pin**: CI and `tools/package.json` (`packageManager`, `engines`) agree on Bun 1.4.4.
+- **Bun pin**: CI and `tools/package.json` (`packageManager`, `engines`) agree on Bun 1.4.4; the `engines` floor rises from `>=1.2`.
 - **Python floors**: every helper entry point and the ship-deploy contract test state their floor (autoreview and ship-deploy 3.11+, SRS and changelog rows 3.10+); CI syntax-checks the autoreview live harness that no other step runs.
 - **Small fixes**: `install-cccc.py` sends its own User-Agent instead of another client's; `build-site.sh` honours `TMPDIR`.
 - **Readiness tool tests**: `shared.test.ts` warms each fake command once before the timed run, so macOS's first-exec cost of a new file no longer exceeds the 150 ms deadline under test; every bound is unchanged.
@@ -24,6 +44,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Model ids**: `HOWTO.md` and autoreview's engine reference no longer restate model ids or tiers outside the orchestrator's Defaults block.
 - **Docs drift**: the readiness README's quick start works from a clone (the CLI is not in a skill install); HOWTO no longer equates the five questions with a maturity level and binds gate reuse to the tree; the AGENTS tree, teach-back README tree and card-quality step number match the files; superaudit briefs say "cross-session memory tools" instead of an undefined product name; verify and orchestrator READMEs match their skills.
 - **`council`**: its requirements line moves from frontmatter into the body, because `compatibility` is reserved for skills that ship an executable. **`mneves-render`**: the description gains its trigger.
+- **`mneves-teach-back-srs`**: SM-2 interval examples now match the shipped helper (q=5 gives 1, 6, 17, 49, 147 days), and card rules cite the right step.
+- **`autoreview`**: the engine reference no longer names a model outside the helper's defaults.
+- **Readiness tool types**: the 32 non-null assertions become narrowed types, single map lookups and loops; TOML path handling rejects an empty path instead of writing an `undefined` key, and Biome's `noNonNullAssertion` is an error.
+- **`mneves-teach-back-srs`**: `srs_db.py` library functions raise `SrsError` instead of calling `sys.exit`, so a program importing the helper keeps running; the CLI still prints the message and exits 1, and a missing card rolls back its write transaction.
+- **AGENTS.md**: byte-identical upstream references may name a sibling by bare basename when the `SKILL.md` map resolves it (`security-audit`).
 
 ## [1.40.0] - 2026-10-23
 
