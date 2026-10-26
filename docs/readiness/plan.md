@@ -89,67 +89,32 @@ row is active. Advisory entries follow.
 
 ## 4. Gates pass for the exact commit that publishes
 
-- IDs: DEL-03 (NOT TESTED); advisory MNT-02 (NOT TESTED). Evidence: CI runs on push, pull request
-  and dispatch (`.github/workflows/ci.yml:8-12`). The Pages workflow publishes on any push to
-  `main` that touches `site/**` and does not wait for CI (`.github/workflows/static.yml:8-13`).
-- Failure it prevents: a commit that fails the repository's gates reaching the public site.
-- Change:
-  1. Freeze the final candidate, push its branch and wait for CI on that exact SHA.
-  2. Read the `main` ruleset through the API and record whether it requires review and the CI
-     checks before merge (MNT-02).
-  3. If it does not, propose one of two options: required status checks on `main`, or a
-     workflow change that publishes only after CI succeeds for the same SHA. Either is a
-     separate, approved change; neither is in this diff.
-  4. After the authorized merge, record the CI run for the published commit in the release
-     evidence.
-- Owner type: code, and infrastructure or provider for repository settings.
-- Size: change.
-- Dependencies: none; entries 1 and 5 depend on this one.
-- Acceptance: before the deploy, a green CI run for the exact candidate SHA; after it, release
-  evidence linking the deployed commit to that run.
-- Rollout and recovery: a ruleset change is reverted in repository settings; a workflow change
-  is reverted by commit.
-- Mechanical gate: a required status check, or a `workflow_run` condition on CI success.
+- Closed 2026-10-26 for DEL-03: `static.yml` publishes only after CI succeeds for a push to
+  `main`, and only the `main` tip (ledger row DEL-03). MNT-02 (advisory) stays open: read the
+  `main` ruleset through the API and record whether it requires review and the CI checks.
 
 ## 5. Exercised rollback
 
-- ID: DEL-04 (FAIL). Evidence: no record of an exercised rollback was found; the only documented path is
-  "revert the redesign commit and regenerate the site" (`docs/specs/skills-site/spec.md:88-92`).
-  This is not a first deploy, so a disable path does not meet the control.
+- ID: DEL-04 (NOT TESTED). Evidence: the rollback command is documented
+  (`gh workflow run static.yml -f ref=<tag>`, `.github/workflows/static.yml:2`) and its guard
+  is controlled locally, but it has never run against the live site.
 - Failure it prevents: a bad publication with no tested way back.
-- Change, a proposal that has **not been exercised and is not authorized**:
-  1. Re-run the last successful production deploy of the previous site:
-     `gh run rerun 38949299991 --repo mneves75/skills`.
-  2. Watch it to completion: `gh run watch <run-id> --repo mneves75/skills --exit-status`.
-  3. Compare each served file under `https://mneves75.github.io/skills/` with
-     `git show 53ea5adaf420fa03e17559d0c31cbbfb0a89eb76:site/<path>`, allowing for CDN caching
-     before concluding.
-  4. Roll forward by dispatching the Pages workflow on the current `main`, then compare the
-     served files with that commit's `site/` in the same way.
-  5. Write the exercised command, both comparisons and the roll-forward into the release
-     evidence and `site/README.md`, so each release can print its rollback command.
-- What the re-run does: a re-run keeps the original run's `GITHUB_SHA` and `GITHUB_REF`. The
-  pinned checkout defaults to the event's SHA. The workflow uploads the tracked `site/`
-  directory directly (`.github/workflows/static.yml:31-35`). The re-run therefore checks out and
-  re-uploads the old source; it does not necessarily reuse a retained artifact.
-- Time limit: GitHub allows a re-run only for a limited period after the original run;
-  approximately until 2026-11-15T18:41:45Z for this run.
-- A past successful production run is not evidence of readiness.
+- Change, **not authorized until the owner approves this exact action and target**, because it
+  changes the public site twice:
+  1. After the release is live, roll back: `gh workflow run static.yml --repo mneves75/skills -f ref=v1.40.0`,
+     and watch it with `gh run watch <run-id> --repo mneves75/skills --exit-status`.
+  2. Compare each served file under `https://mneves75.github.io/skills/` with
+     `git show v1.40.0:site/<path>`, allowing for CDN caching.
+  3. Roll forward: `gh workflow run static.yml --repo mneves75/skills -f ref=main`, then compare
+     the served files with the released tag's `site/` the same way.
+  4. Record both runs and comparisons in the release evidence.
 - Owner type: infrastructure or provider.
-- Size: change.
-- Dependencies: entry 1 (security gate) and entry 4 (gates pass) must both clear first. The
-  owner must also approve the exact action and target, because the exercise changes the public
-  site twice.
-- Acceptance: release evidence, plus the owner-attested exercise above, showing the served bytes
-  matched the old commit and then the current one.
-- Rollout and recovery: step 4 is the recovery. If it fails, a fresh push to `main` touching
-  `site/**` republishes the current tree.
-- Mechanical gate: the release evidence includes the exact rollback command for the published
-  version.
-- Sources:
-  - [Re-running workflows and jobs](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs)
-  - [actions/checkout README at the pinned commit](https://github.com/actions/checkout/blob/11d5960a326750d5838078e36cf38b85af677262/README.md)
-  - [Run 38949299991](https://github.com/mneves75/skills/actions/runs/38949299991)
+- Size: quick fix.
+- Dependencies: entry 1 (security gate) for the release itself.
+- Acceptance: release evidence showing the served bytes matched `v1.40.0` and then the release.
+- Rollout and recovery: step 3 is the recovery; a fresh `main` push whose CI passes also
+  republishes the tip.
+- Mechanical gate: each release tag message prints the rollback command for the version before it.
 
 ## 6. People seats and continuity (advisory)
 
@@ -220,14 +185,25 @@ row is active. Advisory entries follow.
 - Rollout and recovery: read-only.
 - Mechanical gate: none proposed.
 
+## 10. Bounded provider calls in autoreview
+
+- ID: ASY-02 (NOT TESTED). Evidence: ledger row ASY-02; the reviewer-process deadline is opt-in.
+- Failure it prevents: a stalled provider call holding a review, and an agent waiting on it, forever.
+- Change: give `--engine-timeout-seconds` a default (for example 3600 s) with an explicit way to
+  disable it, test it against a fake engine that never exits, and document the default.
+- Owner type: code. Size: quick fix. Dependencies: none.
+- Acceptance: a test where a fake engine sleeps past the default fails the run with a timeout.
+- Rollout and recovery: revert the default; long reviews can pass a larger value meanwhile.
+- Mechanical gate: the test above in `skills/autoreview/scripts/run-tests.py`.
+
 ## Index
 
 | Open ID | Status | Entry |
 |---|---|---|
+| ASY-02 | NOT TESTED | 10 |
 | BR-04 | NOT TESTED | 6 |
 | DEL-02 | NOT TESTED | 9 |
-| DEL-03 | NOT TESTED | 4 |
-| DEL-04 | FAIL | 5 |
+| DEL-04 | NOT TESTED | 5 |
 | DEL-05 | NOT TESTED | — (advisory, not planned) |
 | DEL-07 | NOT TESTED | — (advisory, not planned) |
 | DEL-08 | NOT TESTED | 9 |
@@ -258,7 +234,7 @@ row is active. Advisory entries follow.
 | OPS-05 | NOT TESTED | 6 |
 | OPS-06 | NOT TESTED | 6 |
 | SEC-12 | NOT TESTED | 1 |
-| SEC-13 | FAIL (restricted) | 1 |
+| SEC-13 | NOT TESTED (gate pending) | 1 |
 | SEC-17 | NOT TESTED | 1 |
 | SEC-20 | FAIL (restricted) | 1 |
 | SEC-23 | FAIL | 1 |
