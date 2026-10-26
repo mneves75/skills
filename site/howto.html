@@ -12,13 +12,15 @@
 body{margin:0 auto;max-width:46rem;padding:2rem 1.25rem 4rem;font:16px/1.6 -apple-system,system-ui,sans-serif;color:var(--fg);background:var(--bg)}
 h1,h2,h3{line-height:1.25}h1{font-size:2rem}h2{margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--line)}
 a{color:var(--link)}code{font:0.9em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--code);padding:.1em .3em;border-radius:3px}
-pre{background:var(--code);padding:1rem;overflow-x:auto;border-radius:6px}pre code{background:none;padding:0}
-table{border-collapse:collapse;width:100%;margin:1rem 0;display:block;overflow-x:auto}th,td{text-align:left;padding:.5rem;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:600}
+p,li,blockquote{max-width:36em}
+pre{background:var(--code);padding:1rem;overflow-x:auto;border-radius:6px;white-space:pre-wrap;overflow-wrap:anywhere}pre code{background:none;padding:0}
+table{border-collapse:collapse;width:100%;margin:1rem 0;display:block;overflow-x:auto}th,td{text-align:left;padding:.5rem;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}th{color:var(--muted);font-weight:600}
 pre:focus-visible,table:focus-visible{outline:2px solid var(--link);outline-offset:3px}
 blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--line);color:var(--fg)}hr{border:0;border-top:1px solid var(--line);margin:2rem 0}
 </style>
 </head>
 <body>
+<nav aria-label="Site" style="font-size:.875rem"><a href="./">mneves75/skills</a> · How to use the skills</nav>
 <main>
 <h1>How to use these skills</h1>
 <p>Seventeen skills, one install. This page shows what each one does, how to trigger it, and what a
@@ -48,87 +50,87 @@ also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use 
 </tr>
 </thead>
 <tbody><tr>
-<td><code>autoreview</code></td>
+<td><a href="#autoreview"><code>autoreview</code></a></td>
 <td>review a fixed Git target with an isolated AI reviewer</td>
 <td>&quot;use autoreview on my local changes, including P3 findings&quot;</td>
 </tr>
 <tr>
-<td><code>council</code></td>
+<td><a href="#council"><code>council</code></a></td>
 <td>get independent members to argue with a plan before you commit to it</td>
 <td>&quot;convene the council on this migration plan, two rounds&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-handoff</code></td>
+<td><a href="#mneves-handoff"><code>mneves-handoff</code></a></td>
 <td>hand a task to another agent, review first</td>
 <td>&quot;handoff the flaky login test&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-render</code></td>
+<td><a href="#mneves-render"><code>mneves-render</code></a></td>
 <td>build repeatable HTML, Word and PDF exports from Markdown</td>
 <td>&quot;write a renderer for my Markdown reports&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-security</code></td>
-<td>audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy</td>
+<td><a href="#mneves-security"><code>mneves-security</code></a></td>
+<td>hunt vulnerabilities, audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy</td>
 <td>&quot;audit security and privacy; fix confirmed local issues; do not deploy&quot;</td>
 </tr>
 <tr>
-<td><code>security-audit</code></td>
+<td><a href="#security-audit"><code>security-audit</code></a></td>
 <td>run a deep, coverage-led source audit with a ledger and machine-readable findings</td>
 <td>&quot;full security audit of this codebase, with the coverage ledger&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-production-readiness</code></td>
+<td><a href="#mneves-production-readiness"><code>mneves-production-readiness</code></a></td>
 <td>check an app is ready for paying customers before each staging or production deploy</td>
 <td>&quot;is this ready for production? give me the fix plan&quot;</td>
 </tr>
 <tr>
-<td><code>imagegen-frontend-mobile</code></td>
+<td><a href="#imagegen-frontend-mobile"><code>imagegen-frontend-mobile</code></a></td>
 <td>generate mobile screen or flow images, not code</td>
 <td>&quot;design a 4-screen iOS onboarding flow&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-chatgpt-search</code></td>
+<td><a href="#mneves-chatgpt-search"><code>mneves-chatgpt-search</code></a></td>
 <td>improve ChatGPT Search discovery and measure citations/referrals</td>
 <td>&quot;improve this site&#39;s ChatGPT Search visibility&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-eli5</code></td>
+<td><a href="#mneves-eli5"><code>mneves-eli5</code></a></td>
 <td>explain a thing to a specific audience</td>
 <td>&quot;explain OAuth to my dad&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-expert-review</code></td>
+<td><a href="#mneves-expert-review"><code>mneves-expert-review</code></a></td>
 <td>stress-test a plan or answer before it ships</td>
 <td>&quot;challenge this design&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-verify</code></td>
+<td><a href="#mneves-verify"><code>mneves-verify</code></a></td>
 <td>get an independent PASS/FAIL before &quot;done&quot;</td>
 <td>&quot;verify it&quot;, &quot;prove it&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-fable-orchestrator</code></td>
+<td><a href="#mneves-fable-orchestrator"><code>mneves-fable-orchestrator</code></a></td>
 <td>route independent work by capability</td>
 <td>&quot;delegate the backend to codex&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-agent-readiness</code></td>
+<td><a href="#mneves-agent-readiness"><code>mneves-agent-readiness</code></a></td>
 <td>measure how agent-friendly a repo is</td>
 <td>&quot;why does the agent struggle here?&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-teach-back-srs</code></td>
+<td><a href="#mneves-teach-back-srs"><code>mneves-teach-back-srs</code></a></td>
 <td>learn a codebase with spaced repetition</td>
 <td>&quot;let me explain the auth flow&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-superaudit</code></td>
+<td><a href="#mneves-superaudit"><code>mneves-superaudit</code></a></td>
 <td>run a bounded audit-and-cleanup pass over a repo</td>
 <td>&quot;superaudit this repo, slop and perf only&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-ship-deploy</code></td>
+<td><a href="#mneves-ship-deploy"><code>mneves-ship-deploy</code></a></td>
 <td>prepare verified staging, then approve the exact candidate before production</td>
 <td>&quot;ship-staging&quot; or &quot;ship-prod&quot;</td>
 </tr>
@@ -141,7 +143,12 @@ plan. In fix mode it applies minimal confirmed patches, tests legitimate and den
 behavior, and runs adversarial review and independent acceptance. It covers privacy,
 database/resource isolation, auth failures, headers/cookies, validation, secrets, API
 keys, rate/cost protection, bot controls/CORS, logging/errors and dependencies, with
-AI/agentic/mobile checks when those surfaces exist.</p>
+AI/agentic/mobile checks when those surfaces exist. A full audit also hunts the attack
+classes the inventory makes reachable (HTTP framing, client side, CI and release, cloud,
+messaging, resource spend, data lifecycle, local IPC, native code, agents) and ends with a coverage critic. A
+candidate becomes a finding only when it names the principal, input, control, boundary,
+affected resource and observed result with positive evidence, and a fresh verifier failed
+to disprove it.</p>
 <p><strong>When to use it.</strong> You want an engineering security/privacy audit of an MVP, SaaS, API
 or AI application, or safe implementation of its confirmed remediation items. Audit
 and plan requests remain read-only; a fix request authorizes its in-scope local patches.</p>
@@ -165,8 +172,9 @@ independent verification. Do not merge, change provider settings or deploy.
 </code></pre>
 <p>For a read-only assessment, say “audit only; do not change project files.” Claude Code
 users can invoke <code>/mneves-security</code>; other agents can name it directly.</p>
-<p><strong>Evidence.</strong> Expect the eight-section engineering report, findings with severity and
-confidence, a source coverage ledger, exact checks/results, manual actions and launch
+<p><strong>Evidence.</strong> Expect the eight-section engineering report, confirmed findings with a
+severity, needs-validation records with the missing fact and the safe check that settles
+it (no severity, and they never block a deploy by themselves), a source coverage ledger, exact checks/results, manual actions and launch
 blockers. Local migrations and header files do not prove deployed policies or headers.
 A public provider key is evaluated under its actual contract, not automatically labeled
 a secret. NOT APPLICABLE needs evidence; blocked/untested controls never become PASS.</p>

@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.40.0-blue)
+![Version](https://img.shields.io/badge/version-1.41.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -28,7 +28,7 @@ artifacts.
 | [mneves-expert-review](skills/mneves-expert-review/) | Scoped stress test: objective, first principles, relevant research, one combined challenge, distinct alternatives, improved deliverable |
 | [mneves-handoff](skills/mneves-handoff/) | Clipboard-ready, path-free prompt that hands a task to another agent for independent review and discussion first |
 | [mneves-render](skills/mneves-render/) | Build project-local Markdown renderers for HTML, editable DOCX and PDF, with shared design, tested starter templates and content/visual verification |
-| [mneves-security](skills/mneves-security/) | Evidence-backed security/privacy audit, ordered remediation, authorized safe fixes and the mandatory gate before every staging or production deploy, using current OWASP guidance, adversarial review and independent acceptance |
+| [mneves-security](skills/mneves-security/) | Evidence-backed security/privacy audit and vulnerability hunting (candidates must name a crossed boundary and survive a fresh disprover), ordered remediation, authorized safe fixes and the mandatory gate before every staging or production deploy, using current OWASP guidance, adversarial review and independent acceptance |
 | [security-audit](skills/security-audit/) | Six-phase, coverage-led source audit with independent candidate and final verification, three finding verdicts, a schema-checked ledger and machine-readable findings; ships its Node validators and tests, and is not a deploy gate |
 | [mneves-production-readiness](skills/mneves-production-readiness/) | Gate staging and production deploys on production readiness: a ledger of evidence-backed controls (data, recovery, money, operations, ownership), a verdict per target and a detailed fix plan; security rows delegate to `mneves-security` |
 | [mneves-fable-orchestrator](skills/mneves-fable-orchestrator/) | Route ordinary, bounded and difficult work by capability; models live in one Defaults block, including one announced fallback lane; ships [`codex-lane`](skills/mneves-fable-orchestrator/tools/codex-lane) |

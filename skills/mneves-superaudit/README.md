@@ -29,7 +29,7 @@ change's own instrumentation, is reported inconclusive — never as a win. Secur
 assertions need a positive control placed where the gate actually looks; a control outside the
 rule's path proves nothing, and a policy claim only counts against the *served* artifact.
 
-**Survives compaction.** Phase 0 opens `agent_planning/superaudit-<date>.md` and updates it at every
+**Survives compaction.** Phase 0 opens a `superaudit-<date>.md` progress file in the repository's scratch or planning directory and updates it at every
 phase boundary. A long run will be compacted; that file is what survives it, and it doubles as the
 deliverable for item 3.
 

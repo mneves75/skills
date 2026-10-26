@@ -4,14 +4,14 @@ Read on entering phase 0.
 
 ## Progress file
 
-Create `agent_planning/superaudit-<YYYY-MM-DD>.md` at the start of phase 0 and update it at every
+Create a progress file (`superaudit-<YYYY-MM-DD>.md` in the repository's scratch or planning directory) at the start of phase 0 and update it at every
 phase boundary: current phase, findings accepted and rejected, paths owned by each worker, evidence
 gathered, open questions. A long run will be compacted; this file is what survives it. It is also
 the raw material for item 3.
 
 ## 0 — Recon
 
-Read the repo's `AGENTS.md` chain root-to-target, `CLAUDE.md`, `README`, `PROJECT_STATUS.md`, and
+Read the repo's `AGENTS.md` chain root-to-target, `CLAUDE.md`, `README`, the status docs and
 any `MEMORY.md`. Establish the stack, the test/build/lint invocations, and the documented gate list
 — gates are what the repo says they are, not a remembered subset.
 
@@ -75,7 +75,10 @@ action or target that requires approval.
 Runs only on an explicit release instruction from the user that names the destination. Nothing in
 this skill authorizes it.
 
-Use the destination's documented release sequence. Update required metadata/docs, commit
+Use the destination's documented release sequence. A staging or production deploy runs
+through `mneves-ship-deploy` when installed; either way the `mneves-security` deploy gate (a
+full audit of the exact candidate, not the diff) and the readiness gate run before it, and
+without the security skill the deploy is blocked unless the owner waives that gate by name. Update required metadata/docs, commit
 task-owned paths, and perform only explicitly authorized push/tag/deploy steps. A staging task
 does not automatically require a tag or deployment. Verify the actual destination and artifact,
 not only a tool's exit code. Never move a pushed tag. Check the expected branch and final status.

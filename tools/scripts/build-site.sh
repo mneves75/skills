@@ -41,13 +41,15 @@ cat > "$root/site/howto.html" <<HTML
 body{margin:0 auto;max-width:46rem;padding:2rem 1.25rem 4rem;font:16px/1.6 -apple-system,system-ui,sans-serif;color:var(--fg);background:var(--bg)}
 h1,h2,h3{line-height:1.25}h1{font-size:2rem}h2{margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--line)}
 a{color:var(--link)}code{font:0.9em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--code);padding:.1em .3em;border-radius:3px}
-pre{background:var(--code);padding:1rem;overflow-x:auto;border-radius:6px}pre code{background:none;padding:0}
-table{border-collapse:collapse;width:100%;margin:1rem 0;display:block;overflow-x:auto}th,td{text-align:left;padding:.5rem;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:600}
+p,li,blockquote{max-width:36em}
+pre{background:var(--code);padding:1rem;overflow-x:auto;border-radius:6px;white-space:pre-wrap;overflow-wrap:anywhere}pre code{background:none;padding:0}
+table{border-collapse:collapse;width:100%;margin:1rem 0;display:block;overflow-x:auto}th,td{text-align:left;padding:.5rem;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}th{color:var(--muted);font-weight:600}
 pre:focus-visible,table:focus-visible{outline:2px solid var(--link);outline-offset:3px}
 blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--line);color:var(--fg)}hr{border:0;border-top:1px solid var(--line);margin:2rem 0}
 </style>
 </head>
 <body>
+<nav aria-label="Site" style="font-size:.875rem"><a href="./">mneves75/skills</a> · How to use the skills</nav>
 <main>
 $body
 </main>

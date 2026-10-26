@@ -102,7 +102,7 @@ was included rather than silently claiming historical coverage. Check passwords,
 tokens, authorization headers, PII, prompts/completions, payment details and DB errors.
 
 Allowlist response fields and redact diagnostics at the emitting boundary. Report a
-potential leak by path/line and credential type, with exposure confidence and required
+potential leak by path/line and credential type, with the evidence of exposure and required
 rotation/incident action. Do not test a found key against a live provider, fetch real
 records, rewrite history or rotate secrets without exact authorization.
 
