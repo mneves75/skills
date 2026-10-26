@@ -166,6 +166,16 @@ test("python no-lint-ignores: apostrophes in a comment do not hide its directive
 	expect(await run(pythonAdapter, "no-lint-ignores", { "app/a.py": body })).toMatchObject({ pass: false });
 });
 
+test("typescript no-lint-ignores: a JSDoc-style block suppression counts", async () => {
+	const body = `${Array.from({ length: 12 }, () => "/** eslint-disable no-console */").join("\n")}\n`;
+	expect(await run(typescriptAdapter, "no-lint-ignores", { "src/a.ts": body })).toMatchObject({ pass: false });
+});
+
+test("npm-scripts: pattern and variable rules are targets", async () => {
+	const rules = "%.o: %.c\n\tcc -c $<\n$(BIN): $(OBJS)\n\tcc -o $@ $^\n";
+	expect(await run(goAdapter, "npm-scripts", { Makefile: rules })).toMatchObject({ pass: true, details: "2 Makefile targets" });
+});
+
 test("npm-scripts: a GNU ::= or :::= assignment is not a target; a multi-target line is", async () => {
 	expect(await run(goAdapter, "npm-scripts", { Makefile: "A:::=b\nB ::= c\n" })).toMatchObject({ pass: false });
 	expect(await run(goAdapter, "npm-scripts", { Makefile: "build test: deps\n\tgo test\n" })).toMatchObject({ pass: true, details: "1 Makefile targets" });

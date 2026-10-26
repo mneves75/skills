@@ -115,7 +115,8 @@ const SCAN_SKIP_DIRS = new Set([
  * A string literal (group 1) or a comment running to the end of the line. Scanning left to right,
  * strings before the comment are blanked and the comment is kept whole, quotes included.
  */
-// shortcut: multi-line strings (Python triple quotes, template literals over lines) are not stripped; use a tokenizer if they skew counts.
+// shortcut: multi-line strings, and a stray quote before a comment that holds another quote (a regex literal `/'/` or
+// JSX text "Don't"), are misread; use a tokenizer if they skew counts.
 const PYTHON_STRING_OR_COMMENT = /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|#.*/g;
 const C_STRING_OR_COMMENT = /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|\/[/*].*/g;
 
@@ -157,7 +158,7 @@ export async function countSourceMatches(
  */
 export async function findTaskRunner(appPath: string, extraFiles: readonly string[] = []): Promise<CheckResult> {
 	// A rule line is `name [name...]:` or `::`; `NAME :=`, `::=` and `:::=` assign variables.
-	const targets = (await readText(path.join(appPath, "Makefile")))?.match(/^\w[\w./ -]*?[ \t]*(?!:+=)::?/gm)?.length ?? 0;
+	const targets = (await readText(path.join(appPath, "Makefile")))?.match(/^[\w%$][\w./ %$()-]*?[ \t]*(?!:+=)::?/gm)?.length ?? 0;
 	if (targets > 0) return { pass: true, configPath: "Makefile", details: `${targets} Makefile targets` };
 	for (const file of ["justfile", "Justfile", "Taskfile.yml", "Taskfile.yaml", ...extraFiles]) {
 		if (await fileExists(path.join(appPath, file))) return { pass: true, configPath: file };
