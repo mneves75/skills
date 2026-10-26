@@ -38,8 +38,18 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha || inputs.ref || github.sha }}
           fetch-depth: 0
-      - name: Publish only a commit already on main
-        run: git merge-base --is-ancestor HEAD origin/main
+      # A CI re-run or a late run for an older commit must not roll the site back; only a
+      # dispatch (an explicit rollback) may publish a commit behind the main tip.
+      - name: Publish only the main tip, or a commit on main when dispatched
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ]; then
+            git merge-base --is-ancestor HEAD origin/main
+          else
+            test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" \
+              || { echo "HEAD is not the main tip; refusing an automatic deploy" >&2; exit 1; }
+          fi
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
