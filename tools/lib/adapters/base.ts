@@ -158,7 +158,7 @@ export async function countSourceMatches(
  */
 export async function findTaskRunner(appPath: string, extraFiles: readonly string[] = []): Promise<CheckResult> {
 	// A rule line is `name [name...]:` or `::`; `NAME :=`, `::=` and `:::=` assign variables.
-	const targets = (await readText(path.join(appPath, "Makefile")))?.match(/^[\w%$][\w./ %$()-]*?[ \t]*(?!:+=)::?/gm)?.length ?? 0;
+	const targets = (await readText(path.join(appPath, "Makefile")))?.match(/^[\w%$][\w./ \t%$()-]*:(?!:*=)/gm)?.length ?? 0;
 	if (targets > 0) return { pass: true, configPath: "Makefile", details: `${targets} Makefile targets` };
 	for (const file of ["justfile", "Justfile", "Taskfile.yml", "Taskfile.yaml", ...extraFiles]) {
 		if (await fileExists(path.join(appPath, file))) return { pass: true, configPath: file };

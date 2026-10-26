@@ -180,3 +180,20 @@ test("npm-scripts: a GNU ::= or :::= assignment is not a target; a multi-target 
 	expect(await run(goAdapter, "npm-scripts", { Makefile: "A:::=b\nB ::= c\n" })).toMatchObject({ pass: false });
 	expect(await run(goAdapter, "npm-scripts", { Makefile: "build test: deps\n\tgo test\n" })).toMatchObject({ pass: true, details: "1 Makefile targets" });
 });
+
+test("npm-scripts: a long non-rule line does not stall Makefile scanning", async () => {
+	const directory = await mkdtemp(join(tmpdir(), "readiness-makefile-"));
+	try {
+		await Bun.write(join(directory, "Makefile"), `A${" ".repeat(100_000)}\nbuild:\n\tgo build\n`);
+		const child = Bun.spawn([process.execPath, "--eval", "import { findTaskRunner } from './lib/adapters/base.ts'; console.log(JSON.stringify(await findTaskRunner(process.argv[1])))", directory], {
+			cwd: join(import.meta.dir, "../.."),
+			stdout: "pipe",
+			stderr: "pipe",
+			timeout: 3_000,
+		});
+		expect(await child.exited).toBe(0);
+		expect(JSON.parse(await new Response(child.stdout).text())).toMatchObject({ pass: true, details: "1 Makefile targets" });
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+});
