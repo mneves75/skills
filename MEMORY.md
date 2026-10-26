@@ -175,7 +175,8 @@ workspace-data scan plus source reading):
   `python3 -m http.server 8000 --bind 127.0.0.1 --directory site`.
 - `tools/` is the Bun workspace (readiness checker); see `AGENTS.md` Commands.
 - Browser QA runs in an isolated browser, not a personal profile. There is no staging target;
-  `.github/workflows/static.yml` publishes from `main`.
+  `.github/workflows/static.yml` publishes from `main` after CI passes on that commit; roll back
+  with `gh workflow run static.yml -f ref=<earlier tag>`.
 
 ## Decisions that still bind
 

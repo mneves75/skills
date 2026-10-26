@@ -113,7 +113,8 @@ bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no net
   the current `VERSION` (`tools/scripts/check-defaults-block.sh`). Keep the block's shapes: vendor
   ids as ids, Claude seats as `<Name>, latest release (... alias \`x\`)`, tiers as `reasoning <tier>`.
 - `SKILL.md` bodies stay under 500 lines; detail sits behind `references/`, linked one level
-  deep from `SKILL.md` and never reference-to-reference.
+  deep from `SKILL.md` and never reference-to-reference. Byte-identical upstream references may
+  name a sibling by bare basename (as `security-audit` does) when the `SKILL.md` map resolves it.
 - `VERSION`, the README badge and the top `CHANGELOG.md` entry agree.
 - `collections/<name>/` holds a vendored third-party skill pack, outside `skills/` so the default
   `npx skills add mneves75/skills` install does not include it (install it with `--full-depth`

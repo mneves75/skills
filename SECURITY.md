@@ -4,6 +4,20 @@
 
 Security fixes land on `main` and in the latest tagged release only.
 
+Supported runtimes for the shipped executables:
+
+| Runtime | Supported | Used by |
+|---|---|---|
+| Bun | 1.4.4 or later (CI pins 1.4.4) | the readiness tool in `tools/` |
+| Python | 3.11 or later | autoreview, the ship-deploy contract check |
+| Python | 3.10 or later | the SRS helper, render starters, site build helpers |
+| Node.js | a release line upstream still maintains | security-audit validators, site build |
+
+The maintainer (@mneves75) owns these floors: when a runtime line reaches upstream end of
+life, the next release raises the floor. A critical advisory in a supported runtime, a locked
+dependency or a pinned action is fixed, or the affected path disabled, within 7 days of
+publication. CI's `bun audit` scan and Dependabot alerts are how such an advisory is found.
+
 ## Reporting a Vulnerability
 
 Do not open a public issue for a suspected vulnerability. Use GitHub's
@@ -45,7 +59,8 @@ not a guarantee that every provider or platform has been exercised.
 - CI runs with `contents: read`. Only the Pages workflow gets `pages: write` and
   `id-token: write`, its `github-pages` environment deploys from `main` only, and every
   action is pinned to a full commit SHA.
-- A merge to `main` publishes the site and the skills. Each release first passes the
+- A merge to `main` publishes the skills at once and the site once CI passes on that commit
+  (`static.yml` waits for the CI run). Each release first passes the
   repository's own pre-deploy security gate (the `mneves-security` deploy gate) and needs the
   maintainer's explicit approval of that commit. AI agents act only through the maintainer's
   session and hold no separate deploy credentials.
