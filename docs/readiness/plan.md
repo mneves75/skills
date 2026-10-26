@@ -18,33 +18,36 @@ row is active. Advisory entries follow.
 
 ## 1. Security and compliance rows from the security gate
 
-- IDs: SEC-12 (NOT TESTED), SEC-13 (FAIL, restricted), SEC-17 (NOT TESTED), SEC-20 (FAIL,
-  restricted, advisory tier), SEC-23 (FAIL, restricted), CMP-06 (NOT TESTED). Evidence: the
-  imported provisional security assessment of 2026-10-18 at `1f9d8fb`; SEC-23 against the frozen
-  seven-file skill manifest.
+- Current source assessment, 2026-10-26 at `bb3080a`: SEC-12 and SEC-13 PASS, independently
+  accepted. Open IDs: SEC-17 (NOT TESTED), SEC-20 (FAIL, restricted), SEC-21 (NOT TESTED),
+  SEC-23 (FAIL, restricted) and CMP-06 (NOT TESTED). SEC-20 and SEC-21 are advisory in the
+  readiness profile but remain production blockers through the security verdict. These five
+  IDs plus DEL-04, DEL-09, ASY-02 and OPS-04 are nine distinct open controls, with no waiver.
+  The final release tree still needs its own binding assessment.
 - Failure it prevents: publishing a candidate whose security gaps are unknown or unaccepted.
 - Change:
-  1. Keep the details of SEC-13, SEC-20 and SEC-23 out of tracked files. They belong in the ignored
+  1. Keep restricted details out of tracked files. They belong in the ignored
      release decision packet under `.scratch/` or a private tracker.
   2. Run the secrets scan on the frozen final candidate (SEC-12).
   3. Complete the access review that `SECURITY.md:48-50` defines (collaborators, deploy keys,
      OAuth and GitHub App grants, personal access tokens) and record its date (SEC-17).
      Approving one production deploy does not complete this inventory.
-  4. Clear SEC-23 (details in the private release record) through the proposed follow-up in
-     `docs/specs/sre-workflows/follow-up.md`, then bind a new independent acceptance to the
-     frozen candidate content, or record a named owner waiver.
+  4. Resolve SEC-20, SEC-21 and SEC-23 using the evidence/actions in the private release
+     decision packet, or record explicit named owner waivers with a reason and expiry.
   5. Verify provider and backup retention against `SECURITY.md:92-108`, or record a dated owner
      statement saying where that proof lives (CMP-06).
   6. Run the security deploy gate on the exact candidate and target.
-- Owner type: code (SEC-12, SEC-13, SEC-23); people or process (SEC-17, SEC-20, CMP-06).
+- Owner type: code/scanner evidence (SEC-12, SEC-13); people or process (the five open IDs).
 - Size: change.
 - Dependencies: the final candidate is frozen and pushed (entry 4).
 - Acceptance: a security gate record for the exact commit and production target with no open
   `block`, or each remaining block waived there by a named owner with an expiry.
 - Rollout and recovery: evidence only; nothing deploys. A gate that blocks leaves the current
   production site untouched.
-- Mechanical gate: the release refuses to start without that security gate record (the
-  repository's existing pre-deploy rule, `SECURITY.md:44-47`).
+- Mechanical gate: Pages enforces CI success and source ancestry through `static.yml`.
+  This repository's security/readiness records are operating requirements before merging;
+  that workflow does not itself enforce them. The merger must check the exact-candidate
+  verdicts before publishing.
 
 ## 2. Second administrator and account recovery
 
@@ -233,9 +236,8 @@ row is active. Advisory entries follow.
 | OPS-04 | FAIL | 2 |
 | OPS-05 | NOT TESTED | 6 |
 | OPS-06 | NOT TESTED | 6 |
-| SEC-12 | NOT TESTED | 1 |
-| SEC-13 | NOT TESTED (gate pending) | 1 |
 | SEC-17 | NOT TESTED | 1 |
 | SEC-20 | FAIL (restricted) | 1 |
+| SEC-21 | NOT TESTED | 1 |
 | SEC-23 | FAIL | 1 |
 | CMP-06 | NOT TESTED | 1 |

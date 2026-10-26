@@ -51,6 +51,18 @@ renders, keyboard navigation, light/dark contrast and reduced motion. When
 through your host's approved browser route to exercise successful and denied copies.
 New local fonts/assets require their license and provenance in `NOTICE`.
 
+### Preparing a Release
+
+Keep `VERSION`, the README badge and the latest changelog entry aligned, then regenerate
+the site. Update the readiness ledger and plan from the actual assessment; a source
+check or an expired waiver does not make a launch control pass.
+
+Merging to `main` publishes the site after CI succeeds. Before that merge, complete
+the [security deploy gate](skills/mneves-security/SKILL.md#deploy-gate) and
+[production-readiness gate](skills/mneves-production-readiness/SKILL.md) for the final
+candidate. Keep detailed reports and owner waivers private. Merge approval alone does
+not waive an open control.
+
 ## Skill Requirements
 
 Skills must stay discoverable by `npx skills@latest add mneves75/skills`: one folder per

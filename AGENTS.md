@@ -128,6 +128,11 @@ bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no net
 
 ## Code review evidence
 
+Release closeout follows [CONTRIBUTING.md#preparing-a-release](CONTRIBUTING.md#preparing-a-release).
+Merging to `main` triggers production publication after CI, so a green PR alone is not the
+security/readiness gate. Keep the exact-candidate records private and retain them during
+scratch cleanup; owner waivers require their named controls, owner, reason and expiry.
+
 Always include adversarial review of code changes. Use local `cccc` for supported changed
 source when available, following `skills/autoreview/references/complexity.md`; record its
 version, target/config identity, file coverage, diagnostics and status. Missing tooling,

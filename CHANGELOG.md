@@ -26,6 +26,7 @@ Includes the 1.39.0 work that was reviewed in PR #26 but never reached `main`.
 - **`SECURITY.md`**: supported runtimes (Bun 1.4.4+, Python 3.11+, a maintained Node.js line), their end-of-life owner and a 7-day deadline for critical advisories.
 - **`autoreview`**: the README names the engine CLI as the owner of provider retries, backoff and rate limits.
 - **Model defaults** re-verified on 2026-10-26; ids unchanged.
+- **Release documentation**: project state and contributor instructions distinguish accepted source from production readiness. The public ledger and plan now reflect the completed source audit, including SEC-13's verified dependency controls and SEC-21's missing device evidence, without treating merge approval as a waiver.
 
 ### Removed
 - **Readiness tool dead code**: nine unused `tools/lib` modules (`fetch`, `progress`, `repo`, `result`, `signals`, `refs`, `types` and the `index` and `readiness/index` barrels), unused constants, check-category sets, cache singleton and dependency helpers, about 2,200 lines carried over from another project with its file names. The tool's own code now makes no network calls.

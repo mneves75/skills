@@ -39,9 +39,12 @@ artifact. Restricted details stay out of this public file.
 Provisional assessment for 1.41.0, 2026-10-26 (catalog 2, source scope unless a row says
 otherwise). The eleven owner waivers of 2026-10-18 expired on 2026-10-25T23:59:59Z, so each row
 shows its underlying status again. DEL-03 and MNT-05 now pass on this release's changes; DEL-04,
-DEL-09, ASY-02, OPS-04 and the security rows are open and go to the release decision packet.
-Security rows are re-imported from the exact-candidate security gate; the binding production run
-on the final commit updates the cursor and gate history.
+DEL-09, ASY-02 and OPS-04 remain open. The completed source audit and independent acceptance
+at `bb3080a` pass SEC-12 and SEC-13 and leave SEC-17, SEC-20, SEC-21, SEC-23 and CMP-06 open.
+These five security controls and four readiness controls form nine distinct blockers; SEC-20
+and SEC-21 are advisory in this catalog profile but block production through the security gate.
+No waiver is granted. These are source-candidate results, not a binding gate for a later tree;
+the final production gate updates the cursor and gate history only when it actually runs.
 
 Totals: 135 rows · NOT APPLICABLE 84 · PASS 13 · FAIL 4 · NOT TESTED 34 · BLOCKED 0 · WAIVED 0.
 
@@ -161,24 +164,24 @@ Totals: 135 rows · NOT APPLICABLE 84 · PASS 13 · FAIL 4 · NOT TESTED 34 · B
 | SEC-09 | NOT APPLICABLE | advisory | Imported: no impersonation | proposed: maintainer | — |
 | SEC-10 | NOT APPLICABLE | blocker | Imported: no login | proposed: maintainer | — |
 | SEC-11 | PASS | blocker | Imported, source + local, 2026-10-18, `1f9d8fb`: the local-distribution validation boundary and its regression tests | proposed: maintainer | — |
-| SEC-12 | PASS | blocker | Imported from the exact-candidate security gate (2026-10-18, `b95604c`): TruffleHog 3.99.2 over the tracked pack, the site pack and the candidate history, with a planted-credential positive control; no finding in project content. Always-on. | imported | Plan entry 1 |
-| SEC-13 | NOT TESTED | blocker | Always-on; re-imported from the exact-candidate security gate for 1.41.0 (pending). 2026-10-26 changes: ast-grep and marked are exact devDependencies with sha512 in `tools/bun.lock`, installed with `--frozen-lockfile`; skill validation uses the reference `skills-ref` from PyPI under `--require-hashes` instead of an unrelated npm package of that name; `bun audit` fails CI on any advisory (rc 0, 27 packages); the render job installs `--require-hashes` (`.github/requirements/render-starters.txt`, pip-audit rc 0) · the 2026-10-18 owner waiver expired 2026-10-25T23:59:59Z | @mneves75 | Plan entry 1 |
+| SEC-12 | PASS | blocker | Imported, source + local, 2026-10-26 at `bb3080a`: Gitleaks 8.30.1 scanned the candidate tree and history with clean and planted-credential controls. Detected fixtures and their dispositions are reconciled in the private, independently accepted security record. Always-on; reassess the final release tree. | imported | Plan entry 1 |
+| SEC-13 | PASS | blocker | Imported, source + local + registry, 2026-10-26 at `bb3080a`: the completed audit and independent acceptance verify locked tool identities and integrity, hashed Python installs, and current advisory scans. ast-grep and marked are exact devDependencies; the reference `skills-ref` validator and render dependencies use `--require-hashes`. CI fails on any locked-tool advisory. Reassess the final release tree. | @mneves75 | Plan entry 1 |
 | SEC-14 | NOT APPLICABLE | blocker | Imported: no uploads | proposed: maintainer | — |
 | SEC-15 | PASS | blocker | Imported, source + production, 2026-10-18: passes for the public static risk profile, with the documented deviations kept visible: no HSTS, `X-Content-Type-Options` or frame-protection headers, which Pages cannot send; CSP and referrer policy in markup; CORS without credentials (`SECURITY.md:110-118`). Not full ASVS compliance and not an owner waiver | proposed: maintainer | — |
 | SEC-16 | PASS | blocker | Imported, source + local + production, 2026-10-18: HTTPS enforced (Pages API `https_enforced` true; TLS 1.3 served) and disk encryption on the inspected release device. Scoped to that device; no fleet-wide claim | proposed: maintainer | — |
-| SEC-17 | NOT TESTED | blocker | re-imported from the exact-candidate security gate for 1.41.0 (pending). The operator access review (collaborators, deploy keys, apps, tokens) defined in `SECURITY.md` has no dated result · the 2026-10-18 owner waiver expired 2026-10-25T23:59:59Z | @mneves75 | Plan entry 1 |
+| SEC-17 | NOT TESTED | blocker | Imported from the completed source-candidate security gate, 2026-10-26 at `bb3080a`. The operator access review defined in `SECURITY.md` has no dated result; prior owner waivers expired 2026-10-25T23:59:59Z. | @mneves75 | Plan entry 1 |
 | SEC-18 | PASS | blocker | Imported, source + local, 2026-10-18: redaction, isolation and action-state evidence for the local tools. No assurance about external providers' log redaction | proposed: maintainer | — |
 | SEC-19 | NOT APPLICABLE | contract | Imported: contracts none | proposed: maintainer | — |
-| SEC-20 | FAIL | advisory | re-imported from the exact-candidate security gate for 1.41.0 (pending). No `/.well-known/security.txt` at the origin root `mneves75.github.io`, which this project page cannot serve; no stake, so advisory here, and whether it blocks is the security gate's verdict · the 2026-10-18 owner waiver expired 2026-10-25T23:59:59Z | @mneves75 | Plan entry 1 |
-| SEC-21 | PASS | advisory | Imported, source + local, 2026-10-18: written compromise runbook (`SECURITY.md:52-67`), plus disk encryption and screen lock on the inspected release device. Scoped to that device; no fleet-wide claim | proposed: maintainer | — |
+| SEC-20 | FAIL | advisory | Imported from the completed source-candidate security gate, 2026-10-26 at `bb3080a`. Restricted details remain private. Advisory in this catalog profile; the security gate makes it a production blocker. Prior owner waivers expired 2026-10-25T23:59:59Z. | @mneves75 | Plan entry 1 |
+| SEC-21 | NOT TESTED | advisory | Imported from the completed source-candidate security gate, 2026-10-26 at `bb3080a`. The written incident runbook does not establish current encryption and screen-lock state on devices with production access; current owner/device evidence was not established in that audit. This status does not disprove the earlier device inspection. Advisory here; the security gate makes it a production blocker. | @mneves75 | Plan entry 1 |
 | SEC-22 | NOT APPLICABLE | blocker | Imported: no inbound webhooks | proposed: maintainer | — |
-| SEC-23 | FAIL | blocker | re-imported from the exact-candidate security gate for 1.41.0 (pending). Restricted; details in the private gate record · the 2026-10-18 owner waiver expired 2026-10-25T23:59:59Z | @mneves75 | Plan entry 1 |
+| SEC-23 | FAIL | blocker | Imported from the completed source-candidate security gate, 2026-10-26 at `bb3080a`. Restricted details remain in the private gate record; prior owner waivers expired 2026-10-25T23:59:59Z. | @mneves75 | Plan entry 1 |
 | CMP-01 | NOT APPLICABLE | contract | Imported: contracts none | proposed: maintainer | — |
 | CMP-02 | NOT APPLICABLE | contract | Imported: contracts none | proposed: maintainer | — |
 | CMP-03 | NOT APPLICABLE | blocker | Imported: no health data | proposed: maintainer | — |
 | CMP-04 | NOT APPLICABLE | contract | Imported: no health data; contracts none | proposed: maintainer | — |
 | CMP-05 | NOT APPLICABLE | blocker | Imported: no payments | proposed: maintainer | — |
-| CMP-06 | NOT TESTED | blocker | Catalog 2 widens CMP-06 to any stored personal data; applicability is unchanged here because the earlier assessment already applied it to the local stores the tools write (SRS cards, transcripts, reports). re-imported from the exact-candidate security gate for 1.41.0 (pending). The erasure procedure is written (`SECURITY.md`); provider and backup retention and an erasure run are not verified · the 2026-10-18 owner waiver expired 2026-10-25T23:59:59Z | @mneves75 | Plan entry 1 |
+| CMP-06 | NOT TESTED | blocker | Imported from the completed source-candidate security gate, 2026-10-26 at `bb3080a`. Catalog 2 applies to stored personal data, including the tools' local stores. The erasure procedure is written (`SECURITY.md`); provider and backup retention and an erasure run are not verified. Prior owner waivers expired 2026-10-25T23:59:59Z. | @mneves75 | Plan entry 1 |
 | CMP-07 | NOT APPLICABLE | contract | Imported: contracts none | proposed: maintainer | — |
 | CMP-08 | NOT APPLICABLE | contract | Imported: contracts none | proposed: maintainer | — |
 | CMP-09 | NOT APPLICABLE | blocker | Imported: no accounts; the site collects nothing (`SECURITY.md:107-108`) | proposed: maintainer | — |
