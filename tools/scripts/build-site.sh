@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Build the generated parts of site/ (published by GitHub Pages). Needs bun and python3.
+# Build the generated parts of site/ (published by GitHub Pages). Needs node, python3 and
+# `bun install` in tools/ (marked is locked there with its integrity hash).
 #   site/howto.html          <- HOWTO.md (marked, links rewritten to GitHub, heading ids)
 #   site/index.html changelog <- top four entries of CHANGELOG.md, between the markers
 # Run after editing HOWTO.md or CHANGELOG.md; CI fails if the outputs are stale.
@@ -9,7 +10,9 @@ root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)
 # Write to a file first: the CLI's piped stdout can close before the full HTML flushes.
 rendered=$(mktemp "${TMPDIR:-/tmp}/skills-howto.XXXXXX")
 trap 'rm -f -- "$rendered"' EXIT
-bunx --silent marked@18.0.13 --gfm -i "$root/HOWTO.md" --output "$rendered"
+marked="$root/tools/node_modules/.bin/marked"
+[ -x "$marked" ] || { echo "build-site: run 'bun install' in tools/ first" >&2; exit 1; }
+"$marked" --gfm -i "$root/HOWTO.md" --output "$rendered"
 
 # Relative links point at repo files; on Pages they must go to GitHub.
 body=$(sed -E 's#href="([^"#/][^":]*)"#href="https://github.com/mneves75/skills/blob/main/\1"#g' "$rendered" \

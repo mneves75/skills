@@ -48,7 +48,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 ## Commands
 
 ```bash
-cd tools && bun install                 # dev deps only (Biome, TypeScript, bun-types)
+cd tools && bun install                 # locked dev tools: Biome, TypeScript, ast-grep, skills-ref, marked
 bun run typecheck && bun run lint && bun test   # from tools/
 ast-grep scan --config sgconfig.yml .   # from repo root
 bash .githooks/pre-commit.test          # hook e2e test

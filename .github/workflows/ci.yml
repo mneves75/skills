@@ -28,8 +28,16 @@ jobs:
         with:
           bun-version: 1.4.4
 
-      - name: Install ast-grep
-        run: npm install -g @ast-grep/cli@0.45.2
+      # ast-grep, skills-ref and marked are devDependencies locked with sha512 integrity in tools/bun.lock.
+      - name: Install locked tools
+        working-directory: tools
+        run: |
+          bun install --frozen-lockfile
+          echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Advisory scan of the locked tools
+        working-directory: tools
+        run: bun audit
 
       - name: Skill layout (what `npx skills add mneves75/skills` discovers)
         run: |
@@ -46,7 +54,7 @@ jobs:
       - name: Agent Skills spec (skills-ref validate)
         run: |
           set -euo pipefail
-          for d in skills/*/; do npx -y skills-ref@0.1.5 validate "$d"; done
+          for d in skills/*/; do skills-ref validate "$d"; done
 
       - name: Collection skills (name == directory, Agent Skills spec, sync outputs present)
         run: |
@@ -56,7 +64,7 @@ jobs:
             for dir in "$c"skills/*/; do
               name=$(basename "$dir")
               grep -qx "name: $name" "$dir/SKILL.md" || { echo "$dir/SKILL.md: frontmatter name must be '$name'"; exit 1; }
-              npx -y skills-ref@0.1.5 validate "$dir"
+              skills-ref validate "$dir"
             done
           done
 
@@ -118,7 +126,6 @@ jobs:
       - name: tools typecheck + lint
         working-directory: tools
         run: |
-          bun install --frozen-lockfile
           bun run typecheck
           bun run lint
           bun test
@@ -132,7 +139,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y pandoc poppler-utils libreoffice-writer fonts-liberation fonts-dejavu python3-venv libpango-1.0-0
           python3 -m venv .scratch/render-engine
-          .scratch/render-engine/bin/pip install weasyprint==70.0
+          .scratch/render-engine/bin/pip install --require-hashes -r .github/requirements/render-starters.txt
           echo "$PWD/.scratch/render-engine/bin" >> "$GITHUB_PATH"
       - name: Reject active content through actual Pandoc commands
         run: python3 skills/mneves-render/tests/test_check_ast.py

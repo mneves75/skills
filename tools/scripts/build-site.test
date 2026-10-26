@@ -107,6 +107,8 @@ with tempfile.TemporaryDirectory(prefix='skills-build-site-') as scratch:
         destination = target / name
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(source / name, destination)
+    # The build runs the integrity-locked marked from tools/ (`bun install` there first).
+    (target / 'tools/node_modules').symlink_to(source / 'tools/node_modules', target_is_directory=True)
     previous = None
     for attempt in range(2):
         result = subprocess.run(['bash', 'tools/scripts/build-site.sh'], cwd=target,
