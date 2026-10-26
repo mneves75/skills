@@ -198,7 +198,8 @@ workspace-data scan plus source reading):
   fails closed when ast-grep is absent. `unknown` + a narrowing guard is the sanctioned
   replacement.
 
-- **Frontmatter stays on the Agent Skills spec.** CI runs `skills-ref validate`, which errors on
+- **Frontmatter stays on the Agent Skills spec.** CI runs `agentskills validate` (the reference `skills-ref` from PyPI since 1.41.0; the npm package
+  of that name is an unrelated demo), which errors on
   any key outside `name`/`description`/`license`/`compatibility`/`metadata`/`allowed-tools`.
   Host-only fields (`context: fork`, `effort`, `paths`) are attractive but break the gate; the
   independence `mneves-verify` needs is stated in prose, not frontmatter.

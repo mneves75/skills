@@ -28,7 +28,7 @@ jobs:
         with:
           bun-version: 1.4.4
 
-      # ast-grep, skills-ref and marked are devDependencies locked with sha512 integrity in tools/bun.lock.
+      # ast-grep and marked are devDependencies locked with sha512 integrity in tools/bun.lock.
       - name: Install locked tools
         working-directory: tools
         run: |
@@ -51,10 +51,17 @@ jobs:
             grep -qE '^description: .{20,}' "$f" || { echo "$f: missing/short description"; exit 1; }
           done
 
-      - name: Agent Skills spec (skills-ref validate)
+      # The reference validator is the PyPI skills-ref (CLI `agentskills`); the npm package of that name is unrelated.
+      - name: Install the Agent Skills reference validator
+        run: |
+          python3 -m venv .scratch/skills-ref
+          .scratch/skills-ref/bin/pip install --require-hashes -r .github/requirements/skills-ref.txt
+          echo "$PWD/.scratch/skills-ref/bin" >> "$GITHUB_PATH"
+
+      - name: Agent Skills spec (agentskills validate)
         run: |
           set -euo pipefail
-          for d in skills/*/; do skills-ref validate "$d"; done
+          for d in skills/*/; do agentskills validate "$d"; done
 
       - name: Collection skills (name == directory, Agent Skills spec, sync outputs present)
         run: |
@@ -64,7 +71,7 @@ jobs:
             for dir in "$c"skills/*/; do
               name=$(basename "$dir")
               grep -qx "name: $name" "$dir/SKILL.md" || { echo "$dir/SKILL.md: frontmatter name must be '$name'"; exit 1; }
-              skills-ref validate "$dir"
+              agentskills validate "$dir"
             done
           done
 

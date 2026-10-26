@@ -48,7 +48,8 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 ## Commands
 
 ```bash
-cd tools && bun install                 # locked dev tools: Biome, TypeScript, ast-grep, skills-ref, marked
+cd tools && bun install                 # locked dev tools: Biome, TypeScript, ast-grep, marked
+python3 -m venv .scratch/skills-ref && .scratch/skills-ref/bin/pip install --require-hashes -r .github/requirements/skills-ref.txt   # reference validator: .scratch/skills-ref/bin/agentskills validate <skill-dir>
 bun run typecheck && bun run lint && bun test   # from tools/
 ast-grep scan --config sgconfig.yml .   # from repo root
 bash .githooks/pre-commit.test          # hook e2e test
@@ -85,7 +86,7 @@ bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no net
   procedures belong in the body or a routed reference.
 - Frontmatter is Agent Skills spec only: `name`, `description`, `license`, and, for a skill that
   ships an executable, `compatibility` (≤ 500 characters naming the tools it needs). CI's
-  `skills-ref validate` rejects any other key, so host-specific fields (`context`, `effort`,
+  `agentskills validate` (the reference `skills-ref` from PyPI) rejects other keys, so host-specific fields (`context`, `effort`,
   `paths`, `disable-model-invocation`) stay out even when a host supports them.
 - Never add a root `SKILL.md`: the skills CLI lets a shallower `SKILL.md` shadow everything
   below it.
@@ -122,7 +123,7 @@ bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no net
   only. A collection keeps its upstream names (the owner chose pstack's `tdd` and `teach` over
   the `mneves-` prefix rule), its license, and an `UPSTREAM` pin. Its `skills/`, `UPSTREAM`, `LICENSE` and
   `local-overrides.patch` come from a sync script and are never hand-edited; CI requires the Agent Skills spec
-  (`skills-ref validate`) and name == directory for every collection skill.
+  (`agentskills validate`) and name == directory for every collection skill.
 
 ## Code review evidence
 
