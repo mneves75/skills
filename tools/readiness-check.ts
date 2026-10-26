@@ -1464,9 +1464,10 @@ async function main(): Promise<number> {
 	const passingChecks = allChecks.filter((r) => r.pass);
 
 	// Get recommendations from first app (or aggregate)
+	const firstApp = appScores[0];
 	const recommendations =
-		appScores.length > 0
-			? getTopRecommendations(appScores[0]!, 3).map((r) => ({
+		firstApp !== undefined
+			? getTopRecommendations(firstApp, 3).map((r) => ({
 					pillar: r.pillar,
 					check: { id: r.check.id, name: r.check.name },
 					impact: r.impact,

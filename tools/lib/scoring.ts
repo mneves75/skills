@@ -215,10 +215,9 @@ export function calculatePillarScores(
 
 	for (const check of checks) {
 		const pillar = check.check.pillar;
-		if (!byPillar.has(pillar)) {
-			byPillar.set(pillar, []);
-		}
-		byPillar.get(pillar)!.push(check);
+		const list = byPillar.get(pillar);
+		if (list) list.push(check);
+		else byPillar.set(pillar, [check]);
 	}
 
 	// Calculate score for each pillar

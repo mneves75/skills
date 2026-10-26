@@ -269,7 +269,7 @@ function parsePep508(spec: string): Dependency | null {
 	// Remove extras
 	const extrasMatch = name.match(/^([a-zA-Z0-9_-]+)\[/);
 	if (extrasMatch) {
-		name = extrasMatch[1]!;
+		name = extrasMatch[1] ?? name;
 		const bracketEnd = spec.indexOf("]");
 		if (bracketEnd !== -1) {
 			const afterBracket = spec.substring(bracketEnd + 1).trim();
@@ -283,8 +283,8 @@ function parsePep508(spec: string): Dependency | null {
 		// Parse version constraint
 		const versionMatch = name.match(/^([a-zA-Z0-9_-]+)([><=!~].+)$/);
 		if (versionMatch) {
-			name = versionMatch[1]!;
-			version = versionMatch[2]!;
+			name = versionMatch[1] ?? name;
+			version = versionMatch[2] ?? version;
 		} else {
 			// No version, just package name
 			name = name.replace(/[><=!~].*$/, "").trim();
@@ -337,8 +337,7 @@ function parseToml(content: string): PyProject | null {
 		let multilineArrayContent = "";
 		let multilineArrayKey = "";
 
-		for (let i = 0; i < lines.length; i++) {
-			let line = lines[i]!;
+		for (let line of lines) {
 
 			// Handle multiline arrays
 			if (inMultilineArray) {
@@ -372,7 +371,7 @@ function parseToml(content: string): PyProject | null {
 			if (line.startsWith("[")) {
 				const sectionMatch = line.match(/^\[+([^\]]+)\]+$/);
 				if (sectionMatch) {
-					currentSection = sectionMatch[1]!.split(".").map((s) => s.trim());
+					currentSection = (sectionMatch[1] ?? "").split(".").map((s) => s.trim());
 					currentObject = ensurePath(result, currentSection);
 				}
 				continue;
@@ -381,8 +380,9 @@ function parseToml(content: string): PyProject | null {
 			// Key-value pair
 			const kvMatch = line.match(/^([^=]+)=(.*)$/);
 			if (kvMatch) {
-				const key = kvMatch[1]!.trim();
-				const value = kvMatch[2]!.trim();
+				const [, rawKey = "", rawValue = ""] = kvMatch;
+				const key = rawKey.trim();
+				const value = rawValue.trim();
 
 				// Start of multiline array
 				if (value.startsWith("[") && !value.includes("]")) {
@@ -457,9 +457,10 @@ function parseTomlValue(value: string): unknown {
 		for (const pair of pairs) {
 			const kv = pair.split("=");
 			if (kv.length === 2) {
-				const k = kv[0]!.trim();
+				const [rawK = "", rawV = ""] = kv;
+				const k = rawK.trim();
 				validatePath(k.split("."));
-				const v = parseTomlValue(kv[1]!.trim());
+				const v = parseTomlValue(rawV.trim());
 				result[k] = v;
 			}
 		}
@@ -496,21 +497,21 @@ function setNestedValue(
 	value: unknown,
 ): void {
 	const parts = key.split(".");
-	validatePath(parts);
+	const lastKey = validatePath(parts);
 	let current = obj;
 
-	for (let i = 0; i < parts.length - 1; i++) {
-		const part = parts[i]!;
+	for (const part of parts.slice(0, -1)) {
 		if (!Object.hasOwn(current, part)) {
 			current[part] = Object.create(null);
 		}
 		current = current[part] as Record<string, unknown>;
 	}
 
-	current[parts[parts.length - 1]!] = value;
+	current[lastKey] = value;
 }
 
-function validatePath(parts: string[]): void {
+/** Reject an empty or prototype-polluting TOML path; return its last key. */
+function validatePath(parts: string[]): string {
 	if (
 		parts.some((part) =>
 			["__proto__", "constructor", "prototype"].includes(
@@ -520,4 +521,7 @@ function validatePath(parts: string[]): void {
 	) {
 		throw new Error("Unsafe TOML path");
 	}
+	const last = parts.at(-1);
+	if (last === undefined) throw new Error("Empty TOML path");
+	return last;
 }

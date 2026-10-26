@@ -6,6 +6,9 @@
 				"noUnusedImports": "error",
 				"noUnusedVariables": "error",
 				"noUnusedFunctionParameters": "error"
+			},
+			"style": {
+				"noNonNullAssertion": "error"
 			}
 		}
 	}

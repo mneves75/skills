@@ -177,8 +177,7 @@ function parseToml(content: string): CargoToml | null {
 		let multilineKey = "";
 		let multilineValue = "";
 
-		for (let i = 0; i < lines.length; i++) {
-			let line = lines[i]!;
+		for (let line of lines) {
 
 			// Handle multiline strings/arrays
 			if (inMultilineValue) {
@@ -223,8 +222,9 @@ function parseToml(content: string): CargoToml | null {
 			// Key-value pair
 			const kvMatch = line.match(/^([^=]+)=(.*)$/);
 			if (kvMatch) {
-				const key = kvMatch[1]!.trim();
-				const value = kvMatch[2]!.trim();
+				const [, rawKey = "", rawValue = ""] = kvMatch;
+				const key = rawKey.trim();
+				const value = rawValue.trim();
 
 				// Check for multiline values
 				if (
@@ -380,17 +380,15 @@ function ensureArrayPath(
 	obj: Record<string, unknown>,
 	path: string[],
 ): Record<string, unknown> {
-	validatePath(path);
+	const lastKey = validatePath(path);
 	let current = obj;
-	for (let i = 0; i < path.length - 1; i++) {
-		const key = path[i]!;
+	for (const key of path.slice(0, -1)) {
 		if (!Object.hasOwn(current, key)) {
 			current[key] = Object.create(null);
 		}
 		current = current[key] as Record<string, unknown>;
 	}
 
-	const lastKey = path[path.length - 1]!;
 	if (!Object.hasOwn(current, lastKey)) {
 		current[lastKey] = [];
 	}
@@ -407,21 +405,21 @@ function setNestedValue(
 ): void {
 	// Handle dotted keys
 	const parts = key.split(".");
-	validatePath(parts);
+	const lastKey = validatePath(parts);
 	let current = obj;
 
-	for (let i = 0; i < parts.length - 1; i++) {
-		const part = parts[i]!;
+	for (const part of parts.slice(0, -1)) {
 		if (!Object.hasOwn(current, part)) {
 			current[part] = Object.create(null);
 		}
 		current = current[part] as Record<string, unknown>;
 	}
 
-	current[parts[parts.length - 1]!] = value;
+	current[lastKey] = value;
 }
 
-function validatePath(parts: string[]): void {
+/** Reject an empty or prototype-polluting TOML path; return its last key. */
+function validatePath(parts: string[]): string {
 	if (
 		parts.some((part) =>
 			["__proto__", "constructor", "prototype"].includes(
@@ -431,4 +429,7 @@ function validatePath(parts: string[]): void {
 	) {
 		throw new Error("Unsafe TOML path");
 	}
+	const last = parts.at(-1);
+	if (last === undefined) throw new Error("Empty TOML path");
+	return last;
 }

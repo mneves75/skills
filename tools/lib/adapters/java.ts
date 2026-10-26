@@ -33,7 +33,7 @@ import { createLanguageAdapter } from "./base.js";
  */
 async function detectBuildSystem(
 	appPath: string
-): Promise<{ type: "maven" | "gradle" | null; configPath: string | null }> {
+): Promise<{ type: "maven" | "gradle"; configPath: string } | { type: null; configPath: null }> {
 	if (await fileExists(path.join(appPath, "pom.xml"))) {
 		return { type: "maven", configPath: "pom.xml" };
 	}
@@ -85,7 +85,7 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 		}
 
 		if (buildSystem.type === "gradle") {
-			const buildFile = await readText(path.join(appPath, buildSystem.configPath!));
+			const buildFile = await readText(path.join(appPath, buildSystem.configPath));
 			if (buildFile?.includes("checkstyle") || buildFile?.includes("spotbugs") || buildFile?.includes("pmd")) {
 				return { pass: true, details: "Linting plugin in build.gradle" };
 			}
@@ -115,7 +115,7 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 
 		// Check for Spotless
 		if (buildSystem.type === "gradle") {
-			const buildFile = await readText(path.join(appPath, buildSystem.configPath!));
+			const buildFile = await readText(path.join(appPath, buildSystem.configPath));
 			if (buildFile?.includes("spotless")) {
 				return { pass: true, tool: "Spotless" };
 			}
@@ -162,7 +162,7 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 		}
 
 		if (buildSystem.type === "gradle") {
-			const buildFile = await readText(path.join(appPath, buildSystem.configPath!));
+			const buildFile = await readText(path.join(appPath, buildSystem.configPath));
 			if (buildFile?.includes("-Werror") || buildFile?.includes("failOnWarning")) {
 				return { pass: true, details: "Warnings as errors enabled" };
 			}
@@ -201,7 +201,7 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 			return {
 				pass: true,
 				tool: buildSystem.type === "maven" ? "Maven" : "Gradle",
-				configPath: buildSystem.configPath!,
+				configPath: buildSystem.configPath,
 			};
 		}
 
@@ -413,7 +413,7 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 		// Check build config for integration test task
 		const buildSystem = await detectBuildSystem(appPath);
 		if (buildSystem.type === "gradle") {
-			const buildFile = await readText(path.join(appPath, buildSystem.configPath!));
+			const buildFile = await readText(path.join(appPath, buildSystem.configPath));
 			if (buildFile?.includes("integrationTest")) {
 				return { pass: true, details: "integrationTest task configured" };
 			}
@@ -441,7 +441,7 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 		}
 
 		if (buildSystem.type === "gradle") {
-			const buildFile = await readText(path.join(appPath, buildSystem.configPath!));
+			const buildFile = await readText(path.join(appPath, buildSystem.configPath));
 			if (buildFile?.includes("jacoco")) {
 				return { pass: true, tool: "JaCoCo" };
 			}
@@ -570,7 +570,7 @@ const javaSpecificRunners: Record<string, CheckRunner> = {
 		const buildSystem = await detectBuildSystem(ctx.app.path);
 
 		if (buildSystem.type === "gradle") {
-			const buildFile = await readText(path.join(ctx.app.path, buildSystem.configPath!));
+			const buildFile = await readText(path.join(ctx.app.path, buildSystem.configPath));
 			if (buildFile?.includes("continuous") || buildFile?.includes("--continuous")) {
 				return { pass: true, tool: "Gradle continuous", details: "--continuous flag" };
 			}

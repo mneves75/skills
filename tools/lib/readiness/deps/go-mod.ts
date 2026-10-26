@@ -43,8 +43,8 @@ export async function parseGoMod(
 		const lines = content.split("\n");
 		let inRequireBlock = false;
 
-		for (let i = 0; i < lines.length; i++) {
-			const line = lines[i]!.trim();
+		for (const rawLine of lines) {
+			const line = rawLine.trim();
 
 			// Skip empty lines and comments
 			if (!line || line.startsWith("//")) continue;
