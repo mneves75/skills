@@ -5,7 +5,7 @@ the PDF example also needs `weasyprint`. Browser printing is an alternative, not
 second engine. Discover installed versions and check their supported flags before use.
 
 Copy the skill's `assets/` files and its `scripts/` directory into a project-owned renderer
-directory, such as `docs/render/` (keep `scripts/check_ast.py` executable). Python 3.10+
+directory, such as `docs/render/` (keep `scripts/check_ast.py` executable). Python 3.11+
 is required by the bundled content guard. Run these smoke commands **from that directory**. The defaults
 resolve template/CSS paths against the working directory; a production wrapper must set
 that directory itself and resolve source/output paths before changing it.

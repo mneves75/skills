@@ -90,7 +90,7 @@ bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no net
 - Never add a root `SKILL.md`: the skills CLI lets a shallower `SKILL.md` shadow everything
   below it.
 - Skills are Markdown-first. Shipped executables are `bash` + `set -euo pipefail`, `bash -n`
-  clean when written in Bash. Python helpers use Python 3.10+ and the standard library;
+  clean when written in Bash. Python helpers use Python 3.11+ and the standard library;
   each helper states its own floor and that claim must match the syntax it actually uses.
   Executable skills are `autoreview`, `mneves-fable-orchestrator`, `mneves-ship-deploy`,
   `mneves-teach-back-srs`, `security-audit`, and `mneves-render`; `security-audit`'s executables

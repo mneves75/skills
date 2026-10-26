@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for scripts/srs_db.py; Python 3.10+, standard library only.
+"""Tests for scripts/srs_db.py; Python 3.11+, standard library only.
 
 Run: python3 skills/mneves-teach-back-srs/tests/test_srs_db.py
 Each test works in its own temporary directory, so no real .ai-learn database is touched.

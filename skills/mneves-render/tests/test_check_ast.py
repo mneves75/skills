@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Acceptance tests for the Pandoc JSON filter; Python 3.10+, stdlib only.
+"""Acceptance tests for the Pandoc JSON filter; Python 3.11+, stdlib only.
 
 Run directly with an installed Pandoc. Tests use the filter's stdin/stdout and
 real engine conversions, never importing its implementation or executing HTML.

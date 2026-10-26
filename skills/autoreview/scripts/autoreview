@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent AI review of a Git target; Python 3.11+ (3.10 with `tomli`), otherwise standard library."""
+"""Independent AI review of a Git target; Python 3.11+, standard library."""
 from __future__ import annotations
 
 import argparse

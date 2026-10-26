@@ -9,8 +9,7 @@ Supported runtimes for the shipped executables:
 | Runtime | Supported | Used by |
 |---|---|---|
 | Bun | 1.4.4 or later (CI pins 1.4.4) | the readiness tool in `tools/` |
-| Python | 3.11 or later | autoreview, the ship-deploy contract check |
-| Python | 3.10 or later | the SRS helper, render starters, site build helpers |
+| Python | 3.11 or later | autoreview, the ship-deploy contract check, the SRS helper, render starters, site build helpers |
 | Node.js | a release line upstream still maintains | security-audit validators, site build |
 
 The maintainer (@mneves75) owns these floors: when a runtime line reaches upstream end of

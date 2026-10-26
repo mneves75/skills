@@ -54,7 +54,7 @@ You explain → the agent verifies against code → Socratic follow-ups → Card
 - **Auto-gitignored** on first init
 - **WAL mode** for concurrent safety
 - **Soft deletes**: cards are never hard-deleted
-- **No external dependencies**: Python 3.10+ stdlib only
+- **No external dependencies**: Python 3.11+ stdlib only
 
 ## SM-2 Algorithm
 
@@ -114,7 +114,7 @@ mneves-teach-back-srs/
 
 ## Requirements
 
-- Python 3.10+ (for `X | None` union syntax)
+- Python 3.11+ (3.10 reached end of life on 2026-10-01)
 - No external packages: stdlib sqlite3, argparse, json only
 
 ## License

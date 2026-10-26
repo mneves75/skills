@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Real-engine starter acceptance; Python 3.10+, standard library only.
+"""Real-engine starter acceptance; Python 3.11+, standard library only.
 
 Run directly. --artifacts DIR retains fixtures, logs, PDFs and page PNGs for
 human inspection. --require-office also requires actual DOCX-to-PDF conversion

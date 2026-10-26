@@ -239,7 +239,7 @@ It does not rewrite or summarize your source or require a specific agent vendor.
 **What you receive.** The requested files, a project-local renderer and regeneration command,
 plus the checks actually run and any unverified format limitations. Pandoc and a PDF engine
 are external tools, not bundled dependencies; existing equivalent tools are fine. The Pandoc
-starters also require Python 3.10+ for their bundled content-policy guard. They preserve
+starters also require Python 3.11+ for their bundled content-policy guard. They preserve
 metadata and literal punctuation; the guard is not a resource sandbox or SVG sanitizer.
 
 **Maintaining the starter.** Run `python3 skills/mneves-render/tests/test_check_ast.py` and
@@ -728,7 +728,7 @@ by git) and come back on an SM-2 schedule, the same algorithm Anki uses.
 **Triggers.** "let me explain", "teach back", "quiz me", "review cards", "what do I know
 about", "test my understanding".
 
-**Prerequisite.** Python 3.10+. No packages.
+**Prerequisite.** Python 3.11+. No packages.
 
 **Four modes.**
 

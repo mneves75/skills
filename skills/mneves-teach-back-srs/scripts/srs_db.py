@@ -3,7 +3,7 @@
 SRS Database Manager for mneves-teach-back-srs skill.
 
 Manages a per-project SQLite database with SM-2 spaced repetition scheduling.
-Python 3.10+, standard library only.
+Python 3.11+, standard library only.
 Stores cards generated from teach-back sessions, tracks reviews, and schedules
 future reviews based on recall quality.
 

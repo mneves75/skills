@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install reviewed cccc release bytes at an explicit new path. Python 3.10+, stdlib.
+"""Install reviewed cccc release bytes at an explicit new path. Python 3.11+, stdlib.
 
 No PATH edits, sudo, replacement or archive-wide extraction. Pins are in
 cccc-release.json. Verify the upstream release assets before changing them.
