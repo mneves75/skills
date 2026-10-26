@@ -80,12 +80,15 @@ def get_db_path() -> Path:
     return Path.cwd() / DB_DIR / DB_NAME
 
 
+class SrsError(Exception):
+    """A user-facing failure; the CLI prints it and exits with status 1."""
+
+
 def connect(db_path: Path | None = None) -> sqlite3.Connection:
     """Connect to the SRS database."""
     path = db_path or get_db_path()
     if not path.exists():
-        print(f"Database not found at {path}. Run 'init' first.", file=sys.stderr)
-        sys.exit(1)
+        raise SrsError(f"Database not found at {path}. Run 'init' first.")
     conn = sqlite3.connect(str(path))
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
@@ -209,9 +212,9 @@ def record_review(card_id: int, quality: int) -> dict:
         "SELECT * FROM cards WHERE id = ? AND deleted_at IS NULL", (card_id,)
     ).fetchone()
     if not card:
-        print(f"Card #{card_id} not found.", file=sys.stderr)
+        conn.rollback()
         conn.close()
-        sys.exit(1)
+        raise SrsError(f"Card #{card_id} not found.")
 
     new_reps, new_ef, new_interval = sm2_update(
         quality, card["repetitions"], card["ease_factor"], card["interval_days"]
@@ -460,4 +463,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except SrsError as error:
+        print(error, file=sys.stderr)
+        sys.exit(1)
