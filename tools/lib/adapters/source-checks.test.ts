@@ -159,3 +159,14 @@ for (const { adapter, file, line } of literals) {
 		expect(await run(adapter, "no-lint-ignores", { [file]: body })).toMatchObject({ pass: true });
 	});
 }
+
+test("python no-lint-ignores: apostrophes in a comment do not hide its directive", async () => {
+	const line = "x = f()  # don't do this  # type: ignore  # it won't";
+	const body = `${Array.from({ length: 12 }, () => line).join("\n")}\n`;
+	expect(await run(pythonAdapter, "no-lint-ignores", { "app/a.py": body })).toMatchObject({ pass: false });
+});
+
+test("npm-scripts: a GNU ::= or :::= assignment is not a target; a multi-target line is", async () => {
+	expect(await run(goAdapter, "npm-scripts", { Makefile: "A:::=b\nB ::= c\n" })).toMatchObject({ pass: false });
+	expect(await run(goAdapter, "npm-scripts", { Makefile: "build test: deps\n\tgo test\n" })).toMatchObject({ pass: true, details: "1 Makefile targets" });
+});

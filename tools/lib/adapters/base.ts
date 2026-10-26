@@ -111,9 +111,13 @@ const SCAN_SKIP_DIRS = new Set([
 	"site-packages",
 ]);
 
-/** Single-line string literals; a comment marker inside one is text, not a comment. */
+/**
+ * A string literal (group 1) or a comment running to the end of the line. Scanning left to right,
+ * strings before the comment are blanked and the comment is kept whole, quotes included.
+ */
 // shortcut: multi-line strings (Python triple quotes, template literals over lines) are not stripped; use a tokenizer if they skew counts.
-const STRING_LITERAL = /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`/g;
+const PYTHON_STRING_OR_COMMENT = /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|#.*/g;
+const C_STRING_OR_COMMENT = /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|\/[/*].*/g;
 
 /** Files under `dir` with one of `extensions`; skipped and hidden directories are never entered, symlinks never followed. */
 async function* sourceFiles(dir: string, extensions: ReadonlySet<string>): AsyncGenerator<string> {
@@ -139,7 +143,10 @@ export async function countSourceMatches(
 	for await (const file of sourceFiles(root, new Set(extensions))) {
 		const text = await readText(file);
 		if (text === null) continue;
-		for (const line of text.split("\n")) if (pattern.test(line.replace(STRING_LITERAL, '""'))) count++;
+		const code = file.endsWith(".py") || file.endsWith(".pyi") ? PYTHON_STRING_OR_COMMENT : C_STRING_OR_COMMENT;
+		for (const line of text.split("\n")) {
+			if (pattern.test(line.replace(code, (match, literal) => (literal === undefined ? match : '""')))) count++;
+		}
 	}
 	return count;
 }
@@ -149,8 +156,8 @@ export async function countSourceMatches(
  * or one of `extraFiles` (the language's own runners).
  */
 export async function findTaskRunner(appPath: string, extraFiles: readonly string[] = []): Promise<CheckResult> {
-	// A target line is `name:` or `name::`; `NAME:=` and `NAME::=` assign variables.
-	const targets = (await readText(path.join(appPath, "Makefile")))?.match(/^[\w][\w./-]*[ \t]*::?(?!:?=)/gm)?.length ?? 0;
+	// A rule line is `name [name...]:` or `::`; `NAME :=`, `::=` and `:::=` assign variables.
+	const targets = (await readText(path.join(appPath, "Makefile")))?.match(/^\w[\w./ -]*?[ \t]*(?!:+=)::?/gm)?.length ?? 0;
 	if (targets > 0) return { pass: true, configPath: "Makefile", details: `${targets} Makefile targets` };
 	for (const file of ["justfile", "Justfile", "Taskfile.yml", "Taskfile.yaml", ...extraFiles]) {
 		if (await fileExists(path.join(appPath, file))) return { pass: true, configPath: file };
