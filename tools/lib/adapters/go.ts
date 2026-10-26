@@ -21,7 +21,7 @@ import {
 	readText,
 } from "../check-registry.js";
 import { runCommand } from "../command.js";
-import { createLanguageAdapter } from "./base.js";
+import { countSourceMatches, createLanguageAdapter, findTaskRunner } from "./base.js";
 
 // ============================================================================
 // Go-Specific Check Runners
@@ -687,10 +687,9 @@ const goSpecificRunners: Record<string, CheckRunner> = {
 	},
 
 	// no-unsafe-types → no-any-casts (Go interface{}/any)
-	"no-unsafe-types": async (_ctx: CheckContext): Promise<CheckResult> => {
-		// Go doesn't have explicit config for this; assume pass
-		// A thorough check would grep for interface{} usage
-		return { pass: true, details: "Go is statically typed" };
+	"no-unsafe-types": async (ctx: CheckContext): Promise<CheckResult> => {
+		const count = await countSourceMatches(ctx.app.path, ["go"], /\bunsafe\.(Pointer|Slice|String|StringData|SliceData|Add)\b/);
+		return { pass: count < 5, details: `${count} uses of package unsafe` };
 	},
 
 	// =========================================================================
@@ -800,14 +799,12 @@ const goSpecificRunners: Record<string, CheckRunner> = {
 		return { pass: false, details: "No go.mod" };
 	},
 
-	"no-lint-ignores": async (_ctx: CheckContext): Promise<CheckResult> => {
-		return { pass: true, details: "Assumed clean (not scanned)" };
+	"no-lint-ignores": async (ctx: CheckContext): Promise<CheckResult> => {
+		const count = await countSourceMatches(ctx.app.path, ["go"], /\/\/\s*nolint\b|\/\/lint:ignore\b|#nosec\b/);
+		return { pass: count < 10, details: `${count} lint suppression comments` };
 	},
 
-	"npm-scripts": async (_ctx: CheckContext): Promise<CheckResult> => {
-		// Not applicable to Go
-		return { pass: true, skipped: true, details: "N/A for Go" };
-	},
+	"npm-scripts": async (ctx: CheckContext): Promise<CheckResult> => findTaskRunner(ctx.app.path),
 
 	"test-isolation": async (ctx: CheckContext): Promise<CheckResult> => {
 		const goMod = await readText(path.join(ctx.app.path, "go.mod")) || "";

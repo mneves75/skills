@@ -1,0 +1,130 @@
+import { expect, test } from "bun:test";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import type { CheckContext, LanguageAdapter } from "../check-registry.js";
+import { createFileCache } from "../file-cache.js";
+import { goAdapter } from "./go.js";
+import { pythonAdapter } from "./python.js";
+import { typescriptAdapter } from "./typescript.js";
+
+const cases: {
+	adapter: LanguageAdapter;
+	check: string;
+	file: string;
+	line: string;
+}[] = [
+	{
+		adapter: typescriptAdapter,
+		check: "no-lint-ignores",
+		file: "src/a.ts",
+		line: "// eslint-disable-next-line no-console",
+	},
+	{
+		adapter: typescriptAdapter,
+		check: "no-lint-ignores",
+		file: "src/b.tsx",
+		line: "// biome-ignore lint/style: reason",
+	},
+	{
+		adapter: goAdapter,
+		check: "no-lint-ignores",
+		file: "pkg/a.go",
+		line: "x := 1 //nolint:errcheck",
+	},
+	{
+		adapter: goAdapter,
+		check: "no-unsafe-types",
+		file: "pkg/a.go",
+		line: "p := unsafe.Pointer(&x)",
+	},
+	{
+		adapter: pythonAdapter,
+		check: "no-lint-ignores",
+		file: "app/a.py",
+		line: "import os  # noqa: F401",
+	},
+	{
+		adapter: pythonAdapter,
+		check: "no-lint-ignores",
+		file: "app/b.py",
+		line: "x = f()  # type: ignore[attr-defined]",
+	},
+];
+
+async function run(
+	adapter: LanguageAdapter,
+	check: string,
+	files: Record<string, string>,
+) {
+	const directory = await mkdtemp(join(tmpdir(), "readiness-suppress-"));
+	try {
+		for (const [file, body] of Object.entries(files)) {
+			await mkdir(join(directory, dirname(file)), { recursive: true });
+			await Bun.write(join(directory, file), body);
+		}
+		const ctx: CheckContext = {
+			app: {
+				id: ".",
+				name: "fixture",
+				path: directory,
+				relativePath: ".",
+				type: "app",
+				language: adapter.language,
+				manifest: "package.json",
+				manifestPath: join(directory, "package.json"),
+				isRoot: true,
+			},
+			repoRoot: directory,
+			options: { timeout: 10000 },
+			cache: createFileCache(),
+		};
+		const runner = adapter.getRunner(check);
+		if (!runner)
+			throw new Error(`${adapter.language} has no runner for ${check}`);
+		return await runner(ctx);
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+}
+
+for (const { adapter, check, file, line } of cases) {
+	const many = `${Array.from({ length: 12 }, () => line).join("\n")}\n`;
+	test(`${adapter.language} ${check}: counts ${JSON.stringify(line)}`, async () => {
+		const dirty = await run(adapter, check, { [file]: many });
+		expect(dirty.pass).toBe(false);
+		expect(dirty.details).toContain("12");
+		expect((await run(adapter, check, { [file]: "clean\n" })).pass).toBe(true);
+		// Vendored and generated trees are not the project's own suppressions.
+		for (const vendored of ["node_modules", "vendor", ".venv", "dist"]) {
+			expect(
+				(await run(adapter, check, { [join(vendored, file)]: many })).pass,
+			).toBe(true);
+		}
+	});
+}
+
+const taskRunners: { adapter: LanguageAdapter; file: string; body: string }[] = [
+	{ adapter: goAdapter, file: "Makefile", body: "build:\n\tgo build ./...\n" },
+	{ adapter: goAdapter, file: "Taskfile.yml", body: "version: '3'\ntasks:\n  test:\n    cmds: [go test ./...]\n" },
+	{ adapter: goAdapter, file: "justfile", body: "test:\n  go test ./...\n" },
+	{ adapter: pythonAdapter, file: "Makefile", body: "test:\n\tpytest\n" },
+	{ adapter: pythonAdapter, file: "noxfile.py", body: "import nox\n" },
+	{ adapter: pythonAdapter, file: "tox.ini", body: "[tox]\nenv_list = py312\n" },
+	{ adapter: pythonAdapter, file: "pyproject.toml", body: "[tool.poe.tasks]\ntest = 'pytest'\n" },
+];
+
+for (const { adapter, file, body } of taskRunners) {
+	test(`${adapter.language} npm-scripts: finds tasks in ${file}`, async () => {
+		const found = await run(adapter, "npm-scripts", { [file]: body });
+		expect(found).toMatchObject({ pass: true });
+		expect(found.skipped).toBeUndefined();
+	});
+}
+
+for (const adapter of [goAdapter, pythonAdapter]) {
+	test(`${adapter.language} npm-scripts: fails without a task runner`, async () => {
+		const missing = await run(adapter, "npm-scripts", { "README.md": "# x\n", "Makefile": "# no targets\n" });
+		expect(missing).toMatchObject({ pass: false });
+	});
+}

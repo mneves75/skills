@@ -8,7 +8,9 @@
  * while inheriting common patterns from the shared check library.
  */
 
-import type { CheckRunner, LanguageAdapter } from "../check-registry.js";
+import path from "node:path";
+import type { CheckResult, CheckRunner, LanguageAdapter } from "../check-registry.js";
+import { fileExists, readText } from "../check-registry.js";
 import { listSharedChecks, sharedChecks } from "../checks/shared.js";
 import type { Language } from "../language-detection.js";
 
@@ -90,4 +92,52 @@ export function createLanguageAdapter(config: AdapterConfig): LanguageAdapter {
 			return [...languageChecks, ...sharedCheckIds];
 		},
 	};
+}
+
+// ============================================================================
+// Source scanning
+// ============================================================================
+
+/** Directories that hold vendored, generated or environment files, not the project's own code. */
+const SCAN_SKIP_DIRS = new Set([
+	"node_modules",
+	"vendor",
+	"venv",
+	"dist",
+	"build",
+	"target",
+	"__pycache__",
+	"site-packages",
+]);
+
+/**
+ * Count source lines under `root` matching `pattern` in files with the given extensions.
+ * Hidden directories (`.git`, `.venv`) and SCAN_SKIP_DIRS are not scanned.
+ */
+export async function countSourceMatches(
+	root: string,
+	extensions: readonly string[],
+	pattern: RegExp,
+): Promise<number> {
+	const glob = new Bun.Glob(`**/*.{${extensions.join(",")}}`);
+	let count = 0;
+	for await (const file of glob.scan({ cwd: root, onlyFiles: true, followSymlinks: false })) {
+		if (file.split("/").some((part) => SCAN_SKIP_DIRS.has(part))) continue;
+		const text = await Bun.file(path.join(root, file)).text();
+		for (const line of text.split("\n")) if (pattern.test(line)) count++;
+	}
+	return count;
+}
+
+/**
+ * Find a task runner an agent can list tasks from: Makefile targets, a justfile, a Taskfile,
+ * or one of `extraFiles` (the language's own runners).
+ */
+export async function findTaskRunner(appPath: string, extraFiles: readonly string[] = []): Promise<CheckResult> {
+	const targets = (await readText(path.join(appPath, "Makefile")))?.match(/^[a-zA-Z_-]+:/gm)?.length ?? 0;
+	if (targets > 0) return { pass: true, configPath: "Makefile", details: `${targets} Makefile targets` };
+	for (const file of ["justfile", "Justfile", "Taskfile.yml", "Taskfile.yaml", ...extraFiles]) {
+		if (await fileExists(path.join(appPath, file))) return { pass: true, configPath: file };
+	}
+	return { pass: false, details: "No task runner configured" };
 }

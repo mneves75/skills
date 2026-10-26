@@ -21,7 +21,7 @@ import {
 	readText,
 } from "../check-registry.js";
 import { runCommand } from "../command.js";
-import { createLanguageAdapter } from "./base.js";
+import { countSourceMatches, createLanguageAdapter, findTaskRunner } from "./base.js";
 
 // ============================================================================
 // Python-Specific Check Runners
@@ -973,13 +973,16 @@ const pySpecificRunners: Record<string, CheckRunner> = {
 		return { pass: false, details: "No dependency manifest" };
 	},
 
-	"no-lint-ignores": async (_ctx: CheckContext): Promise<CheckResult> => {
-		return { pass: true, details: "Assumed clean (not scanned)" };
+	"no-lint-ignores": async (ctx: CheckContext): Promise<CheckResult> => {
+		const count = await countSourceMatches(ctx.app.path, ["py", "pyi"], /#\s*(noqa\b|type:\s*ignore\b|pylint:\s*disable\b|pyright:\s*ignore\b)/);
+		return { pass: count < 10, details: `${count} lint or type suppression comments` };
 	},
 
-	"npm-scripts": async (_ctx: CheckContext): Promise<CheckResult> => {
-		// Not applicable to Python
-		return { pass: true, skipped: true, details: "N/A for Python" };
+	"npm-scripts": async (ctx: CheckContext): Promise<CheckResult> => {
+		const pyproject = (await readText(path.join(ctx.app.path, "pyproject.toml"))) ?? "";
+		const table = pyproject.match(/^\[tool\.(poe\.tasks|pdm\.scripts|hatch\.envs\.[\w.-]+\.scripts)\]/m);
+		if (table) return { pass: true, configPath: "pyproject.toml", details: `[${table[0].slice(1, -1)}]` };
+		return findTaskRunner(ctx.app.path, ["noxfile.py", "tox.ini"]);
 	},
 
 	"test-isolation": async (ctx: CheckContext): Promise<CheckResult> => {
