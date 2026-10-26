@@ -145,3 +145,17 @@ for (const adapter of [goAdapter, pythonAdapter, rustAdapter]) {
 		expect(targets).toMatchObject({ pass: true, details: "2 Makefile targets" });
 	});
 }
+
+const literals: { adapter: LanguageAdapter; file: string; line: string }[] = [
+	{ adapter: typescriptAdapter, file: "test/a.test.ts", line: 'const fixture = "// eslint-disable-next-line no-console";' },
+	{ adapter: typescriptAdapter, file: "test/b.test.ts", line: "write(`/* biome-ignore lint: x */`);" },
+	{ adapter: goAdapter, file: "pkg/a_test.go", line: 'src := "x := 1 //nolint:errcheck"' },
+	{ adapter: pythonAdapter, file: "tests/test_a.py", line: 'SAMPLE = "import os  # noqa: F401"' },
+];
+
+for (const { adapter, file, line } of literals) {
+	test(`${adapter.language} no-lint-ignores: ${JSON.stringify(line)} is a string, not a suppression`, async () => {
+		const body = `${Array.from({ length: 12 }, () => line).join("\n")}\n`;
+		expect(await run(adapter, "no-lint-ignores", { [file]: body })).toMatchObject({ pass: true });
+	});
+}

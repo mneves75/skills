@@ -810,7 +810,7 @@ const tsSpecificRunners: Record<string, CheckRunner> = {
 	},
 
 	"no-lint-ignores": async (ctx: CheckContext): Promise<CheckResult> => {
-		const count = await countSourceMatches(ctx.app.path, ["ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs"], /\b(eslint-disable|biome-ignore|oxlint-disable)\b/);
+		const count = await countSourceMatches(ctx.app.path, ["ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs"], /(\/\/|\/\*)\s*(eslint-disable|biome-ignore|oxlint-disable)\b/);
 		return { pass: count < 10, details: `${count} lint suppression comments` };
 	},
 

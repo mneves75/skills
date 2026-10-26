@@ -111,6 +111,10 @@ const SCAN_SKIP_DIRS = new Set([
 	"site-packages",
 ]);
 
+/** Single-line string literals; a comment marker inside one is text, not a comment. */
+// shortcut: multi-line strings (Python triple quotes, template literals over lines) are not stripped; use a tokenizer if they skew counts.
+const STRING_LITERAL = /"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`/g;
+
 /** Files under `dir` with one of `extensions`; skipped and hidden directories are never entered, symlinks never followed. */
 async function* sourceFiles(dir: string, extensions: ReadonlySet<string>): AsyncGenerator<string> {
 	const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
@@ -124,7 +128,7 @@ async function* sourceFiles(dir: string, extensions: ReadonlySet<string>): Async
 
 /**
  * Count source lines under `root` matching `pattern` in files with the given extensions.
- * Hidden directories (`.git`, `.venv`) and SCAN_SKIP_DIRS are not scanned; unreadable files are skipped.
+ * String literals are ignored. Hidden directories (`.git`, `.venv`) and SCAN_SKIP_DIRS are not scanned; unreadable files are skipped.
  */
 export async function countSourceMatches(
 	root: string,
@@ -135,7 +139,7 @@ export async function countSourceMatches(
 	for await (const file of sourceFiles(root, new Set(extensions))) {
 		const text = await readText(file);
 		if (text === null) continue;
-		for (const line of text.split("\n")) if (pattern.test(line)) count++;
+		for (const line of text.split("\n")) if (pattern.test(line.replace(STRING_LITERAL, '""'))) count++;
 	}
 	return count;
 }
