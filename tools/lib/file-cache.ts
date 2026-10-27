@@ -77,9 +77,10 @@ export function createFileCache(): FileCache {
 		async exists(filepath: string): Promise<boolean> {
 			const normalized = path.resolve(filepath);
 
-			if (existsCache.has(normalized)) {
+			const cached = existsCache.get(normalized);
+			if (cached !== undefined) {
 				hits++;
-				return existsCache.get(normalized)!;
+				return cached;
 			}
 
 			misses++;
@@ -96,9 +97,10 @@ export function createFileCache(): FileCache {
 		async text(filepath: string): Promise<string | null> {
 			const normalized = path.resolve(filepath);
 
-			if (textCache.has(normalized)) {
+			const cached = textCache.get(normalized);
+			if (cached !== undefined) {
 				hits++;
-				return textCache.get(normalized)!;
+				return cached;
 			}
 
 			misses++;
@@ -144,9 +146,10 @@ export function createFileCache(): FileCache {
 		readdir(dirpath: string): Promise<string[]> {
 			const normalized = path.resolve(dirpath);
 
-			if (readdirCache.has(normalized)) {
+			const cached = readdirCache.get(normalized);
+			if (cached !== undefined) {
 				hits++;
-				return Promise.resolve(readdirCache.get(normalized)!);
+				return Promise.resolve(cached);
 			}
 
 			misses++;
@@ -163,9 +166,10 @@ export function createFileCache(): FileCache {
 		readdirWithTypes(dirpath: string): Promise<fs.Dirent[]> {
 			const normalized = path.resolve(dirpath);
 
-			if (readdirTypesCache.has(normalized)) {
+			const cached = readdirTypesCache.get(normalized);
+			if (cached !== undefined) {
 				hits++;
-				return Promise.resolve(readdirTypesCache.get(normalized)!);
+				return Promise.resolve(cached);
 			}
 
 			misses++;
@@ -200,31 +204,4 @@ export function createFileCache(): FileCache {
 			misses = 0;
 		},
 	};
-}
-
-// ============================================================================
-// Singleton for global use (optional)
-// ============================================================================
-
-let globalCache: FileCache | null = null;
-
-/**
- * Get or create the global file cache
- * Use this when you don't want to pass cache through context
- */
-export function getGlobalCache(): FileCache {
-	if (!globalCache) {
-		globalCache = createFileCache();
-	}
-	return globalCache;
-}
-
-/**
- * Clear the global cache
- * Call this at the start of each assessment run
- */
-export function clearGlobalCache(): void {
-	if (globalCache) {
-		globalCache.clear();
-	}
 }

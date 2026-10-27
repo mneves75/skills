@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Tests for scripts/srs_db.py; Python 3.10+, standard library only.
+"""Tests for scripts/srs_db.py; Python 3.11+, standard library only.
 
 Run: python3 skills/mneves-teach-back-srs/tests/test_srs_db.py
 Each test works in its own temporary directory, so no real .ai-learn database is touched.
 """
 
 import contextlib
+import subprocess
+import sys
 import importlib.util
 import io
 import os
@@ -70,7 +72,7 @@ class ConcurrentReviews(unittest.TestCase):
         def review():
             try:
                 self.srs.record_review(self.card, 4)
-            except BaseException as error:  # includes SystemExit from a missing card
+            except Exception as error:
                 errors.append(error)
 
         threads = [threading.Thread(target=review) for _ in range(2)]
@@ -81,6 +83,40 @@ class ConcurrentReviews(unittest.TestCase):
         self.assertFalse(any(thread.is_alive() for thread in threads), "a review never finished")
         self.assertEqual(errors, [])
         self.assertEqual(self.state(self.card), expected)
+
+
+class ErrorsAreExceptions(unittest.TestCase):
+    """Library calls raise SrsError; only the CLI turns it into a message and exit status 1."""
+
+    def setUp(self):
+        self.srs = load_srs()
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.addCleanup(os.chdir, os.getcwd())
+        os.chdir(tmp.name)
+        self.tmp = tmp.name
+
+    def test_missing_database_raises(self):
+        with self.assertRaisesRegex(self.srs.SrsError, "Run 'init' first"):
+            self.srs.connect()
+
+    def test_missing_card_raises_and_keeps_the_database_usable(self):
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.srs.init_db()
+        with self.assertRaisesRegex(self.srs.SrsError, "Card #999 not found"):
+            self.srs.record_review(999, 4)
+        with contextlib.redirect_stdout(io.StringIO()):
+            card = self.srs.add_card("Still writable?", "Yes.")
+        self.assertEqual(self.srs.record_review(card, 4)["repetitions"], 1)
+
+    def test_cli_reports_errors_with_exit_status_1(self):
+        for argv, message in ((["stats"], "Run 'init' first"), (["review", "--card-id", "999", "--quality", "4"], "Card #999 not found")):
+            if argv[0] == "review":
+                subprocess.run([sys.executable, str(SCRIPT), "init"], cwd=self.tmp, check=True, capture_output=True)
+            done = subprocess.run([sys.executable, str(SCRIPT), *argv], cwd=self.tmp, capture_output=True, text=True)
+            self.assertEqual(done.returncode, 1, done.stderr)
+            self.assertIn(message, done.stderr)
+            self.assertNotIn("Traceback", done.stderr)
 
 
 if __name__ == "__main__":

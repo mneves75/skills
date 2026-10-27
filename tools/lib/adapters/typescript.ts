@@ -21,7 +21,7 @@ import {
 	readText,
 } from "../check-registry.js";
 import { runCommand } from "../command.js";
-import { createLanguageAdapter } from "./base.js";
+import { countSourceMatches, createLanguageAdapter } from "./base.js";
 
 // ============================================================================
 // Types
@@ -810,9 +810,8 @@ const tsSpecificRunners: Record<string, CheckRunner> = {
 	},
 
 	"no-lint-ignores": async (ctx: CheckContext): Promise<CheckResult> => {
-		// This would require scanning source files - mark as pass by default
-		// A thorough implementation would grep for eslint-disable, @ts-expect-error, etc.
-		return { pass: true, details: "Assumed clean (not scanned)" };
+		const count = await countSourceMatches(ctx.app.path, ["ts", "tsx", "mts", "cts", "js", "jsx", "mjs", "cjs"], /(\/\/|\/\*+)\s*(eslint-disable|biome-ignore|oxlint-disable)\b/);
+		return { pass: count < 10, details: `${count} lint suppression comments` };
 	},
 
 	"npm-scripts": async (ctx: CheckContext): Promise<CheckResult> => {

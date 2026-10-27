@@ -129,7 +129,8 @@ it; the natural replacement for `as any` is `unknown` + a narrowing guard.
   table + badge, `AGENTS.md` (tree; `CLAUDE.md` just imports it), `VERSION`, and
   `CHANGELOG.md`.
 - `tools/` is a separate Bun project (`tools/package.json`, lockfile committed). Its runtime is
-  Bun; there are no external runtime deps, only dev deps (Biome, TypeScript, bun-types).
+  Bun; there are no external runtime deps, only dev deps (Biome, TypeScript, bun-types,
+  ast-grep and marked). CI installs that locked tree; the site build uses its marked binary.
 - Shipped text must work from a stranger's clone: no home paths, no machine layout. CI checks
   the skill layout the `npx skills` CLI relies on (folder name == frontmatter `name`).
 

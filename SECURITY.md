@@ -4,6 +4,19 @@
 
 Security fixes land on `main` and in the latest tagged release only.
 
+Supported runtimes for the shipped executables:
+
+| Runtime | Supported | Used by |
+|---|---|---|
+| Bun | 1.4.4 or later (CI pins 1.4.4) | the readiness tool in `tools/` |
+| Python | 3.11 or later | autoreview, the ship-deploy contract check, the SRS helper, render starters, site build helpers |
+| Node.js | a release line upstream still maintains | security-audit validators, site build |
+
+The maintainer (@mneves75) owns these floors: when a runtime line reaches upstream end of
+life, the next release raises the floor. A critical advisory in a supported runtime, a locked
+dependency or a pinned action is fixed, or the affected path disabled, within 7 days of
+publication. CI's `bun audit`, which fails the build on any advisory in the locked tools, and Dependabot alerts are how such an advisory is found.
+
 ## Reporting a Vulnerability
 
 Do not open a public issue for a suspected vulnerability. Use GitHub's
@@ -17,12 +30,15 @@ for this repository.
 
 ## Scope
 
-Everything shipped here: skill instructions (`skills/*/SKILL.md`), the shipped shell script
-(`skills/mneves-fable-orchestrator/tools/codex-lane`), the Python helper
-(`skills/mneves-teach-back-srs/scripts/srs_db.py`), the Node validators and their tests
-(`skills/security-audit/validate-*.cjs`, `*.test.cjs`), the Bun/TypeScript tool (`tools/`),
-the autoreview CLI and its packaged tests (`skills/autoreview/`),
-the git hook (`.githooks/`), and the GitHub workflows.
+Everything shipped here: skill instructions (`skills/*/SKILL.md`), the orchestrator's shell
+script and its test (`skills/mneves-fable-orchestrator/tools/codex-lane`, `codex-lane.test`),
+the release contract checker, reference release scripts and their tests
+(`skills/mneves-ship-deploy/scripts/`, `assets/*.sh`, `tests/`), the render content-policy
+filter, starters and tests (`skills/mneves-render/scripts/check_ast.py`, `assets/`, `tests/`),
+the SRS helper and its test (`skills/mneves-teach-back-srs/scripts/srs_db.py`, `tests/`), the
+Node validators and their tests (`skills/security-audit/validate-*.cjs`, `*.test.cjs`), the
+Bun/TypeScript tool (`tools/`), the autoreview CLI and its packaged tests
+(`skills/autoreview/`), the git hook (`.githooks/`), and the GitHub workflows.
 
 Skill files are instructions executed by an AI agent with your permissions. Treat a skill
 you did not read like a script you did not read.
@@ -42,7 +58,8 @@ not a guarantee that every provider or platform has been exercised.
 - CI runs with `contents: read`. Only the Pages workflow gets `pages: write` and
   `id-token: write`, its `github-pages` environment deploys from `main` only, and every
   action is pinned to a full commit SHA.
-- A merge to `main` publishes the site and the skills. Each release first passes the
+- A merge to `main` publishes the skills at once and the site once CI passes on that commit
+  (`static.yml` waits for the CI run). Each release first passes the
   repository's own pre-deploy security gate (the `mneves-security` deploy gate) and needs the
   maintainer's explicit approval of that commit. AI agents act only through the maintainer's
   session and hold no separate deploy credentials.

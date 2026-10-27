@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the portable suite with isolated operator configuration and no provider calls."""
+"""Run the portable suite with isolated operator configuration and no provider calls; Python 3.11+."""
 from pathlib import Path
 import os
 import subprocess

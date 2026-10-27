@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Live review harness against real engines; Python 3.11+, standard library only."""
 from __future__ import annotations
 
 import argparse

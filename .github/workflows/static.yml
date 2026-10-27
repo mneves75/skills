@@ -1,4 +1,5 @@
-# Deploy site/ (landing page, HOWTO, sample report) to GitHub Pages
+# Deploy site/ (landing page, HOWTO, sample report) to GitHub Pages, only after CI passes on
+# the same main commit. Roll back: gh workflow run static.yml -f ref=<earlier tag or commit>
 #
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2025-2026 Marcus Neves
@@ -6,13 +7,18 @@
 name: Deploy site to GitHub Pages
 
 on:
-  push:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
-    paths:
-      - 'site/**'
   workflow_dispatch:
+    inputs:
+      ref:
+        description: Tag or commit whose site/ to publish (default main)
+        required: false
 
 permissions:
+  actions: read
   contents: read
   pages: write
   id-token: write
@@ -23,12 +29,33 @@ concurrency:
 
 jobs:
   deploy:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || inputs.ref || github.sha }}
+          fetch-depth: 0
+      # A CI re-run or a late run for an older commit must not roll the site back; only a
+      # dispatch (an explicit rollback) may publish a commit behind the main tip.
+      - name: Publish only the main tip, or a commit on main when dispatched
+        env:
+          EVENT: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ "$EVENT" = workflow_dispatch ]; then
+            git merge-base --is-ancestor HEAD origin/main
+            conclusion=$(gh run list --workflow ci.yml --commit "$(git rev-parse HEAD)" \
+              --branch main --event push --limit 1 --json conclusion --jq '.[0].conclusion')
+            test "$conclusion" = success \
+              || { echo "Selected commit has no successful CI push run on main" >&2; exit 1; }
+          else
+            test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)" \
+              || { echo "HEAD is not the main tip; refusing an automatic deploy" >&2; exit 1; }
+          fi
       - uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5
       - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:

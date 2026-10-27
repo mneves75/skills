@@ -21,13 +21,13 @@ For a quick manual triage, answer:
 4. Does CI provide clear pass/fail feedback? (ITERATION)
 5. Is the feedback loop under 5 minutes? (AUTONOMOUS)
 
-These five questions identify friction, not the assessor's nine-pillar maturity score. Mark
+These five questions identify friction, not the assessor's pillar-by-pillar maturity score (its pillars are listed in the report and README). Mark
 unrun build/test checks as unverified; configuration alone does not prove a passing command.
 
 ## Automated Assessment
 
 Run the readiness-check tool. It assesses the current directory, so `cd` into the target
-project first (`SKILLS` is the absolute collection root, discovered from the installed skill).
+project first (`SKILLS` is the absolute clone root, two directories above this `SKILL.md`).
 The tool ships only in a full clone; without it, use the manual assessment and label that limit.
 Choose one output/mode for the requested deliverable; use `--help` for other flags.
 

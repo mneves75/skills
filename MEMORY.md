@@ -14,6 +14,14 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.41.0** (2026-10-26, PR #28 candidate): includes the unmerged 1.39.0 work,
+  guideline corrections, readiness source checks and dead-code removal, hash-locked CI
+  dependencies, the reference Agent Skills validator and CI-bound Pages publication.
+  Source candidate `bb3080a` passed independent implementation acceptance and all four CI
+  jobs. Its security verdict remains BLOCK on SEC-17, SEC-20, SEC-21, SEC-23 and CMP-06;
+  the provisional readiness assessment has nine open controls and no waivers. The public
+  ledger and plan retain those gaps. Merge authorization does not supply missing owner
+  evidence or waive a launch control. Nothing from this candidate is claimed deployed.
 - **1.40.0** (2026-10-23, implementation candidate): adds the attributed `council` and
   `security-audit` packages, bringing the default catalog to seventeen skills. Council keeps
   exact-round independent deliberation but enables only capability-checked Claude/Codex/Cursor
@@ -175,7 +183,8 @@ workspace-data scan plus source reading):
   `python3 -m http.server 8000 --bind 127.0.0.1 --directory site`.
 - `tools/` is the Bun workspace (readiness checker); see `AGENTS.md` Commands.
 - Browser QA runs in an isolated browser, not a personal profile. There is no staging target;
-  `.github/workflows/static.yml` publishes from `main`.
+  `.github/workflows/static.yml` publishes from `main` after CI passes on that commit; roll back
+  with `gh workflow run static.yml -f ref=<earlier tag>`.
 
 ## Decisions that still bind
 
@@ -197,7 +206,8 @@ workspace-data scan plus source reading):
   fails closed when ast-grep is absent. `unknown` + a narrowing guard is the sanctioned
   replacement.
 
-- **Frontmatter stays on the Agent Skills spec.** CI runs `skills-ref validate`, which errors on
+- **Frontmatter stays on the Agent Skills spec.** CI runs `agentskills validate` (the reference `skills-ref` from PyPI since 1.41.0; the npm package
+  of that name is an unrelated demo), which errors on
   any key outside `name`/`description`/`license`/`compatibility`/`metadata`/`allowed-tools`.
   Host-only fields (`context: fork`, `effort`, `paths`) are attractive but break the gate; the
   independence `mneves-verify` needs is stated in prose, not frontmatter.
@@ -226,11 +236,9 @@ workspace-data scan plus source reading):
   (only v1.6.0–v1.9.0, v1.19.0, and v1.20.0 are tagged, checked 2026-09-22 with `git ls-remote`).
 - `mneves75.github.io` (user site) does not exist as a repo; linking this project from it needs
   that repo to be created first.
-- Waivers from the 1.38.0 release expire 2026-10-25T23:59:59Z. The two the independent check
-  created are real work: MNT-05 needs a supported-runtime/end-of-life/patch-deadline statement in
-  `SECURITY.md`, and ASY-02 needs jitter plus `Retry-After` in `tools/lib/fetch.ts` with a test,
-  or the external CLI documented as the retry owner. The remaining nine are owner evidence
-  (access review, origin `security.txt`, provider data/action and erasure evidence, rollback
-  drill, certificate-expiry alert, second administrator, frozen CI graph, CI-to-Pages check).
-- `site/README.md:9` still says the fifteen-card catalog "has not been rechecked" although the
-  UI run binds those exact hashes; correct it in the next change that already touches `site/**`.
+- The previous release waivers expired on 2026-10-25T23:59:59Z. DEL-03, MNT-05 and SEC-13
+  now have verified source evidence. The nine current production gaps are SEC-17, SEC-20,
+  SEC-21, SEC-23, CMP-06, DEL-04, DEL-09, ASY-02 and OPS-04; the private exact-candidate
+  decision packet holds their evidence requirements. Merge approval alone supplies no
+  waiver reason or expiry. The reviewer-process deadline remains opt-in; provider retry
+  ownership and a bounded process lifetime are separate claims.

@@ -25,9 +25,12 @@ This skill evaluates whether your codebase supports each phase:
 
 ## Quick Start
 
+The assessor ships only in a full clone; a single-skill install has the manual assessment only.
+
 ```bash
-# Install the skill
-npx skills add mneves75/skills
+git clone https://github.com/mneves75/skills.git ~/src/skills
+cd ~/src/skills/tools && bun install
+alias readiness-check='bun --bun ~/src/skills/tools/readiness-check.ts'
 
 # Run assessment on any codebase
 cd your-project

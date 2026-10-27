@@ -27,6 +27,7 @@ for (const scenario of cases) {
 			}
 			await Bun.write(join(directory, "README.md"), "# Fixture");
 			await Bun.write(join(bin, scenario.command), `#!/bin/sh
+if [ -n "$READINESS_WARM" ]; then exit 0; fi
 printf '%s' "$$" > '${pidFile}'
 trap '' TERM
 if [ '${mode}' = fail ]; then exit 7; fi
@@ -37,6 +38,8 @@ fi
 printf '%s\\n' '${scenario.output}'
 `);
 			await chmod(join(bin, scenario.command), 0o755);
+			// The first exec of a new file can cost more than the 150 ms budget on macOS; pay it here.
+			Bun.spawnSync([join(bin, scenario.command)], { env: { READINESS_WARM: "1" } });
 			const script = `
 				import { sharedChecks } from ${JSON.stringify(new URL("./shared.ts", import.meta.url).pathname)};
 				import { createFileCache } from ${JSON.stringify(new URL("../file-cache.ts", import.meta.url).pathname)};

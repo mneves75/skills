@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Real cccc CLI controls against disposable inputs. Python 3.10+, standard library."""
+"""Real cccc CLI controls against disposable inputs. Python 3.11+, standard library."""
 import argparse
 import json
 from pathlib import Path

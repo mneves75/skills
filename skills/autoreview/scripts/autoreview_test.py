@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Unit and integration tests for the autoreview CLI; Python 3.11+, standard library only."""
 from __future__ import annotations
 
 import argparse

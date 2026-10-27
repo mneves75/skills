@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate a Pandoc JSON document before writing artifacts; Python 3.10+.
+"""Validate a Pandoc JSON document before writing artifacts; Python 3.11+.
 
 Standard library only. This filter does not execute source content. It is not
 a filesystem/network sandbox or an SVG sanitizer; remaining local resources

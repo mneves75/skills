@@ -1,6 +1,6 @@
 ---
 name: mneves-ship-deploy
-description: "Use for `ship-staging`, `ship-prod`, or an explicit staging/production deployment request for a project you own. Runs review, release preparation, deployment, and verification. Plain `ship` does not invoke this skill or authorize external writes."
+description: "Use for `ship-staging`, `ship-prod`, or an explicit staging/production deployment request for a project you own. Plain `ship` does not invoke this skill or authorize external writes."
 license: Apache-2.0
 compatibility: The procedure needs only Git. The optional contract check (`scripts/release-contract-check.py`) needs Python 3.11+. The reference release scripts in `assets/` need bash 3.2+, git, curl, sed, awk, python3 and the Wrangler version the project pins.
 ---
@@ -32,7 +32,7 @@ Staging authorization does not waive required gates or authorize destructive ope
 ## Do not invoke when
 
 - The user said only "ship", "commit", "push", or "land the PR" without naming staging or production → use the normal authorization rules; do not infer either mode.
-- The repo is not the user's (contributor PR, borrowed OSS under `~/dev/steipete/*`) → stop.
+- The repo is not the user's (contributor PR, someone else's project checked out locally) → stop.
 - Working tree is on someone else's branch or has unknown changes from another agent → report and stop.
 
 ## Preflight (always)
@@ -44,7 +44,7 @@ git status -sb && git log --oneline -5 && git branch --show-current
 Then establish, without guessing:
 
 1. **Mode** — `ship-staging` or `ship-prod`, from the explicit target in the request. An ambiguous target is not authorization.
-2. **Repo identity** — remote, default branch, whether this is a `mneves75` project.
+2. **Repo identity** — remote, default branch, whether the remote belongs to the user.
 3. **Version source of truth** — `VERSION`, `package.json`, `app.json`/`app.config.ts`, `Cargo.toml`, `pyproject.toml`. Pick one; never bump two out of sync.
 4. **Deploy target** — detect, don't assume:
    | Signal | Deploy via |
@@ -61,11 +61,11 @@ Report the seven findings in one short paragraph before doing anything mutating.
 
 ## Phase 1 — Review gates
 
-Run in order, fixing what each surfaces before moving on:
+Run in order, except the security gate (item 2), which runs last; fix what each surfaces before moving on:
 
 1. `autoreview` — pre-commit code review, when installed; otherwise use the repository's documented independent review gate. Run automatically when its content and destination are already authorized; do not pause for redundant confirmation. Keep the review bounded: one review and one rerun after accepted corrections. Verify findings and apply in-scope corrections automatically. Unresolved actionable findings block the release; report them rather than repeating the same review indefinitely.
-2. **Security gate** (mandatory in both modes) — the separately installed `mneves-security` skill in deploy-gate mode: a full security, privacy and compliance audit with a fix plan and a PASS, BLOCK or WAIVED verdict for the exact commit and each target. Run it last, after steps 1 and 3, the build gates and Phase 2 have landed their changes, so it audits the final release content; it binds by tree hash to the release commit before any push, merge or tag that deploys it, and any later change to the tree is a new candidate with a new audit. Its verdict rules decide what blocks; a block clears only by a fix, disproof, or the owner's named waiver in the decision packet. One audit serves every target of the same tree; production runs the gate's reuse pass before promotion. Its runtime checks belong in `scripts/verify-live.sh` (or the live proof a project uses), so they pass before any tag, and each tag message records the verdict (`security gate: PASS`, or `WAIVED` with the waived IDs). Without the skill, the release is blocked until it is installed (`npx skills@latest add mneves75/skills --skill mneves-security -g -y`) or the owner waives the gate by name; no other review substitutes for it.
-3. `improve` (deep pass) — read-only survey producing prioritized plans. Land only what is in scope for this release; everything else becomes a named follow-up, not silent work.
+2. **Security gate** (mandatory in both modes) — the separately installed `mneves-security` skill in deploy-gate mode: a full security, privacy and compliance audit with a fix plan and a PASS, BLOCK or WAIVED verdict for the exact commit and each target. Run it last, after steps 1, 3 and 4, the build gates and Phase 2 have landed their changes, so it audits the final release content; it binds by tree hash to the release commit before any push, merge or tag that deploys it, and any later change to the tree is a new candidate with a new audit. Its verdict rules decide what blocks; a block clears only by a fix, disproof, or the owner's named waiver in the decision packet. One audit serves every target of the same tree; production runs the gate's reuse pass before promotion. Its runtime checks belong in `scripts/verify-live.sh` (or the live proof a project uses), so they pass before any tag, and each tag message records the verdict (`security gate: PASS`, or `WAIVED` with the waived IDs). Without the skill, the release is blocked until it is installed (`npx skills@latest add mneves75/skills --skill mneves-security -g -y`) or the owner waives the gate by name; no other review substitutes for it.
+3. `improve` (deep pass), when installed; otherwise a read-only survey in the main session — prioritized plans. Land only what is in scope for this release; everything else becomes a named follow-up, not silent work.
 4. `mneves-production-readiness` — the provisional readiness assessment, when installed; otherwise the repository's documented readiness review. Fix the in-scope blockers it finds, commit ledger changes with the release, and carry the rest of its plan as named follow-ups. It never relaxes another gate; its open production blockers join the decision packet as named waivers.
 5. If Phase 1 uncovers work too large for this session, use the host's native task/goal facility only when the user requests that workflow; otherwise report the remaining work. Keep it within the authorized release scope.
 
@@ -75,7 +75,7 @@ Gates that must be green before Phase 2: build, typecheck, lint, tests. If a gat
 
 - Bump the single version source of truth. SemVer: breaking → major, feature → minor, fix → patch.
 - CHANGELOG: house style, one-line bullets, no prose-length hard-wrap. The released version gets today's date; open a fresh `Unreleased` heading only after the release is verified (after verification).
-- Docs that describe user-visible behavior: `README.md`, `AGENTS.md`/`CLAUDE.md`, `PROJECT_STATUS.md`, `FOR_YOU_KNOW.md`. Stale docs block the release — fix before closeout.
+- Docs that describe user-visible behavior: `README.md`, `AGENTS.md`/`CLAUDE.md` and the repository's status docs. Stale docs block the release — fix before closeout.
 
 ## Phase 3 — Commit and push
 
@@ -119,12 +119,14 @@ Order: deploy the pushed commit, prove it live, then tag. A tag names bytes that
 First bind readiness: run the readiness gate for `staging` on the exact pushed commit you will deploy (`mneves-production-readiness` when installed, otherwise the repository's documented readiness review; with neither, report the missing gate in the decision packet, where only the owner can approve `--waive readiness=<reason>`). It writes `.scratch/readiness/staging.json` in the deployable unit's directory, which `scripts/release.sh` requires (release contract guarantee 11). A `not-ready` staging verdict stops the deploy: fix, push and run the gate again.
 
 1. **Deploy** a commit the remote already has. Use `scripts/release.sh staging` when the repository has it (it performs steps 2 and 3 itself, and may require the commit to be the tip of the default branch); otherwise the detected skill or documented command.
-2. **Prove it live.** Run `scripts/verify-live.sh staging` when it exists. Otherwise assert what that script would: the served commit or version equals the candidate; the health response body has its expected fields; one request that must succeed does, and one that must be refused is. Then exercise the flow that changed with `agent-browser` / `/browse` (web) or `argent` (mobile), signed in when the change touches signed-in behavior, and read the logs for new errors. Desktop and mobile are separate targets. A green deploy command is not verification.
+2. **Prove it live.** Run `scripts/verify-live.sh staging` when it exists. Otherwise assert what that script would: the served commit or version equals the candidate; the health response body has its expected fields; one request that must succeed does, and one that must be refused is. Then exercise the flow that changed with an independent browser or device driver (agent-browser, Playwright, Argent or equivalent; without one, that flow is NOT TESTED), signed in when the change touches signed-in behavior, and read the logs for new errors. Desktop and mobile are separate targets. A green deploy command is not verification.
 3. **Tag** the verified commit:
 
 ```bash
 git tag -a vX.Y.Z-beta<N> <commit> -m "vX.Y.Z-beta<N> — staging; security gate: PASS" && git push origin vX.Y.Z-beta<N>
 ```
+
+A waived gate records its IDs instead: `security gate: WAIVED SEC-19 gate:audit`. The same applies to every tag below and above.
 
 For `ship-prod`, then run the readiness gate for `production` on the same commit, with the same fallback. A production record never reuses the staging one; its verdict and open blockers go into the candidate presented for approval.
 

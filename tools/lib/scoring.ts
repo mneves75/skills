@@ -215,10 +215,9 @@ export function calculatePillarScores(
 
 	for (const check of checks) {
 		const pillar = check.check.pillar;
-		if (!byPillar.has(pillar)) {
-			byPillar.set(pillar, []);
-		}
-		byPillar.get(pillar)!.push(check);
+		const list = byPillar.get(pillar);
+		if (list) list.push(check);
+		else byPillar.set(pillar, [check]);
 	}
 
 	// Calculate score for each pillar
@@ -357,8 +356,6 @@ export function calculateAppScore(
 	checks: CheckResultWithMeta[],
 	config: ScoringConfig = { mode: "weighted" },
 ): AppScore {
-	const startTime = Date.now();
-
 	// Calculate pillar scores
 	const pillars = calculatePillarScores(checks);
 
@@ -543,19 +540,6 @@ export function aggregateOrgScore(
 // ============================================================================
 // Utility Functions
 // ============================================================================
-
-/**
- * Generate a summary line for an app score
- */
-export function formatAppSummary(appScore: AppScore): string {
-	const levelName = LEVEL_NAMES[appScore.level];
-	const passedTotal = appScore.checks.filter(
-		(c) => !c.skipped && c.pass,
-	).length;
-	const total = appScore.checks.filter((c) => !c.skipped).length;
-
-	return `${appScore.app.name}: L${appScore.level} (${levelName}) - ${appScore.score}% (${passedTotal}/${total} checks)`;
-}
 
 /**
  * Generate a summary line for org score

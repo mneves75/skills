@@ -1,4 +1,4 @@
-"""Tests for scripts/release-contract-check.py.
+"""Tests for scripts/release-contract-check.py; Python 3.11+.
 
 The conforming repository is built at test time from tests/fixtures/conforming plus the shipped
 reference scripts in assets/, so it can never drift from them. Every planted violation is that

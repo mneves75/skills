@@ -12,13 +12,15 @@
 body{margin:0 auto;max-width:46rem;padding:2rem 1.25rem 4rem;font:16px/1.6 -apple-system,system-ui,sans-serif;color:var(--fg);background:var(--bg)}
 h1,h2,h3{line-height:1.25}h1{font-size:2rem}h2{margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--line)}
 a{color:var(--link)}code{font:0.9em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--code);padding:.1em .3em;border-radius:3px}
-pre{background:var(--code);padding:1rem;overflow-x:auto;border-radius:6px}pre code{background:none;padding:0}
-table{border-collapse:collapse;width:100%;margin:1rem 0;display:block;overflow-x:auto}th,td{text-align:left;padding:.5rem;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--muted);font-weight:600}
+p,li,blockquote{max-width:36em}
+pre{background:var(--code);padding:1rem;overflow-x:auto;border-radius:6px;white-space:pre-wrap;overflow-wrap:anywhere}pre code{background:none;padding:0}
+table{border-collapse:collapse;width:100%;margin:1rem 0;display:block;overflow-x:auto}th,td{text-align:left;padding:.5rem;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}th{color:var(--muted);font-weight:600}
 pre:focus-visible,table:focus-visible{outline:2px solid var(--link);outline-offset:3px}
 blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--line);color:var(--fg)}hr{border:0;border-top:1px solid var(--line);margin:2rem 0}
 </style>
 </head>
 <body>
+<nav aria-label="Site" style="font-size:.875rem"><a href="./">mneves75/skills</a> · How to use the skills</nav>
 <main>
 <h1>How to use these skills</h1>
 <p>Seventeen skills, one install. This page shows what each one does, how to trigger it, and what a
@@ -48,87 +50,87 @@ also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use 
 </tr>
 </thead>
 <tbody><tr>
-<td><code>autoreview</code></td>
+<td><a href="#autoreview"><code>autoreview</code></a></td>
 <td>review a fixed Git target with an isolated AI reviewer</td>
 <td>&quot;use autoreview on my local changes, including P3 findings&quot;</td>
 </tr>
 <tr>
-<td><code>council</code></td>
+<td><a href="#council"><code>council</code></a></td>
 <td>get independent members to argue with a plan before you commit to it</td>
 <td>&quot;convene the council on this migration plan, two rounds&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-handoff</code></td>
+<td><a href="#mneves-handoff"><code>mneves-handoff</code></a></td>
 <td>hand a task to another agent, review first</td>
 <td>&quot;handoff the flaky login test&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-render</code></td>
+<td><a href="#mneves-render"><code>mneves-render</code></a></td>
 <td>build repeatable HTML, Word and PDF exports from Markdown</td>
 <td>&quot;write a renderer for my Markdown reports&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-security</code></td>
-<td>audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy</td>
+<td><a href="#mneves-security"><code>mneves-security</code></a></td>
+<td>hunt vulnerabilities, audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy</td>
 <td>&quot;audit security and privacy; fix confirmed local issues; do not deploy&quot;</td>
 </tr>
 <tr>
-<td><code>security-audit</code></td>
+<td><a href="#security-audit"><code>security-audit</code></a></td>
 <td>run a deep, coverage-led source audit with a ledger and machine-readable findings</td>
 <td>&quot;full security audit of this codebase, with the coverage ledger&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-production-readiness</code></td>
+<td><a href="#mneves-production-readiness"><code>mneves-production-readiness</code></a></td>
 <td>check an app is ready for paying customers before each staging or production deploy</td>
 <td>&quot;is this ready for production? give me the fix plan&quot;</td>
 </tr>
 <tr>
-<td><code>imagegen-frontend-mobile</code></td>
+<td><a href="#imagegen-frontend-mobile"><code>imagegen-frontend-mobile</code></a></td>
 <td>generate mobile screen or flow images, not code</td>
 <td>&quot;design a 4-screen iOS onboarding flow&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-chatgpt-search</code></td>
+<td><a href="#mneves-chatgpt-search"><code>mneves-chatgpt-search</code></a></td>
 <td>improve ChatGPT Search discovery and measure citations/referrals</td>
 <td>&quot;improve this site&#39;s ChatGPT Search visibility&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-eli5</code></td>
+<td><a href="#mneves-eli5"><code>mneves-eli5</code></a></td>
 <td>explain a thing to a specific audience</td>
 <td>&quot;explain OAuth to my dad&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-expert-review</code></td>
+<td><a href="#mneves-expert-review"><code>mneves-expert-review</code></a></td>
 <td>stress-test a plan or answer before it ships</td>
 <td>&quot;challenge this design&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-verify</code></td>
+<td><a href="#mneves-verify"><code>mneves-verify</code></a></td>
 <td>get an independent PASS/FAIL before &quot;done&quot;</td>
 <td>&quot;verify it&quot;, &quot;prove it&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-fable-orchestrator</code></td>
+<td><a href="#mneves-fable-orchestrator"><code>mneves-fable-orchestrator</code></a></td>
 <td>route independent work by capability</td>
 <td>&quot;delegate the backend to codex&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-agent-readiness</code></td>
+<td><a href="#mneves-agent-readiness"><code>mneves-agent-readiness</code></a></td>
 <td>measure how agent-friendly a repo is</td>
 <td>&quot;why does the agent struggle here?&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-teach-back-srs</code></td>
+<td><a href="#mneves-teach-back-srs"><code>mneves-teach-back-srs</code></a></td>
 <td>learn a codebase with spaced repetition</td>
 <td>&quot;let me explain the auth flow&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-superaudit</code></td>
+<td><a href="#mneves-superaudit"><code>mneves-superaudit</code></a></td>
 <td>run a bounded audit-and-cleanup pass over a repo</td>
 <td>&quot;superaudit this repo, slop and perf only&quot;</td>
 </tr>
 <tr>
-<td><code>mneves-ship-deploy</code></td>
+<td><a href="#mneves-ship-deploy"><code>mneves-ship-deploy</code></a></td>
 <td>prepare verified staging, then approve the exact candidate before production</td>
 <td>&quot;ship-staging&quot; or &quot;ship-prod&quot;</td>
 </tr>
@@ -141,7 +143,12 @@ plan. In fix mode it applies minimal confirmed patches, tests legitimate and den
 behavior, and runs adversarial review and independent acceptance. It covers privacy,
 database/resource isolation, auth failures, headers/cookies, validation, secrets, API
 keys, rate/cost protection, bot controls/CORS, logging/errors and dependencies, with
-AI/agentic/mobile checks when those surfaces exist.</p>
+AI/agentic/mobile checks when those surfaces exist. A full audit also hunts the attack
+classes the inventory makes reachable (HTTP framing, client side, CI and release, cloud,
+messaging, resource spend, data lifecycle, local IPC, native code, agents) and ends with a coverage critic. A
+candidate becomes a finding only when it names the principal, input, control, boundary,
+affected resource and observed result with positive evidence, and a fresh verifier failed
+to disprove it.</p>
 <p><strong>When to use it.</strong> You want an engineering security/privacy audit of an MVP, SaaS, API
 or AI application, or safe implementation of its confirmed remediation items. Audit
 and plan requests remain read-only; a fix request authorizes its in-scope local patches.</p>
@@ -153,7 +160,7 @@ audits the exact candidate in full: the twelve areas plus 32 launch controls (<c
 for that commit and target. A confirmed Critical or High finding blocks every target until
 it is fixed, disproved or waived by you by name; for production, every unmet applicable
 launch control and a missing independent acceptance also need your named waiver. One audit
-serves every target of the same commit, a rollback to a gated build needs none, and an urgent
+serves every target of the same tree, a rollback to a gated build needs none, and an urgent
 fix ships under your waiver with its audit right after. Without the skill, a release is
 blocked until it is installed or you waive the gate. The report stays private; public PRs
 and changelogs cite only the verdict and finding IDs.</p>
@@ -165,8 +172,9 @@ independent verification. Do not merge, change provider settings or deploy.
 </code></pre>
 <p>For a read-only assessment, say “audit only; do not change project files.” Claude Code
 users can invoke <code>/mneves-security</code>; other agents can name it directly.</p>
-<p><strong>Evidence.</strong> Expect the eight-section engineering report, findings with severity and
-confidence, a source coverage ledger, exact checks/results, manual actions and launch
+<p><strong>Evidence.</strong> Expect the eight-section engineering report, confirmed findings with a
+severity, needs-validation records with the missing fact and the safe check that settles
+it (no severity, and they never block a deploy by themselves), a source coverage ledger, exact checks/results, manual actions and launch
 blockers. Local migrations and header files do not prove deployed policies or headers.
 A public provider key is evaluated under its actual contract, not automatically labeled
 a secret. NOT APPLICABLE needs evidence; blocked/untested controls never become PASS.</p>
@@ -285,7 +293,7 @@ command, inspect HTML at desktop and mobile widths, and inspect every PDF and DO
 <p><strong>What you receive.</strong> The requested files, a project-local renderer and regeneration command,
 plus the checks actually run and any unverified format limitations. Pandoc and a PDF engine
 are external tools, not bundled dependencies; existing equivalent tools are fine. The Pandoc
-starters also require Python 3.10+ for their bundled content-policy guard. They preserve
+starters also require Python 3.11+ for their bundled content-policy guard. They preserve
 metadata and literal punctuation; the guard is not a resource sandbox or SVG sanitizer.</p>
 <p><strong>Maintaining the starter.</strong> Run <code>python3 skills/mneves-render/tests/test_check_ast.py</code> and
 <code>python3 skills/mneves-render/tests/test_starters.py</code>. CI produces LibreOffice previews;
@@ -548,10 +556,9 @@ it varies inputs, retries, and checks persistence so a hard-coded success screen
 <h2 id="mneves-fable-orchestrator">mneves-fable-orchestrator</h2>
 <p><strong>What it does.</strong> Routes non-trivial work across the main session, Codex, and subagents when
 delegation creates independent progress or evidence. Building and reviewing run on different
-models: the main session and every worker build on Opus (Claude) or <code>gpt-6.1-sol</code> at <code>xhigh</code>
-(Codex); planning, plan advice and code review run on Fable (Claude, also the main session&#39;s
-advisor) or <code>gpt-6-astra</code> (Codex: <code>xhigh</code> to plan and advise, <code>high</code> to review), so the model
-that built a change never reviews it.
+seats: the main session and every worker build, while planning, plan advice and code review run
+on separate reviewer seats, so the model that built a change never reviews it. The concrete
+models and reasoning tiers live only in the skill&#39;s Defaults block.
 Codex review has no automatic model fallback. The portable defaults do not change a running
 harness&#39;s main-session model. Caller overrides and actual host
 configuration take precedence; the skill&#39;s Defaults block owns its portable defaults.
@@ -633,7 +640,7 @@ Style 88%, strong documentation, weaker on task discovery and product signals. T
 <li>Does CI give a clear pass/fail?</li>
 <li>Is the whole loop under five minutes?</li>
 </ol>
-<p>Five yes answers is L5; each no drops a level. Level 3 is the working minimum.</p>
+<p>These questions find friction; they are not the assessor&#39;s nine-pillar maturity score.</p>
 <p><strong>Tips.</strong></p>
 <ul>
 <li>The single highest-impact fix is a context file under 300 lines with commands that work.</li>
@@ -687,7 +694,7 @@ each gap into a flashcard. Cards live in <code>.ai-learn/srs.db</code> inside th
 by git) and come back on an SM-2 schedule, the same algorithm Anki uses.</p>
 <p><strong>Triggers.</strong> &quot;let me explain&quot;, &quot;teach back&quot;, &quot;quiz me&quot;, &quot;review cards&quot;, &quot;what do I know
 about&quot;, &quot;test my understanding&quot;.</p>
-<p><strong>Prerequisite.</strong> Python 3.10+. No packages.</p>
+<p><strong>Prerequisite.</strong> Python 3.11+. No packages.</p>
 <p><strong>Four modes.</strong></p>
 <table tabindex="0">
 <thead>

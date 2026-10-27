@@ -11,7 +11,6 @@
 import path from "node:path";
 import type { Language } from "../../language-detection.js";
 import type {
-	Dependency,
 	DependencyManifest,
 	LibraryCategory,
 	LibraryMappings,
@@ -310,51 +309,6 @@ export function hasLibraryCategory(
 		return { found: false };
 	}
 	return hasLibrary(manifest, libraries);
-}
-
-/**
- * Get all detected capabilities from a manifest
- */
-export function detectCapabilities(
-	manifest: DependencyManifest | null,
-	language: Language
-): Record<LibraryCategory, LibraryMatch> {
-	const categories = Object.keys(LIBRARY_MAPPINGS) as LibraryCategory[];
-	const result: Record<LibraryCategory, LibraryMatch> = {} as Record<
-		LibraryCategory,
-		LibraryMatch
-	>;
-
-	for (const category of categories) {
-		result[category] = hasLibraryCategory(manifest, category, language);
-	}
-
-	return result;
-}
-
-/**
- * Check if the manifest has any script matching a pattern
- */
-export function hasMatchingScript(
-	manifest: DependencyManifest | null,
-	patterns: string[]
-): { found: boolean; script?: string; command?: string } {
-	if (!manifest?.scripts) {
-		return { found: false };
-	}
-
-	for (const [name, command] of Object.entries(manifest.scripts)) {
-		for (const pattern of patterns) {
-			if (
-				name.toLowerCase().includes(pattern.toLowerCase()) ||
-				command.toLowerCase().includes(pattern.toLowerCase())
-			) {
-				return { found: true, script: name, command };
-			}
-		}
-	}
-
-	return { found: false };
 }
 
 // ============================================================================

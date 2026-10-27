@@ -26,7 +26,7 @@ export interface Dependency {
 	/** Resolved version from lockfile (if available) */
 	resolved?: string;
 	/** Whether this is optional */
-	optional?: boolean;
+	optional?: boolean | undefined;
 }
 
 /**
@@ -52,11 +52,11 @@ export interface DependencyManifest {
 	/** Development dependencies */
 	devDependencies: Dependency[];
 	/** Package scripts (for npm-like manifests) */
-	scripts?: Record<string, string>;
+	scripts?: Record<string, string> | undefined;
 	/** Package name (if defined in manifest) */
-	name?: string;
+	name?: string | undefined;
 	/** Package version (if defined in manifest) */
-	version?: string;
+	version?: string | undefined;
 	/** Additional metadata */
 	metadata?: Record<string, unknown>;
 }
@@ -90,7 +90,7 @@ export interface LibraryMatch {
 	/** The matched library name */
 	library?: string;
 	/** The version constraint */
-	version?: string;
+	version?: string | undefined;
 	/** Whether it's a dev dependency */
 	isDev?: boolean;
 }

@@ -8,15 +8,17 @@ Delegate only when the work is independent, substantial, and objectively verifia
 
 | Role | Who | What |
 |------|-----|------|
-| Orchestrator | Main session (Claude or Codex; model per the skill's Defaults block) | Repo understanding, architecture decisions, task decomposition, spec writing, acceptance |
-| Frontend executor | Frontend subagents (model per the Defaults block) | UI components, styling, layout, visual polish |
+| Main session | The orchestrating session (Claude or Codex; model per the skill's Defaults block) | Repo understanding, architecture decisions, task decomposition, spec writing, acceptance |
+| Frontend subagent | Frontend subagents (model per the Defaults block) | UI components, styling, layout, visual polish |
 | Ordinary worker | A scoped worker (model per the Defaults block) | Routine implementation with checkable acceptance |
 | Bounded worker | A scoped worker (model per the Defaults block) | Search, writing, and mechanical changes with a narrow result |
 | Heavy executor | A Claude subagent, or Codex via `codex exec` / `codex-lane` (model per the Defaults block) | Difficult debugging, architecture, and refactors |
 | Planner | A read-only Claude subagent or Codex run (model per the Defaults block) | The plan, before implementation |
 | Plan advisor | Claude's native advisor or a read-only Codex run (model per the Defaults block) | Review of the main session's plan before a decision with real downside |
 | Reviewer | A read-only Claude subagent, `autoreview`, or a read-only Codex run (model per the Defaults block) | Independent review of a fixed Git target, never by the model that built it |
-| Long-horizon driver | A lane, a checked-in plan file, or your harness's long-task mechanism | User-requested multi-phase work driven to its stopping condition |
+| Specialist | A deliberately chosen model (model per the Defaults block) | Comparison or capability-specific work |
+
+User-requested multi-phase work needs a driver that survives context loss: a lane, a checked-in plan file, or your harness's long-task mechanism.
 
 ## Continuity is the whole game
 

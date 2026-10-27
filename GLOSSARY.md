@@ -4,8 +4,14 @@ Portable procedures and supporting resources installed into coding agents.
 
 ## Language
 
-**Security finding**: An observed or suspected weakness with identified evidence,
-affected assets, severity and confidence. An unconfirmed suspicion is not a verified defect.
+**Security finding**: A recorded candidate weakness with a disposition. A confirmed finding
+names the lower-trust principal, its input, the control, the crossed boundary, the affected
+resource and the observed result, and carries a severity; a needs-validation record has a
+complete trace missing one external fact and no severity; a disproved record keeps the
+refuting evidence. An unconfirmed suspicion is not a verified defect.
+
+**Disposition**: Whether a security finding is true: confirmed, needs-validation or
+disproved. Distinct from a gate's verdict (pass, block, waived) and from a fix state.
 
 **Deep source audit**: A coverage-led, read-only scan of a codebase that records which source
 units it read and returns confirmed, needs-validation or rejected findings. It is not a deploy

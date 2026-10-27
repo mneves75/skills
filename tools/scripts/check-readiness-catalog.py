@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only readiness catalog and preservation-map guard. Python 3.10+, standard library.
+"""Read-only readiness catalog and preservation-map guard. Python 3.11+, standard library.
 
 Usage: python3 tools/scripts/check-readiness-catalog.py [repository]
 Exit 0 when all checks pass, 1 on any violation (reported as file:line).

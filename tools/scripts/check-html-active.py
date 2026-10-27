@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Reject rendered HTML outside a strict accepted subset. Standard library only, Python 3.10+.
+"""Reject rendered HTML outside a strict accepted subset. Standard library only, Python 3.11+.
 
 Reads an HTML fragment on stdin and exits 1, naming each finding, unless every piece of markup
 in it is one the guard can classify as inert. Python's parser and a browser's HTML5 parser can

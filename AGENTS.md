@@ -21,7 +21,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── mneves-agent-readiness/    # Codebase readiness assessment (pairs with tools/)
 │   ├── mneves-chatgpt-search/     # ChatGPT discovery, crawler access, citations and referral attribution
 │   ├── mneves-eli5/               # Feynman explainer, audience-calibrated
-│   ├── mneves-expert-review/      # Expert-panel review/optimization pass (+ references/)
+│   ├── mneves-expert-review/      # Expert-panel review/optimization pass
 │   ├── mneves-handoff/            # Discussion-first handoff prompt for another agent (MIT, adapted)
 │   ├── mneves-render/             # Project-local Markdown -> HTML, editable DOCX and PDF
 │   ├── mneves-production-readiness/ # Deploy gate: readiness ledger, verdict per target, fix plan (+ references/)
@@ -48,10 +48,12 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 ## Commands
 
 ```bash
-cd tools && bun install                 # dev deps only (Biome, TypeScript, bun-types)
+cd tools && bun install                 # locked dev tools: Biome, TypeScript, ast-grep, marked
+python3 -m venv .scratch/skills-ref && .scratch/skills-ref/bin/pip install --require-hashes -r .github/requirements/skills-ref.txt   # reference validator: .scratch/skills-ref/bin/agentskills validate <skill-dir>
 bun run typecheck && bun run lint && bun test   # from tools/
 ast-grep scan --config sgconfig.yml .   # from repo root
 bash .githooks/pre-commit.test          # hook e2e test
+python3 tools/scripts/check-pages.test.py  # actual Pages guard: real Git, fake CI provider
 bash skills/mneves-fable-orchestrator/tools/codex-lane.test   # codex-lane e2e against a fake codex (no quota)
 python3 skills/mneves-ship-deploy/scripts/run-tests.py        # release contract check: planted violations, read-only
 bash skills/mneves-ship-deploy/assets/release-guards.test.sh  # reference release guards: throwaway repo, fake wrangler
@@ -85,12 +87,12 @@ bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no net
   procedures belong in the body or a routed reference.
 - Frontmatter is Agent Skills spec only: `name`, `description`, `license`, and, for a skill that
   ships an executable, `compatibility` (≤ 500 characters naming the tools it needs). CI's
-  `skills-ref validate` rejects any other key, so host-specific fields (`context`, `effort`,
+  `agentskills validate` (the reference `skills-ref` from PyPI) rejects other keys, so host-specific fields (`context`, `effort`,
   `paths`, `disable-model-invocation`) stay out even when a host supports them.
 - Never add a root `SKILL.md`: the skills CLI lets a shallower `SKILL.md` shadow everything
   below it.
 - Skills are Markdown-first. Shipped executables are `bash` + `set -euo pipefail`, `bash -n`
-  clean when written in Bash. Python helpers use Python 3.10+ and the standard library;
+  clean when written in Bash. Python helpers use Python 3.11+ and the standard library;
   each helper states its own floor and that claim must match the syntax it actually uses.
   Executable skills are `autoreview`, `mneves-fable-orchestrator`, `mneves-ship-deploy`,
   `mneves-teach-back-srs`, `security-audit`, and `mneves-render`; `security-audit`'s executables
@@ -113,7 +115,8 @@ bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no net
   the current `VERSION` (`tools/scripts/check-defaults-block.sh`). Keep the block's shapes: vendor
   ids as ids, Claude seats as `<Name>, latest release (... alias \`x\`)`, tiers as `reasoning <tier>`.
 - `SKILL.md` bodies stay under 500 lines; detail sits behind `references/`, linked one level
-  deep from `SKILL.md` and never reference-to-reference.
+  deep from `SKILL.md` and never reference-to-reference. Byte-identical upstream references may
+  name a sibling by bare basename (as `security-audit` does) when the `SKILL.md` map resolves it.
 - `VERSION`, the README badge and the top `CHANGELOG.md` entry agree.
 - `collections/<name>/` holds a vendored third-party skill pack, outside `skills/` so the default
   `npx skills add mneves75/skills` install does not include it (install it with `--full-depth`
@@ -121,9 +124,14 @@ bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no net
   only. A collection keeps its upstream names (the owner chose pstack's `tdd` and `teach` over
   the `mneves-` prefix rule), its license, and an `UPSTREAM` pin. Its `skills/`, `UPSTREAM`, `LICENSE` and
   `local-overrides.patch` come from a sync script and are never hand-edited; CI requires the Agent Skills spec
-  (`skills-ref validate`) and name == directory for every collection skill.
+  (`agentskills validate`) and name == directory for every collection skill.
 
 ## Code review evidence
+
+Release closeout follows [CONTRIBUTING.md#preparing-a-release](CONTRIBUTING.md#preparing-a-release).
+Merging to `main` triggers production publication after CI, so a green PR alone is not the
+security/readiness gate. Keep the exact-candidate records private and retain them during
+scratch cleanup; owner waivers require their named controls, owner, reason and expiry.
 
 Always include adversarial review of code changes. Use local `cccc` for supported changed
 source when available, following `skills/autoreview/references/complexity.md`; record its

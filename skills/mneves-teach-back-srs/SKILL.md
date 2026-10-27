@@ -2,7 +2,7 @@
 name: mneves-teach-back-srs
 description: Run codebase teach-back with Socratic questions and spaced repetition. Use when users teach, want a quiz, or review cards.
 license: Apache-2.0
-compatibility: Needs python3 (3.10+, standard library with sqlite3) to run `scripts/srs_db.py`; cards live in the project's `.ai-learn/srs.db`.
+compatibility: Needs python3 (3.11+, standard library with sqlite3) to run `scripts/srs_db.py`; cards live in the project's `.ai-learn/srs.db`.
 ---
 
 # Teach-Back SRS

@@ -22,7 +22,6 @@ import {
 } from "../check-registry.js";
 import { runCommand } from "../command.js";
 import {
-	type DependencyManifest,
 	hasLibraryCategory,
 	parseDependencies,
 } from "../readiness/deps/index.js";
@@ -1093,7 +1092,6 @@ export const sharedChecks: Record<string, CheckRunner> = {
 		const workflowDir = path.join(repoRoot, ".github/workflows");
 		if (dirExists(workflowDir)) {
 			try {
-				const files = await Bun.file(workflowDir);
 				// Simple check: look for release in workflow names
 				const result = await runCommand(ctx.options.timeout)`ls ${workflowDir} 2>/dev/null`;
 				const workflowFiles = result.text().split("\n").filter(Boolean);
@@ -1538,9 +1536,7 @@ export const sharedChecks: Record<string, CheckRunner> = {
 
 		// Check README for SLO documentation
 		const readme = await readText(path.join(repoRoot, "README.md")) || "";
-		if (readme.toLowerCase().includes("error budget") ||
-			readme.toLowerCase().includes("slo") ||
-			readme.toLowerCase().includes("sli")) {
+		if (/\b(error budgets?|slos?|slis?)\b/i.test(readme)) {
 			return { pass: true, details: "Documented in README" };
 		}
 

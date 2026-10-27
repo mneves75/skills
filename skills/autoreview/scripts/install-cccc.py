@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Install reviewed cccc release bytes at an explicit new path. Python 3.10+, stdlib.
+"""Install reviewed cccc release bytes at an explicit new path. Python 3.11+, stdlib.
 
 No PATH edits, sudo, replacement or archive-wide extraction. Pins are in
 cccc-release.json. Verify the upstream release assets before changing them.
@@ -36,7 +36,7 @@ def target(system: str, machine: str) -> str:
 
 def download(url: str) -> bytes:
     request = urllib.request.Request(url, headers={
-        "User-Agent": "OpenAI File Downloader, XaiImageApiFetch/1.0"})
+        "User-Agent": "autoreview-install-cccc"})
     with urllib.request.urlopen(request, timeout=60) as response:
         if not response.geturl().startswith("https://"):
             raise ValueError("Download redirected outside HTTPS")

@@ -26,10 +26,18 @@ jobs:
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
-          bun-version: 1.4.2
+          bun-version: 1.4.4
 
-      - name: Install ast-grep
-        run: npm install -g @ast-grep/cli@0.45.2
+      # ast-grep and marked are devDependencies locked with sha512 integrity in tools/bun.lock.
+      - name: Install locked tools
+        working-directory: tools
+        run: |
+          bun install --frozen-lockfile
+          echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Fail on any advisory in the locked tools
+        working-directory: tools
+        run: bun audit
 
       - name: Skill layout (what `npx skills add mneves75/skills` discovers)
         run: |
@@ -43,10 +51,17 @@ jobs:
             grep -qE '^description: .{20,}' "$f" || { echo "$f: missing/short description"; exit 1; }
           done
 
-      - name: Agent Skills spec (skills-ref validate)
+      # The reference validator is the PyPI skills-ref (CLI `agentskills`); the npm package of that name is unrelated.
+      - name: Install the Agent Skills reference validator
+        run: |
+          python3 -m venv .scratch/skills-ref
+          .scratch/skills-ref/bin/pip install --require-hashes -r .github/requirements/skills-ref.txt
+          echo "$PWD/.scratch/skills-ref/bin" >> "$GITHUB_PATH"
+
+      - name: Agent Skills spec (agentskills validate)
         run: |
           set -euo pipefail
-          for d in skills/*/; do npx -y skills-ref@0.1.5 validate "$d"; done
+          for d in skills/*/; do agentskills validate "$d"; done
 
       - name: Collection skills (name == directory, Agent Skills spec, sync outputs present)
         run: |
@@ -56,7 +71,7 @@ jobs:
             for dir in "$c"skills/*/; do
               name=$(basename "$dir")
               grep -qx "name: $name" "$dir/SKILL.md" || { echo "$dir/SKILL.md: frontmatter name must be '$name'"; exit 1; }
-              npx -y skills-ref@0.1.5 validate "$dir"
+              agentskills validate "$dir"
             done
           done
 
@@ -64,7 +79,7 @@ jobs:
         run: bash tools/scripts/sync-pstack.test
 
       - name: Shell syntax
-        run: bash -n skills/mneves-fable-orchestrator/tools/codex-lane skills/mneves-fable-orchestrator/tools/codex-lane.test .githooks/pre-commit .githooks/pre-commit.test tools/scripts/build-site.sh tools/scripts/build-site.test tools/scripts/check-site-copy.sh tools/scripts/check-defaults-block.sh tools/scripts/sync-pstack.sh tools/scripts/sync-pstack.test skills/mneves-ship-deploy/assets/release.sh skills/mneves-ship-deploy/assets/verify-live.sh skills/mneves-ship-deploy/assets/release-guards.test.sh
+        run: bash -n skills/mneves-fable-orchestrator/tools/codex-lane skills/mneves-fable-orchestrator/tools/codex-lane.test .githooks/pre-commit .githooks/pre-commit.test tools/scripts/build-site.sh tools/scripts/build-site.test tools/scripts/check-site-copy.sh tools/scripts/check-defaults-block.sh tools/scripts/sync-pstack.sh tools/scripts/sync-pstack.test skills/mneves-ship-deploy/assets/release.sh skills/mneves-ship-deploy/assets/verify-live.sh skills/mneves-ship-deploy/assets/release-guards.test.sh skills/autoreview/scripts/test-review-harness
 
       - name: codex-lane e2e (fake codex, no provider calls)
         run: bash skills/mneves-fable-orchestrator/tools/codex-lane.test
@@ -89,7 +104,7 @@ jobs:
           bash tools/scripts/check-defaults-block.test
 
       - name: Python syntax
-        run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py skills/mneves-ship-deploy/scripts/release-contract-check.py skills/mneves-ship-deploy/scripts/run-tests.py skills/mneves-ship-deploy/tests/test_release_contract_check.py tools/scripts/check-readiness-catalog.py
+        run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py skills/mneves-ship-deploy/scripts/release-contract-check.py skills/mneves-ship-deploy/scripts/run-tests.py skills/mneves-ship-deploy/tests/test_release_contract_check.py tools/scripts/check-readiness-catalog.py skills/autoreview/scripts/test-review-harness.py
 
       - name: Security audit validator suites and syntax
         run: |
@@ -109,6 +124,9 @@ jobs:
       - name: Pre-commit hook test
         run: bash .githooks/pre-commit.test
 
+      - name: Pages publication guard (real Git, fake CI provider)
+        run: python3 tools/scripts/check-pages.test.py
+
       - name: Generated site files are current
         run: |
           bash tools/scripts/build-site.test
@@ -118,7 +136,6 @@ jobs:
       - name: tools typecheck + lint
         working-directory: tools
         run: |
-          bun install --frozen-lockfile
           bun run typecheck
           bun run lint
           bun test
@@ -132,7 +149,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y pandoc poppler-utils libreoffice-writer fonts-liberation fonts-dejavu python3-venv libpango-1.0-0
           python3 -m venv .scratch/render-engine
-          .scratch/render-engine/bin/pip install weasyprint==70.0
+          .scratch/render-engine/bin/pip install --require-hashes -r .github/requirements/render-starters.txt
           echo "$PWD/.scratch/render-engine/bin" >> "$GITHUB_PATH"
       - name: Reject active content through actual Pandoc commands
         run: python3 skills/mneves-render/tests/test_check_ast.py

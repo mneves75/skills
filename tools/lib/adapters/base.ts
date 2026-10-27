@@ -8,7 +8,10 @@
  * while inheriting common patterns from the shared check library.
  */
 
-import type { CheckRunner, LanguageAdapter } from "../check-registry.js";
+import { readdir } from "node:fs/promises";
+import path from "node:path";
+import type { CheckResult, CheckRunner, LanguageAdapter } from "../check-registry.js";
+import { fileExists, readText } from "../check-registry.js";
 import { listSharedChecks, sharedChecks } from "../checks/shared.js";
 import type { Language } from "../language-detection.js";
 
@@ -93,150 +96,72 @@ export function createLanguageAdapter(config: AdapterConfig): LanguageAdapter {
 }
 
 // ============================================================================
-// Check Categories
+// Source scanning
 // ============================================================================
 
-/**
- * Check IDs that are always language-specific and should never use shared impl.
- * These checks require language-specific tooling detection (linters, formatters, etc.)
- */
-export const LANGUAGE_SPECIFIC_CHECKS = new Set([
-	// Style & Validation (tool-specific)
-	"linter-exists",
-	"type-checker-strict",
-	"formatter-exists",
-	"no-any-casts",
-	"no-ts-ignore",
-	"no-lint-ignores",
-	"no-unsafe-types",
-	"strict-mode",
-	"zero-lint-errors",
-
-	// Build System (toolchain-specific)
-	"build-command",
-	"build-defined",
-	"lockfile-exists",
-	"dependency-manifest",
-	"package-json-exists",
-	"deps-installed",
-	"build-succeeds",
-	"reproducible-builds",
-	"no-deprecated-deps",
-
-	// Testing (runner-specific)
-	"tests-exist",
-	"tests-pass",
-	"test-coverage",
-	"integration-tests",
-	"e2e-tests",
-	"test-isolation",
-	"tests-fast",
-
-	// Observability (console.log is language-specific)
-	"console-logs-minimal",
-	"log-levels",
-	"health-endpoints",
-
-	// Documentation (language-specific commands in CLAUDE.md)
-	"inline-docs",
-
-	// CI (language-specific test commands)
-	"ci-runs-tests",
-	"ci-tasks-aligned",
-
-	// Task Discovery (npm scripts is JS-specific)
-	"npm-scripts",
-	"common-aliases",
-	"task-documentation",
-	"watch-mode",
-
-	// Security (language-specific auth patterns)
-	"auth-implementation",
-	"audit-logging",
-
-	// Product
-	"ab-testing",
-	"monitoring-dashboards",
-	"error-budgets",
+/** Directories that hold vendored, generated or environment files, not the project's own code. */
+const SCAN_SKIP_DIRS = new Set([
+	"node_modules",
+	"vendor",
+	"venv",
+	"dist",
+	"build",
+	"target",
+	"__pycache__",
+	"site-packages",
 ]);
 
 /**
- * Check IDs that are shared across languages via the dependency parsing module.
- * These use LIBRARY_MAPPINGS to detect libraries for each language.
+ * A string literal (group 1) or a comment running to the end of the line. Scanning left to right,
+ * strings before the comment are blanked and the comment is kept whole, quotes included.
  */
-export const SHARED_ONLY_CHECKS = new Set([
-	// Documentation
-	"readme-exists",
-	"gitignore-exists",
-	"claude-md-exists",
-	"claude-md-concise",
-	"claude-md-recent",
-	"claude-md-has-commands",
-	"contributing-guide",
-	"changelog-exists",
-	"architecture-docs",
-	"api-documentation",
-	"examples-exist",
+// shortcut: multi-line strings, and a stray quote before a comment that holds another quote (a regex literal `/'/` or
+// JSX text "Don't"), are misread; use a tokenizer if they skew counts.
+const PYTHON_STRING_OR_COMMENT = /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')|#.*/g;
+const C_STRING_OR_COMMENT = /("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`)|\/[/*].*/g;
 
-	// Development Environment
-	"editorconfig-exists",
-	"devcontainer-exists",
-	"env-example",
-	"docker-compose",
-	"env-setup-script",
-	"debug-configs",
-	"local-env-docs",
-
-	// Security
-	"git-initialized",
-	"no-secrets-in-repo",
-	"secret-scanning",
-	"codeowners-exists",
-	"branch-protection-documented",
-	"dependency-scanning",
-	"pre-commit-hooks",
-	"secrets-management",
-	"security-scanning",
-	"vulnerability-policy",
-
-	// Task Discovery
-	"pr-template",
-	"issue-templates",
-	"branch-naming",
-	"commit-convention",
-	"task-definitions",
-	"makefile",
-	"release-process",
-
-	// CI/CD
-	"ci-configured",
-	"ci-pipeline",
-
-	// Observability (using dependency parsing)
-	"structured-logging",
-	"error-tracking",
-	"tracing",
-	"metrics",
-
-	// Testing (using dependency parsing)
-	"test-framework",
-	"input-validation",
-
-	// Product (using dependency parsing)
-	"feature-flags",
-	"analytics",
-]);
-
-/**
- * Returns true if a check should be language-specific
- */
-export function isLanguageSpecificCheck(checkId: string): boolean {
-	return LANGUAGE_SPECIFIC_CHECKS.has(checkId);
+/** Files under `dir` with one of `extensions`; skipped and hidden directories are never entered, symlinks never followed. */
+async function* sourceFiles(dir: string, extensions: ReadonlySet<string>): AsyncGenerator<string> {
+	const entries = await readdir(dir, { withFileTypes: true }).catch(() => []);
+	for (const entry of entries) {
+		if (entry.name.startsWith(".") || SCAN_SKIP_DIRS.has(entry.name)) continue;
+		const full = path.join(dir, entry.name);
+		if (entry.isDirectory()) yield* sourceFiles(full, extensions);
+		else if (entry.isFile() && extensions.has(path.extname(entry.name).slice(1))) yield full;
+	}
 }
 
 /**
- * Returns true if a check should use shared implementation
+ * Count source lines under `root` matching `pattern` in files with the given extensions.
+ * String literals are ignored. Hidden directories (`.git`, `.venv`) and SCAN_SKIP_DIRS are not scanned; unreadable files are skipped.
  */
-export function isSharedCheck(checkId: string): boolean {
-	return SHARED_ONLY_CHECKS.has(checkId);
+export async function countSourceMatches(
+	root: string,
+	extensions: readonly string[],
+	pattern: RegExp,
+): Promise<number> {
+	let count = 0;
+	for await (const file of sourceFiles(root, new Set(extensions))) {
+		const text = await readText(file);
+		if (text === null) continue;
+		const code = file.endsWith(".py") || file.endsWith(".pyi") ? PYTHON_STRING_OR_COMMENT : C_STRING_OR_COMMENT;
+		for (const line of text.split("\n")) {
+			if (pattern.test(line.replace(code, (match, literal) => (literal === undefined ? match : '""')))) count++;
+		}
+	}
+	return count;
+}
+
+/**
+ * Find a task runner an agent can list tasks from: Makefile targets, a justfile, a Taskfile,
+ * or one of `extraFiles` (the language's own runners).
+ */
+export async function findTaskRunner(appPath: string, extraFiles: readonly string[] = []): Promise<CheckResult> {
+	// A rule line is `name [name...]:` or `::`; `NAME :=`, `::=` and `:::=` assign variables.
+	const targets = (await readText(path.join(appPath, "Makefile")))?.match(/^[\w%$][\w./ \t%$()-]*:(?!:*=)/gm)?.length ?? 0;
+	if (targets > 0) return { pass: true, configPath: "Makefile", details: `${targets} Makefile targets` };
+	for (const file of ["justfile", "Justfile", "Taskfile.yml", "Taskfile.yaml", ...extraFiles]) {
+		if (await fileExists(path.join(appPath, file))) return { pass: true, configPath: file };
+	}
+	return { pass: false, details: "No task runner configured" };
 }

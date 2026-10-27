@@ -27,23 +27,23 @@ also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 
 
 | Skill | Use it when you want to… | Say something like |
 |---|---|---|
-| `autoreview` | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
-| `council` | get independent members to argue with a plan before you commit to it | "convene the council on this migration plan, two rounds" |
-| `mneves-handoff` | hand a task to another agent, review first | "handoff the flaky login test" |
-| `mneves-render` | build repeatable HTML, Word and PDF exports from Markdown | "write a renderer for my Markdown reports" |
-| `mneves-security` | audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy | "audit security and privacy; fix confirmed local issues; do not deploy" |
-| `security-audit` | run a deep, coverage-led source audit with a ledger and machine-readable findings | "full security audit of this codebase, with the coverage ledger" |
-| `mneves-production-readiness` | check an app is ready for paying customers before each staging or production deploy | "is this ready for production? give me the fix plan" |
-| `imagegen-frontend-mobile` | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
-| `mneves-chatgpt-search` | improve ChatGPT Search discovery and measure citations/referrals | "improve this site's ChatGPT Search visibility" |
-| `mneves-eli5` | explain a thing to a specific audience | "explain OAuth to my dad" |
-| `mneves-expert-review` | stress-test a plan or answer before it ships | "challenge this design" |
-| `mneves-verify` | get an independent PASS/FAIL before "done" | "verify it", "prove it" |
-| `mneves-fable-orchestrator` | route independent work by capability | "delegate the backend to codex" |
-| `mneves-agent-readiness` | measure how agent-friendly a repo is | "why does the agent struggle here?" |
-| `mneves-teach-back-srs` | learn a codebase with spaced repetition | "let me explain the auth flow" |
-| `mneves-superaudit` | run a bounded audit-and-cleanup pass over a repo | "superaudit this repo, slop and perf only" |
-| `mneves-ship-deploy` | prepare verified staging, then approve the exact candidate before production | "ship-staging" or "ship-prod" |
+| [`autoreview`](#autoreview) | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
+| [`council`](#council) | get independent members to argue with a plan before you commit to it | "convene the council on this migration plan, two rounds" |
+| [`mneves-handoff`](#mneves-handoff) | hand a task to another agent, review first | "handoff the flaky login test" |
+| [`mneves-render`](#mneves-render) | build repeatable HTML, Word and PDF exports from Markdown | "write a renderer for my Markdown reports" |
+| [`mneves-security`](#mneves-security) | hunt vulnerabilities, audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy | "audit security and privacy; fix confirmed local issues; do not deploy" |
+| [`security-audit`](#security-audit) | run a deep, coverage-led source audit with a ledger and machine-readable findings | "full security audit of this codebase, with the coverage ledger" |
+| [`mneves-production-readiness`](#mneves-production-readiness) | check an app is ready for paying customers before each staging or production deploy | "is this ready for production? give me the fix plan" |
+| [`imagegen-frontend-mobile`](#imagegen-frontend-mobile) | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
+| [`mneves-chatgpt-search`](#mneves-chatgpt-search) | improve ChatGPT Search discovery and measure citations/referrals | "improve this site's ChatGPT Search visibility" |
+| [`mneves-eli5`](#mneves-eli5) | explain a thing to a specific audience | "explain OAuth to my dad" |
+| [`mneves-expert-review`](#mneves-expert-review) | stress-test a plan or answer before it ships | "challenge this design" |
+| [`mneves-verify`](#mneves-verify) | get an independent PASS/FAIL before "done" | "verify it", "prove it" |
+| [`mneves-fable-orchestrator`](#mneves-fable-orchestrator) | route independent work by capability | "delegate the backend to codex" |
+| [`mneves-agent-readiness`](#mneves-agent-readiness) | measure how agent-friendly a repo is | "why does the agent struggle here?" |
+| [`mneves-teach-back-srs`](#mneves-teach-back-srs) | learn a codebase with spaced repetition | "let me explain the auth flow" |
+| [`mneves-superaudit`](#mneves-superaudit) | run a bounded audit-and-cleanup pass over a repo | "superaudit this repo, slop and perf only" |
+| [`mneves-ship-deploy`](#mneves-ship-deploy) | prepare verified staging, then approve the exact candidate before production | "ship-staging" or "ship-prod" |
 
 ---
 
@@ -55,7 +55,12 @@ plan. In fix mode it applies minimal confirmed patches, tests legitimate and den
 behavior, and runs adversarial review and independent acceptance. It covers privacy,
 database/resource isolation, auth failures, headers/cookies, validation, secrets, API
 keys, rate/cost protection, bot controls/CORS, logging/errors and dependencies, with
-AI/agentic/mobile checks when those surfaces exist.
+AI/agentic/mobile checks when those surfaces exist. A full audit also hunts the attack
+classes the inventory makes reachable (HTTP framing, client side, CI and release, cloud,
+messaging, resource spend, data lifecycle, local IPC, native code, agents) and ends with a coverage critic. A
+candidate becomes a finding only when it names the principal, input, control, boundary,
+affected resource and observed result with positive evidence, and a fresh verifier failed
+to disprove it.
 
 **When to use it.** You want an engineering security/privacy audit of an MVP, SaaS, API
 or AI application, or safe implementation of its confirmed remediation items. Audit
@@ -69,7 +74,7 @@ audits the exact candidate in full: the twelve areas plus 32 launch controls (`S
 for that commit and target. A confirmed Critical or High finding blocks every target until
 it is fixed, disproved or waived by you by name; for production, every unmet applicable
 launch control and a missing independent acceptance also need your named waiver. One audit
-serves every target of the same commit, a rollback to a gated build needs none, and an urgent
+serves every target of the same tree, a rollback to a gated build needs none, and an urgent
 fix ships under your waiver with its audit right after. Without the skill, a release is
 blocked until it is installed or you waive the gate. The report stays private; public PRs
 and changelogs cite only the verdict and finding IDs.
@@ -86,8 +91,9 @@ independent verification. Do not merge, change provider settings or deploy.
 For a read-only assessment, say “audit only; do not change project files.” Claude Code
 users can invoke `/mneves-security`; other agents can name it directly.
 
-**Evidence.** Expect the eight-section engineering report, findings with severity and
-confidence, a source coverage ledger, exact checks/results, manual actions and launch
+**Evidence.** Expect the eight-section engineering report, confirmed findings with a
+severity, needs-validation records with the missing fact and the safe check that settles
+it (no severity, and they never block a deploy by themselves), a source coverage ledger, exact checks/results, manual actions and launch
 blockers. Local migrations and header files do not prove deployed policies or headers.
 A public provider key is evaluated under its actual contract, not automatically labeled
 a secret. NOT APPLICABLE needs evidence; blocked/untested controls never become PASS.
@@ -233,7 +239,7 @@ It does not rewrite or summarize your source or require a specific agent vendor.
 **What you receive.** The requested files, a project-local renderer and regeneration command,
 plus the checks actually run and any unverified format limitations. Pandoc and a PDF engine
 are external tools, not bundled dependencies; existing equivalent tools are fine. The Pandoc
-starters also require Python 3.10+ for their bundled content-policy guard. They preserve
+starters also require Python 3.11+ for their bundled content-policy guard. They preserve
 metadata and literal punctuation; the guard is not a resource sandbox or SVG sanitizer.
 
 **Maintaining the starter.** Run `python3 skills/mneves-render/tests/test_check_ast.py` and
@@ -558,10 +564,9 @@ the loop ends. Findings map to *fixed*, *disproved* or *blocked*, nothing else.
 
 **What it does.** Routes non-trivial work across the main session, Codex, and subagents when
 delegation creates independent progress or evidence. Building and reviewing run on different
-models: the main session and every worker build on Opus (Claude) or `gpt-6.1-sol` at `xhigh`
-(Codex); planning, plan advice and code review run on Fable (Claude, also the main session's
-advisor) or `gpt-6-astra` (Codex: `xhigh` to plan and advise, `high` to review), so the model
-that built a change never reviews it.
+seats: the main session and every worker build, while planning, plan advice and code review run
+on separate reviewer seats, so the model that built a change never reviews it. The concrete
+models and reasoning tiers live only in the skill's Defaults block.
 Codex review has no automatic model fallback. The portable defaults do not change a running
 harness's main-session model. Caller overrides and actual host
 configuration take precedence; the skill's Defaults block owns its portable defaults.
@@ -660,7 +665,7 @@ Style 88%, strong documentation, weaker on task discovery and product signals. T
 4. Does CI give a clear pass/fail?
 5. Is the whole loop under five minutes?
 
-Five yes answers is L5; each no drops a level. Level 3 is the working minimum.
+These questions find friction; they are not the assessor's nine-pillar maturity score.
 
 **Tips.**
 - The single highest-impact fix is a context file under 300 lines with commands that work.
@@ -723,7 +728,7 @@ by git) and come back on an SM-2 schedule, the same algorithm Anki uses.
 **Triggers.** "let me explain", "teach back", "quiz me", "review cards", "what do I know
 about", "test my understanding".
 
-**Prerequisite.** Python 3.10+. No packages.
+**Prerequisite.** Python 3.11+. No packages.
 
 **Four modes.**
 

@@ -10,7 +10,7 @@ finding with the diff, a source reference or a focused behavior check.
 ## Installation and upgrade
 
 `cccc` is optional and not bundled. Check `command -v cccc` and `cccc --version`.
-The sibling `scripts/install-cccc.py` ships with this skill; Python 3.10+ and
+The sibling `scripts/install-cccc.py` ships with this skill; Python 3.11+ and
 network access are required. It reads the only release pin in
 `scripts/cccc-release.json`, verifies the archive against reviewed SHA-256 values,
 copies only its regular binary member, verifies its version and refuses replacement.

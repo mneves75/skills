@@ -30,3 +30,23 @@ for (const suspicious of [".env", "credentials.json", "secrets.json", "private.k
 		});
 	}
 }
+
+for (const [readme, pass] of [["Builds are slow; see the slides.", false], ["Our SLO is 99.9%.", true], ["Track the error budget weekly.", true]] as const) {
+	test(`error-budgets: README ${JSON.stringify(readme)} -> ${pass}`, async () => {
+		const directory = await mkdtemp(join(tmpdir(), "readiness-slo-"));
+		try {
+			await Bun.write(join(directory, "README.md"), readme);
+			const ctx: CheckContext = {
+				app: {
+					id: ".", name: "fixture", path: directory, relativePath: ".",
+					type: "app", language: "typescript", manifest: "package.json",
+					manifestPath: join(directory, "package.json"), isRoot: true,
+				},
+				repoRoot: directory, options: {}, cache: createFileCache(),
+			};
+			expect((await sharedChecks["error-budgets"]?.(ctx))?.pass).toBe(pass);
+		} finally {
+			await rm(directory, { recursive: true, force: true });
+		}
+	});
+}
