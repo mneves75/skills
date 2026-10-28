@@ -624,15 +624,16 @@ cd ~/src/skills/tools &amp;&amp; bun install
 cd /path/to/your-project
 bun --bun ~/src/skills/tools/readiness-check.ts                     # markdown to stdout
 bun --bun ~/src/skills/tools/readiness-check.ts --format=html --output=report.html
-bun --bun ~/src/skills/tools/readiness-check.ts --skip-tests --skip-build   # no test or build runs, fast
+bun --bun ~/src/skills/tools/readiness-check.ts --skip-tests --skip-build   # skips test-run and build checks only
 bun --bun ~/src/skills/tools/readiness-check.ts --min-level=3       # exit 1 below L3, for CI
 bun --bun ~/src/skills/tools/readiness-check.ts --app packages/api  # one app in a monorepo
 </code></pre>
-<p><code>--help</code> lists the rest (<code>--format json</code>, <code>--scoring strict|average</code>, <code>--language</code>). Even with
-both skip flags, the lint, dependency and task-runner checks run the project&#39;s own tools
-(<code>./gradlew</code>, <code>cargo clippy</code>, <code>bunx eslint</code> and similar), so only assess repositories you trust,
-or run the tool in a sandbox.</p>
-<p><strong>Example</strong> (real run, 2026-08-26). Against FastAPI (<code>9a8a13f</code>, static checks) the tool reports L3 at 61.7%:
+<p><code>--help</code> lists the rest (<code>--format json</code>, <code>--scoring strict|average</code>, <code>--language</code>).
+The skip flags skip only the test-run and build-verification checks. Lint, type, dependency
+and task-listing checks still run the project&#39;s toolchain (<code>mvn compile</code>, <code>./gradlew</code>,
+<code>cargo check</code>, <code>cargo clippy</code>, <code>bunx eslint</code> and similar), which can execute code the
+repository controls, so assess only repositories you trust, or run the tool in a sandbox.</p>
+<p><strong>Example</strong> (real run, 2026-08-26). Against FastAPI (<code>9a8a13f</code>, <code>--skip-tests --skip-build</code>) the tool reports L3 at 61.7%:
 Style 88%, strong documentation, weaker on task discovery and product signals. The
 <a href="https://mneves75.github.io/skills/fastapi.html">live report</a> shows the full breakdown.</p>
 <p><strong>The five-question shortcut</strong> the skill uses when you just want a feel for a repo:</p>

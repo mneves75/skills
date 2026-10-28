@@ -85,10 +85,15 @@ The owner answered the open decisions: a full audit, then merge; waivers to the 
   `CONTRIBUTING.md` now says to report the gate as blocked when no distinct model can run.
 - **The previous closeout invented a 24-hour waiver ceiling.** `CONTRIBUTING.md` now leaves
   expiry to the owner, within the 90-day cap.
-- **The gate found RC-A-01:** the docs promised "static checks only" while lint, dependency and
-  task-runner checks execute repository tools. The docs now say what runs. Rejected: a `--no-exec`
+- **The gate found RC-A-01:** the docs promised "static checks only", but the skip flags skip only
+  the test-run and build-verification checks. Lint, type, dependency and task-listing checks still
+  run the project's toolchain (`mvn compile`, `./gradlew`, `cargo check`), which executes repository
+  code. The docs and `--help` now say what runs. Rejected: a `--no-exec`
   flag threaded through 66 `runCommand` call sites, because the documented flags already behave as
   `--help` states and the broken part was the promise.
+- **The gate found RC-A-02 in the new guard:** the row regex backtracked quadratically on a long
+  row with no closing pipe. Rows now parse from split cells, and a timing case (20,000-space row,
+  3 s limit) failed before the fix.
 
 ## Rejected alternatives
 

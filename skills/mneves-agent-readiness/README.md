@@ -37,6 +37,11 @@ cd your-project
 readiness-check
 ```
 
+The skip flags skip only the test-run and build-verification checks. Lint, type, dependency
+and task-listing checks still run the project's toolchain (`mvn compile`, `./gradlew`,
+`cargo check`, `cargo clippy`, `bunx eslint` and similar), which can execute code the
+repository controls, so assess only repositories you trust, or run the tool in a sandbox.
+
 ## What It Does
 
 Analyzes your codebase across **9 pillars** with **51+ automated checks** to determine how well AI agents can work with your code.

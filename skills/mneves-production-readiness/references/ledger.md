@@ -82,7 +82,7 @@ directory (`.`, the repository root, for a single-unit repository); the reposito
   "schema": 1,
   "unit": ".",
   "target": "production",
-  "catalog": 1,
+  "catalog": 2,
   "commit": "0123456789abcdef0123456789abcdef01234567",
   "verdict": "ready",
   "open_blockers": 0,

@@ -30,14 +30,16 @@ Run the readiness-check tool. It assesses the current directory, so `cd` into th
 project first (`SKILLS` is the absolute clone root, two directories above this `SKILL.md`).
 The tool ships only in a full clone; without it, use the manual assessment and label that limit.
 Choose one output/mode for the requested deliverable; use `--help` for other flags.
-The tool runs the project's own build, test, lint, dependency and task-runner commands. The skip
-flags stop only the test and build runs, so assess only a repository you trust, or use a sandbox.
+The tool runs the project's own toolchain, which can execute code the repository controls. The
+skip flags skip only the test-run and build-verification checks; lint, type, dependency and
+task-listing checks still run (`mvn compile`, `./gradlew`, `cargo check`, `cargo clippy`), so
+assess only a repository you trust, or use a sandbox.
 
 ```bash
 cd /path/to/your/project
 bun --bun "$SKILLS/tools/readiness-check.ts"
 
-# Quick mode (no test or build runs; lint and task tools still run)
+# Quick mode (skips test-run and build checks; lint and dependency checks still run)
 bun --bun "$SKILLS/tools/readiness-check.ts" --skip-tests --skip-build
 
 # HTML dashboard
@@ -71,7 +73,7 @@ bun --bun "$SKILLS/tools/readiness-check.ts" --min-level=3
 ## Deliver
 
 Report assessed scope/source, mode, evidence, blocking gaps, and ranked smallest fixes. Include
-the report path and exit status when the tool ran. A static-only report is not runtime proof.
+the report path and exit status when the tool ran. A report run with the skip flags is not runtime proof.
 Stop when each requested assessment area has evidence or a precise blocker.
 
 When context-file guidance is a proposed fix, read

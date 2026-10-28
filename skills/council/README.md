@@ -32,7 +32,7 @@ If no supported member is available, Council returns a clearly marked solo, un-c
 
 Copyright (c) 2026 Kitze. Distributed under the [MIT License](LICENSE).
 
-Local changes are the concise metadata, privacy and host-authorization rules, private collision-resistant sessions, bounded prompts/rounds and supervised cleanup, capability-checked Claude/Codex/Cursor adapters (including the flags that keep a reviewed repository's own instructions from loading), explicit unsupported-member behavior, per-adapter read-scope wording instead of an isolation claim, and non-verification language. The independent-round and faithful-objection protocol remains the upstream idea.
+Local changes are the concise metadata, privacy and host-authorization rules, private collision-resistant sessions, bounded prompts/rounds and supervised cleanup, capability-checked Claude/Codex/Cursor adapters (including the Claude and Codex flags that keep a reviewed repository's own instructions from loading; Cursor has none, so it runs only on trusted repositories or the sanitized workspace), explicit unsupported-member behavior, per-adapter read-scope wording instead of an isolation claim, and non-verification language. The independent-round and faithful-objection protocol remains the upstream idea.
 
 ## Verification
 

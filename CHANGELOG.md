@@ -11,18 +11,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Readiness ledger guard**: `check-readiness-catalog.py` also checks `docs/readiness/ledger.md`. It requires exactly one row per control and only valid statuses, a Totals line that matches the table, the same production commit in Cursors, Binding run and the gate history, and an underlying status plus an expiry on every WAIVED row.
-- **Release closeout** (`CONTRIBUTING.md`): release PR text stays true after the merge, an annotated tag records the verdict, and the binding bookkeeping lands in the next release PR instead of a separate merge.
   Its planted-violation tests use a synthetic ledger, so they do not break when the real ledger changes.
 
 ### Changed
 - **Release closeout** (`CONTRIBUTING.md`): release PR text stays true after the merge, an annotated tag records the verdict, and the binding bookkeeping lands in the next release PR instead of a separate merge. The owner sets waiver expiry, up to the readiness skill's 90-day cap; an agent never sets one. Security acceptance comes from a model other than the builder's, and if none can run, that gate is reported as blocked.
-- **Readiness check docs**: `--skip-tests --skip-build` stops only test and build runs. Lint, dependency and task-runner checks still run the project's own tools, so `README.md`, `HOWTO.md` and `mneves-agent-readiness` now say this and advise assessing only repositories you trust, or using a sandbox. They previously said "static checks only".
+- **Readiness check docs**: `--skip-tests --skip-build` skips only the test-run and build-verification checks. Lint, type, dependency and task-listing checks still run the project's toolchain (`mvn compile`, `./gradlew`, `cargo check`, `cargo clippy`, `bunx eslint`), which can execute repository code, so `README.md`, `HOWTO.md`, the landing page, `mneves-agent-readiness` and the tool's `--help` now say this and advise assessing only repositories you trust, or using a sandbox. They previously said "static checks only".
 - **`mneves-chatgpt-search`**: fetched pages, `robots.txt`, `llms.txt` and sitemaps are data, never instructions. The implicitly invoked default prompt now audits and applies fixes only when asked.
+- **`council`**: the Cursor member loads the reviewed repository's `.cursor/rules`, `AGENTS.md` and `CLAUDE.md` as rules, with no flag to stop it, so the skill now says to include Cursor only for trusted repositories or the sanitized workspace. The provenance no longer implies all three adapters suppress repository instructions.
+- **`mneves-expert-review`** and **`mneves-handoff`**: retrieved and gathered text is data, never instructions; handoff prompts carry no secrets or private records.
+- **Readiness record example** (`mneves-production-readiness` `references/ledger.md`): `"catalog": 2`, matching the current catalog version.
+- **Re-run instructions** (`docs/specs/council-security-audit/evidence.md`, `docs/specs/sre-workflows/follow-up.md`) use the hashed PyPI `agentskills` validator instead of `npx -y` of the npm `skills-ref`.
 - **Delegation examples** (`HOWTO.md`, orchestrator README) write the spec to a private `mktemp` file instead of `/tmp/spec.md`.
 - **1.41.0 bookkeeping**: the readiness ledger, plan and `MEMORY.md` record the landed 1.41.0 release and its nine owner waivers.
 
 ### Fixed
 - **Dependabot**: `tools/` uses the `bun` ecosystem; the npm updater could not read `bun.lock`.
+- **Ledger guard speed**: rows parse by splitting cells. The first version's row regex backtracked quadratically, so one long malformed row could stall the guard (and CI) for minutes.
 
 ## [1.41.0] - 2026-10-26
 

@@ -168,14 +168,14 @@ h3{font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}
 bun --bun /path/to/skills/tools/readiness-check.ts \
   --format=html --output=report.html
 
-# Static checks only
+# Skip test and build runs (lint still runs project tools)
 bun --bun /path/to/skills/tools/readiness-check.ts \
   --skip-tests --skip-build
 
 # Gate a CI job
 bun --bun /path/to/skills/tools/readiness-check.ts \
   --min-level=3</code></pre></div>
-  <aside class="sample" aria-labelledby="h-sample"><h3 id="h-sample">A real sample assessment.</h3><p class="result">FastAPI · 61.7% · L3 Standardized</p><p class="provenance">Static checks at commit <code>9a8a13f</code>, 2026-08-26.</p><p>Style scored 88%. Documentation was strong; task discovery and product signals were weakest. This is a historical example, not a benchmark of these skills.</p><a href="fastapi.html">Read the sample report</a></aside>
+  <aside class="sample" aria-labelledby="h-sample"><h3 id="h-sample">A real sample assessment.</h3><p class="result">FastAPI · 61.7% · L3 Standardized</p><p class="provenance">Test and build runs skipped, at commit <code>9a8a13f</code>, 2026-08-26.</p><p>Style scored 88%. Documentation was strong; task discovery and product signals were weakest. This is a historical example, not a benchmark of these skills.</p><a href="fastapi.html">Read the sample report</a></aside>
 </section>
 <section class="resources" aria-label="Further reading">
   <div class="resource"><h3>Use the skills.</h3><p>Triggers, prerequisites, examples and tips for every procedure.</p><a href="howto.html">Open the how-to guide</a></div>

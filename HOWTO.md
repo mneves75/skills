@@ -646,17 +646,18 @@ cd ~/src/skills/tools && bun install
 cd /path/to/your-project
 bun --bun ~/src/skills/tools/readiness-check.ts                     # markdown to stdout
 bun --bun ~/src/skills/tools/readiness-check.ts --format=html --output=report.html
-bun --bun ~/src/skills/tools/readiness-check.ts --skip-tests --skip-build   # no test or build runs, fast
+bun --bun ~/src/skills/tools/readiness-check.ts --skip-tests --skip-build   # skips test-run and build checks only
 bun --bun ~/src/skills/tools/readiness-check.ts --min-level=3       # exit 1 below L3, for CI
 bun --bun ~/src/skills/tools/readiness-check.ts --app packages/api  # one app in a monorepo
 ```
 
-`--help` lists the rest (`--format json`, `--scoring strict|average`, `--language`). Even with
-both skip flags, the lint, dependency and task-runner checks run the project's own tools
-(`./gradlew`, `cargo clippy`, `bunx eslint` and similar), so only assess repositories you trust,
-or run the tool in a sandbox.
+`--help` lists the rest (`--format json`, `--scoring strict|average`, `--language`).
+The skip flags skip only the test-run and build-verification checks. Lint, type, dependency
+and task-listing checks still run the project's toolchain (`mvn compile`, `./gradlew`,
+`cargo check`, `cargo clippy`, `bunx eslint` and similar), which can execute code the
+repository controls, so assess only repositories you trust, or run the tool in a sandbox.
 
-**Example** (real run, 2026-08-26). Against FastAPI (`9a8a13f`, static checks) the tool reports L3 at 61.7%:
+**Example** (real run, 2026-08-26). Against FastAPI (`9a8a13f`, `--skip-tests --skip-build`) the tool reports L3 at 61.7%:
 Style 88%, strong documentation, weaker on task discovery and product signals. The
 [live report](https://mneves75.github.io/skills/fastapi.html) shows the full breakdown.
 
