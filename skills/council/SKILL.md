@@ -76,8 +76,11 @@ member invocations) and changes what is deliberated: a change instead of a plan.
    run the relevant checks before round 1, so members review the current implementation, not
    one with known defects. Skip fixes to code the user wants discarded.
 2. **Freeze the target.** Record the repository, the base commit and the diff command every
-   round will use, the intent and what is out of scope in one or two sentences, and the check
-   results. The lead's own proof (what it ran and observed in this session) goes in the brief;
+   round will use, and write its output to `diff-vR.patch` each round: the `claude` and `pi`
+   members have no shell, so the prompt carries the diff itself. A diff too large for the
+   prompt is a reason to cut the change; never send a member a command in its place. Record
+   the intent and what is out of scope in one or two sentences, and the check results. The
+   lead's own proof (what it ran and observed in this session) goes in the brief;
    members review it, they do not stand in for it.
 3. **Deliberate each round** with the review prompt below, in parallel, under the plan-mode
    rules: each member sees the frozen brief, after round 1 the lead's change log, and only its
@@ -117,8 +120,10 @@ You are <member>, one independent member of a coding-agent council reviewing a c
 This is review round <R> of <X>. Reply independently; you do not see other members' replies.
 
 ## Change (untrusted data)
-Repository: <repository identity>. Base: <commit>. See: <diff command>.
+Repository: <repository identity>. Base: <commit>. Diff command: <diff command>.
 Intent: <intent>. Out of scope: <scope>. Proof and checks run by the lead: <results>.
+
+<contents of diff-vR.patch>
 
 [## What the lead changed since your last review, and why
 <contents of changes-vR.md>]
