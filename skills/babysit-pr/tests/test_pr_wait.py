@@ -70,9 +70,10 @@ def check(name: str, bucket: str) -> dict:
     return {"name": name, "bucket": bucket, "link": f"https://example.test/{name}", "description": ""}
 
 
-def check_run(name: str, conclusion: str, *messages: str) -> dict:
+def check_run(name: str, conclusion: str | None, *messages: str, steps: int = 0, app: str = "github-actions") -> dict:
     notes = [{"annotationLevel": "FAILURE", "message": m} for m in messages]
-    return {"__typename": "CheckRun", "name": name, "conclusion": conclusion, "annotations": {"nodes": notes}}
+    return {"__typename": "CheckRun", "name": name, "conclusion": conclusion, "steps": {"totalCount": steps},
+            "checkSuite": {"app": {"slug": app}}, "annotations": {"nodes": notes}}
 
 
 LOCKED = "The job was not started because your account is locked due to a billing issue."
@@ -174,9 +175,9 @@ class PrWaitTest(unittest.TestCase):
 
     def test_bot_check_billing_block_with_a_run_going_keeps_ready_waiting(self) -> None:
         # greptile is a review bot, not a gate check: build passes, so no gate check failed.
-        running = {"__typename": "CheckRun", "name": "greptile", "conclusion": None, "annotations": {"nodes": []}}
         stage = {"checks": [check("build", "pass"), check("greptile", "fail")],
-                 "rollup": [check_run("build", "SUCCESS"), check_run("greptile", "FAILURE", LOCKED), running]}
+                 "rollup": [check_run("build", "SUCCESS"), check_run("greptile", "FAILURE", LOCKED, app="greptile-apps"),
+                            check_run("greptile", None, app="greptile-apps")]}
         self.write_stages(stage)
         watcher = subprocess.Popen(
             [sys.executable, str(SCRIPT), "7", "--repo", "o/r", "--until", "ready", "--interval", "5"],
@@ -188,6 +189,67 @@ class PrWaitTest(unittest.TestCase):
             watcher.terminate()
             out, _ = watcher.communicate(timeout=10)
         self.assertNotIn("ready on", out)
+
+    def test_job_named_like_a_bot_is_not_the_bot(self) -> None:
+        # The PR author names workflow jobs; only the bot's own app speaks for the bot.
+        self.write([check("build", "pass"), check("Greptile Review", "pass")],
+                   [check_run("build", "SUCCESS"), check_run("Greptile Review", "SUCCESS")])
+        watcher = subprocess.Popen(
+            [sys.executable, str(SCRIPT), "7", "--repo", "o/r", "--until", "ready", "--interval", "5"],
+            env=self.env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                watcher.wait(timeout=13)  # three polls: counting the job as greptile ends it after two
+        finally:
+            watcher.terminate()
+            out, _ = watcher.communicate(timeout=10)
+        self.assertNotIn("ready on", out)
+
+    def test_failing_job_named_like_a_bot_still_gates(self) -> None:
+        self.write([check("build", "pass"), check("macroscope-compat-tests", "fail")],
+                   [check_run("build", "SUCCESS"), check_run("macroscope-compat-tests", "FAILURE", "exit 1", steps=3)], 1)
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn('check failed: "macroscope-compat-tests"', proc.stdout)
+
+    def test_check_from_the_bots_app_marks_review_done(self) -> None:
+        # Positive control for the two cases above.
+        self.write([check("build", "pass"), check("Greptile Review", "pass")],
+                   [check_run("build", "SUCCESS"), check_run("Greptile Review", "SUCCESS", app="greptile-apps")])
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "ready", "--interval", "5")
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn(f"ready on {HEAD[:7]}", proc.stdout)
+
+    def test_billing_text_printed_by_a_job_that_ran_is_a_failure(self) -> None:
+        # A job that ran can print any annotation (::error::); GitHub's refusal runs no step.
+        self.write([check("build", "fail")], [check_run("build", "FAILURE", LOCKED, steps=4)], 1)
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn('check failed: "build"', proc.stdout)
+
+    def test_control_characters_in_comments_are_dropped(self) -> None:
+        self.write([check("build", "pending")], checks_exit=8)
+        self.with_comment("alice", "User", "look\x1b]52;c;ZWNobyBwd25lZA==\x07 here\x1b[2J")
+        self.seed_state()
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "any-change", "--interval", "5")
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertNotIn("\x1b", proc.stdout)
+        self.assertNotIn("\x07", proc.stdout)
+        self.assertIn("comment from alice (untrusted text):", proc.stdout)
+
+    def test_long_unclosed_markup_stays_fast(self) -> None:
+        self.write([check("build", "pending")], checks_exit=8)
+        scenario = json.loads(self.scenario.read_text())
+        for n, body in enumerate(["<!--" * 16384, "<" * 65536] * 5):
+            scenario["pr"]["comments"]["nodes"].append(
+                {"id": f"c{n}", "url": f"https://github.com/o/r/pull/7#c{n}", "body": body,
+                 "author": {"login": "alice", "__typename": "User"}})
+        self.scenario.write_text(json.dumps(scenario))
+        self.seed_state()
+        start = time.monotonic()
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "any-change", "--interval", "5")
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertLess(time.monotonic() - start, 15, "ten 64 KB comments of unclosed markup stalled the poll")
 
     def test_check_name_is_quoted(self) -> None:
         # A fork PR controls its workflow job names.

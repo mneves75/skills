@@ -82,8 +82,9 @@ A check GitHub refused to start because of a billing or spending-limit problem
 is not a code failure. GitHub reports it only as a failed check run with no
 steps and a failure annotation that starts "The job was not started because"
 and names billing, failed payments or the spending limit; `gh pr checks` cannot
-tell it apart. `pr-wait` reads those annotations and reports such a check as
-billing-blocked instead of failed. Do not wait on it or retry it: run the same
+tell it apart. `pr-wait` reads those annotations and the step count, and reports such
+a check as billing-blocked instead of failed; a job that ran a step and printed the
+same words is still a failure. Do not wait on it or retry it: run the same
 checks locally, record their output as the proof, and say plainly that CI was
 skipped and why. Without `pr-wait`, read the annotations with
 `gh api repos/<owner>/<repo>/check-runs/<id>/annotations`.
@@ -141,6 +142,7 @@ wait for green again.
 Adapted from [tstack `babysit-pr` at revision `1085050f`](https://github.com/t3dotgg/tstack/tree/1085050f3baed1ac724caa4a8166145fb2ac88af/skills/babysit-pr).
 Copyright (c) 2026 Theo Browne; distributed under the [MIT License](LICENSE). Local changes:
 Agent Skills metadata; `pr-wait` reports billing-blocked checks instead of failing on them,
-counts a review bot only when GitHub types its author as a Bot, quotes and marks untrusted
-comment text in its events, and states its Python floor; an end-to-end test against a fake `gh`; proof for each fix; and a
+counts a review bot only when GitHub types its author as a Bot and a bot check only when the
+bot's own app reports it, quotes and marks untrusted comment text in its events (with control
+characters dropped and markup stripped in linear time), times out each `gh` call, and states its Python floor; an end-to-end test against a fake `gh`; proof for each fix; and a
 fallback for the comment-format sibling.
