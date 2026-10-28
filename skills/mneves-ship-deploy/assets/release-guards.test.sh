@@ -684,6 +684,11 @@ vl_expect() { # <name> <exit code> <text> -- <args>
 vl_expect "verify-live without a target prints usage" 2 "usage:" --
 serve "$STAGING_URL" "$sha" staging
 vl_expect "verify-live passes on a healthy target (control)" 0 "all assertions passed" -- staging
+# A json.py in the checkout root must not replace the standard library in the health-body reader.
+printf 'open("%s", "a").write("json.py ran\\n")\n' "$tmp/shadow-marker" > "$work/json.py"
+vl_expect "verify-live ignores a json.py in the checkout" 0 "all assertions passed" -- staging
+check "verify-live never runs a json.py from the checkout" test ! -s "$tmp/shadow-marker"
+rm "$work/json.py"
 export EXPECT_COMMIT="${sha:0:7}"
 vl_expect "verify-live accepts a released commit given as a short id" 0 "all assertions passed" -- staging
 export EXPECT_COMMIT="1111111111111111111111111111111111111111"
