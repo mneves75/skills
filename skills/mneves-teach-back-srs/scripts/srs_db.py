@@ -346,20 +346,22 @@ def list_sessions() -> list[dict]:
     return [dict(r) for r in rows]
 
 
+def csv_cell(value: str | None) -> str:
+    """Quote one CSV text cell; a leading formula character gets a ' so spreadsheets show it as text."""
+    text = value or ""
+    if text[:1] in ("=", "+", "-", "@", "\t", "\r"):
+        text = "'" + text
+    return '"' + text.replace('"', '""') + '"'
+
+
 def export_cards(fmt: str = "md") -> str:
     """Export all active cards in markdown or CSV format."""
     cards = list_cards()
     if fmt == "csv":
         lines = ["question,answer,context,tags,difficulty,ease_factor,interval_days,repetitions"]
         for c in cards:
-            q = c["question"].replace('"', '""')
-            a = c["answer"].replace('"', '""')
-            ctx = (c["context"] or "").replace('"', '""')
-            tags = (c["tags"] or "").replace('"', '""')
-            lines.append(
-                f'"{q}","{a}","{ctx}","{tags}",'
-                f'"{c["difficulty"]}",{c["ease_factor"]},{c["interval_days"]},{c["repetitions"]}'
-            )
+            text = ",".join(csv_cell(c[k]) for k in ("question", "answer", "context", "tags", "difficulty"))
+            lines.append(f'{text},{c["ease_factor"]},{c["interval_days"]},{c["repetitions"]}')
         return "\n".join(lines)
     else:
         lines = ["# SRS Cards Export\n"]

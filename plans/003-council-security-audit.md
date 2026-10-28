@@ -1,5 +1,9 @@
 # Council and security-audit integration
 
+> Validator note (2026-10-28): the `skills-ref` commands below record what ran at the time. The
+> npm `skills-ref` is an unrelated individual's package; since 1.41.0 validate with the hashed
+> PyPI reference validator (`agentskills validate`, see `AGENTS.md` Commands).
+
 This ExecPlan is a living document. Update `Progress`, `Surprises & Discoveries`, `Decision Log`, and `Outcomes & Retrospective` as evidence changes. A new contributor must be able to resume from the repository and this file.
 
 ## Purpose / Big Picture
@@ -19,8 +23,8 @@ The observable result is that `npx skills@latest add . --list` discovers `counci
 - [x] (2026-10-23) Structural gates: skill layout, `skills-ref validate` on all 17 skills, `npx skills add --list` discovery, both Cloudflare suites (34 + 31 tests), `ast-grep`, Python syntax, `build-site.sh` + `build-site.test` (38 controls), defaults guard + its planted controls, readiness catalog + its 14 planted violations, Python and Node package tests, hook, `codex-lane`, ship-deploy contract (173 tests), release guards, SRS, render AST and starters (8 + 10 tests), autoreview (345 tests), `sync-pstack.test` (39 checks).
 - [x] (2026-10-23) Real-browser check of the seventeen-card site at 1440x900 and 390x844, including the copy control's three scenarios and both new guide anchors; transcript kept in ignored `.scratch/evidence/browser-ea2169e.log` naming its candidate.
 - [x] (2026-10-23) Adversarial review and independent verification produced the findings recorded in [the findings record](../docs/specs/council-security-audit/evidence.md); each row names the commit that carries its fix, and that record makes no claim about who reviewed the work or what verdict was issued.
-- [ ] Production security gate and independent acceptance. Their findings and dispositions are in the same evidence file; the per-candidate verdict and the accepting commit are release evidence, recorded in the ignored gate record and the tag message rather than restated here. Each defect found on shipped text was fixed in a commit, except the CI flake, which a rerun of the same tree disproved.
-- [ ] Merge, tag and prove the live site only after the gate verdict and the acceptance pass; the owner's five dated control waivers expire 2026-10-25T23:59:59Z.
+- [x] (2026-10-24) Production security gate and independent acceptance. Their findings and dispositions are in the same evidence file; the per-candidate verdict and the accepting commit are release evidence, recorded in the ignored gate record and the tag message rather than restated here. Each defect found on shipped text was fixed in a commit, except the CI flake, which a rerun of the same tree disproved.
+- [x] (2026-10-24) Merge, tag and prove the live site only after the gate verdict and the acceptance pass; the owner's five dated control waivers expired 2026-10-25T23:59:59Z. Released as 1.40.0 (`b62072e`, tag `v1.40.0`); later waivers live in each release's gate record and tag message.
 
 ## Surprises & Discoveries
 

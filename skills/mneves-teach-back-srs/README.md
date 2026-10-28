@@ -86,6 +86,9 @@ python3 $SCRIPT sessions                          # List sessions
 python3 $SCRIPT export --format csv               # Anki-compatible export
 ```
 
+In CSV, a text cell that starts with `=`, `+`, `-`, `@`, a tab or a carriage return gets a leading
+`'`, so a spreadsheet shows it as text instead of running it as a formula (`-2` exports as `'-2`).
+
 ## Card Quality
 
 Cards follow these principles:

@@ -18,7 +18,8 @@ prefer git, clone the repo into your agent's skills directory; the README has th
 skill never shows up in your agent, it was probably not linked; the README's "Check the install"
 lists what each agent directory is missing.
 
-The readiness tool runs locally. An image-generation skill may send prompts and authorized
+The readiness tool runs locally and runs the assessed project's own build, lint and test tools,
+so point it only at repositories you trust. An image-generation skill may send prompts and authorized
 references to the image provider configured in your agent. Autoreview sends authorized review
 inputs to the selected review provider after scanning them for credentials.
 
@@ -380,7 +381,7 @@ you wrote in.
 **Audience levels.** `child`, `layperson`, `executive`, `junior`, `expert`. Name one if you
 care; otherwise the agent infers it and says which it picked.
 
-**Example** (recorded 2026-08-26, `claude -p` on claude-fable-5, verbatim).
+**Example** (recorded 2026-08-26 with `claude -p` on that date's Claude review model, verbatim).
 
 > **You:** Use the mneves-eli5 skill. Explain what a database index is to a product manager.
 >
@@ -421,7 +422,7 @@ version, a migration plan gets the full pass.
 "stress-test", "revisão rigorosa", "melhor solução", or before any high-stakes plan, design,
 recommendation or architecture decision.
 
-**Example** (recorded 2026-08-26, `claude -p` on claude-fable-5, verbatim; the prompt asked for under 400 words).
+**Example** (recorded 2026-08-26 with `claude -p` on that date's Claude review model, verbatim; the prompt asked for under 400 words).
 
 > **You:** Use the mneves-expert-review skill. Challenge this plan and return the improved version: "We will move user sessions from Redis to Postgres to cut one piece of infrastructure. Steps: 1) add a sessions table, 2) change the auth middleware to read/write Postgres, 3) run a script that copies live Redis keys into the table and deletes them from Redis, 4) turn off Redis. Session reads are rare so performance is not a concern."
 >
@@ -509,10 +510,10 @@ convene the council on this migration plan — two rounds
   where a member that folded early has to defend its answer against the revision.
 - Decide what context may leave your machine before you council a private task. The prompt-only
   mode exists for that, and it does not remove the provider disclosure.
-- Independence here is a protocol rule, not an operating-system sandbox: no adapter limits a
-  member's reads to the working directory, so treat a member as able to read anything you can.
-  What the run controls is what each member is given — never another member's reply, never the
-  session path.
+- Independence here is a protocol rule, not an operating-system sandbox: only Claude's restricted
+  mode confines its file tools to the working directories, and Codex and pi can read anything
+  you can, so treat every member as able to read anything you can. What the run controls is what
+  each member is given — never another member's reply, never the session path.
 - Pair it with `mneves-verify` once the plan becomes a change: the council argues about the plan,
   the verifier checks the artifact.
 
@@ -692,8 +693,8 @@ checked for saying what the claim says. Security: an independent audit.
 
 ```
 Verdict: FAIL
-Builder: claude-fable-5 / Edit, Bash / session 3f2a
-Verifier: gpt-6.1-sol / xhigh reasoning / read-only sandbox / fresh context
+Builder: <builder model id> / Edit, Bash / session 3f2a
+Verifier: <verifier model id> / xhigh reasoning / read-only sandbox / fresh context
 Different model required: yes (touches billing)
 Different model used: yes
 Criterion 1 — refund endpoint rejects amounts above the original charge: PASS — 3 unit tests + curl with 101% amount returned 422

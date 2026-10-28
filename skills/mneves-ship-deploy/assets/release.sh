@@ -123,7 +123,7 @@ waiver_reason() { printf '%s' "$waivers" | awk -F= -v g="$1" '$1 == g { sub(/^[^
 # JSON object or names a top-level key twice (a JSON reader would silently keep only one of the two).
 # verify-live.sh carries the same reader.
 json_fields() {
-  printf '%s' "$1" | python3 -c '
+  printf '%s' "$1" | python3 -I -c '
 import json, sys
 
 class Pairs(list):

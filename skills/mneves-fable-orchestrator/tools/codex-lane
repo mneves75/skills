@@ -165,7 +165,8 @@ require_lane() {
 
 json_field() {
   # json_field <file> <key> — top-level string value for <key>, "" if absent.
-  python3 - "$1" "$2" <<'PY'
+  # Every helper runs with -I: the cwd is the lane workspace, whose json.py must never load.
+  python3 -I - "$1" "$2" <<'PY'
 import json,sys
 try:
     with open(sys.argv[1]) as fh:
@@ -177,7 +178,7 @@ PY
 
 json_args() {
   # json_args <file> — the stored codex args, one NUL-terminated element each.
-  python3 - "$1" <<'PY'
+  python3 -I - "$1" <<'PY'
 import json,sys
 try:
     with open(sys.argv[1]) as fh:
@@ -189,7 +190,7 @@ PY
 }
 
 thread_id_from_jsonl() {
-  python3 - "$1" <<'PY'
+  python3 -I - "$1" <<'PY'
 import json,sys
 for line in open(sys.argv[1], errors="replace"):
     try:
@@ -205,7 +206,7 @@ PY
 
 write_lane() {
   # write_lane <lane> <thread_id> <cwd> <events> <last> [codex args...]
-  python3 - "$(lane_file "$1")" "$@" <<'PY'
+  python3 -I - "$(lane_file "$1")" "$@" <<'PY'
 import json, os, sys, tempfile
 path, lane, tid, cwd, events, last = sys.argv[1:7]
 state = {"lane": lane, "thread_id": tid, "cwd": cwd, "events": events,
@@ -298,7 +299,7 @@ create_exclusive() {
   # path (a leftover file, a planted symlink, a FIFO that would block a plain
   # redirect) is refused instead of being followed, truncated, or waited on.
   # bash's `noclobber` only rejects existing REGULAR files, so it is not enough.
-  python3 - "$@" <<'PY' || die "refusing to create an artifact that already exists (see message above)"
+  python3 -I - "$@" <<'PY' || die "refusing to create an artifact that already exists (see message above)"
 import os, sys
 flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
 for path in sys.argv[1:]:
@@ -317,7 +318,7 @@ init_lane_dir() {
   # directory that grants group or other users ANY access is refused rather
   # than silently used (artifacts are 0600, but names and the tree are not).
   if [ -d "$LANE_DIR" ]; then
-    python3 - "$LANE_DIR" <<'PY' || die "lane dir grants group/other access: $LANE_DIR (transcripts live here; chmod 700 it or point CODEX_LANE_DIR elsewhere)"
+    python3 -I - "$LANE_DIR" <<'PY' || die "lane dir grants group/other access: $LANE_DIR (transcripts live here; chmod 700 it or point CODEX_LANE_DIR elsewhere)"
 import os, sys
 sys.exit(0 if (os.stat(sys.argv[1]).st_mode & 0o077) == 0 else 1)
 PY

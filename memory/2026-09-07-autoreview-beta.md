@@ -1,5 +1,9 @@
 # Autoreview beta review and release
 
+> Validator note (2026-10-28): the `skills-ref` commands below record what ran at the time. The
+> npm `skills-ref` is an unrelated individual's package; since 1.41.0 validate with the hashed
+> PyPI reference validator (`agentskills validate`, see `AGENTS.md` Commands).
+
 Scope: import and harden the portable autoreview skill. Baseline collection commit:
 `fabfb7463429c0943220f3312152c63945f5e506`. Upstream source:
 `openclaw/agent-skills@3e9f33968ac732aa2fa7873e9dfc5823b5216c49`.

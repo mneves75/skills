@@ -95,6 +95,21 @@ The owner answered the open decisions: a full audit, then merge; waivers to the 
   row with no closing pipe. Rows now parse from split cells, and a timing case (20,000-space row,
   3 s limit) failed before the fix.
 
+## Round three (2026-10-28, owner: "fix all, improve all")
+
+The gate on `a7c52a6` found one new candidate and several hardening notes; the owner asked to fix
+all of them rather than defer the sub-High ones to the next release:
+
+- **`codex-lane` workspace import:** its `python3 -` helpers ran in the lane workspace, so a
+  `json.py` there ran outside the Codex sandbox. Every helper now uses `python3 -I`; the reference
+  `release.sh` and `verify-live.sh` health readers do too.
+- **Quadratic patterns** in four author-controlled parsers, each with a timing test that failed
+  first; landing changelog dates are escaped.
+- **readiness-check** runs `bunx --no-install`, so it never downloads a linter, and every
+  published surface carries the trust caveat.
+- **SEC-15 stays a platform limit:** GitHub Pages cannot send HSTS, `nosniff` or frame headers,
+  and `github.io` is not HSTS-preloaded. The choice is the owner's: waive it or move hosting.
+
 ## Rejected alternatives
 
 - **Skip Pages publication when `site/` bytes are unchanged.** This would remove the gate from

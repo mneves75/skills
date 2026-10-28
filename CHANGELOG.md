@@ -35,8 +35,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Release closeout** (`CONTRIBUTING.md`): release PR text stays true after the merge, an annotated tag records the verdict, and the binding bookkeeping lands in the next release PR instead of a separate merge. The owner sets waiver expiry, up to the readiness skill's 90-day cap; an agent never sets one. Security acceptance comes from a model other than the builder's, and if none can run, that gate is reported as blocked.
 - **Readiness check docs**: `--skip-tests --skip-build` skips only the test-run and build-verification checks. Lint, type, dependency and task-listing checks still run the project's toolchain (`mvn compile`, `./gradlew`, `cargo check`, `cargo clippy`, `bunx eslint`), which can execute repository code, so `README.md`, `HOWTO.md`, the landing page, `mneves-agent-readiness` and the tool's `--help` now say this and advise assessing only repositories you trust, or using a sandbox. They previously said "static checks only".
 - **`mneves-chatgpt-search`**: fetched pages, `robots.txt`, `llms.txt` and sitemaps are data, never instructions. The implicitly invoked default prompt now audits and applies fixes only when asked.
-- **`council`**: the Cursor member loads the reviewed repository's `.cursor/rules`, `AGENTS.md` and `CLAUDE.md` as rules, with no flag to stop it, so the skill now says to include Cursor only for trusted repositories or the sanitized workspace. The provenance no longer implies all three adapters suppress repository instructions.
+- **`council`**: the Cursor member loads the reviewed repository's `.cursor/rules`, `AGENTS.md` and `CLAUDE.md` as rules, with no flag to stop it. By default Cursor now joins only when the user confirms the repository is trusted or the run uses the sanitized workspace, and the provenance no longer implies all three adapters suppress repository instructions. `HOWTO.md` states which adapters confine reads (only Claude's restricted mode).
 - **`mneves-expert-review`** and **`mneves-handoff`**: retrieved and gathered text is data, never instructions; handoff prompts carry no secrets or private records.
+- **`imagegen-frontend-mobile`**: a private or unreleased reference goes to the image service only after the user authorizes that service for it.
+- **Readiness trust caveat on every surface**: the landing page, `site/README.md`, the `HOWTO.md` overview and `--help` now say the assessor runs the assessed project's own tools, including the task-listing check, and to assess only repositories you trust.
+- **CI time limits**: every CI and Pages job has `timeout-minutes`, so a hung step fails the run instead of holding a runner for six hours.
+- **`SECURITY.md`** describes each page's actual Content-Security-Policy and records that `github.io` is not on the browsers' HSTS preload list.
+- **Model ids in prose**: `HOWTO.md` examples and the production-readiness spec name roles instead of model ids, as 1.41.0 intended.
+- **Historical records** (`plans/`, older specs, the autoreview beta memory) carry a note that their `npx skills-ref` commands record what ran, and point to the hashed PyPI validator; `plans/003` records the 1.40.0 release it was waiting for.
+- **Access review (partial), 2026-10-28**: collaborators are unchanged since 2026-10-16 (the maintainer as admin and the maintainer's second account with write access); the repository has no deploy keys, pending invitations, Actions secrets or webhooks. OAuth and GitHub App grants and personal access tokens cannot be listed from the repository API and remain the maintainer's check.
 - **Readiness record example** (`mneves-production-readiness` `references/ledger.md`): `"catalog": 2`, matching the current catalog version.
 - **Re-run instructions** (`docs/specs/council-security-audit/evidence.md`, `docs/specs/sre-workflows/follow-up.md`) use the hashed PyPI `agentskills` validator instead of `npx -y` of the npm `skills-ref`.
 - **Delegation examples** (`HOWTO.md`, orchestrator README) write the spec to a private `mktemp` file instead of `/tmp/spec.md`.
@@ -44,7 +51,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **Dependabot**: `tools/` uses the `bun` ecosystem; the npm updater could not read `bun.lock`.
-- **Ledger guard speed**: rows parse by splitting cells. The first version's row regex backtracked quadratically, so one long malformed row could stall the guard (and CI) for minutes.
+- **Ledger guard speed**: rows parse by splitting cells, and the Totals row count starts only at a digit run. The first version's patterns backtracked quadratically, so one long malformed line could stall the guard (and CI) for minutes.
+- **`codex-lane` ran workspace Python outside the sandbox** (security): its state helpers ran `python3 -` in the lane workspace, so a `json.py` or `tempfile.py` there (committed in the reviewed repository, or written by the sandboxed model) ran unsandboxed as the user. Every helper now runs with `python3 -I`, and `codex-lane.test` plants both modules.
+- **Reference `release.sh` and `verify-live.sh`** read health bodies with `python3 -I`, so a `json.py` in the checkout cannot replace the standard library; `release-guards.test.sh` plants one for each script.
+- **readiness-check never downloads a linter**: the Biome and ESLint checks run `bunx --no-install`, so a missing linter fails the check instead of fetching an unpinned package from the registry.
+- **Quadratic patterns on author-controlled text**: the pyproject section header (`pyproject.ts`), the release contract check's script-name search, and the landing changelog's link pattern no longer backtrack quadratically; each has a timing test that failed before the fix.
+- **Landing changelog dates are HTML-escaped** (`changelog-rows.py`).
+- **SRS CSV export** prefixes a cell that starts with `=`, `+`, `-`, `@`, tab or carriage return with `'`, so a spreadsheet shows it as text instead of evaluating it (the skill README says so).
 
 ## [1.41.0] - 2026-10-26
 

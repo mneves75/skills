@@ -120,13 +120,17 @@ with tempfile.TemporaryDirectory(prefix="catalog-tests.", dir=root / ".scratch")
     (tree / spec).parent.mkdir(parents=True)
     shutil.copy2(root / spec, tree / spec)
     (tree / ledger).parent.mkdir(parents=True)
-    (tree / ledger).write_text(synthetic_ledger() + "| DM-99 |" + " " * 20000 + "\n")
-    try:
-        subprocess.run([sys.executable, str(guard), str(tree)], capture_output=True, timeout=3)
-        print("PASS long row within 3 s")
-    except subprocess.TimeoutExpired:
-        failures += 1
-        print("FAIL long row: guard exceeded 3 s")
+    # A long digit run in a Totals line must not stall the rows count either.
+    base = synthetic_ledger()
+    totals = next(line for line in base.splitlines() if line.startswith("Totals:"))
+    for name, text in (("long row", base + "| DM-99 |" + " " * 20000 + "\n"), ("long Totals digits", base.replace(totals, "Totals: " + "0" * 60000))):
+        (tree / ledger).write_text(text)
+        try:
+            subprocess.run([sys.executable, str(guard), str(tree)], capture_output=True, timeout=3)
+            print(f"PASS {name} within 3 s")
+        except subprocess.TimeoutExpired:
+            failures += 1
+            print(f"FAIL {name}: guard exceeded 3 s")
 if failures:
     print(f"readiness catalog tests FAILED ({failures})")
     sys.exit(1)

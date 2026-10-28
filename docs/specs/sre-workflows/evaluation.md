@@ -1,5 +1,9 @@
 # SRE workflows: evaluation record
 
+> Validator note (2026-10-28): the `skills-ref` commands below record what ran at the time. The
+> npm `skills-ref` is an unrelated individual's package; since 1.41.0 validate with the hashed
+> PyPI reference validator (`agentskills validate`, see `AGENTS.md` Commands).
+
 Companion to [spec.md](spec.md). It defines synthetic cases that compare a prompt-only run
 (the matching template in `docs/sre-prompts.md`, no skill installed) with a candidate run (the
 same prompt with the skill installed and discoverable). Every input is original and synthetic;

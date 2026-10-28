@@ -1,5 +1,9 @@
 # Plan 001: Rename and verify the Markdown renderer skill
 
+> Validator note (2026-10-28): the `skills-ref` commands below record what ran at the time. The
+> npm `skills-ref` is an unrelated individual's package; since 1.41.0 validate with the hashed
+> PyPI reference validator (`agentskills validate`, see `AGENTS.md` Commands).
+
 ## What the review changes
 
 The first delivery was a useful procedure, but its one-page happy-path evidence did not
