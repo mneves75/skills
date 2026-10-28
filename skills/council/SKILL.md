@@ -77,11 +77,13 @@ member invocations) and changes what is deliberated: a change instead of a plan.
    one with known defects. Skip fixes to code the user wants discarded.
 2. **Freeze the target.** Record the repository, the base commit and the diff command every
    round will use, and write its output to `diff-vR.patch` each round: the `claude` and `pi`
-   members have no shell, so the prompt carries the diff itself. A diff too large for the
-   prompt is a reason to cut the change; never send a member a command in its place. Record
-   the intent and what is out of scope in one or two sentences, and the check results. The
-   lead's own proof (what it ran and observed in this session) goes in the brief;
-   members review it, they do not stand in for it.
+   members have no shell, so the prompt carries the diff itself. That is repository content:
+   review mode needs the user's authorization to disclose it to every selected provider, and
+   stops without it, because no sanitized brief can stand in for the code. A diff too large
+   for the prompt is a reason to cut the change; never send a member a command in its place.
+   Record the intent and what is out of scope in one or two sentences, and the check results.
+   The lead's own proof (what it ran and observed in this session) goes in the brief; members
+   review it, they do not stand in for it.
 3. **Deliberate each round** with the review prompt below, in parallel, under the plan-mode
    rules: each member sees the frozen brief, after round 1 the lead's change log, and only its
    own previous reply. A missed reply is recorded, never counted as approval.
