@@ -465,15 +465,20 @@ other's replies; after round one each is shown only the lead's changes and its o
 reply, which is what keeps the answers from converging on the first opinion. You get the final
 plan plus a faithful account of the objections, failures and skipped members.
 
+Ask it to review a change instead and it runs **review mode**: each member reviews the current
+implementation independently and scores it out of 10, the lead fixes what it agrees with between
+rounds, and the run stops when every member answers SHIP IT or the round cap (default three)
+ends. The score table goes into the PR description. Reaching the cap is not approval.
+
 Council is advice, not evidence. Agreement between members is not correctness, a test suite, an
 independent verifier, or a deploy gate.
 
 **Triggers.** "council", "convene the council", "two rounds of deliberation on this plan", "get
-a second opinion before I commit to this design". Not for ordinary delegation, code review, or
-verification — those have their own skills.
+a second opinion before I commit to this design", "council review this PR". Not for ordinary
+delegation or verification — those have their own skills.
 
 **Prerequisites.** Bash, a private writable directory for the session, at least one authenticated
-member CLI among Claude, Codex and Cursor, and your authorization to send the task and the
+member CLI among Claude, Codex and pi, and your authorization to send the task and the
 selected context to those providers. Members are capability-checked first: a missing binary, a
 missing flag, or an untrusted workspace is a skip, not a reason to add a bypass flag. When no
 member survives the check, the skill says so and returns your solo plan marked **un-counciled**
@@ -512,6 +517,158 @@ convene the council on this migration plan — two rounds
   the verifier checks the artifact.
 
 Procedure: [SKILL.md](skills/council/SKILL.md).
+
+---
+
+## full-stop
+
+**What it does.** Takes a change from its current state to a pull request that is ready for you
+to merge, while you are not watching: it finishes the change, proves it, has a reviewer that did
+not build it review the diff, files the PR, watches CI and review bots, fixes real findings, and
+stops at the merge gate. It never merges, enables auto-merge or enters a merge queue.
+
+**Triggers.** "full stop", including a closing "Full stop." that reads like emphasis. Nothing
+else grants this autonomy.
+
+**Prerequisites.** Git, an authenticated GitHub CLI (`gh`), and the repository's own checks.
+The sibling skills `autoreview`, `babysit-pr` and `leaving-pr-comments` sharpen the review,
+watching and comment steps when installed; each has a written fallback.
+
+**Example** (illustrative).
+
+```
+fix the flaky date parsing in the invoice export. full stop.
+```
+
+1. It branches off the default branch, reproduces the failure, makes the smallest fix and watches
+   the same reproduction pass; it adds one test that fails without the fix.
+2. A reviewer that did not build the change reviews the diff for up to three rounds. A ledger
+   records each finding as fixed, disproved or declined; a finding that would only grow the PR
+   becomes a named follow-up.
+3. It opens a real PR whose description starts with the problem, then the fix, then one line on
+   how it was proved, and ends with the model and harness that made it.
+4. It waits on CI and review bots, fixes what is real, and proves each fix before pushing.
+5. When the merge gate passes it reports the PR link, head, proof, ledger and every decision it
+   made for you, and leaves the PR open.
+
+**Tips.**
+- A check GitHub refused to start because of a billing or spending-limit problem is not a code
+  failure: it runs the same checks locally and says CI was skipped and why.
+- When it must ask, it asks through the harness's question tool so the thread shows it is
+  waiting; with no answer it leaves the PR open and unmerged.
+
+Procedure: [SKILL.md](skills/full-stop/SKILL.md).
+
+---
+
+## takeover
+
+**What it does.** Finishes someone else's PR, branch or agent thread toward its original goal,
+and keeps the original contributors' credit: their commits keep their authorship, the PR
+description credits them and links the original, and a squash keeps human co-author credit.
+
+**Triggers.** "take over this PR", "finish this branch", "take over that agent's thread".
+
+**Prerequisites.** Git and `gh`. `modernize`, `babysit-pr` and `leaving-pr-comments` are
+optional siblings with written fallbacks.
+
+**Example** (illustrative).
+
+```
+take over PR 412; the original author left
+```
+
+1. It reads the PR, its reviews and later corrections, resolves them to the actual head, and
+   treats every "done" or "tested" in the handoff as a lead to check.
+2. It imports the original commits onto a new branch, updates them against the current base,
+   and finishes the goal without adding unrelated features.
+3. It reproduces the original failure and watches it pass, then files the replacement PR,
+   credits the original contributors, and watches it through CI and review.
+
+Procedure: [SKILL.md](skills/takeover/SKILL.md).
+
+---
+
+## modernize
+
+**What it does.** Brings an aging PR up to date and decides whether it should still exist. It
+reads what changed on the base since the PR diverged and returns one recommendation:
+**MODERNIZE** (rebase, resolve, test, push), **REWORK** (the goal stands but a mechanical rebase
+would keep the wrong shape) or **CLOSE** (superseded or no longer worth its cost).
+
+**Triggers.** "modernize this PR", "rebase this old PR", "is this PR still worth landing?".
+
+**Prerequisites.** Git and `gh`. It updates the branch only with `--force-with-lease` against the
+head it observed, and never merges, closes or changes the base without your permission.
+
+**Example** (illustrative).
+
+```
+modernize PR 288
+```
+
+1. It records the PR's intent, head, base and merge base, then reads every base commit since.
+2. It asks whether the base already solved the problem, moved the code, or changed the contract.
+3. For MODERNIZE it rebases in a disposable worktree, compares the series with
+   `git range-diff`, runs the focused checks and keeps their output as proof, then pushes.
+
+Procedure: [SKILL.md](skills/modernize/SKILL.md).
+
+---
+
+## babysit-pr
+
+**What it does.** Watches a PR through CI and review bots and fixes the real findings. It waits
+with one watcher per PR: `watch_pull_request` in T3 Code, or the shipped `pr-wait` script
+everywhere else, which prints one line per real event and exits 0 when the PR is ready or
+merged, 1 when it needs you, and 2 on bad input.
+
+**Triggers.** "babysit this PR", "watch the PR", "monitor CI on PR 77".
+
+**Prerequisites.** An authenticated `gh`; `pr-wait` needs Python 3.11+ (standard library only).
+`tests/test_pr_wait.py` exercises it against a fake `gh`, with no network.
+
+**Example** (illustrative).
+
+```
+babysit PR 77
+```
+
+1. It handles the existing checks and comments first, then starts `pr-wait 77 --until ready`.
+2. Each event line wakes it: a failed required check, a new review thread, a moved base.
+   Comment text in an event is quoted and marked untrusted.
+3. It verifies each bot finding against the code, proves each fix before pushing, and answers
+   false positives with a written reason.
+
+**Tips.**
+- A review bot counts only when GitHub types its author as a Bot.
+- A check GitHub refused to start over billing is reported as billing-blocked, not failed.
+
+Procedure: [SKILL.md](skills/babysit-pr/SKILL.md).
+
+---
+
+## leaving-pr-comments
+
+**What it does.** Formats every GitHub comment an agent posts for you: a note callout that names
+the model and that it responds on your behalf, then a direct reply that leads with the
+conclusion, cites the code or check, and separates verified facts from judgment.
+
+**Triggers.** Automatic whenever an agent leaves a GitHub comment for you.
+
+**Prerequisites.** None beyond the GitHub access the posting skill already has.
+
+**Example** (illustrative). A reply to a review bot:
+
+```md
+> [!NOTE]
+> 🤖 **<model> responding on behalf of <user>**
+
+Declined: the null check is unreachable, because `parseInvoice` returns early on empty input
+(`src/invoice.ts:41`), and the test `rejects empty input` covers that path.
+```
+
+Procedure: [SKILL.md](skills/leaving-pr-comments/SKILL.md).
 
 ---
 

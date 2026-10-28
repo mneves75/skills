@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.42.0-blue)
+![Version](https://img.shields.io/badge/version-1.43.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -20,7 +20,12 @@ artifacts.
 | Skill | Description |
 |-------|-------------|
 | [autoreview](skills/autoreview/) | Structured, isolated code review of a fixed Git target; ships its helper, security tests, and its own engine defaults |
-| [council](skills/council/) | Bounded independent deliberation over a plan: each available member CLI answers without seeing the others, and the lead revises for exactly the requested rounds; advisory, never verification |
+| [council](skills/council/) | Bounded independent deliberation over a plan, or a scored review of a change: each available member CLI (Claude, Codex, pi) answers without seeing the others; plan mode runs exactly the requested rounds, review mode stops when every member answers SHIP IT or the cap ends; advisory, never verification |
+| [full-stop](skills/full-stop/) | Take a change unattended to a proven, reviewed PR that is ready for you to merge: proof, a bounded review by a model that did not build it, a problem-first PR, CI and review bots watched to the merge gate; never merges |
+| [takeover](skills/takeover/) | Finish someone else's PR, branch or agent thread toward its original goal while keeping the original contributors' credit |
+| [modernize](skills/modernize/) | Rebase an aging PR and decide whether it should still exist: MODERNIZE, REWORK or CLOSE, with evidence from the base branch |
+| [babysit-pr](skills/babysit-pr/) | Watch a PR through CI and review bots and fix the real findings; ships `pr-wait`, an event watcher that treats GitHub billing blocks as infrastructure, with a fake-`gh` test |
+| [leaving-pr-comments](skills/leaving-pr-comments/) | Format and attribute the GitHub comments an agent posts for you |
 | [imagegen-frontend-mobile](skills/imagegen-frontend-mobile/) | Generate coherent iOS or Android screen and flow images, with platform conventions, visual QA, and no code |
 | [mneves-chatgpt-search](skills/mneves-chatgpt-search/) | Improve ChatGPT Search discovery, citations and referral attribution using official guidance, separate search/training policies and verifiable evidence |
 | [mneves-eli5](skills/mneves-eli5/) | Feynman-technique explainer calibrated to the listener (child, layperson, executive, junior, expert), answered in the user's language |

@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.43.0] - 2026-10-28
+
+### Added
+- **Five skills adapted from [tstack](https://github.com/t3dotgg/tstack) at `1085050f`** (MIT, Theo Browne's copyright kept, provenance in each skill): `full-stop` takes a change unattended to a proven, reviewed PR that is ready to merge and never merges it (it carries tstack's `full-send` proof, merge-gate and asking rules, with the review on any model that did not build the change); `takeover` finishes someone else's PR with their credit kept; `modernize` rebases an aging PR and recommends MODERNIZE, REWORK or CLOSE; `babysit-pr` watches a PR through CI and review bots with the shipped `pr-wait`; `leaving-pr-comments` attributes agent-posted GitHub comments. Every sibling reference has a fallback, so a single-skill install works.
+- **`pr-wait`** reports a check GitHub refused to start over a billing or spending-limit problem as billing-blocked instead of failed, counts a review bot only when GitHub types its author as a Bot, and quotes and marks untrusted the comment text in its events. `tests/test_pr_wait.py` runs nine cases against a fake `gh` in CI.
+- **`council` review mode**: members review a change independently and score it out of 10 each round; the lead fixes what it agrees with; the run stops when every member answers SHIP IT or the round cap (default 3, maximum 10) ends; the score table goes in the PR description. Reaching the cap is not approval.
+- **Staging off after production** (`mneves-ship-deploy`): once production is proven live, staging's crons, queue consumers, workflows, alarms and external schedulers are turned off, and an unused staging database is exported and deleted, then recreated by the next release. `references/cloudflare.md` holds the documented commands and the idle proof; Durable Object alarms cannot be read from outside, so that row is NOT TESTED unless the code turns them off.
+- **Readiness CST-03** (advisory, catalog 3): staging runs and bills nothing between releases. This repository's ledger assesses it NOT APPLICABLE (no staging environment).
+- **Glossary**: Proof and Merge gate.
+
+### Changed
+- **BREAKING: `cf.env-triggers`** (release contract check) is FAIL, not WARN, when a staging environment inherits or declares a cron; the conforming fixture gives staging an empty cron list.
+- **`council`**: pi replaces Cursor as the third adapter (read-only tool allowlist, no context files, no saved session, prompt on stdin). Cursor's read-only mode is only the mode a run starts in and it loads the workspace's rules, which also closes the 1.42.0 gate's needs-validation finding B-01 (Cursor included by default).
+- **Proof**: `mneves-verify`, the orchestrator, `mneves-superaudit` and `mneves-production-readiness` treat proof as evidence observed in the session (the original failure reproduced, then the same reproduction passing) and say mocked tests do not prove user-visible behavior. `mneves-security`, `mneves-render` and `mneves-chatgpt-search` already required it.
+- **`mneves-ship-deploy`**: landing a PR needs the merge gate on its latest head; PR descriptions lead with the problem; a CI run GitHub refused to start over billing is skipped and the change is proved locally.
+- **Orchestrator**: Codex coding seats default to reasoning high instead of xhigh; only the PR's owning session watches it; unattended questions go through the question tool with a safe default.
+- **`autoreview`**, **`mneves-superaudit`**, **`mneves-handoff`**: a findings ledger across review rounds that cuts a grown diff; stale PRs marked MODERNIZE, REWORK or CLOSE; handoff claims are leads to check, with `takeover` named for the receiving side.
+
 ## [1.42.0] - 2026-10-28
 
 ### Added
