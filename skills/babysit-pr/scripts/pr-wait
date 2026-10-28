@@ -464,7 +464,9 @@ class Watcher:
 
         fail_lines: list[str] = []
         failed_gate = [name for name in sorted(gate) if bucket(name) in FAILED]
-        billing, rerunning = self.billing_blocked(head) if failed_gate else (set(), set())
+        # Any failed check may be a billing block with a re-run going, gate or not.
+        any_failed = any(c["bucket"] in FAILED for c in checks.values())
+        billing, rerunning = self.billing_blocked(head) if any_failed else (set(), set())
         for name in rerunning & set(checks):
             checks[name] = {**checks[name], "bucket": "pending"}
         failed_gate = [name for name in failed_gate if name not in rerunning]

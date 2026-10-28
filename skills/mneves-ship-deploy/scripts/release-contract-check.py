@@ -996,7 +996,7 @@ def cf_triggers(config: WranglerConfig) -> Result:
                               f"schedules; declare \"triggers\": {{\"crons\": []}}")
         elif "triggers" in config.data and (scheduled(config.data["triggers"]) or not clears_schedules(config.data["triggers"])):
             return Result("cf.env-triggers", FAIL,
-                          f"{at(config, env_line(config, name))} env.{name} inherits the top-level scheduled work "
+                          f"{at(config, env_line(config, name))} env.{name} inherits top-level triggers that run or keep scheduled work "
                           f"({at(config, key_line(config, 'triggers'))}); declare \"triggers\": {{\"crons\": []}} there")
     if "triggers" not in config.data:
         return Result("cf.env-triggers", PASS, f"{config.path} sets no top-level triggers; nothing to inherit")
