@@ -14,24 +14,26 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
-- **1.41.0** (2026-10-26, PR #28 candidate): includes the unmerged 1.39.0 work,
+- **1.41.0** (2026-10-26, released and live, not tagged): includes the unmerged 1.39.0 work,
   guideline corrections, readiness source checks and dead-code removal, hash-locked CI
   dependencies, the reference Agent Skills validator and CI-bound Pages publication.
-  Source candidate `bb3080a` passed independent implementation acceptance and all four CI
-  jobs. Its security verdict remains BLOCK on SEC-17, SEC-20, SEC-21, SEC-23 and CMP-06;
-  the provisional readiness assessment has nine open controls and no waivers. The public
-  ledger and plan retain those gaps. Merge authorization does not supply missing owner
-  evidence or waive a launch control. Nothing from this candidate is claimed deployed.
-- **1.40.0** (2026-10-23, implementation candidate): adds the attributed `council` and
+  PR #28 merged on 2026-10-27 as `cc7285e`, whose tree equals the audited candidate `781922a`;
+  main CI passed all four jobs, Pages published it, and all eight served URLs match the
+  tracked bytes. The security gate is WAIVED (SEC-17, SEC-20, SEC-21, SEC-23, CMP-06) and
+  readiness is `ready` under nine owner waivers (those five plus DEL-04, DEL-09, ASY-02,
+  OPS-04) for this single release, expiring 2026-10-28T03:37:58Z; the controls stay open in
+  `docs/readiness/plan.md`. No tag or GitHub Release yet, so the documented rollback still
+  points at `v1.40.0`.
+- **1.40.0** (2026-10-23; PR #27 merged as `b62072e` on 2026-10-24, published to Pages and
+  tagged `v1.40.0`): adds the attributed `council` and
   `security-audit` packages, bringing the default catalog to seventeen skills. Council keeps
   exact-round independent deliberation but enables only capability-checked Claude/Codex/Cursor
   adapters and records unsupported members; Cloudflare's six-phase audit preserves its complete
   validators and tests. `mneves-security` retains remediation/privacy/deploy ownership and routes
   only explicit Cloudflare-style deep audits to the new sibling. The orchestrator routes explicit
   council requests and gains one local fallback lane that may be used only when no Claude or
-  Codex seat can run. Numbered 1.40.0 because open PR #26 already claims 1.39.0 for an unrelated
-  release; whoever lands second renumbers and regenerates the site. Release,
-  independent-verification and production evidence is pending, not claimed.
+  Codex seat can run. PR #26's 1.39.0 work never reached `main` on its own and shipped inside
+  1.41.0. This file does not record the 1.40.0 gate or independent-verification results.
 - **1.38.0** (2026-10-18, released and live): still fifteen default skills. The SLO and
   incident-learning procedures ship as guides in `docs/sre-guides/` plus eight prompts in
   `docs/sre-prompts.md`; the candidate skills `mneves-slo` and `mneves-incident-learning` were

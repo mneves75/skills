@@ -22,8 +22,9 @@ row is active. Advisory entries follow.
   accepted. Open IDs: SEC-17 (NOT TESTED), SEC-20 (FAIL, restricted), SEC-21 (NOT TESTED),
   SEC-23 (FAIL, restricted) and CMP-06 (NOT TESTED). SEC-20 and SEC-21 are advisory in the
   readiness profile but remain production blockers through the security verdict. These five
-  IDs plus DEL-04, DEL-09, ASY-02 and OPS-04 are nine distinct open controls, with no waiver.
-  The final release tree still needs its own binding assessment.
+  IDs plus DEL-04, DEL-09, ASY-02 and OPS-04 are nine distinct open controls. The binding
+  production run at `cc7285e` (2026-10-27) waived all nine for that single release only, to
+  2026-10-28T03:37:58Z; they stay open here until implemented.
 - Failure it prevents: publishing a candidate whose security gaps are unknown or unaccepted.
 - Change:
   1. Keep restricted details out of tracked files. They belong in the ignored
