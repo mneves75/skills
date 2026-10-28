@@ -16,7 +16,10 @@ measure whether a *target* codebase is ready for agents.
 
 - **1.42.0** (2026-10-28, PR #29): ledger consistency guard, release closeout procedure
   (`docs/specs/release-closeout/spec.md`), honest readiness-check docs (RC-A-01, Medium,
-  pre-existing), three skill-text hardenings and the Dependabot `bun` fix. The owner chose a
+  pre-existing), skill-text hardenings and the Dependabot `bun` fix. The final gate round also
+  fixed `codex-lane` running a workspace `json.py` outside the sandbox (now `python3 -I`), the
+  same pattern in the reference release scripts, quadratic regexes, `bunx` downloads, and SRS CSV
+  formula cells; the owner asked to fix every finding, not defer them. The owner chose a
   fresh full security audit before merge, and waivers for the nine open controls to
   2027-01-25T23:59:59Z. The binding result lives in the private gate records and the `v1.42.0`
   tag message, and its ledger bookkeeping goes into the next release PR.

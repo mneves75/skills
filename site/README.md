@@ -20,7 +20,7 @@ workflow alone is not live-content proof.
 - `bash tools/scripts/build-site.test` checks the real generator for complete output, catalog/guide consistency, semantic keyboard access and repeatable rebuilds in an isolated copy.
   When adding a skill, update its landing card and the HOWTO source, then run
   `tools/scripts/build-site.sh` to keep the generated usage page and changelog current.
-- `fastapi.html`: sample report from the readiness-check tool (FastAPI `9a8a13f`, 2026-08-26, static checks).
+- `fastapi.html`: sample report from the readiness-check tool (FastAPI `9a8a13f`, 2026-08-26, `--skip-tests --skip-build`).
 
 Regenerate the sample report from a FastAPI checkout:
 

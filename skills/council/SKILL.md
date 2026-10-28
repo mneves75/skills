@@ -30,7 +30,7 @@ Bound each member prompt to 100,000 bytes and each member invocation to 300 seco
 
 ### 1. Preflight members and disclosure
 
-For each supported member named by the user, or for every supported member by default:
+For each supported member named by the user, or for every supported member by default; by default Cursor joins only when the user confirms the repository is trusted or the run uses the sanitized workspace, because it loads the repository's rule files (see its adapter row):
 
 1. Resolve the binary with `command -v`, require `--version` to finish within 15 seconds, and inspect current `--help` for every flag in its invocation below. A missing binary, flag, authentication, or unsupported version is an unavailable member.
 2. Exclude the exact `SELF` binary when known. Do not exclude another CLI merely because it may use the same model.

@@ -1,5 +1,9 @@
 # Security skill implementation plan
 
+> Validator note (2026-10-28): the `skills-ref` commands below record what ran at the time. The
+> npm `skills-ref` is an unrelated individual's package; since 1.41.0 validate with the hashed
+> PyPI reference validator (`agentskills validate`, see `AGENTS.md` Commands).
+
 Status: Implemented and independently verified on commit `7355136`.
 Base: `7eb62ca51cff464c3a7784e2e57122cb28a61907`
 Confirmed scope: create and validate a portable skill; do not audit this repository or deploy it.

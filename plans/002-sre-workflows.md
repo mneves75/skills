@@ -1,5 +1,9 @@
 # SRE workflows: focused skills, prompts and evidence
 
+> Validator note (2026-10-28): the `skills-ref` commands below record what ran at the time. The
+> npm `skills-ref` is an unrelated individual's package; since 1.41.0 validate with the hashed
+> PyPI reference validator (`agentskills validate`, see `AGENTS.md` Commands).
+
 ## Status
 
 - Planned at: `53ea5adaf420fa03e17559d0c31cbbfb0a89eb76`
@@ -149,7 +153,8 @@ No application builds or device interactions are needed for Markdown procedures.
 ## Stop conditions and recovery
 
 Current deployment inventory: `.github/workflows/static.yml` publishes GitHub Pages directly
-from `site/**` pushes to main and defines no staging target or CI dependency. The final tree
+from `site/**` pushes to main and defines no staging target or CI dependency (true when
+planned; since 1.41.0 it publishes only a `main` commit whose CI succeeded). The final tree
 must pass release gates before that push. Local/browser preview is QA evidence, not staging;
 do not fabricate a beta deployment tag or introduce another provider merely to claim staging.
 

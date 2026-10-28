@@ -25,8 +25,9 @@
  *   --language=<lang>      Force language detection (override)
  *   --app=<path>           Assess single application in monorepo
  *   --skip-tests           Skip test-run checks only
- *   --skip-build           Skip build-verification checks only (lint, type and
- *                          dependency checks still run the project's own tools)
+ *   --skip-build           Skip build-verification checks only (lint, type, dependency
+ *                          and task-listing checks still run the project's own tools,
+ *                          so assess only repositories you trust, or use a sandbox)
  *   --verbose              Show all checks, not just failures
  *   --min-level=<1-5>      Exit with error if below this level (for CI)
  *   --notes                Generate session notes file
@@ -1310,7 +1311,7 @@ function showHelp(): void {
 				{ long: "language", arg: "lang", description: `Force language (override detection): ${LANGUAGES.join("|")}` },
 				{ long: "app", arg: "path", description: "Assess single app in monorepo" },
 				{ long: "skip-tests", description: "Skip test-run checks only" },
-				{ long: "skip-build", description: "Skip build-verification checks only; lint, type and dependency checks still run the project's tools" },
+				{ long: "skip-build", description: "Skip build-verification checks only; lint, type, dependency and task-listing checks still run the project's tools, so assess only repositories you trust" },
 				{ long: "verbose", short: "v", description: "Show all checks, not just failures" },
 				{ long: "min-level", arg: "1-5", description: "Exit with error if below level (for CI)" },
 				{ long: "notes", description: "Generate session notes file" },

@@ -399,7 +399,7 @@ evaluator receives the skill and fixtures, not these expectations.
 
 ### Independent acceptance
 
-A different model (Codex, `gpt-6.1-sol`, high effort) verified frozen worktrees against the ten
+A different model (Codex's heavy executor, high effort) verified frozen worktrees against the ten
 criteria. It ran the probes itself before reading the expectations.
 
 - **Round 1 at `07945e1`: FAIL.**

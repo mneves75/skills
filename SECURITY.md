@@ -147,8 +147,10 @@ keeps no copy. To erase:
 
 GitHub Pages serves the site over HTTPS and redirects HTTP to HTTPS, but it does not let a
 repository set response headers. Each page therefore carries its policy in markup: a
-Content-Security-Policy that allows only same-origin scripts, styles, fonts and images (inline
-styles included) and blocks plugins, forms and base-URL changes, plus a
-`strict-origin-when-cross-origin` referrer policy. HSTS, `X-Content-Type-Options` and frame
-protection need response headers, which this hosting cannot send. The site holds no accounts,
+Content-Security-Policy that starts from `default-src 'none'` and allows only what that page
+uses (the landing page: same-origin script, styles and fonts, plus inline styles and same-origin
+or `data:` images; the guide and the sample report: inline styles and images only, no script),
+blocks forms and base-URL changes, plus a `strict-origin-when-cross-origin` referrer policy.
+HSTS, `X-Content-Type-Options` and frame protection need response headers, which this hosting
+cannot send, and `github.io` is not on the browsers' HSTS preload list (checked 2026-10-28). The site holds no accounts,
 cookies, forms or state-changing actions.

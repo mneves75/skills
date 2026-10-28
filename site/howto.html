@@ -36,7 +36,8 @@ OpenCode, pi and others). Check what got installed with <code>npx skills@latest 
 prefer git, clone the repo into your agent&#39;s skills directory; the README has the paths. If a
 skill never shows up in your agent, it was probably not linked; the README&#39;s &quot;Check the install&quot;
 lists what each agent directory is missing.</p>
-<p>The readiness tool runs locally. An image-generation skill may send prompts and authorized
+<p>The readiness tool runs locally and runs the assessed project&#39;s own build, lint and test tools,
+so point it only at repositories you trust. An image-generation skill may send prompts and authorized
 references to the image provider configured in your agent. Autoreview sends authorized review
 inputs to the selected review provider after scanning them for credentials.</p>
 <p>A skill is loaded when the agent decides your request matches its <code>description</code>. You can
@@ -401,7 +402,7 @@ you wrote in.</p>
 &quot;explique de forma simples&quot;, or any request to re-explain something for a different audience.</p>
 <p><strong>Audience levels.</strong> <code>child</code>, <code>layperson</code>, <code>executive</code>, <code>junior</code>, <code>expert</code>. Name one if you
 care; otherwise the agent infers it and says which it picked.</p>
-<p><strong>Example</strong> (recorded 2026-08-26, <code>claude -p</code> on claude-fable-5, verbatim).</p>
+<p><strong>Example</strong> (recorded 2026-08-26 with <code>claude -p</code> on that date&#39;s Claude review model, verbatim).</p>
 <blockquote>
 <p><strong>You:</strong> Use the mneves-eli5 skill. Explain what a database index is to a product manager.</p>
 <p><strong>Agent:</strong> Explaining for a product manager (executive level: what it is, why it matters, the decision).</p>
@@ -434,7 +435,7 @@ version, a migration plan gets the full pass.</p>
 <p><strong>Triggers.</strong> &quot;expert review&quot;, &quot;rigorous pass&quot;, &quot;best possible answer&quot;, &quot;challenge this&quot;,
 &quot;stress-test&quot;, &quot;revisão rigorosa&quot;, &quot;melhor solução&quot;, or before any high-stakes plan, design,
 recommendation or architecture decision.</p>
-<p><strong>Example</strong> (recorded 2026-08-26, <code>claude -p</code> on claude-fable-5, verbatim; the prompt asked for under 400 words).</p>
+<p><strong>Example</strong> (recorded 2026-08-26 with <code>claude -p</code> on that date&#39;s Claude review model, verbatim; the prompt asked for under 400 words).</p>
 <blockquote>
 <p><strong>You:</strong> Use the mneves-expert-review skill. Challenge this plan and return the improved version: &quot;We will move user sessions from Redis to Postgres to cut one piece of infrastructure. Steps: 1) add a sessions table, 2) change the auth middleware to read/write Postgres, 3) run a script that copies live Redis keys into the table and deletes them from Redis, 4) turn off Redis. Session reads are rare so performance is not a concern.&quot;</p>
 <p><strong>Agent:</strong> <strong>Improved plan: sessions Redis → Postgres</strong></p>
@@ -507,8 +508,12 @@ refused rather than quietly truncated.</li>
 where a member that folded early has to defend its answer against the revision.</li>
 <li>Decide what context may leave your machine before you council a private task. The prompt-only
 mode exists for that, and it does not remove the provider disclosure.</li>
-<li>Independence here is a protocol rule, not an operating-system sandbox: no adapter limits a
-member&#39;s reads to the working directory, so treat a member as able to read anything you can.
+<li>Independence here is a protocol rule, not an operating-system sandbox: only Claude&#39;s restricted
+mode confines its file tools to the working directories, and Codex and Cursor can read anything
+you can, so treat every member as able to read anything you can.</li>
+<li>Cursor loads the reviewed repository&#39;s <code>.cursor/rules</code>, <code>AGENTS.md</code> and <code>CLAUDE.md</code> as its own
+rules, and no flag turns that off, so by default it joins only for a repository you trust or a
+sanitized prompt-only run.
 What the run controls is what each member is given — never another member&#39;s reply, never the
 session path.</li>
 <li>Pair it with <code>mneves-verify</code> once the plan becomes a change: the council argues about the plan,
@@ -530,8 +535,8 @@ with a positive control (a known-good input that must succeed). Research: the pr
 checked for saying what the claim says. Security: an independent audit.</p>
 <p><strong>Example output</strong> (illustrative; a real run needs a second model and an artifact to check).</p>
 <pre tabindex="0"><code>Verdict: FAIL
-Builder: claude-fable-5 / Edit, Bash / session 3f2a
-Verifier: gpt-6.1-sol / xhigh reasoning / read-only sandbox / fresh context
+Builder: &lt;builder model id&gt; / Edit, Bash / session 3f2a
+Verifier: &lt;verifier model id&gt; / xhigh reasoning / read-only sandbox / fresh context
 Different model required: yes (touches billing)
 Different model used: yes
 Criterion 1 — refund endpoint rejects amounts above the original charge: PASS — 3 unit tests + curl with 101% amount returned 422

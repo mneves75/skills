@@ -161,10 +161,10 @@ h3{font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}
     <div class="step"><h3>Name the work.</h3><p>Each <code>SKILL.md</code> begins with a description. Your agent loads the matching procedure, or you call it directly: <code>/mneves-verify</code>.</p></div>
     <div class="step"><h3>Keep your boundaries.</h3><p>The steps run with your tools and permissions. Some skills ship helpers; others are Markdown only. A workflow preserves your scope and existing authority.</p></div>
   </div>
-  <p class="privacy-note">The readiness tooling runs locally. Image generation may send authorized prompts and references to your configured provider. Autoreview sends selected review inputs after credential scanning. Each procedure states its own requirements and limits. This site loads no third-party resources and sets no cookies.</p>
+  <p class="privacy-note">The readiness tooling runs locally and runs the assessed project's own build, lint and test tools, so point it only at repositories you trust, or use a sandbox. Image generation may send authorized prompts and references to your configured provider. Autoreview sends selected review inputs after credential scanning. Each procedure states its own requirements and limits. This site loads no third-party resources and sets no cookies.</p>
 </section>
 <section class="tool" aria-labelledby="h-tool">
-  <div><h2 id="h-tool">Find where the feedback loop breaks.</h2><p><code>mneves-agent-readiness</code> includes a Bun + TypeScript assessor with no runtime dependencies. Point it at the project you want to assess.</p><pre tabindex="0"><code>cd /path/to/your-project
+  <div><h2 id="h-tool">Find where the feedback loop breaks.</h2><p><code>mneves-agent-readiness</code> includes a Bun + TypeScript assessor with no runtime dependencies. Point it at a project you trust: its checks run that project's own tools.</p><pre tabindex="0"><code>cd /path/to/your-project
 bun --bun /path/to/skills/tools/readiness-check.ts \
   --format=html --output=report.html
 
