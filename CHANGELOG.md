@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **Readiness ledger guard**: `check-readiness-catalog.py` also checks `docs/readiness/ledger.md`. It requires exactly one row per control and only valid statuses, a Totals line that matches the table, the same production commit in Cursors, Binding run and the gate history, and an underlying status plus an expiry on every WAIVED row.
+- **Release closeout** (`CONTRIBUTING.md`): release PR text stays true after the merge, an annotated tag records the verdict, and the binding bookkeeping lands in the next release PR instead of a separate merge.
+- **Dependabot**: `tools/` uses the `bun` ecosystem; the npm updater could not read `bun.lock`.
+
 ## [1.41.0] - 2026-10-26
 
 Includes the 1.39.0 work that was reviewed in PR #26 but never reached `main`.
