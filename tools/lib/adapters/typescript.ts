@@ -155,16 +155,17 @@ const tsSpecificRunners: Record<string, CheckRunner> = {
 	"zero-lint-errors": async (ctx: CheckContext): Promise<CheckResult> => {
 		const appPath = ctx.app.path;
 
+		// --no-install: a missing linter fails this check instead of fetching an unpinned package.
 		try {
 			if (await fileExists(path.join(appPath, "biome.json"))) {
-				await runCommand(60000)`cd ${appPath} && bunx biome check . 2>&1`;
+				await runCommand(60000)`cd ${appPath} && bunx --no-install biome check . 2>&1`;
 				return { pass: true, details: "Biome clean" };
 			}
 
 			const eslintConfigs = [".eslintrc.json", "eslint.config.js"];
 			for (const config of eslintConfigs) {
 				if (await fileExists(path.join(appPath, config))) {
-					await runCommand(60000)`cd ${appPath} && bunx eslint . 2>&1`;
+					await runCommand(60000)`cd ${appPath} && bunx --no-install eslint . 2>&1`;
 					return { pass: true, details: "ESLint clean" };
 				}
 			}

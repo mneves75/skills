@@ -119,5 +119,35 @@ class ErrorsAreExceptions(unittest.TestCase):
             self.assertNotIn("Traceback", done.stderr)
 
 
+class CsvExport(unittest.TestCase):
+    def setUp(self):
+        self.srs = load_srs()
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.addCleanup(os.chdir, os.getcwd())
+        os.chdir(tmp.name)
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.srs.init_db()
+
+    def rows(self):
+        import csv
+        return list(csv.DictReader(io.StringIO(self.srs.export_cards("csv"))))
+
+    def test_formula_cells_are_neutralised(self):
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.srs.add_card('=HYPERLINK("http://x","y")', "+1+1", context="@SUM(A1)", tags="-2,\tx")
+        row = self.rows()[0]
+        for field in ("question", "answer", "context", "tags"):
+            self.assertTrue(row[field].startswith("'"), (field, row[field]))
+        self.assertEqual(row["question"], '\'=HYPERLINK("http://x","y")')
+
+    def test_ordinary_cells_are_unchanged(self):
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.srs.add_card('What is "SM-2"?', "A schedule, with commas", context="line one\nline two", tags="srs")
+        row = self.rows()[0]
+        self.assertEqual((row["question"], row["answer"], row["context"], row["tags"]),
+                         ('What is "SM-2"?', "A schedule, with commas", "line one\nline two", "srs"))
+
+
 if __name__ == "__main__":
     unittest.main()
