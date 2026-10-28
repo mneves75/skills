@@ -91,6 +91,8 @@ FAILED = ("fail", "cancel")
 # annotation on its check run (seen 2026-10; undocumented, so match prefix + words).
 BILLING_PREFIX = "the job was not started because"
 BILLING_WORDS = ("billing", "payments have failed", "spending limit")
+# Check run conclusions that land in the fail or cancel bucket.
+RUN_FAILED = ("FAILURE", "CANCELLED", "TIMED_OUT", "STARTUP_FAILURE", "ACTION_REQUIRED")
 # gh pr checks buckets, worst first. Duplicate names (push and pull_request runs
 # of one job) collapse to the worst bucket.
 RANK = {"fail": 4, "cancel": 3, "pending": 2, "pass": 1, "skipping": 0}
@@ -388,16 +390,21 @@ class Watcher:
         if not commits or commits[0]["commit"]["oid"] != head:
             return set()
         rollup = commits[0]["commit"].get("statusCheckRollup") or {}
-        names = {
-            node["name"]
-            for node in (rollup.get("contexts") or {}).get("nodes") or []
-            if node.get("__typename") == "CheckRun"
-            and node.get("conclusion") == "FAILURE"
-            and any(
+        blocked: set[str] = set()
+        failed: set[str] = set()
+        for node in (rollup.get("contexts") or {}).get("nodes") or []:
+            if node.get("__typename") != "CheckRun" or node.get("conclusion") not in RUN_FAILED:
+                continue
+            if node["conclusion"] == "FAILURE" and any(
                 a.get("annotationLevel") == "FAILURE" and billing_message(a.get("message"))
                 for a in (node.get("annotations") or {}).get("nodes") or []
-            )
-        }
+            ):
+                blocked.add(node["name"])
+            else:
+                failed.add(node["name"])
+        # One job name runs more than once (push and pull_request). A real failure
+        # of any run keeps the name failed, whatever its other runs say.
+        names = blocked - failed
         self.billing[head] = names
         return names
 
@@ -459,10 +466,10 @@ class Watcher:
             if name in billing:
                 self.emit(
                     f"billing:{head}:{name}",
-                    f"{label} not started by GitHub (billing or spending limit), not a code failure: {name} {link}",
+                    f"{label} not started by GitHub (billing or spending limit), not a code failure: {snippet(name, 200)} {link}",
                 )
                 continue
-            fail_lines.append(f"{label} failed: {name} {link}")
+            fail_lines.append(f"{label} failed: {snippet(name, 200)} {link}")
             self.emit(f"fail:{head}:{name}:{link}", fail_lines[-1])
         watched = {name: c for name, c in checks.items() if bot_name(name) not in ADVISORY_BOTS}
         gate_done = bool(gate) and all(bucket(n) != "pending" for n in gate)
@@ -517,7 +524,7 @@ class Watcher:
             seen = bool(own_checks or summaries or own_reviews)
             if bot in ADVISORY_BOTS and own_checks:
                 desc = next(iter(own_checks.values()))
-                bot_status[bot] = f"{bot} {desc['description'] or desc['bucket']} (advisory)"
+                bot_status[bot] = f"{bot} {snippet(desc['description'], 80) if desc['description'] else desc['bucket']} (advisory)"
             elif seen:
                 bot_status[bot] = f"{bot} {'done' if done else 'pending'}{' (advisory)' if bot in ADVISORY_BOTS else ''}"
             key = f"bot:{bot}:{head}"
@@ -528,7 +535,7 @@ class Watcher:
                 failed = [name for name, c in own_checks.items() if c["bucket"] in FAILED]
                 detail = "; ".join(filter(None, [
                     next((v for v in map(verdict, (s["body"] for s in summaries)) if v), ""),
-                    f"failed: {', '.join(failed)}" if failed else "",
+                    f"failed: {', '.join(snippet(n, 200) for n in failed)}" if failed else "",
                 ]))
                 tag = " (advisory, not waited on)" if bot in ADVISORY_BOTS else ""
                 self.emit(key, f"{bot} finished on {short}{': ' + detail if detail else ''}{tag}")
@@ -569,13 +576,13 @@ class Watcher:
         failed_names = sorted(name for name, c in watched.items() if c["bucket"] in FAILED and name not in billing)
         parts = [
             ", ".join(f"{n} {b}" for b, n in sorted(counts.items()))
-            + (f" ({', '.join(failed_names)})" if failed_names else ""),
+            + (f" ({', '.join(snippet(n, 200) for n in failed_names)})" if failed_names else ""),
             f"required {sum(bucket(n) in ('pass', 'skipping') for n in self.required)}/{len(self.required)} green"
             if self.required
             else "",
             ", ".join(bot_status[b] for b in GATING_BOTS + ADVISORY_BOTS if b in bot_status)
             or "no Greptile or Macroscope yet",
-            f"billing-blocked (prove locally): {', '.join(sorted(billing))}" if billing else "",
+            f"billing-blocked (prove locally): {', '.join(snippet(n, 200) for n in sorted(billing))}" if billing else "",
             f"{len(unresolved)} unresolved threads",
             f"merge state {merge_state}",
         ]

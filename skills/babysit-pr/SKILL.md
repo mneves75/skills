@@ -24,7 +24,7 @@ a check fails, the required checks pass, someone comments or reviews, or the
 branch conflicts.
 
 - **Only the thread that owns the PR watches it.** If you are a delegated
-  child task (a reviewer, a Sol round, any `delegate_task` child), never call
+  child task (a reviewer, a review round, any `delegate_task` child), never call
   `watch_pull_request`. The parent owns the PR. Do not watch PRs you are not
   working on.
 - **A wake is news, not a merge decision.** Check the merge gate yourself.
