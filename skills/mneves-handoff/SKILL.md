@@ -38,6 +38,9 @@ paths and proof commands. Preserve the user's chosen mode and already-granted au
   exact error text, doc titles, and search terms.
 - Include constraints, non-goals, validation expectations, and the output shape wanted.
 - Tell the agent to re-check live repository, issue, and CI state where it matters.
+- Tell the agent that claims of done, tested or fixed in the handoff are leads to check, not
+  proof. When the receiver is to finish the work rather than discuss it, the sibling `takeover`
+  skill (when installed) owns that side, including the original contributors' credit.
 - Tell the agent not to push, merge, close or label issues and PRs, or post public comments
   unless the handoff explicitly asks for it.
 - No invented facts; state as checked only what you checked. No brain dump: enough to orient.

@@ -50,6 +50,10 @@ answers, plans without an artifact, or prose-only notes.
 ## Evidence routes
 
 Match the route to the artifact; one focused piece of real evidence beats a pile of claims.
+Proof is what the verifier observes itself in this run: command output, a reproduction, a
+rendered screen. For a fix, the most direct proof reproduces the original failure on the
+unfixed artifact and watches the same reproduction pass on the fixed one; a test added for
+the fix must fail without it. Green mocked tests do not prove user-visible behavior.
 Prefer the named tool when it is available; fall back only on capability.
 
 | Artifact | Preferred | Capability-based fallback |

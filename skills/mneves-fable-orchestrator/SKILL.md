@@ -109,6 +109,10 @@ lane command; it owns flag placement, continuity, failure classes, and the optio
 A multi-phase goal that must continue across many rounds needs a driver that survives context
 loss — a lane, a checked-in plan file, or your harness's own long-task mechanism. A long task
 alone does not authorize pushes, deployments, destructive operations, or other external writes.
+When nobody is watching the run, a question in an ordinary message goes unseen: ask through the
+harness's question tool with the full context and a recommended option, and if it returns no
+answer, take the safe path (leave the work unmerged and undeployed) and lead the final report
+with the question.
 
 ## Delegation brief
 
@@ -121,7 +125,8 @@ Every executor starts with zero private session context. Include:
 5. Exact proof commands and expected output.
 
 Tell the worker it is not alone in the tree, must preserve other changes, must not spawn agents,
-and must not run cross-session memory. Pair a hard prohibition with a safe stop condition: if an
+and must not run cross-session memory. Only the session that owns a pull request watches it: a
+delegated worker or reviewer never starts a PR watcher. Pair a hard prohibition with a safe stop condition: if an
 honest attempt cannot satisfy a gate, report the exact result instead of gaming the constraint.
 A cornered worker satisfies the letter of a rule (told never to raise a size budget, one
 hand-minified identifiers and passed every gate); treat a stop-report as a successful run, the
@@ -130,7 +135,8 @@ coordinator's decision point.
 ## Accept delegated work
 
 Inspect the actual diff and merged surface. Run the focused proof yourself or verify captured
-output. Review guard, budget, fixture, and test-helper edits closely because they can weaken the
+output. A worker's "tests pass" is a claim; proof is what you observed in this session, and
+green mocked tests do not prove user-visible behavior. Review guard, budget, fixture, and test-helper edits closely because they can weaken the
 check rather than fix the behavior; a commit message you did not commission is a lead. Check the brief's assumptions and production rules; test
 existence is not a substitute for the required behavior.
 

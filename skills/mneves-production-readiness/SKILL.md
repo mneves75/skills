@@ -22,7 +22,9 @@ evidence for the controls that apply is.
   own authority.
 - **Fixing gaps** needs an explicit request, or a release workflow whose review phase fixes
   what its gates find (as `mneves-ship-deploy` does), and goes through the project's test-first
-  workflow. Security fixes belong to the security review.
+  workflow. Security fixes belong to the security review. A fixed gap's row moves to PASS only
+  on proof observed in this session (a check that fails without the fix and passes with it, or
+  the control's own `Verify` run), never on the fix's existence.
 - Never delete data, handle credentials, change provider dashboards, read production records,
   restore into production, rotate keys or contact third parties. Restore drills run only into an
   isolated target the owner authorized. Gaps that need such steps become owner actions with exact

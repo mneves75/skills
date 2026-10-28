@@ -48,11 +48,17 @@ completeness.
 | 1 | Slop audit | Ranked delete/simplify list, applied; every deletion leaves a check that fails if behavior regressed |
 | 2 | Performance | Baseline and candidate measured under recorded identical conditions; a noisy or circular measurement is inconclusive, never a win |
 | 3 | Agent DX & verification loops | Named gaps and fixes for setup, worktree isolation, debug access, and end-to-end QA — concretely, what the agent needs to prove its own work |
-| 4 | PR / issue triage | Ranked easy-win list; nothing merged without per-PR authorization |
+| 4 | PR / issue triage | Ranked easy-win list, and each stale PR marked MODERNIZE, REWORK or CLOSE with evidence; nothing merged or closed without per-PR authorization |
 
 For item 3, an installed `mneves-agent-readiness` can supply a nine-pillar baseline. A single-skill
 install may lack it; then assess the requested setup and verification gaps directly and label
 the manual scope.
+
+Every applied change carries proof observed in this session: reproduce the problem, apply the
+change, and watch the same reproduction pass, or add a check that fails without the change.
+Green mocked tests do not prove user-visible behavior. For item 4, the sibling `modernize` skill,
+when installed, rebases a stale PR and decides whether it should still exist; without it, judge
+whether the base already solved or reshaped the PR's goal before rebasing anything.
 
 Docs — `README`, `AGENTS.md`, `CLAUDE.md`, changelog — are updated inside the item that changed the
 behavior. There is no separate documentation pass.
