@@ -48,8 +48,8 @@ said "candidate, BLOCK, no waivers, nothing deployed", and the 1.40.0 entry stil
      merging turns false, such as "not deployed" or "BLOCK".
    - After live proof, and with owner approval, create an annotated `vX.Y.Z` tag whose message
      carries the verdict lines (security gate, readiness gate, waivers, gated tree and commit,
-     CI run, Pages run with the served-byte result). This is the house format of v1.38.0 and
-     v1.40.0. `mneves-security` requires the verdict in the tag message before a rollback to
+     CI run, Pages run with the served-byte result, and independent acceptance when one ran).
+     These are the lines that v1.38.0 and v1.40.0 used between them. `mneves-security` requires the verdict in the tag message before a rollback to
      that tag can skip a new audit.
    - The previous release's binding bookkeeping (cursor, gate-history row, WAIVED rows,
      `MEMORY.md` state) lands in the next release PR, never as a standalone merge.
@@ -61,6 +61,11 @@ said "candidate, BLOCK, no waivers, nothing deployed", and the 1.40.0 entry stil
    - Cursors, Binding run and the last gate-history row name the same production commit;
    - each WAIVED row states `underlying <status>` and an expiry in `YYYY-MM-DDTHH:MM:SSZ` form.
 
+   The waiver check is deliberately stricter than the contract's example row
+   (`references/ledger.md`). It enforces this repository's house format from 1.38: `underlying
+   <status>; owner waiver @owner to <ISO-Z>`. A duplicate `LOCAL-nn` row fails. Padded cells
+   and trailing spaces parse normally. Cursors and Binding run are compared even when there is no
+   production gate-history row.
    CI already runs the guard and its planted-violation test (`ci.yml:97`).
 3. **1.41.0 bookkeeping** (already on PR #29): the ledger, plan and `MEMORY.md` record the landed
    state, and Dependabot uses the `bun` ecosystem for `tools/`.
