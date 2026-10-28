@@ -1,7 +1,7 @@
 # Map: adopt what tstack is worth
 
 Type: wayfinder:map
-Status: open
+Status: built; PR [feat: 1.43.0 tstack adoption](https://github.com/mneves75/skills/pull/30) awaits review and the owner's merge
 
 ## Destination
 
@@ -29,10 +29,14 @@ decisions are in [spec.md](spec.md).
   (pstack has `babysit`, a different name), so the upstream names stay.
 - pi as a council member: established on pi 1.4.0. `pi -p --no-session --tools read,grep,find,ls
   --no-extensions --no-skills --no-context-files --no-mcp --no-prompt-templates --no-approve
-  @<prompt-file>` answered from the file and could not create a file; the same prompt without
+  < <prompt-file>` answered from the prompt and could not create a file; the same prompt without
   `--tools` created it (positive control). Reads are not confined.
 - GitHub billing failures: see [spec.md](spec.md#github-billing-failures).
 - Cloudflare staging idle proof: see [spec.md](spec.md#staging-off-after-production).
+- Build (2026-10-28): five adapted skills, council review mode with pi, proof carried into the
+  skills that lacked it, staging off in `mneves-ship-deploy` with readiness control CST-03, and
+  Codex coding seats at reasoning high on the owner's word. Shipped as 1.43.0 in
+  [CHANGELOG.md](../../../CHANGELOG.md).
 
 ## Not yet specified
 
