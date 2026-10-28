@@ -14,6 +14,15 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.43.0** (2026-10-28, PR #30, stacked on #29 and released together with 1.42.0): five PR
+  workflow skills adapted from tstack (`full-stop`, `takeover`, `modernize`, `babysit-pr` with
+  `pr-wait`, `leaving-pr-comments`), council review mode with pi in place of Cursor, proof as
+  evidence observed in the session, and staging turned off after production
+  (`cf.env-triggers` FAIL, readiness CST-03). Three Fable review rounds; every confirmed finding
+  was fixed with a test that failed first. The 1.42.0 gate's BLOCK fixes (`fix/1.42-fix-all`)
+  were merged into this release, and the owner waived SEC-15 (Pages cannot send response
+  headers) to 2027-01-25T23:59:59Z. The binding verdict lives in the private gate records and
+  the `v1.43.0` tag message.
 - **1.42.0** (2026-10-28, PR #29): ledger consistency guard, release closeout procedure
   (`docs/specs/release-closeout/spec.md`), honest readiness-check docs (RC-A-01, Medium,
   pre-existing), skill-text hardenings and the Dependabot `bun` fix. The final gate round also

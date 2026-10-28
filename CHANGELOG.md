@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.43.0] - 2026-10-28
 
+Released together with 1.42.0, whose gate fixes it includes; neither shipped alone.
+
 ### Added
 - **Five skills adapted from [tstack](https://github.com/t3dotgg/tstack) at `1085050f`** (MIT, Theo Browne's copyright kept, provenance in each skill): `full-stop` takes a change unattended to a proven, reviewed PR that is ready to merge and never merges it (it carries tstack's `full-send` proof, merge-gate and asking rules, with the review on any model that did not build the change); `takeover` finishes someone else's PR with their credit kept; `modernize` rebases an aging PR and recommends MODERNIZE, REWORK or CLOSE; `babysit-pr` watches a PR through CI and review bots with the shipped `pr-wait`; `leaving-pr-comments` attributes agent-posted GitHub comments. Every sibling reference has a fallback, so a single-skill install works.
 - **`pr-wait`** reports a check GitHub refused to start over a billing or spending-limit problem as billing-blocked instead of failed, reads the billing annotations on every poll that has a failed check and never lets a billing block hide a real failure or an in-progress run of the same job name, counts a review bot only when GitHub types its author as a Bot, and quotes check names and comment text, marking comments untrusted. `tests/test_pr_wait.py` runs fourteen cases against a fake `gh` in CI.
