@@ -16,6 +16,7 @@ guard = root / "tools/scripts/check-readiness-catalog.py"
 skill = Path("skills/mneves-production-readiness")
 refs = skill / "references"
 spec = Path("docs/specs/production-readiness/spec.md")
+ledger = Path("docs/readiness/ledger.md")
 failures = 0
 
 def check(name, tree, expected, message):
@@ -60,6 +61,16 @@ cases = [
     ("missing catalog version", lambda t: remove_line(t, refs / "gates.md", "Catalog version:"), "Catalog version"),
     ("unlinked reference", lambda t: replace(t, skill / "SKILL.md", "references/sources.md", "references/not-sources.md"), "unlinked reference sources.md"),
     ("malformed heading", lambda t: replace(t, refs / "controls-data.md", "### DM-01", "### DM-1"), "invalid control heading"),
+    ("missing ledger", lambda t: (t / ledger).unlink(), "ledger.md:1: cannot read"),
+    ("missing ledger row", lambda t: remove_line(t, ledger, "| DM-01 |"), "DM-01 needs exactly one ledger row (found 0)"),
+    ("duplicate ledger row", lambda t: replace(t, ledger, "| DM-02 | NOT APPLICABLE", "| DM-01 | NOT APPLICABLE"), "DM-01 needs exactly one ledger row (found 2)"),
+    ("unknown ledger row", lambda t: replace(t, ledger, "| DM-01 |", "| XX-99 |"), "ledger row for unknown control XX-99"),
+    ("invalid ledger status", lambda t: replace(t, ledger, "| DM-01 | NOT APPLICABLE |", "| DM-01 | N/A |"), "DM-01: invalid status N/A"),
+    ("totals mismatch", lambda t: replace(t, ledger, "· PASS 13 ·", "· PASS 12 ·"), "Totals says PASS 12, table has 13"),
+    ("missing totals", lambda t: remove_line(t, ledger, "Totals:"), "needs exactly one Totals line (found 0)"),
+    ("cursor disagreement", lambda t: replace(t, ledger, "Cursors: production cc7285e", "Cursors: production b95604c"), "production commit disagrees"),
+    ("waiver without underlying", lambda t: replace(t, ledger, " · underlying NOT TESTED; owner waiver", " · owner waiver"), "WAIVED row lacks an underlying status"),
+    ("waiver without expiry", lambda t: replace(t, ledger, "to 2026-10-28T03:37:58Z, single release", "to tomorrow, single release"), "WAIVED row lacks an expiry"),
 ]
 
 check("real tree", root, 0, "readiness catalog: OK")
@@ -69,6 +80,8 @@ with tempfile.TemporaryDirectory(prefix="catalog-tests.", dir=root / ".scratch")
         shutil.copytree(root / skill, tree / skill)
         (tree / spec).parent.mkdir(parents=True)
         shutil.copy2(root / spec, tree / spec)
+        (tree / ledger).parent.mkdir(parents=True)
+        shutil.copy2(root / ledger, tree / ledger)
         mutate(tree)
         check(name, tree, 1, message)
 if failures:

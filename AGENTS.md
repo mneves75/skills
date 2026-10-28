@@ -57,7 +57,7 @@ python3 tools/scripts/check-pages.test.py  # actual Pages guard: real Git, fake 
 bash skills/mneves-fable-orchestrator/tools/codex-lane.test   # codex-lane e2e against a fake codex (no quota)
 python3 skills/mneves-ship-deploy/scripts/run-tests.py        # release contract check: planted violations, read-only
 bash skills/mneves-ship-deploy/assets/release-guards.test.sh  # reference release guards: throwaway repo, fake wrangler
-python3 tools/scripts/check-readiness-catalog.py  # readiness catalogs and preservation map: read-only
+python3 tools/scripts/check-readiness-catalog.py  # readiness catalogs, preservation map and ledger consistency: read-only
 bash tools/scripts/check-readiness-catalog.test   # planted-violation controls for the readiness catalog guard
 python3 skills/mneves-teach-back-srs/tests/test_srs_db.py    # SRS helper: concurrent reviews on a temporary database
 tools/scripts/check-defaults-block.sh   # model ids only inside the orchestrator's Defaults block, with its verified-on date
