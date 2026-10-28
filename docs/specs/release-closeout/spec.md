@@ -1,6 +1,6 @@
 # Release closeout for this repository
 
-Status: written 2026-10-27 and built on PR #29. Scope: this repository's own release procedure and
+Status: written 2026-10-27, revised 2026-10-28, built on PR #29 (release 1.42.0). Scope: this repository's own release procedure and
 its readiness ledger, not the shipped skills.
 
 ## Assumptions (open decisions, built without an interview)
@@ -69,6 +69,26 @@ said "candidate, BLOCK, no waivers, nothing deployed", and the 1.40.0 entry stil
    CI already runs the guard and its planted-violation test (`ci.yml:97`).
 3. **1.41.0 bookkeeping** (already on PR #29): the ledger, plan and `MEMORY.md` record the landed
    state, and Dependabot uses the `bun` ecosystem for `tools/`.
+
+## Round two (2026-10-28, release 1.42.0)
+
+The owner answered the open decisions: a full audit, then merge; waivers to the 90-day cap
+(2027-01-25T23:59:59Z); the audit-reuse policy unchanged. Review of the first build found:
+
+- **The planted cases depended on release data.** They mutated `cc7285e`, `PASS 13` and the
+  waiver expiry, so the next ledger update would have broken them. They now run against a
+  synthetic ledger built from the catalog.
+- **Review independence depended on one vendor.** Both Codex accounts were out of quota, so the
+  distinct-model reviewer could not run. The finders were Fable, so a Fable verifier would have
+  been the same model reviewing itself. The final gate therefore uses Opus finders in fresh
+  contexts and a Fable verifier, which differs from both the finders and the builder.
+  `CONTRIBUTING.md` now says to report the gate as blocked when no distinct model can run.
+- **The previous closeout invented a 24-hour waiver ceiling.** `CONTRIBUTING.md` now leaves
+  expiry to the owner, within the 90-day cap.
+- **The gate found RC-A-01:** the docs promised "static checks only" while lint, dependency and
+  task-runner checks execute repository tools. The docs now say what runs. Rejected: a `--no-exec`
+  flag threaded through 66 `runCommand` call sites, because the documented flags already behave as
+  `--help` states and the broken part was the promise.
 
 ## Rejected alternatives
 

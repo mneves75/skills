@@ -579,13 +579,13 @@ not environment, so pass <code>CODEX_HOME</code> on every <code>start</code> and
 Codex home.)</p>
 <p><strong>Example</strong> (illustrative; a real run dispatches Codex). You ask for row-level security on a multi-tenant API.</p>
 <ol>
-<li>The main session writes <code>/tmp/spec.md</code>: goal, acceptance criteria, exact files, the files it
+<li>The main session writes a private spec file (<code>spec=$(mktemp)</code>): goal, acceptance criteria, exact files, the files it
 must not touch (the frontend, which the frontend subagent owns), the test command that must pass.</li>
-<li>It starts a lane:<pre tabindex="0"><code class="language-bash">codex-lane start api-rls /tmp/spec.md -- -s workspace-write
+<li>It starts a lane:<pre tabindex="0"><code class="language-bash">codex-lane start api-rls &quot;$spec&quot; -- -s workspace-write
 </code></pre>
 </li>
 <li>Codex returns; the main session reads the diff and runs the tests itself. One gate fails.</li>
-<li>Instead of a new spec, the failure goes to the same thread:<pre tabindex="0"><code class="language-bash">codex-lane next api-rls - &lt; /tmp/gate3-failure.log
+<li>Instead of a new spec, the failure goes to the same thread:<pre tabindex="0"><code class="language-bash">codex-lane next api-rls - &lt; gate3-failure.log
 </code></pre>
 </li>
 <li>Green. The main session reviews the final diff like a contributor PR, then closes out.</li>
@@ -624,11 +624,14 @@ cd ~/src/skills/tools &amp;&amp; bun install
 cd /path/to/your-project
 bun --bun ~/src/skills/tools/readiness-check.ts                     # markdown to stdout
 bun --bun ~/src/skills/tools/readiness-check.ts --format=html --output=report.html
-bun --bun ~/src/skills/tools/readiness-check.ts --skip-tests --skip-build   # static checks only, fast
+bun --bun ~/src/skills/tools/readiness-check.ts --skip-tests --skip-build   # no test or build runs, fast
 bun --bun ~/src/skills/tools/readiness-check.ts --min-level=3       # exit 1 below L3, for CI
 bun --bun ~/src/skills/tools/readiness-check.ts --app packages/api  # one app in a monorepo
 </code></pre>
-<p><code>--help</code> lists the rest (<code>--format json</code>, <code>--scoring strict|average</code>, <code>--language</code>).</p>
+<p><code>--help</code> lists the rest (<code>--format json</code>, <code>--scoring strict|average</code>, <code>--language</code>). Even with
+both skip flags, the lint, dependency and task-runner checks run the project&#39;s own tools
+(<code>./gradlew</code>, <code>cargo clippy</code>, <code>bunx eslint</code> and similar), so only assess repositories you trust,
+or run the tool in a sandbox.</p>
 <p><strong>Example</strong> (real run, 2026-08-26). Against FastAPI (<code>9a8a13f</code>, static checks) the tool reports L3 at 61.7%:
 Style 88%, strong documentation, weaker on task discovery and product signals. The
 <a href="https://mneves75.github.io/skills/fastapi.html">live report</a> shows the full breakdown.</p>

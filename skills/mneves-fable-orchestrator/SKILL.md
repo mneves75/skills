@@ -52,7 +52,7 @@ local fallback    = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any h
 The builder seats (main session, workers, heavy executor) never review their own output: review,
 planning and plan advice run on the separate seats above.
 
-Verified against the vendor model lists on 2026-10-26; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-10-28; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file).
 

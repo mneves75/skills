@@ -14,6 +14,12 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.42.0** (2026-10-28, PR #29): ledger consistency guard, release closeout procedure
+  (`docs/specs/release-closeout/spec.md`), honest readiness-check docs (RC-A-01, Medium,
+  pre-existing), three skill-text hardenings and the Dependabot `bun` fix. The owner chose a
+  fresh full security audit before merge, and waivers for the nine open controls to
+  2027-01-25T23:59:59Z. The binding result lives in the private gate records and the `v1.42.0`
+  tag message, and its ledger bookkeeping goes into the next release PR.
 - **1.41.0** (2026-10-26, released and live): includes the unmerged 1.39.0 work,
   guideline corrections, readiness source checks and dead-code removal, hash-locked CI
   dependencies, the reference Agent Skills validator and CI-bound Pages publication.
