@@ -37,7 +37,8 @@ So the skill's hard rule is: **one round is an exec, two rounds is a lane.**
 follow-ups continue the executor's thinking instead of restarting it.
 
 ```bash
-codex-lane start api-rls /tmp/spec.md -- -s workspace-write
+spec=$(mktemp)                    # private spec file, not a shared /tmp path
+codex-lane start api-rls "$spec" -- -s workspace-write
 codex-lane next  api-rls "fix the failing gate"   # literal text, or `-` to pipe stdin
 codex-lane last  api-rls          # final message | also: log / id / list / drop
 codex-lane fork  api-rls api-rls-b "try the trigger-based approach instead"   # A/B from the same state

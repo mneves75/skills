@@ -593,16 +593,16 @@ Codex home.)
 
 **Example** (illustrative; a real run dispatches Codex). You ask for row-level security on a multi-tenant API.
 
-1. The main session writes `/tmp/spec.md`: goal, acceptance criteria, exact files, the files it
+1. The main session writes a private spec file (`spec=$(mktemp)`): goal, acceptance criteria, exact files, the files it
    must not touch (the frontend, which the frontend subagent owns), the test command that must pass.
 2. It starts a lane:
    ```bash
-   codex-lane start api-rls /tmp/spec.md -- -s workspace-write
+   codex-lane start api-rls "$spec" -- -s workspace-write
    ```
 3. Codex returns; the main session reads the diff and runs the tests itself. One gate fails.
 4. Instead of a new spec, the failure goes to the same thread:
    ```bash
-   codex-lane next api-rls - < /tmp/gate3-failure.log
+   codex-lane next api-rls - < gate3-failure.log
    ```
 5. Green. The main session reviews the final diff like a contributor PR, then closes out.
 
@@ -646,12 +646,15 @@ cd ~/src/skills/tools && bun install
 cd /path/to/your-project
 bun --bun ~/src/skills/tools/readiness-check.ts                     # markdown to stdout
 bun --bun ~/src/skills/tools/readiness-check.ts --format=html --output=report.html
-bun --bun ~/src/skills/tools/readiness-check.ts --skip-tests --skip-build   # static checks only, fast
+bun --bun ~/src/skills/tools/readiness-check.ts --skip-tests --skip-build   # no test or build runs, fast
 bun --bun ~/src/skills/tools/readiness-check.ts --min-level=3       # exit 1 below L3, for CI
 bun --bun ~/src/skills/tools/readiness-check.ts --app packages/api  # one app in a monorepo
 ```
 
-`--help` lists the rest (`--format json`, `--scoring strict|average`, `--language`).
+`--help` lists the rest (`--format json`, `--scoring strict|average`, `--language`). Even with
+both skip flags, the lint, dependency and task-runner checks run the project's own tools
+(`./gradlew`, `cargo clippy`, `bunx eslint` and similar), so only assess repositories you trust,
+or run the tool in a sandbox.
 
 **Example** (real run, 2026-08-26). Against FastAPI (`9a8a13f`, static checks) the tool reports L3 at 61.7%:
 Style 88%, strong documentation, weaker on task discovery and product signals. The
