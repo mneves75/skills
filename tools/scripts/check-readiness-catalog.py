@@ -17,7 +17,7 @@ CATALOGS = ("data", "platform", "product", "security", "stewardship")
 SKILL = Path("skills/mneves-production-readiness")
 SPEC = Path("docs/specs/production-readiness/spec.md")
 LEDGER = Path("docs/readiness/ledger.md")
-LEDGER_ROW = re.compile(r"^\|\s*((?:[A-Z]{2,3}|LOCAL)-[0-9]{2})\s*\|\s*([^|]*?)\s*\|")
+LEDGER_ID = re.compile(r"(?:[A-Z]{2,3}|LOCAL)-[0-9]{2}")
 SHA = re.compile(r"[0-9a-f]{7,40}")
 COUNTED = ("NOT APPLICABLE", "NOT TESTED", "PASS", "FAIL", "BLOCKED", "WAIVED")
 STATUSES = set(COUNTED) | {"retired"}
@@ -141,10 +141,10 @@ def check_ledger(audit: Audit, controls: dict[str, tuple[Path, int]]) -> None:
                 commits["gate history"] = (number, cells[2])
             else:
                 audit.error(LEDGER, number, "production gate-history row has no commit")
-        match = LEDGER_ROW.match(line)
-        if not match:
+        # Split cells instead of one regex: the regex backtracked quadratically on a long row (RC-A-02).
+        if not line.startswith("|") or len(cells) < 2 or not LEDGER_ID.fullmatch(cells[0]):
             continue
-        control, status = match.groups()
+        control, status = cells[0], cells[1]
         rows[control] += 1
         if not control.startswith("LOCAL-") and control not in controls:
             audit.error(LEDGER, number, f"ledger row for unknown control {control}")

@@ -114,6 +114,19 @@ with tempfile.TemporaryDirectory(prefix="catalog-tests.", dir=root / ".scratch")
         (tree / ledger).write_text(synthetic_ledger())
         mutate(tree)
         check(name, tree, expected, message)
+    # A long row must not stall the guard (RC-A-02: overlapping \s* and [^|]* backtracked).
+    tree = Path(temporary) / "slow-row"
+    shutil.copytree(root / skill, tree / skill)
+    (tree / spec).parent.mkdir(parents=True)
+    shutil.copy2(root / spec, tree / spec)
+    (tree / ledger).parent.mkdir(parents=True)
+    (tree / ledger).write_text(synthetic_ledger() + "| DM-99 |" + " " * 20000 + "\n")
+    try:
+        subprocess.run([sys.executable, str(guard), str(tree)], capture_output=True, timeout=3)
+        print("PASS long row within 3 s")
+    except subprocess.TimeoutExpired:
+        failures += 1
+        print("FAIL long row: guard exceeded 3 s")
 if failures:
     print(f"readiness catalog tests FAILED ({failures})")
     sys.exit(1)
