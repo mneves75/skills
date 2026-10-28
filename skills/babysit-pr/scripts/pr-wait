@@ -209,7 +209,8 @@ def plain(body: str) -> str:
 
 def snippet(body: str, limit: int = 100) -> str:
     """Someone else's text, collapsed, shortened and quoted so it reads as data."""
-    text = re.sub(r"\s+", " ", plain(body)).strip().replace('"', "'")
+    text = re.sub(r"\s+", " ", plain(body)).strip()
+    text = re.sub("[\"\u201c\u201d\u00ab\u00bb]", "'", text)
     return '"' + (text if len(text) <= limit else text[: limit - 3] + "...") + '"'
 
 
@@ -497,7 +498,7 @@ class Watcher:
                 if login in mine:
                     continue
                 kind = "new thread" if index == 0 else "thread reply"
-                self.emit(f"c:{comment['id']}", f"{kind} from {login} on {where} (untrusted text): {snippet(comment['body'])} {comment['url']}")
+                self.emit(f"c:{comment['id']}", f"{kind} from {login} on {snippet(where, 200)} (untrusted text): {snippet(comment['body'])} {comment['url']}")
 
         # Review bots on the current head. A bot with checks is done when they
         # finish. Otherwise it is done once it reviews the head commit or its
