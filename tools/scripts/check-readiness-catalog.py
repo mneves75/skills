@@ -17,7 +17,8 @@ CATALOGS = ("data", "platform", "product", "security", "stewardship")
 SKILL = Path("skills/mneves-production-readiness")
 SPEC = Path("docs/specs/production-readiness/spec.md")
 LEDGER = Path("docs/readiness/ledger.md")
-LEDGER_ROW = re.compile(r"^\| ((?:[A-Z]{2,3}|LOCAL)-[0-9]{2}) \| ([^|]*?) \| ")
+LEDGER_ROW = re.compile(r"^\|\s*((?:[A-Z]{2,3}|LOCAL)-[0-9]{2})\s*\|\s*([^|]*?)\s*\|")
+SHA = re.compile(r"[0-9a-f]{7,40}")
 COUNTED = ("NOT APPLICABLE", "NOT TESTED", "PASS", "FAIL", "BLOCKED", "WAIVED")
 STATUSES = set(COUNTED) | {"retired"}
 TIMESTAMP = r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z"
@@ -127,16 +128,19 @@ def check_ledger(audit: Audit, controls: dict[str, tuple[Path, int]]) -> None:
     history = False
     for number, line in enumerate(lines, 1):
         if line.startswith("## "):
-            history = line == "## Gate history"
+            history = line.strip().lower() == "## gate history"
         if line.startswith("Totals:"):
             totals.append((number, line))
         if match := re.match(r"^Cursors:.*\bproduction ([0-9a-f]{7,40})\b", line):
             commits["Cursors"] = (number, match.group(1))
         if match := re.match(r"^Binding run for production: .*? at ([0-9a-f]{7,40})\b", line):
             commits["Binding run"] = (number, match.group(1))
-        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
         if history and len(cells) == 6 and cells[1] == "production":
-            commits["gate history"] = (number, cells[2])
+            if SHA.fullmatch(cells[2]):
+                commits["gate history"] = (number, cells[2])
+            else:
+                audit.error(LEDGER, number, "production gate-history row has no commit")
         match = LEDGER_ROW.match(line)
         if not match:
             continue
@@ -153,14 +157,18 @@ def check_ledger(audit: Audit, controls: dict[str, tuple[Path, int]]) -> None:
                 audit.error(LEDGER, number, f"{control}: WAIVED row lacks an underlying status")
             if not re.search(rf"\bwaiver @\S+ to {TIMESTAMP}", line):
                 audit.error(LEDGER, number, f"{control}: WAIVED row lacks an expiry (waiver @owner to YYYY-MM-DDTHH:MM:SSZ)")
-    for control in sorted(controls):
+    for control in sorted(set(controls) | {row for row in rows if row.startswith("LOCAL-")}):
         if rows[control] != 1:
             audit.error(LEDGER, 1, f"{control} needs exactly one ledger row (found {rows[control]})")
     if len(totals) != 1:
         audit.error(LEDGER, 1, f"needs exactly one Totals line (found {len(totals)})")
     else:
         number, line = totals[0]
-        stated = {status: int(count) for status, count in re.findall(rf"({'|'.join(COUNTED)}) ([0-9]+)", line)}
+        pairs = re.findall(rf"\b({'|'.join(COUNTED)}) ([0-9]+)\b", line)
+        stated = {status: int(count) for status, count in pairs}
+        for status, count in Counter(status for status, _ in pairs).items():
+            if count > 1:
+                audit.error(LEDGER, number, f"Totals states {status} more than once")
         size = re.search(r"([0-9]+) rows", line)
         if not size or int(size.group(1)) != sum(rows.values()):
             audit.error(LEDGER, number, f"Totals says {size.group(1) if size else 'no'} rows, table has {sum(rows.values())}")
@@ -171,12 +179,13 @@ def check_ledger(audit: Audit, controls: dict[str, tuple[Path, int]]) -> None:
         for name in ("Cursors", "Binding run"):
             if name not in commits:
                 audit.error(LEDGER, 1, f"production commit disagrees: gate history has a production row, {name} names none")
+    if commits:
         shas = [sha for _, sha in commits.values()]
         # Lines cite short or full SHAs; agreement means each is a prefix of the longest.
         longest = max(shas, key=len)
         if any(not longest.startswith(sha) for sha in shas):
             found = ", ".join(f"{name} {sha} (line {number})" for name, (number, sha) in commits.items())
-            audit.error(LEDGER, commits["gate history"][0], f"production commit disagrees: {found}")
+            audit.error(LEDGER, min(number for number, _ in commits.values()), f"production commit disagrees: {found}")
 
 
 def main() -> int:

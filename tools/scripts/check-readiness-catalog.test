@@ -71,11 +71,22 @@ cases = [
     ("cursor disagreement", lambda t: replace(t, ledger, "Cursors: production cc7285e", "Cursors: production b95604c"), "production commit disagrees"),
     ("waiver without underlying", lambda t: replace(t, ledger, " · underlying NOT TESTED; owner waiver", " · owner waiver"), "WAIVED row lacks an underlying status"),
     ("waiver without expiry", lambda t: replace(t, ledger, "to 2026-10-28T03:37:58Z, single release", "to tomorrow, single release"), "WAIVED row lacks an expiry"),
+    ("gate heading case", lambda t: (replace(t, ledger, "## Gate history", "## Gate History"), replace(t, ledger, "Cursors: production cc7285e", "Cursors: production b95604c")), "production commit disagrees"),
+    ("cursor vs binding without history", lambda t: (replace(t, ledger, "| production | b95604c |", "| staging | b95604c |"), replace(t, ledger, "| production | cc7285e |", "| staging | cc7285e |"), replace(t, ledger, "Cursors: production cc7285e", "Cursors: production b95604c")), "production commit disagrees"),
+    ("empty gate commit", lambda t: replace(t, ledger, "| production | cc7285e |", "| production |  |"), "production gate-history row has no commit"),
+    ("duplicate LOCAL row", lambda t: replace(t, ledger, "| DM-02 |", "| LOCAL-01 | PASS | advisory | x | @o | — |\n| LOCAL-01 | PASS | advisory | x | @o | — |\n| DM-02 |"), "LOCAL-01 needs exactly one ledger row (found 2)"),
+    ("duplicate Totals status", lambda t: replace(t, ledger, "· PASS 13 ·", "· PASS 13 · PASS 13 ·"), "Totals states PASS more than once"),
+]
+valid_cases = [
+    ("padded cells", lambda t: replace(t, ledger, "| DM-01 | NOT APPLICABLE |", "|  DM-01  |  NOT APPLICABLE  |")),
+    # A skipped last row would compare the cursor against the 2026-10-18 row instead.
+    ("gate row trailing space", lambda t: replace(t, ledger, "ASY-02 OPS-04 |\n", "ASY-02 OPS-04 | \n")),
 ]
 
 check("real tree", root, 0, "readiness catalog: OK")
 with tempfile.TemporaryDirectory(prefix="catalog-tests.", dir=root / ".scratch") as temporary:
-    for index, (name, mutate, message) in enumerate(cases):
+    all_cases = [(n, m, 1, msg) for n, m, msg in cases] + [(n, m, 0, "readiness catalog: OK") for n, m in valid_cases]
+    for index, (name, mutate, expected, message) in enumerate(all_cases):
         tree = Path(temporary) / str(index)
         shutil.copytree(root / skill, tree / skill)
         (tree / spec).parent.mkdir(parents=True)
@@ -83,9 +94,9 @@ with tempfile.TemporaryDirectory(prefix="catalog-tests.", dir=root / ".scratch")
         (tree / ledger).parent.mkdir(parents=True)
         shutil.copy2(root / ledger, tree / ledger)
         mutate(tree)
-        check(name, tree, 1, message)
+        check(name, tree, expected, message)
 if failures:
     print(f"readiness catalog tests FAILED ({failures})")
     sys.exit(1)
-print(f"readiness catalog tests passed ({len(cases)} planted violations)")
+print(f"readiness catalog tests passed ({len(cases)} planted violations, {len(valid_cases)} valid variants)")
 PY
