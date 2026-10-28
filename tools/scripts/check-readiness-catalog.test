@@ -62,26 +62,45 @@ cases = [
     ("unlinked reference", lambda t: replace(t, skill / "SKILL.md", "references/sources.md", "references/not-sources.md"), "unlinked reference sources.md"),
     ("malformed heading", lambda t: replace(t, refs / "controls-data.md", "### DM-01", "### DM-1"), "invalid control heading"),
     ("missing ledger", lambda t: (t / ledger).unlink(), "ledger.md:1: cannot read"),
-    ("missing ledger row", lambda t: remove_line(t, ledger, "| DM-01 |"), "DM-01 needs exactly one ledger row (found 0)"),
-    ("duplicate ledger row", lambda t: replace(t, ledger, "| DM-02 | NOT APPLICABLE", "| DM-01 | NOT APPLICABLE"), "DM-01 needs exactly one ledger row (found 2)"),
-    ("unknown ledger row", lambda t: replace(t, ledger, "| DM-01 |", "| XX-99 |"), "ledger row for unknown control XX-99"),
-    ("invalid ledger status", lambda t: replace(t, ledger, "| DM-01 | NOT APPLICABLE |", "| DM-01 | N/A |"), "DM-01: invalid status N/A"),
-    ("totals mismatch", lambda t: replace(t, ledger, "· PASS 13 ·", "· PASS 12 ·"), "Totals says PASS 12, table has 13"),
+    ("missing ledger row", lambda t: remove_line(t, ledger, "| DM-03 |"), "DM-03 needs exactly one ledger row (found 0)"),
+    ("duplicate ledger row", lambda t: replace(t, ledger, "| DM-03 |", "| DM-04 |"), "DM-04 needs exactly one ledger row (found 2)"),
+    ("unknown ledger row", lambda t: replace(t, ledger, "| DM-03 |", "| XX-99 |"), "ledger row for unknown control XX-99"),
+    ("invalid ledger status", lambda t: replace(t, ledger, "| DM-03 | NOT APPLICABLE |", "| DM-03 | N/A |"), "DM-03: invalid status N/A"),
+    ("totals mismatch", lambda t: replace(t, ledger, "· PASS 1 ·", "· PASS 2 ·"), "Totals says PASS 2, table has 1"),
     ("missing totals", lambda t: remove_line(t, ledger, "Totals:"), "needs exactly one Totals line (found 0)"),
-    ("cursor disagreement", lambda t: replace(t, ledger, "Cursors: production cc7285e", "Cursors: production b95604c"), "production commit disagrees"),
+    ("cursor disagreement", lambda t: replace(t, ledger, "Cursors: production abc1234", "Cursors: production 0000aaa"), "production commit disagrees"),
     ("waiver without underlying", lambda t: replace(t, ledger, " · underlying NOT TESTED; owner waiver", " · owner waiver"), "WAIVED row lacks an underlying status"),
-    ("waiver without expiry", lambda t: replace(t, ledger, "to 2026-10-28T03:37:58Z, single release", "to tomorrow, single release"), "WAIVED row lacks an expiry"),
-    ("gate heading case", lambda t: (replace(t, ledger, "## Gate history", "## Gate History"), replace(t, ledger, "Cursors: production cc7285e", "Cursors: production b95604c")), "production commit disagrees"),
-    ("cursor vs binding without history", lambda t: (replace(t, ledger, "| production | b95604c |", "| staging | b95604c |"), replace(t, ledger, "| production | cc7285e |", "| staging | cc7285e |"), replace(t, ledger, "Cursors: production cc7285e", "Cursors: production b95604c")), "production commit disagrees"),
-    ("empty gate commit", lambda t: replace(t, ledger, "| production | cc7285e |", "| production |  |"), "production gate-history row has no commit"),
+    ("waiver without expiry", lambda t: replace(t, ledger, "to 2027-01-01T00:00:00Z", "to tomorrow"), "WAIVED row lacks an expiry"),
+    ("gate heading case", lambda t: (replace(t, ledger, "## Gate history", "## Gate History"), replace(t, ledger, "Cursors: production abc1234", "Cursors: production 0000aaa")), "production commit disagrees"),
+    ("cursor vs binding without history", lambda t: (replace(t, ledger, "| production | 0000aaa |", "| staging | 0000aaa |"), replace(t, ledger, "| production | abc1234 |", "| staging | abc1234 |"), replace(t, ledger, "Cursors: production abc1234", "Cursors: production 0000aaa")), "production commit disagrees"),
+    ("empty gate commit", lambda t: replace(t, ledger, "| production | abc1234 |", "| production |  |"), "production gate-history row has no commit"),
     ("duplicate LOCAL row", lambda t: replace(t, ledger, "| DM-02 |", "| LOCAL-01 | PASS | advisory | x | @o | — |\n| LOCAL-01 | PASS | advisory | x | @o | — |\n| DM-02 |"), "LOCAL-01 needs exactly one ledger row (found 2)"),
-    ("duplicate Totals status", lambda t: replace(t, ledger, "· PASS 13 ·", "· PASS 13 · PASS 13 ·"), "Totals states PASS more than once"),
+    ("duplicate Totals status", lambda t: replace(t, ledger, "· PASS 1 ·", "· PASS 1 · PASS 1 ·"), "Totals states PASS more than once"),
 ]
 valid_cases = [
-    ("padded cells", lambda t: replace(t, ledger, "| DM-01 | NOT APPLICABLE |", "|  DM-01  |  NOT APPLICABLE  |")),
-    # A skipped last row would compare the cursor against the 2026-10-18 row instead.
-    ("gate row trailing space", lambda t: replace(t, ledger, "ASY-02 OPS-04 |\n", "ASY-02 OPS-04 | \n")),
+    ("synthetic ledger", lambda t: None),
+    ("padded cells", lambda t: replace(t, ledger, "| DM-03 | NOT APPLICABLE |", "|  DM-03  |  NOT APPLICABLE  |")),
+    # A skipped last row would compare the cursor against the older production row instead.
+    ("gate row trailing space", lambda t: replace(t, ledger, "| DM-01 |\n", "| DM-01 | \n")),
 ]
+
+def synthetic_ledger():
+    """A valid ledger built from the catalog, so ledger cases never depend on release data."""
+    ids = sorted({m for f in (root / refs).glob("controls-*.md") for m in re.findall(r"^### ([A-Z]{2,3}-[0-9]{2}) ", f.read_text(), re.M)})
+    status = {"DM-01": "WAIVED", "DM-02": "PASS"}
+    evidence = {"DM-01": "source · underlying NOT TESTED; owner waiver @owner to 2027-01-01T00:00:00Z"}
+    rows = [f"| {i} | {status.get(i, 'NOT APPLICABLE')} | blocker | {evidence.get(i, 'source')} | @owner | — |" for i in ids]
+    return "\n".join([
+        "# Production readiness ledger", "",
+        "Cursors: production abc1234 (2026-01-01)",
+        "Binding run for production: 2026-01-01 at abc1234000000000000000000000000000000000 · verdict ready",
+        f"Totals: {len(ids)} rows · NOT APPLICABLE {len(ids) - 2} · PASS 1 · FAIL 0 · NOT TESTED 0 · BLOCKED 0 · WAIVED 1.", "",
+        "| ID | Status | Tier | Evidence | Owner | Next action or waiver |", "|---|---|---|---|---|---|", *rows, "",
+        "## Gate history", "",
+        "| Date | Target | Commit | Verdict | Open blockers | Waivers |", "|---|---|---|---|---|---|",
+        "| 2025-12-01 | production | 0000aaa | ready | 0 | — |",
+        "| 2026-01-01 | production | abc1234 | ready | 0 | DM-01 |", "",
+    ])
 
 check("real tree", root, 0, "readiness catalog: OK")
 with tempfile.TemporaryDirectory(prefix="catalog-tests.", dir=root / ".scratch") as temporary:
@@ -92,7 +111,7 @@ with tempfile.TemporaryDirectory(prefix="catalog-tests.", dir=root / ".scratch")
         (tree / spec).parent.mkdir(parents=True)
         shutil.copy2(root / spec, tree / spec)
         (tree / ledger).parent.mkdir(parents=True)
-        shutil.copy2(root / ledger, tree / ledger)
+        (tree / ledger).write_text(synthetic_ledger())
         mutate(tree)
         check(name, tree, expected, message)
 if failures:
