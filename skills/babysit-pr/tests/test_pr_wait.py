@@ -22,6 +22,14 @@ FAKE_GH = r'''#!/usr/bin/env python3
 import json, os, sys
 scenario = json.loads(open(os.environ["FAKE_GH_SCENARIO"]).read())
 args = sys.argv[1:]
+if "stages" in scenario:
+    # The PR query opens each poll and advances the stage; the poll's other calls see it.
+    counter = os.environ["FAKE_GH_SCENARIO"] + ".polls"
+    n = int(open(counter).read()) if os.path.exists(counter) else 0
+    if args[:2] == ["api", "graphql"] and "statusCheckRollup" not in " ".join(args):
+        n += 1
+        open(counter, "w").write(str(n))
+    scenario = {**scenario, **scenario["stages"][min(max(n - 1, 0), len(scenario["stages"]) - 1)]}
 if args[:2] == ["pr", "view"]:
     print(json.dumps({"number": int(args[2])}))
 elif args[:2] == ["pr", "checks"]:
@@ -95,6 +103,10 @@ class PrWaitTest(unittest.TestCase):
         self.scenario.write_text(json.dumps(
             {"pr": pull_request(), "checks": checks, "rollup": rollup or [], "checks_exit": checks_exit}))
 
+    def write_stages(self, *stages: dict) -> None:
+        """One scenario per poll; the last repeats."""
+        self.scenario.write_text(json.dumps({"pr": pull_request(), "stages": list(stages)}))
+
     def run_wait(self, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [sys.executable, str(SCRIPT), *args], env=self.env, capture_output=True, text=True, timeout=60)
@@ -133,6 +145,32 @@ class PrWaitTest(unittest.TestCase):
         proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
         self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
         self.assertIn('check failed: "build"', proc.stdout)
+
+    def test_rerun_failing_for_real_after_a_billing_block_still_fails(self) -> None:
+        # Poll 1: build refused over billing, lint running. Billing is fixed and build
+        # re-run on the same head; from poll 2 its run is a real failure.
+        self.write_stages(
+            {"checks": [check("build", "fail"), check("lint", "pending")],
+             "rollup": [check_run("build", "FAILURE", LOCKED)], "checks_exit": 1},
+            {"checks": [check("build", "fail"), check("lint", "pass")],
+             "rollup": [check_run("build", "FAILURE", "Process completed with exit code 1.")], "checks_exit": 1},
+        )
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn('check failed: "build"', proc.stdout)
+        self.assertNotIn("green on", proc.stdout)
+
+    def test_run_in_progress_beside_a_billing_block_is_pending(self) -> None:
+        running = {"__typename": "CheckRun", "name": "build", "conclusion": None, "annotations": {"nodes": []}}
+        self.write_stages(
+            {"checks": [check("build", "fail")], "rollup": [check_run("build", "FAILURE", LOCKED), running], "checks_exit": 1},
+            {"checks": [check("build", "fail")], "rollup": [check_run("build", "FAILURE", LOCKED), running], "checks_exit": 1},
+            {"checks": [check("build", "pass")], "rollup": [check_run("build", "SUCCESS")], "checks_exit": 0},
+        )
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn(f"green on {HEAD[:7]}: 1 pass", proc.stdout)
+        self.assertNotIn("billing-blocked", proc.stdout)
 
     def test_check_name_is_quoted(self) -> None:
         # A fork PR controls its workflow job names.

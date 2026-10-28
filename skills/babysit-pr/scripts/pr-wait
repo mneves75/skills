@@ -313,7 +313,6 @@ class Watcher:
         self.required: set[str] | None = None
         self.prev_snapshot: list[tuple[str, str]] | None = None
         self.pr_files: dict[str, set[str]] = {}
-        self.billing: dict[str, set[str]] = {}
 
     def load(self) -> Json | None:
         try:
@@ -374,10 +373,10 @@ class Watcher:
                 checks[row["name"]] = row
         return checks
 
-    def billing_blocked(self, head: str) -> set[str]:
-        """Failed checks on the head that GitHub never started for billing reasons."""
-        if head in self.billing:
-            return self.billing[head]
+    def billing_blocked(self, head: str) -> tuple[set[str], set[str]]:
+        """Failed checks on the head that GitHub never started for billing reasons,
+        and those of them with another run of the same name still in progress.
+        Read on every poll: a re-run changes the answer without moving the head."""
         try:
             proc = gh([
                 "api", "graphql", "-f", f"query={ANNOTATIONS_QUERY}",
@@ -386,14 +385,19 @@ class Watcher:
             commits = json.loads(proc.stdout)["data"]["repository"]["pullRequest"]["commits"]["nodes"]
         except (GhError, ValueError, KeyError, TypeError) as error:
             log(f"could not read check annotations: {error}")
-            return set()
+            return set(), set()
         if not commits or commits[0]["commit"]["oid"] != head:
-            return set()
+            return set(), set()
         rollup = commits[0]["commit"].get("statusCheckRollup") or {}
         blocked: set[str] = set()
         failed: set[str] = set()
+        running: set[str] = set()
         for node in (rollup.get("contexts") or {}).get("nodes") or []:
-            if node.get("__typename") != "CheckRun" or node.get("conclusion") not in RUN_FAILED:
+            if node.get("__typename") != "CheckRun":
+                continue
+            if node.get("conclusion") is None:
+                running.add(node["name"])
+            if node.get("conclusion") not in RUN_FAILED:
                 continue
             if node["conclusion"] == "FAILURE" and any(
                 a.get("annotationLevel") == "FAILURE" and billing_message(a.get("message"))
@@ -403,10 +407,10 @@ class Watcher:
             else:
                 failed.add(node["name"])
         # One job name runs more than once (push and pull_request). A real failure
-        # of any run keeps the name failed, whatever its other runs say.
+        # of any run keeps the name failed, whatever its other runs say; a run still
+        # going keeps it pending.
         names = blocked - failed
-        self.billing[head] = names
-        return names
+        return names - running, names & running
 
     def base_overlap(self, head: str, old: str, new: str) -> list[str]:
         """Files this PR touches that the new base commits also touch."""
@@ -460,7 +464,11 @@ class Watcher:
 
         fail_lines: list[str] = []
         failed_gate = [name for name in sorted(gate) if bucket(name) in FAILED]
-        billing = self.billing_blocked(head) & set(failed_gate) if failed_gate else set()
+        billing, rerunning = self.billing_blocked(head) if failed_gate else (set(), set())
+        for name in rerunning & set(checks):
+            checks[name] = {**checks[name], "bucket": "pending"}
+        failed_gate = [name for name in failed_gate if name not in rerunning]
+        billing &= set(failed_gate)
         for name in failed_gate:
             link = checks[name]["link"]
             if name in billing:
