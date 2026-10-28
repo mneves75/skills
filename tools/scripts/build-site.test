@@ -214,8 +214,8 @@ with tempfile.TemporaryDirectory(prefix='skills-build-site-') as scratch:
     page = target / 'site/rows-index.html'
     for label, entry, expect in (
         ('date markup is escaped', '## [9.9.9] - <img/src=x>\n\n- **Thing**: one.\n', '&lt;img/src=x&gt;'),
-        ('long bracket run stays fast', '## [9.9.9] - 2026-01-01\n\n- ' + '[' * 20000 + '\n', '9.9.9'),
-        ('long link run stays fast', '## [9.9.9] - 2026-01-01\n\n- ' + '[a](' * 40000 + '\n', '9.9.9'),
+        ('long bracket run stays fast', '## [9.9.9] - 2026-01-01\n\n- ' + '[' * 100000 + '\n', '9.9.9'),
+        ('long link run stays fast', '## [9.9.9] - 2026-01-01\n\n- ' + '[a](' * 100000 + '\n', '9.9.9'),
     ):
         (target / 'rows-CHANGELOG.md').write_text(entry)
         page.write_text('<ul>\n<!-- changelog:start -->\n<!-- changelog:end -->\n</ul>\n')

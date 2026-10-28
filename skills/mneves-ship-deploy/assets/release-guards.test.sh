@@ -504,6 +504,12 @@ expect "production refuses without a staging tag" 1 "no staging tag" -- producti
 git -C "$work" tag v1.2.3-beta1 && git -C "$work" push -q origin v1.2.3-beta1
 expect "production promotes the commit staging serves (control)" 0 "tag v1.2.3 (promotes v1.2.3-beta1)" -- production --check
 expect "production plans the staged commit" 0 "commit $sha" -- production --check
+# release.sh reads the staging health body too: a json.py in the checkout must not load there either.
+printf 'open("%s", "a").write("json.py ran\\n")\n' "$tmp/shadow-release" > "$work/json.py"
+printf '/json.py\n' >> "$work/.git/info/exclude"
+expect "production --check ignores a json.py in the checkout" 0 "commit $sha" -- production --check
+check "release.sh never runs a json.py from the checkout" test ! -s "$tmp/shadow-release"
+rm "$work/json.py"
 serve "$STAGING_URL" "abcdef1234567" staging
 expect "production refuses when staging serves another commit" 1 "staging serves abcdef1" -- production --check
 serve "$STAGING_URL" "${sha}-dirty" staging

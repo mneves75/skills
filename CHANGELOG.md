@@ -35,11 +35,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dependabot**: `tools/` uses the `bun` ecosystem; the npm updater could not read `bun.lock`.
 - **Ledger guard speed**: rows parse by splitting cells, and the Totals row count starts only at a digit run. The first version's patterns backtracked quadratically, so one long malformed line could stall the guard (and CI) for minutes.
 - **`codex-lane` ran workspace Python outside the sandbox** (security): its state helpers ran `python3 -` in the lane workspace, so a `json.py` or `tempfile.py` there (committed in the reviewed repository, or written by the sandboxed model) ran unsandboxed as the user. Every helper now runs with `python3 -I`, and `codex-lane.test` plants both modules.
-- **Reference `release.sh` and `verify-live.sh`** read health bodies with `python3 -I`, so a `json.py` in the checkout cannot replace the standard library; `release-guards.test.sh` plants one.
+- **Reference `release.sh` and `verify-live.sh`** read health bodies with `python3 -I`, so a `json.py` in the checkout cannot replace the standard library; `release-guards.test.sh` plants one for each script.
 - **readiness-check never downloads a linter**: the Biome and ESLint checks run `bunx --no-install`, so a missing linter fails the check instead of fetching an unpinned package from the registry.
 - **Quadratic patterns on author-controlled text**: the pyproject section header (`pyproject.ts`), the release contract check's script-name search, and the landing changelog's link pattern no longer backtrack quadratically; each has a timing test that failed before the fix.
 - **Landing changelog dates are HTML-escaped** (`changelog-rows.py`).
-- **SRS CSV export** prefixes a cell that starts with `=`, `+`, `-`, `@`, tab or carriage return with `'`, so a spreadsheet shows it as text instead of evaluating it.
+- **SRS CSV export** prefixes a cell that starts with `=`, `+`, `-`, `@`, tab or carriage return with `'`, so a spreadsheet shows it as text instead of evaluating it (the skill README says so).
 
 ## [1.41.0] - 2026-10-26
 
