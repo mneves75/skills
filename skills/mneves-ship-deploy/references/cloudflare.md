@@ -13,7 +13,8 @@ or bindings (KV, R2, Durable Objects, services, queues, workflows). A staging en
 without its own `routes` therefore deploys onto production's routes, and one without its own
 bindings deploys with none.
 Done when every environment sets its own `routes` (an empty list when it has none), its own
-`triggers`, and every binding and variable it reads. `scripts/release-contract-check.py`
+`triggers` (staging's with an empty `crons` list: see [Staging off](#staging-off-after-production)),
+and every binding and variable it reads. `scripts/release-contract-check.py`
 reports this as `cf.env-routes`, `cf.env-triggers` and `cf.env-bindings`.
 
 **Build-time values belong to the target.** A frontend that bakes a public key or an API
@@ -67,6 +68,67 @@ missing path.
 Done when the cron list the platform reports for the deployed Worker equals `triggers.crons`
 for that environment. Documentation that says a schedule changed is a claim; the platform's
 list is the fact.
+
+## Staging off, after production
+
+Once production is deployed and proven live, staging must run and bill nothing while no
+release is in it. An idle Worker that only answers requests may stay, so its secrets survive.
+Everything that runs without a request goes. Staging's Worker is named
+`<name>-<environment>` (for example `demo-worker-staging`); every command below uses that name.
+
+**Crons.** `env.staging` declares `"triggers": {"crons": []}`, never inherits the top-level
+list, and a deploy of that configuration removes every cron. Changes take up to 15 minutes to
+propagate. A scheduled job is exercised on staging only with a one-off manual trigger.
+`scripts/release-contract-check.py` reports a staging environment that inherits or declares a
+cron as a `cf.env-triggers` FAIL.
+Done when `GET /accounts/{account_id}/workers/scripts/<staging-worker>/schedules` returns an
+empty `schedules` list after the propagation window.
+
+**Queue consumers.** A deploy does not detach a consumer the configuration no longer lists.
+Run `wrangler queues consumer remove <queue> <staging-worker>`. Pausing delivery
+(`wrangler queues pause-delivery <queue>`) pauses the whole queue, so use it only on a queue
+staging owns alone.
+Done when `wrangler queues consumer list <queue> --json` prints `[]` for each staging queue.
+
+**Workflows.** A staging Workflow needs its own name, because Workflow names are account-wide.
+A Workflow can carry its own `schedules`, and removing them from the configuration may not
+clear them: delete the staging Workflow with `wrangler workflows delete <name>`, which also
+deletes its instances.
+Done when `wrangler workflows instances list <name> --status running --json` and the same with
+`--status queued` print nothing, or the Workflow no longer exists.
+
+**Durable Object alarms.** Nothing outside the object can list or cancel an alarm: only the
+object's code (`deleteAlarm()`, or `deleteAll()` on a compatibility date of 2026-02-24 or
+later) turns one off. Without such a code path the alarm row is NOT TESTED; say so.
+
+**External schedulers.** A CI cron, launchd job or other host scheduler that calls staging is
+turned off where it lives. A GitHub Actions run that GitHub refused to start over billing is
+already not running; record it as such and do not count it as a scheduler that was stopped.
+
+**The staging D1 database.** Delete it when it is unused: it holds nothing production lacks,
+and no release is in staging. In order, stopping and reporting at the first step that fails:
+
+1. Read its identity: `wrangler d1 info <name> --json` (uuid, `write_queries_24h`,
+   `rows_written_24h`). The name and uuid must be the ones staging's configuration binds, and
+   neither may appear in production's configuration.
+2. Confirm it holds nothing production lacks. A staging database that served as the only copy
+   of anything (an import, a hand-entered record, a test the owner relies on) is reported for
+   the owner, not deleted.
+3. Export it: `wrangler d1 export <name> --remote --output=<file>.sql`, to the release's
+   private evidence location, and check the file is non-empty.
+4. Delete it: `wrangler d1 delete <name> --skip-confirmation`. Report the name, uuid and
+   export path.
+
+The next release recreates it before its staging stop: the database, its id in staging's
+configuration, and the migrations.
+
+**Proof that staging is idle.** The release is done when each item above has its Done check,
+and staging shows zero writes: the `d1AnalyticsAdaptiveGroups` dataset (GraphQL Analytics,
+`sum { writeQueries rowsWritten }` filtered by `databaseId` and date) reads zero for a staging
+database that stays, and `workflowsAdaptiveGroups` counts no `WORKFLOW_START` events for
+staging's Workflows. No documented dataset isolates cron invocations: the empty schedules list
+is that evidence, and Workers Logs (seven days, when staging has observability on) is the
+event-level confirmation. Report each check that could not run as NOT TESTED.
 
 ## Review check: no shared cache in front of identity
 

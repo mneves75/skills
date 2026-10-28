@@ -11,7 +11,7 @@
   "env": {
     "staging": {
       "routes": [{ "pattern": "staging.example.com", "custom_domain": true }],
-      "triggers": { "crons": ["0 10 * * *"] },
+      "triggers": { "crons": [] },
       "vars": { "APP_ENV": "staging" },
       "kv_namespaces": [{ "binding": "CACHE", "id": "staging-kv-id" }],
       "d1_databases": [{ "binding": "DB", "database_name": "demo-staging", "database_id": "staging-db-id" }],

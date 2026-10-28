@@ -1,6 +1,6 @@
 # Gates, profile and freshness
 
-Catalog version: **2**. Read this before deciding scope or a verdict.
+Catalog version: **3**. Read this before deciding scope or a verdict.
 
 ## Profile
 
@@ -189,6 +189,7 @@ the change list is unknown.
 | Version | Changed controls |
 |---|---|
 | 2 | CMP-06 applies to any stored personal data, not only `accounts` |
+| 3 | CST-03 added: staging runs and bills nothing between releases |
 
 ## Interaction with other gates
 

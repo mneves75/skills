@@ -326,7 +326,7 @@ words. The primary control owns the item; a secondary control covers a part.
 | R1 | review every agent-written line | MNT-02 | OPS-06 |
 | R2 | design the data model | DM-01 | OPS-06 |
 | R3 | explain fix-induced regressions | TST-06 | OPS-06 |
-| R4 | deploys, servers, cloud bill | DEL-04 | CST-02, OPS-06 |
+| R4 | deploys, servers, cloud bill | DEL-04 | CST-02, CST-03, OPS-06 |
 | R5 | answer the 3 a.m. page | OBS-07 | OPS-06 |
 | R6 | patch the framework fast | MNT-05 | SEC-13, OPS-06 |
 | R7 | walk an auditor through data flows | CMP-03 | OPS-06 |

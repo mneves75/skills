@@ -37,7 +37,7 @@ beside the unit's release scripts. Derive every other summary from it.
 ```markdown
 # Production readiness ledger
 
-Schema: 1 · Catalog: 2 · Unit: . · Stage: live · Visibility: private
+Schema: 1 · Catalog: 3 · Unit: . · Stage: live · Visibility: private
 Profile: db (prisma/schema.prisma), accounts (src/auth/), payments (stripe in package.json), email, jobs
 Regulated: card payments → CMP-05; EU personal data → CMP-06; EU consumer accessibility → BLOCKED, needs determination (owner)
 Contracts: none
@@ -82,7 +82,7 @@ directory (`.`, the repository root, for a single-unit repository); the reposito
   "schema": 1,
   "unit": ".",
   "target": "production",
-  "catalog": 2,
+  "catalog": 3,
   "commit": "0123456789abcdef0123456789abcdef01234567",
   "verdict": "ready",
   "open_blockers": 0,

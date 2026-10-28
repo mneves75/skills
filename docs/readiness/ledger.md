@@ -3,7 +3,7 @@
 > Historical note (2026-10-18): this provisional baseline predates the retirement of the two SRE
 > candidate skills into `docs/sre-guides/`; it was not re-run on the guides-only candidate.
 
-Schema: 1 · Catalog: 2 · Unit: . · Stage: live · Visibility: public
+Schema: 1 · Catalog: 3 · Unit: . · Stage: live · Visibility: public
 Deploy artifact: `site/`, published to GitHub Pages by `.github/workflows/static.yml` after CI succeeds for a push to `main`, only for the `main` tip; a manual dispatch republishes an earlier commit on `main` (rollback)
 Profile: ui (static HTML/CSS and minimal JavaScript, `PRODUCT.md:28`); stake: none (no `db`, `accounts`, `uploads`, `marketing-email`, `payments` or `sla`, `SECURITY.md:94`, `SECURITY.md:117-118`)
 Regulated: none established. No regulated consumer-service activity is established for these scoped static developer docs; the UX-07 contract gate is inactive, and this is not a legal exemption claim.
@@ -49,7 +49,7 @@ with the same five open security IDs) granted owner waivers for these nine rows,
 only, expiring 2026-10-28T03:37:58Z. Underlying results stay in each row; the controls are not implemented,
 and an expired waiver restores each block for the next publication.
 
-Totals: 135 rows · NOT APPLICABLE 84 · PASS 13 · FAIL 1 · NOT TESTED 28 · BLOCKED 0 · WAIVED 9.
+Totals: 136 rows · NOT APPLICABLE 85 · PASS 13 · FAIL 1 · NOT TESTED 28 · BLOCKED 0 · WAIVED 9.
 
 | ID | Status | Tier | Evidence (scope, date, commit) | Owner | Next action or waiver |
 |---|---|---|---|---|---|
@@ -99,6 +99,7 @@ Totals: 135 rows · NOT APPLICABLE 84 · PASS 13 · FAIL 1 · NOT TESTED 28 · B
 | EML-04 | NOT APPLICABLE | advisory | No notifications or marketing email (`SECURITY.md:117-118`) | proposed: maintainer | — |
 | CST-01 | NOT TESTED | advisory | Pages artifact and workflow-log retention settings were not read | proposed: maintainer | — (advisory, no entry) |
 | CST-02 | NOT TESTED | advisory | No stake (header), so advisory. No paid provider is named in the repository; no owner statement on spend alerts | proposed: maintainer | — (advisory, no entry) |
+| CST-03 | NOT APPLICABLE | advisory | No staging environment: one deploy target, GitHub Pages from `main` (ledger header) | proposed: maintainer | — |
 | OBS-01 | NOT APPLICABLE | advisory | No runtime that writes logs; the artifact is static files (`PRODUCT.md:28`) | proposed: maintainer | — |
 | OBS-02 | NOT TESTED | advisory | No stake (header), so advisory. No client error tracker; the site loads no third-party resources (`SECURITY.md:71`) | proposed: maintainer | — (advisory, no entry) |
 | OBS-03 | NOT TESTED | advisory | No stake (header), so advisory. No external uptime check was found or attested | proposed: maintainer | Plan entry 3 |
