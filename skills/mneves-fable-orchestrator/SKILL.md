@@ -37,15 +37,15 @@ before it can perform ordinary implementation.
 The only place this skill names models. Edit this block on a model release; nothing else.
 
 ```
-main session      = Opus, latest release (Claude alias `opus`), reasoning xhigh, with a Fable advisor (Claude `advisorModel` alias `fable`) | gpt-6.1-sol, reasoning xhigh (Codex orchestrator)
-frontend subagent = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning xhigh (Codex worker)
-ordinary worker   = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning xhigh (Codex worker)
-bounded worker    = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning xhigh (bounded Codex task)
-heavy executor    = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning xhigh (Codex worker)
+main session      = Opus, latest release (Claude alias `opus`), reasoning xhigh, with a Fable advisor (Claude `advisorModel` alias `fable`) | gpt-6.1-sol, reasoning high (Codex orchestrator)
+frontend subagent = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning high (Codex worker)
+ordinary worker   = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning high (Codex worker)
+bounded worker    = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning high (bounded Codex task)
+heavy executor    = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning high (Codex worker)
 reviewer          = Fable, latest release (Claude subagent alias `fable`) | gpt-6-astra, reasoning high (autoreview `--model gpt-6-astra`; no model fallback)
 planner           = Fable, latest release (Claude subagent alias `fable`) | gpt-6-astra, reasoning xhigh (planning)
 plan advisor      = Fable, latest release (Claude `advisorModel` alias `fable`) | gpt-6-astra, reasoning xhigh (advice and plan review)
-specialist        = gpt-6.1-sol, reasoning xhigh (specialist execution; a specialist review takes the reviewer seat)
+specialist        = gpt-6.1-sol, reasoning high (specialist execution; a specialist review takes the reviewer seat)
 local fallback    = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the only substitute when no Claude or Codex seat for that role can run)
 ```
 
