@@ -965,7 +965,16 @@ def scheduled(triggers: object) -> list:
     """Cron schedules and event triggers: the scheduled work a triggers block deploys."""
     if not isinstance(triggers, dict):
         return []
-    return [item for key in ("crons", "events") if isinstance(triggers.get(key), list) for item in triggers[key]]
+    found: list = []
+    for key in ("crons", "events"):
+        value = triggers.get(key)
+        found += value if isinstance(value, list) else [value] if value else []
+    return found
+
+
+def clears_schedules(triggers: object) -> bool:
+    # Wrangler replaces deployed schedules only when crons is set, so {} clears nothing.
+    return isinstance(triggers, dict) and isinstance(triggers.get("crons"), list)
 
 
 def cf_triggers(config: WranglerConfig) -> Result:
@@ -981,12 +990,11 @@ def cf_triggers(config: WranglerConfig) -> Result:
                 return Result("cf.env-triggers", FAIL,
                               f"{where} env.{name} declares scheduled work "
                               f"{', '.join(map(str, scheduled(body['triggers'])))}; staging runs it only from a one-off manual trigger")
-            if not isinstance(body["triggers"], dict) or not isinstance(body["triggers"].get("crons"), list):
-                # Wrangler replaces deployed schedules only when crons is set, so {} clears nothing.
+            if not clears_schedules(body["triggers"]):
                 return Result("cf.env-triggers", FAIL,
                               f"{where} env.{name} declares triggers without a crons list, which keeps the deployed "
                               f"schedules; declare \"triggers\": {{\"crons\": []}}")
-        elif scheduled(config.data.get("triggers")):
+        elif "triggers" in config.data and (scheduled(config.data["triggers"]) or not clears_schedules(config.data["triggers"])):
             return Result("cf.env-triggers", FAIL,
                           f"{at(config, env_line(config, name))} env.{name} inherits the top-level scheduled work "
                           f"({at(config, key_line(config, 'triggers'))}); declare \"triggers\": {{\"crons\": []}} there")

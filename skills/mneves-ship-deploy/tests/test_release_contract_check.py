@@ -310,6 +310,11 @@ def _m_staging_declares_event(repo: Path) -> None:
            '      "triggers": { "crons": [], "events": [{ "source": "artifacts" }] },\n', count=1)
 
 
+def _m_staging_inherits_empty_triggers(repo: Path) -> None:
+    mutate(repo, "wrangler.jsonc", '      "triggers": { "crons": [] },\n', "", count=1)
+    mutate(repo, "wrangler.jsonc", '  "triggers": { "crons": ["0 10 * * *"] },\n', '  "triggers": {},\n', count=1)
+
+
 def _m_cache_top(repo: Path) -> None:
     mutate(repo, "wrangler.jsonc", '  "main": "src/worker.ts",\n', '  "main": "src/worker.ts",\n  "cache": { "enabled": true },\n')
 
@@ -416,6 +421,7 @@ VIOLATIONS = [
     ("staging inherits production's crons", _m_staging_inherits_crons, "cf.env-triggers", "FAIL", False, r"wrangler\.jsonc:\d+ env\.staging inherits"),
     ("staging declares a cron", _m_staging_declares_cron, "cf.env-triggers", "FAIL", False, r"env\.staging declares scheduled work \*/5"),
     ("staging triggers without a crons list", _m_staging_empty_triggers, "cf.env-triggers", "FAIL", False, r"env\.staging declares triggers without a crons list"),
+    ("staging inherits a top-level triggers block without crons", _m_staging_inherits_empty_triggers, "cf.env-triggers", "FAIL", False, r"env\.staging inherits the top-level scheduled work"),
     ("staging declares an event trigger", _m_staging_declares_event, "cf.env-triggers", "FAIL", False, r"env\.staging declares scheduled work"),
     ("Workers Cache on at the top level", _m_cache_top, "cf.worker-cache", "WARN", False, r"wrangler\.jsonc:\d+ Workers Cache is on for the top level; its key ignores Cookie and Authorization"),
     ("Workers Cache explicitly off", _m_cache_off, "cf.worker-cache", "PASS", False, r"off or absent"),
