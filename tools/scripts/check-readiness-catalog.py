@@ -169,7 +169,8 @@ def check_ledger(audit: Audit, controls: dict[str, tuple[Path, int]]) -> None:
         for status, count in Counter(status for status, _ in pairs).items():
             if count > 1:
                 audit.error(LEDGER, number, f"Totals states {status} more than once")
-        size = re.search(r"([0-9]+) rows", line)
+        # The lookbehind starts a match only at a digit run's first digit, keeping the search linear.
+        size = re.search(r"(?<![0-9])([0-9]+) rows", line)
         if not size or int(size.group(1)) != sum(rows.values()):
             audit.error(LEDGER, number, f"Totals says {size.group(1) if size else 'no'} rows, table has {sum(rows.values())}")
         for status in COUNTED:

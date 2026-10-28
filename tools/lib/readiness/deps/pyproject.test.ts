@@ -87,3 +87,10 @@ test = ["pytest>=8.0"]
 		],
 	});
 });
+
+test("a long run of brackets in a section header parses in linear time", async () => {
+	// The header pattern's inner class overlapped `\[+`, so this input backtracked quadratically.
+	const started = performance.now();
+	await parse(`${"[".repeat(100_000)}x\n[project]\nname = "a"\n`);
+	expect(performance.now() - started).toBeLessThan(1000);
+});

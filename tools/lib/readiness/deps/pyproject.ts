@@ -369,7 +369,8 @@ function parseToml(content: string): PyProject | null {
 
 			// Section header
 			if (line.startsWith("[")) {
-				const sectionMatch = line.match(/^\[+([^\]]+)\]+$/);
+				// The name class excludes both brackets so it cannot overlap `\[+` and backtrack quadratically.
+				const sectionMatch = line.match(/^\[+([^[\]]+)\]+$/);
 				if (sectionMatch) {
 					currentSection = (sectionMatch[1] ?? "").split(".").map((s) => s.trim());
 					currentObject = ensurePath(result, currentSection);

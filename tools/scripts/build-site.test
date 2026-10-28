@@ -12,6 +12,7 @@ from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 
 source = Path.cwd()
@@ -206,4 +207,25 @@ with tempfile.TemporaryDirectory(prefix='skills-build-site-') as scratch:
     result = build_with(safe)
     assert result.returncode == 0 and output.exists(), f'the build rejected prose and code:\n{result.stdout}'
     print('PASS: prose and code that only mention active HTML still build')
+
+    # changelog-rows.py on hostile entries: markup in the date is escaped, and a long run of
+    # brackets in a bullet (the link pattern used to backtrack quadratically) stays fast.
+    rows_script = target / 'tools/scripts/changelog-rows.py'
+    page = target / 'site/rows-index.html'
+    for label, entry, expect in (
+        ('date markup is escaped', '## [9.9.9] - <img/src=x>\n\n- **Thing**: one.\n', '&lt;img/src=x&gt;'),
+        ('long bracket run stays fast', '## [9.9.9] - 2026-01-01\n\n- ' + '[' * 20000 + '\n', '9.9.9'),
+        ('long link run stays fast', '## [9.9.9] - 2026-01-01\n\n- ' + '[a](' * 40000 + '\n', '9.9.9'),
+    ):
+        (target / 'rows-CHANGELOG.md').write_text(entry)
+        page.write_text('<ul>\n<!-- changelog:start -->\n<!-- changelog:end -->\n</ul>\n')
+        try:
+            run = subprocess.run([sys.executable, str(rows_script), str(target / 'rows-CHANGELOG.md'), str(page)],
+                                 text=True, capture_output=True, timeout=3)
+        except subprocess.TimeoutExpired:
+            raise AssertionError(f'changelog-rows: {label}: exceeded 3 s')
+        assert run.returncode == 0, f'changelog-rows: {label}: {run.stderr}'
+        built = page.read_text()
+        assert expect in built and '<img' not in built, f'changelog-rows: {label}: {built[:200]}'
+        print(f'PASS: changelog-rows {label}')
 PY

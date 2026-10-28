@@ -343,7 +343,8 @@ def release_view(repo: Repo, script: Path | None, kind: str = "file") -> list[Li
         root = repo.root.resolve()
         seen = {script.resolve()}
         for line in list(lines):
-            for candidate in re.findall(r"([\w./-]+\.(?:sh|bash|py|mjs|cjs|js|ts))\b", line.text):
+            # The lookbehind starts a match only at a token's first character, keeping the search linear.
+            for candidate in re.findall(r"(?<![\w./-])([\w./-]+\.(?:sh|bash|py|mjs|cjs|js|ts))\b", line.text):
                 for target in (script.parent / Path(candidate).name, repo.root / candidate.lstrip("/")):
                     if probe(target)[0] == "file" and target.resolve() not in seen and target.resolve().is_relative_to(root):
                         seen.add(target.resolve())

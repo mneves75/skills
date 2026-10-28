@@ -637,6 +637,17 @@ class ReleaseScriptReading(Base):
             with self.subTest(check_id):
                 self.assertEqual(statuses[check_id], "PASS")
 
+    def test_a_long_token_in_a_short_wrapper_stays_fast(self) -> None:
+        # The script-name search used to backtrack quadratically on one long path-like token.
+        impl = self.repo / "scripts" / "release-impl.sh"
+        shutil.move(self.repo / "scripts" / "release.sh", impl)
+        wrapper = '#!/usr/bin/env bash\n: ' + "a" * 60000 + '\nexec "$(dirname "$0")/release-impl.sh" "$@"\n'
+        (self.repo / "scripts" / "release.sh").write_text(wrapper)
+        (self.repo / "scripts" / "release.sh").chmod(0o755)
+        proc = run_checker(str(self.repo), "--json", timeout=5)
+        checks = {c["id"]: c["status"] for c in json.loads(proc.stdout)["repos"][0]["checks"]}
+        self.assertEqual(checks["release.readiness"], "PASS")
+
     def test_the_pin_the_repository_declares_is_the_one_the_script_must_read(self) -> None:
         (self.repo / ".nvmrc").unlink()
         mutate(self.repo, "package.json", '  "packageManager": "npm@10.9.2"\n', '  "engines": { "node": "22.11.0" }\n')
