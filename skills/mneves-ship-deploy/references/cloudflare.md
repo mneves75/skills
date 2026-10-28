@@ -109,8 +109,12 @@ already not running; record it as such and do not count it as a scheduler that w
 and no release is in staging. In order, stopping and reporting at the first step that fails:
 
 1. Read its identity: `wrangler d1 info <name> --json` (uuid, `write_queries_24h`,
-   `rows_written_24h`). The name and uuid must be the ones staging's configuration binds, and
-   neither may appear in production's configuration.
+   `rows_written_24h`), with `<name>` taken from the staging environment's `d1_databases` and
+   nowhere else. Compare the uuid with every `database_id` and the name with every
+   `database_name` in the Wrangler configuration: both must equal the staging environment's
+   entry and differ from the top level's and every other environment's. Quote the compared
+   values in the report. Any match outside staging, a missing staging entry or an id that
+   cannot be read stops the deletion.
 2. Confirm it holds nothing production lacks. A staging database that served as the only copy
    of anything (an import, a hand-entered record, a test the owner relies on) is reported for
    the owner, not deleted.
