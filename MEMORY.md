@@ -14,7 +14,7 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
-- **1.41.0** (2026-10-26, released and live, not tagged): includes the unmerged 1.39.0 work,
+- **1.41.0** (2026-10-26, released and live): includes the unmerged 1.39.0 work,
   guideline corrections, readiness source checks and dead-code removal, hash-locked CI
   dependencies, the reference Agent Skills validator and CI-bound Pages publication.
   PR #28 merged on 2026-10-27 as `cc7285e`, whose tree equals the audited candidate `781922a`;
@@ -22,8 +22,8 @@ measure whether a *target* codebase is ready for agents.
   tracked bytes. The security gate is WAIVED (SEC-17, SEC-20, SEC-21, SEC-23, CMP-06) and
   readiness is `ready` under nine owner waivers (those five plus DEL-04, DEL-09, ASY-02,
   OPS-04) for this single release, expiring 2026-10-28T03:37:58Z; the controls stay open in
-  `docs/readiness/plan.md`. No tag or GitHub Release yet, so the documented rollback still
-  points at `v1.40.0`.
+  `docs/readiness/plan.md`. On 2026-10-27 it had no tag yet (owner approval pending), so the
+  documented rollback pointed at `v1.40.0`; the tag message carries the binding result.
 - **1.40.0** (2026-10-23; PR #27 merged as `b62072e` on 2026-10-24, published to Pages and
   tagged `v1.40.0`): adds the attributed `council` and
   `security-audit` packages, bringing the default catalog to seventeen skills. Council keeps

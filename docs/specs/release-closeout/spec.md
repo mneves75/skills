@@ -1,6 +1,6 @@
 # Release closeout for this repository
 
-Status: in progress on PR #29 (2026-10-27). Scope: this repository's own release procedure and
+Status: written 2026-10-27 and built on PR #29. Scope: this repository's own release procedure and
 its readiness ledger, not the shipped skills.
 
 ## Assumptions (open decisions, built without an interview)
