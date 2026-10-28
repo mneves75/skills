@@ -93,7 +93,9 @@ Done when `wrangler queues consumer list <queue> --json` prints `[]` for each st
 **Workflows.** A staging Workflow needs its own name, because Workflow names are account-wide.
 A Workflow can carry its own `schedules`, and removing them from the configuration may not
 clear them: delete the staging Workflow with `wrangler workflows delete <name>`, which also
-deletes its instances.
+deletes its instances. Take `<name>` from the staging environment's `workflows` entry and
+compare it with every other environment's and the top level's: a name that appears outside
+staging is shared with production, so stop and report it instead of deleting.
 Done when `wrangler workflows instances list <name> --status running --json` and the same with
 `--status queued` print nothing, or the Workflow no longer exists.
 

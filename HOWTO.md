@@ -642,7 +642,8 @@ babysit PR 77
    false positives with a written reason.
 
 **Tips.**
-- A review bot counts only when GitHub types its author as a Bot.
+- A review bot counts only when GitHub types its author as a Bot, and a check counts as the
+  bot's only when the bot's own GitHub App reports it, whatever the job is named.
 - A check GitHub refused to start over billing is reported as billing-blocked, not failed.
 
 Procedure: [SKILL.md](skills/babysit-pr/SKILL.md).
