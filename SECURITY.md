@@ -9,7 +9,7 @@ Supported runtimes for the shipped executables:
 | Runtime | Supported | Used by |
 |---|---|---|
 | Bun | 1.4.4 or later (CI pins 1.4.4) | the readiness tool in `tools/` |
-| Python | 3.11 or later | autoreview, the ship-deploy contract check, the SRS helper, render starters, site build helpers |
+| Python | 3.11 or later | autoreview, `codex-lane`, `pr-wait`, the ship-deploy contract check, the SRS helper, render starters, site build helpers |
 | Node.js | a release line upstream still maintains | security-audit validators, site build |
 
 The maintainer (@mneves75) owns these floors: when a runtime line reaches upstream end of
@@ -36,6 +36,7 @@ the release contract checker, reference release scripts and their tests
 (`skills/mneves-ship-deploy/scripts/`, `assets/*.sh`, `tests/`), the render content-policy
 filter, starters and tests (`skills/mneves-render/scripts/check_ast.py`, `assets/`, `tests/`),
 the SRS helper and its test (`skills/mneves-teach-back-srs/scripts/srs_db.py`, `tests/`), the
+PR watcher and its test (`skills/babysit-pr/scripts/pr-wait`, `tests/test_pr_wait.py`), the
 Node validators and their tests (`skills/security-audit/validate-*.cjs`, `*.test.cjs`), the
 Bun/TypeScript tool (`tools/`), the autoreview CLI and its packaged tests
 (`skills/autoreview/`), the git hook (`.githooks/`), and the GitHub workflows.
@@ -112,7 +113,8 @@ operating-system updates.
   keeps its own sessions under its own configuration.
 - `pr-wait` (in `babysit-pr`) keeps one small state file per watched PR in
   `~/.local/state/pr-wait/` (`<owner>__<repo>__<number>.json` and its lock): ids of reported
-  events, a digest of each bot summary, the base commit and the merge state; no comment text.
+  events (comment ids, and the names and links of failed checks), a digest of each bot summary,
+  the base commit and the merge state; no comment text.
   It ignores a file older than six hours; delete the file to erase it.
 - `security-audit` writes its audit to a directory outside the target (conventional default
   `~/security-audit-skill/<repo-name>/run-<N>/`): the coverage ledger, findings, evidence and
