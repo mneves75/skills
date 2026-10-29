@@ -37,7 +37,7 @@ Events
   - merge state became BEHIND or DIRTY
   - the PR merged or closed
 
-A billing-blocked check is a failed check run that never ran a step and whose
+A billing-blocked check is a failed GitHub Actions run that never ran a step and whose
 failure annotation starts with "The job was not started because" and names
 billing, failed payments or the spending limit. It does not count as a failed check, so `green` and `ready` can
 pass without it; the summary line names it.
@@ -395,10 +395,11 @@ class Watcher:
                 checks[row["name"]] = row
         return checks
 
-    def rollup(self, head: str) -> tuple[set[str], set[str], dict[str, str]]:
+    def rollup(self, head: str) -> tuple[set[str], set[str], dict[str, str], set[str]]:
         """Read on every poll, since a re-run changes the answer without moving the head:
         failed checks GitHub never started for billing reasons; those of them with another
-        run of the same name still going; and the checks a review bot's own app reports."""
+        run of the same name still going; the checks a review bot's own app reports; and
+        every check with a run still going."""
         try:
             proc = gh([
                 "api", "graphql", "-f", f"query={ANNOTATIONS_QUERY}",
@@ -407,9 +408,9 @@ class Watcher:
             commits = json.loads(proc.stdout)["data"]["repository"]["pullRequest"]["commits"]["nodes"]
         except (GhError, ValueError, KeyError, TypeError) as error:
             log(f"could not read check runs: {error}")
-            return set(), set(), {}
+            return set(), set(), {}, set()
         if not commits or commits[0]["commit"]["oid"] != head:
-            return set(), set(), {}
+            return set(), set(), {}, set()
         rollup = commits[0]["commit"].get("statusCheckRollup") or {}
         blocked: set[str] = set()
         failed: set[str] = set()
@@ -429,8 +430,9 @@ class Watcher:
                 running.add(node["name"])
             if node.get("conclusion") not in RUN_FAILED:
                 continue
-            # A job GitHub refused never ran a step; a job that ran can print any annotation.
-            never_started = (node.get("steps") or {}).get("totalCount") == 0
+            # GitHub refuses Actions jobs only. A refused job ran no step; a job that ran, or a
+            # run another app created (always zero steps), can carry any annotation.
+            never_started = app == "github-actions" and (node.get("steps") or {}).get("totalCount") == 0
             if node["conclusion"] == "FAILURE" and never_started and any(
                 a.get("annotationLevel") == "FAILURE" and billing_message(a.get("message"))
                 for a in (node.get("annotations") or {}).get("nodes") or []
@@ -443,7 +445,7 @@ class Watcher:
         # going keeps it pending.
         names = blocked - failed
         bot_checks = {name: bot for name, bots in owners.items() if len(bots) == 1 for bot in bots if bot}
-        return names - running, names & running, bot_checks
+        return names - running, names & running, bot_checks, running
 
     def base_overlap(self, head: str, old: str, new: str) -> list[str]:
         """Files this PR touches that the new base commits also touch."""
@@ -487,7 +489,7 @@ class Watcher:
         threads = pr["reviewThreads"]["nodes"]
         self.events = 0
 
-        billing, rerunning, bot_checks = self.rollup(head)
+        billing, rerunning, bot_checks, running = self.rollup(head)
         # Required checks. With no required checks configured, every CI check
         # gates except the review bots' own checks.
         gate = self.required or {name for name in checks if name not in bot_checks}
@@ -559,7 +561,8 @@ class Watcher:
             own_reviews = [r for r in reviews if who(r)[1] and bot_name(who(r)[0]) == bot]
             on_head = any((r.get("commit") or {}).get("oid") == head for r in own_reviews)
             if own_checks:
-                done = all(c["bucket"] != "pending" for c in own_checks.values())
+                # gh collapses a name's runs to the worst bucket, hiding a run still going.
+                done = all(c["bucket"] != "pending" for c in own_checks.values()) and not running & set(own_checks)
             else:
                 done = on_head or any(short in s["body"] for s in summaries)
             seen = bool(own_checks or summaries or own_reviews)

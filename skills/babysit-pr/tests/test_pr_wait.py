@@ -173,10 +173,10 @@ class PrWaitTest(unittest.TestCase):
         self.assertIn(f"green on {HEAD[:7]}: 1 pass", proc.stdout)
         self.assertNotIn("billing-blocked", proc.stdout)
 
-    def test_bot_check_billing_block_with_a_run_going_keeps_ready_waiting(self) -> None:
-        # greptile is a review bot, not a gate check: build passes, so no gate check failed.
+    def test_bot_check_with_a_run_going_keeps_ready_waiting(self) -> None:
+        # gh collapses greptile's failed and running runs to "fail"; the bot is not done yet.
         stage = {"checks": [check("build", "pass"), check("greptile", "fail")],
-                 "rollup": [check_run("build", "SUCCESS"), check_run("greptile", "FAILURE", LOCKED, app="greptile-apps"),
+                 "rollup": [check_run("build", "SUCCESS"), check_run("greptile", "FAILURE", "1 issue", app="greptile-apps"),
                             check_run("greptile", None, app="greptile-apps")]}
         self.write_stages(stage)
         watcher = subprocess.Popen(
@@ -226,6 +226,13 @@ class PrWaitTest(unittest.TestCase):
         proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
         self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
         self.assertIn('check failed: "build"', proc.stdout)
+
+    def test_billing_text_on_another_apps_run_is_a_failure(self) -> None:
+        # GitHub reports zero steps for every run an app creates through the Checks API.
+        self.write([check("scan", "fail")], [check_run("scan", "FAILURE", LOCKED, app="socket-security")], 1)
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn('check failed: "scan"', proc.stdout)
 
     def test_control_characters_in_comments_are_dropped(self) -> None:
         self.write([check("build", "pending")], checks_exit=8)
