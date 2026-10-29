@@ -21,7 +21,8 @@ Exit codes
   0  the --until condition is met, or the PR merged
   1  the condition cannot be met without action: a required check failed, the
      branch conflicts with its base, the PR closed, `ready` is blocked by
-     unresolved threads or a BEHIND branch, or GitHub stayed unreachable
+     unresolved threads or a BEHIND branch, GitHub stayed unreachable, or
+     `ready` could not read every check for ten polls in a row
   2  bad arguments, unknown PR, or another pr-wait already watches this PR
 
 Events
@@ -44,7 +45,8 @@ returns: a check run a workflow creates through the Checks API carries the same 
 zero steps, and its text can come from the PR. It does not count as a failed check, so
 `green` and `ready` can pass without it; the summary line names it. pr-wait reads
 every check on the head. When it cannot read them all (more than 1,000, or a page
-fails), it excuses nothing and counts no gating bot done, so `ready` waits.
+fails), it excuses nothing and counts no gating bot done, so `ready` waits; after ten
+such polls in a row `--until ready` exits 1 and says so.
 
 Review bots count only when GitHub types the author as a Bot, so a person whose
 login contains a bot's name never marks a review done. A check counts as a
@@ -341,6 +343,7 @@ class Watcher:
         self.events = 0
         self.required: set[str] | None = None
         self.jobs: dict[int, bool] = {}
+        self.incomplete_reads = 0
         self.prev_snapshot: list[tuple[str, str]] | None = None
         self.pr_files: dict[str, set[str]] = {}
 
@@ -424,8 +427,11 @@ class Watcher:
                     return None
                 contexts = (commits[0]["commit"].get("statusCheckRollup") or {}).get("contexts") or {}
                 page_nodes = contexts.get("nodes") or []
-                if not all(isinstance(node, dict) for node in page_nodes):
-                    raise TypeError("a check entry is not an object")
+                if not all(
+                    isinstance(node, dict) and (node.get("__typename") != "CheckRun" or isinstance(node.get("name"), str))
+                    for node in page_nodes
+                ):
+                    raise TypeError("a check entry is malformed")
                 nodes += page_nodes
                 page = contexts.get("pageInfo") or {}
                 if not page.get("hasNextPage"):
@@ -525,6 +531,13 @@ class Watcher:
 
         read = self.rollup(head)
         billing, rerunning, owners, running = read or (set(), set(), {}, set())
+        # An incomplete read keeps every gating bot pending, so `ready` could never come.
+        self.incomplete_reads = 0 if read is not None else self.incomplete_reads + 1
+        if self.until == "ready" and self.incomplete_reads >= MAX_FAILED_POLLS:
+            self.finish(1, [
+                f"pr-wait stopped: could not read every check on {short} for {self.incomplete_reads} polls, "
+                "so nothing was excused and no review bot counted done; check the PR by hand"
+            ])
         # A check is a bot's only when that bot alone reports it; a job of the same name keeps it gating.
         bot_checks = {name: bot for name, bots in owners.items() if len(bots) == 1 for bot in bots if bot}
         # Required checks. With no required checks configured, every CI check
@@ -546,10 +559,11 @@ class Watcher:
             if name in billing:
                 self.emit(
                     f"billing:{head}:{name}",
-                    f"{label} not started by GitHub (billing or spending limit), not a code failure: {snippet(name, 200)} {link}",
+                    f"{label} not started by GitHub (billing or spending limit), not a code failure: {snippet(name, 200)} {snippet(link, 300)}",
                 )
                 continue
-            fail_lines.append(f"{label} failed: {snippet(name, 200)} {link}")
+            # A run created through the Checks API chooses its own details URL.
+            fail_lines.append(f"{label} failed: {snippet(name, 200)} {snippet(link, 300)}")
             self.emit(f"fail:{head}:{name}:{link}", fail_lines[-1])
         watched = {name: c for name, c in checks.items() if bot_checks.get(name) not in ADVISORY_BOTS}
         gate_done = bool(gate) and all(bucket(n) != "pending" for n in gate)

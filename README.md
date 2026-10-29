@@ -163,14 +163,16 @@ from CI and merge approval; their current tracked assessment is in [the readines
 
 ## License
 
-Original work in this repository is Apache-2.0. The adapted
-[`imagegen-frontend-mobile`](skills/imagegen-frontend-mobile/) and
-[`autoreview`](skills/autoreview/) skills and the [`pstack`](collections/pstack/) collection retain
-their upstream MIT licenses and copyrights; see the `LICENSE` file in each directory.
+Original work in this repository is Apache-2.0. The adapted skills (`autoreview`, `babysit-pr`,
+`council`, `full-stop`, `imagegen-frontend-mobile`, `leaving-pr-comments`, `mneves-handoff`,
+`modernize`, `security-audit` and `takeover`) and the [`pstack`](collections/pstack/) collection
+retain their upstream MIT licenses and copyrights; see the `LICENSE` file in each directory and
+[`NOTICE`](NOTICE).
 
 The repository's readiness tooling runs locally. Image-generation workflows may send prompts and
 references to the configured image provider; autoreview sends scanned review inputs to the
-selected review provider. Authorize private-content disclosure before either workflow.
+selected review provider; council sends the task, plan or diff you approve to each member CLI's
+provider. Authorize private-content disclosure before any of these workflows.
 
 ## Acknowledgments
 

@@ -1,6 +1,6 @@
 # How to use these skills
 
-Seventeen skills, one install. This page shows what each one does, how to trigger it, and what a
+Twenty-two skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the [README](README.md); for the exact
 procedure an agent follows, open `skills/<name>/SKILL.md`. Service level objectives and
 incident reviews are not skills: use the [SRE guides](docs/sre-guides/README.md) and

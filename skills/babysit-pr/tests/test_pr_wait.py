@@ -149,7 +149,7 @@ class PrWaitTest(unittest.TestCase):
         self.write([check("build", "fail"), check("lint", "pass")], [check_run("build", "FAILURE", "Process completed with exit code 1.")], 1)
         proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
         self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
-        self.assertIn('check failed: "build"', proc.stdout)
+        self.assertIn('check failed: "build" "https://example.test/build"', proc.stdout)
 
     def test_billing_block_is_not_a_code_failure(self) -> None:
         for message in (LOCKED, SPENDING):
@@ -284,6 +284,21 @@ class PrWaitTest(unittest.TestCase):
     def test_job_sharing_a_bots_check_name_does_not_end_its_wait(self) -> None:
         self.bot_running_with_summary([check_run("greptile", "SUCCESS")])
         self.assert_ready_waits()
+
+    def test_ready_stops_when_the_checks_cannot_be_read(self) -> None:
+        self.bot_running_with_summary([], rollup_error_from=0)
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT), "7", "--repo", "o/r", "--until", "ready", "--interval", "5"],
+            env=self.env, capture_output=True, text=True, timeout=90)  # ten polls at five seconds
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn(f"could not read every check on {HEAD[:7]} for 10 polls", proc.stdout)
+
+    def test_check_run_without_a_name_excuses_nothing(self) -> None:
+        nameless = {k: v for k, v in check_run("build", "FAILURE", LOCKED).items() if k != "name"}
+        self.write([check("build", "fail")], [check_run("build", "FAILURE", LOCKED), nameless], 1)
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn('check failed: "build"', proc.stdout)
 
     def test_malformed_check_entry_excuses_nothing(self) -> None:
         self.write([check("build", "fail")], [check_run("build", "FAILURE", LOCKED), None], 1)

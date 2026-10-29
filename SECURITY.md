@@ -113,8 +113,9 @@ operating-system updates.
   keeps its own sessions under its own configuration.
 - `pr-wait` (in `babysit-pr`) keeps one small state file per watched PR in
   `~/.local/state/pr-wait/` (`<owner>__<repo>__<number>.json` and its lock): ids of reported
-  events (comment ids, and the names and links of failed checks), a digest of each bot summary,
-  the base commit and the merge state; no comment text.
+  events (comment ids, head commits, and the names of failed or billing-blocked checks with the
+  links of failed ones), a digest of each bot summary, the base commit and the merge state; no
+  comment text.
   It ignores a file older than six hours; delete the file to erase it.
 - `security-audit` writes its audit to a directory outside the target (conventional default
   `~/security-audit-skill/<repo-name>/run-<N>/`): the coverage ledger, findings, evidence and
