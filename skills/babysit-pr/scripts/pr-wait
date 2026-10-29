@@ -37,10 +37,12 @@ Events
   - merge state became BEHIND or DIRTY
   - the PR merged or closed
 
-A billing-blocked check is a failed GitHub Actions run that never ran a step and whose
+A billing-blocked check is a failed GitHub Actions job that never ran a step and whose
 failure annotation starts with "The job was not started because" and names
-billing, failed payments or the spending limit. It does not count as a failed check, so `green` and `ready` can
-pass without it; the summary line names it.
+billing, failed payments or the spending limit. It must be a job GitHub's Actions API
+returns: a check run a workflow creates through the Checks API carries the same app and
+zero steps, and its text can come from the PR. It does not count as a failed check, so
+`green` and `ready` can pass without it; the summary line names it.
 
 Review bots count only when GitHub types the author as a Bot, so a person whose
 login contains a bot's name never marks a review done. A check counts as a
@@ -138,7 +140,7 @@ query($owner: String!, $name: String!, $number: Int!) {
                 nodes {
                   __typename
                   ... on CheckRun {
-                    name conclusion
+                    name conclusion databaseId
                     steps(first: 1) { totalCount }
                     checkSuite { app { slug } }
                     annotations(first: 10) { nodes { annotationLevel message } }
@@ -436,7 +438,7 @@ class Watcher:
             if node["conclusion"] == "FAILURE" and never_started and any(
                 a.get("annotationLevel") == "FAILURE" and billing_message(a.get("message"))
                 for a in (node.get("annotations") or {}).get("nodes") or []
-            ):
+            ) and self.is_job(node.get("databaseId")):
                 blocked.add(node["name"])
             else:
                 failed.add(node["name"])
@@ -446,6 +448,13 @@ class Watcher:
         names = blocked - failed
         bot_checks = {name: bot for name, bots in owners.items() if len(bots) == 1 for bot in bots if bot}
         return names - running, names & running, bot_checks, running
+
+    def is_job(self, run_id: object) -> bool:
+        """A job's id is its check run's id. A check run created through the Checks API,
+        even with a workflow's token, has no job, so the Actions API does not find it."""
+        if not isinstance(run_id, int):
+            return False
+        return gh(["api", f"repos/{self.owner}/{self.name}/actions/jobs/{run_id}"], allow=(0, 1)).returncode == 0
 
     def base_overlap(self, head: str, old: str, new: str) -> list[str]:
         """Files this PR touches that the new base commits also touch."""

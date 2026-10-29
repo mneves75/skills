@@ -6,6 +6,7 @@ Set PR_WAIT=<path> to run the same cases against another copy of the script.
 
 from __future__ import annotations
 
+import itertools
 import json
 import os
 import subprocess
@@ -49,6 +50,12 @@ elif args[:2] == ["api", "graphql"]:
 elif args[:1] == ["api"] and ("/rules/branches/" in args[1] or "/protection/" in args[1]):
     print("gh: Not Found (HTTP 404)", file=sys.stderr)
     sys.exit(1)
+elif args[:1] == ["api"] and "/actions/jobs/" in args[1]:
+    run_id = int(args[1].rsplit("/", 1)[1])
+    if not any(n.get("databaseId") == run_id and n.get("isJob") for n in scenario.get("rollup", [])):
+        print("gh: Not Found (HTTP 404)", file=sys.stderr)
+        sys.exit(1)
+    print(json.dumps({"id": run_id, "steps": []}))
 elif args[:1] == ["api"] and "/compare/" in args[1]:
     print("0")
 else:
@@ -70,9 +77,15 @@ def check(name: str, bucket: str) -> dict:
     return {"name": name, "bucket": bucket, "link": f"https://example.test/{name}", "description": ""}
 
 
-def check_run(name: str, conclusion: str | None, *messages: str, steps: int = 0, app: str = "github-actions") -> dict:
+RUN_IDS = itertools.count(1000)
+
+
+def check_run(name: str, conclusion: str | None, *messages: str, steps: int = 0, app: str = "github-actions",
+              job: bool = True) -> dict:
+    """job=False: a run created through the Checks API, which the fake Actions API does not find."""
     notes = [{"annotationLevel": "FAILURE", "message": m} for m in messages]
     return {"__typename": "CheckRun", "name": name, "conclusion": conclusion, "steps": {"totalCount": steps},
+            "databaseId": next(RUN_IDS), "isJob": job and app == "github-actions",
             "checkSuite": {"app": {"slug": app}}, "annotations": {"nodes": notes}}
 
 
@@ -233,6 +246,13 @@ class PrWaitTest(unittest.TestCase):
         proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
         self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
         self.assertIn('check failed: "scan"', proc.stdout)
+
+    def test_billing_text_on_a_run_a_workflow_created_is_a_failure(self) -> None:
+        # A test reporter's run: github-actions app, zero steps, text from the PR, no job.
+        self.write([check("tests", "fail")], [check_run("tests", "FAILURE", LOCKED, job=False)], 1)
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn('check failed: "tests"', proc.stdout)
 
     def test_control_characters_in_comments_are_dropped(self) -> None:
         self.write([check("build", "pending")], checks_exit=8)
