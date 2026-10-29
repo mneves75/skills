@@ -87,7 +87,9 @@ app, asks GitHub's Actions API whether a job stands behind the run, and reports 
 a check as billing-blocked instead of failed; a job that ran a step, a run another
 app created, or a run a workflow created through the Checks API (a test reporter,
 whose text can come from the PR) is still a failure whatever it printed. If GitHub
-ever stops returning a refused job there, the check reads as failed, never excused. Do not wait on it or retry it: run the same
+ever stops returning a refused job there, the check reads as failed, never excused. It reads
+every check on the head; past 1,000 checks it excuses none and counts no check as a
+bot's, so the watch can only get stricter. Do not wait on it or retry it: run the same
 checks locally, record their output as the proof, and say plainly that CI was
 skipped and why. Without `pr-wait`, read the annotations with
 `gh api repos/<owner>/<repo>/check-runs/<id>/annotations`.
