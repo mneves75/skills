@@ -61,7 +61,7 @@ check() { # <name> <ok: 0|1> [detail]
 # field is missing or is not a string of printable ASCII. It fails, printing why, when the body is not one
 # JSON object or names a top-level key twice (a JSON reader would silently keep only one of the two).
 json_fields() {
-  printf '%s' "$1" | python3 -c '
+  printf '%s' "$1" | python3 -I -c '
 import json, sys
 
 class Pairs(list):

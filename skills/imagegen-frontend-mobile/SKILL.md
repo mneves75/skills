@@ -19,6 +19,9 @@ Before generating, establish from the request and supplied references:
 - whether the output is a raw screen, a device mockup, or a multi-screen presentation;
 - any brand assets, content, accessibility constraints, or dimensions that must be preserved.
 
+Prompts and references go to the configured image service. Send a private or unreleased reference
+only after the user authorizes that service for it, and strip secrets and personal data first.
+
 Reuse the user's supplied screen list, assets, and approved style; avoid repeating discovery for
 an unchanged set. Infer low-risk omissions. Ask only when a missing choice would materially change the result. Honor
 an explicit screen count exactly; otherwise create the smallest set that communicates the requested

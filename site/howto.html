@@ -23,7 +23,7 @@ blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--line);c
 <nav aria-label="Site" style="font-size:.875rem"><a href="./">mneves75/skills</a> · How to use the skills</nav>
 <main>
 <h1>How to use these skills</h1>
-<p>Seventeen skills, one install. This page shows what each one does, how to trigger it, and what a
+<p>Twenty-two skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the <a href="https://github.com/mneves75/skills/blob/main/README.md">README</a>; for the exact
 procedure an agent follows, open <code>skills/&lt;name&gt;/SKILL.md</code>. Service level objectives and
 incident reviews are not skills: use the <a href="https://github.com/mneves75/skills/blob/main/docs/sre-guides/README.md">SRE guides</a> and
@@ -36,7 +36,8 @@ OpenCode, pi and others). Check what got installed with <code>npx skills@latest 
 prefer git, clone the repo into your agent&#39;s skills directory; the README has the paths. If a
 skill never shows up in your agent, it was probably not linked; the README&#39;s &quot;Check the install&quot;
 lists what each agent directory is missing.</p>
-<p>The readiness tool runs locally. An image-generation skill may send prompts and authorized
+<p>The readiness tool runs locally and runs the assessed project&#39;s own build, lint and test tools,
+so point it only at repositories you trust. An image-generation skill may send prompts and authorized
 references to the image provider configured in your agent. Autoreview sends authorized review
 inputs to the selected review provider after scanning them for credentials.</p>
 <p>A skill is loaded when the agent decides your request matches its <code>description</code>. You can
@@ -401,7 +402,7 @@ you wrote in.</p>
 &quot;explique de forma simples&quot;, or any request to re-explain something for a different audience.</p>
 <p><strong>Audience levels.</strong> <code>child</code>, <code>layperson</code>, <code>executive</code>, <code>junior</code>, <code>expert</code>. Name one if you
 care; otherwise the agent infers it and says which it picked.</p>
-<p><strong>Example</strong> (recorded 2026-08-26, <code>claude -p</code> on claude-fable-5, verbatim).</p>
+<p><strong>Example</strong> (recorded 2026-08-26 with <code>claude -p</code> on that date&#39;s Claude review model, verbatim).</p>
 <blockquote>
 <p><strong>You:</strong> Use the mneves-eli5 skill. Explain what a database index is to a product manager.</p>
 <p><strong>Agent:</strong> Explaining for a product manager (executive level: what it is, why it matters, the decision).</p>
@@ -434,7 +435,7 @@ version, a migration plan gets the full pass.</p>
 <p><strong>Triggers.</strong> &quot;expert review&quot;, &quot;rigorous pass&quot;, &quot;best possible answer&quot;, &quot;challenge this&quot;,
 &quot;stress-test&quot;, &quot;revisão rigorosa&quot;, &quot;melhor solução&quot;, or before any high-stakes plan, design,
 recommendation or architecture decision.</p>
-<p><strong>Example</strong> (recorded 2026-08-26, <code>claude -p</code> on claude-fable-5, verbatim; the prompt asked for under 400 words).</p>
+<p><strong>Example</strong> (recorded 2026-08-26 with <code>claude -p</code> on that date&#39;s Claude review model, verbatim; the prompt asked for under 400 words).</p>
 <blockquote>
 <p><strong>You:</strong> Use the mneves-expert-review skill. Challenge this plan and return the improved version: &quot;We will move user sessions from Redis to Postgres to cut one piece of infrastructure. Steps: 1) add a sessions table, 2) change the auth middleware to read/write Postgres, 3) run a script that copies live Redis keys into the table and deletes them from Redis, 4) turn off Redis. Session reads are rare so performance is not a concern.&quot;</p>
 <p><strong>Agent:</strong> <strong>Improved plan: sessions Redis → Postgres</strong></p>
@@ -473,13 +474,17 @@ for — no extra round for unanimity, no fewer for disagreement. Members are nev
 other&#39;s replies; after round one each is shown only the lead&#39;s changes and its own previous
 reply, which is what keeps the answers from converging on the first opinion. You get the final
 plan plus a faithful account of the objections, failures and skipped members.</p>
+<p>Ask it to review a change instead and it runs <strong>review mode</strong>: each member reviews the current
+implementation independently and scores it out of 10, the lead fixes what it agrees with between
+rounds, and the run stops when every member answers SHIP IT or the round cap (default three)
+ends. The score table goes into the PR description. Reaching the cap is not approval.</p>
 <p>Council is advice, not evidence. Agreement between members is not correctness, a test suite, an
 independent verifier, or a deploy gate.</p>
 <p><strong>Triggers.</strong> &quot;council&quot;, &quot;convene the council&quot;, &quot;two rounds of deliberation on this plan&quot;, &quot;get
-a second opinion before I commit to this design&quot;. Not for ordinary delegation, code review, or
-verification — those have their own skills.</p>
+a second opinion before I commit to this design&quot;, &quot;council review this PR&quot;. Not for ordinary
+delegation or verification — those have their own skills.</p>
 <p><strong>Prerequisites.</strong> Bash, a private writable directory for the session, at least one authenticated
-member CLI among Claude, Codex and Cursor, and your authorization to send the task and the
+member CLI among Claude, Codex and pi, and your authorization to send the task and the
 selected context to those providers. Members are capability-checked first: a missing binary, a
 missing flag, or an untrusted workspace is a skip, not a reason to add a bypass flag. When no
 member survives the check, the skill says so and returns your solo plan marked <strong>un-counciled</strong>
@@ -507,14 +512,128 @@ refused rather than quietly truncated.</li>
 where a member that folded early has to defend its answer against the revision.</li>
 <li>Decide what context may leave your machine before you council a private task. The prompt-only
 mode exists for that, and it does not remove the provider disclosure.</li>
-<li>Independence here is a protocol rule, not an operating-system sandbox: no adapter limits a
-member&#39;s reads to the working directory, so treat a member as able to read anything you can.
-What the run controls is what each member is given — never another member&#39;s reply, never the
-session path.</li>
+<li>Independence here is a protocol rule, not an operating-system sandbox: only Claude&#39;s restricted
+mode confines its file tools to the working directories, and Codex and pi can read anything
+you can, so treat every member as able to read anything you can. What the run controls is what
+each member is given — never another member&#39;s reply, never the session path.</li>
 <li>Pair it with <code>mneves-verify</code> once the plan becomes a change: the council argues about the plan,
 the verifier checks the artifact.</li>
 </ul>
 <p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/council/SKILL.md">SKILL.md</a>.</p>
+<hr>
+<h2 id="full-stop">full-stop</h2>
+<p><strong>What it does.</strong> Takes a change from its current state to a pull request that is ready for you
+to merge, while you are not watching: it finishes the change, proves it, has a reviewer that did
+not build it review the diff, files the PR, watches CI and review bots, fixes real findings, and
+stops at the merge gate. It never merges, enables auto-merge or enters a merge queue.</p>
+<p><strong>Triggers.</strong> &quot;full stop&quot;, including a closing &quot;Full stop.&quot; that reads like emphasis. Nothing
+else grants this autonomy.</p>
+<p><strong>Prerequisites.</strong> Git, an authenticated GitHub CLI (<code>gh</code>), and the repository&#39;s own checks.
+The sibling skills <code>autoreview</code>, <code>babysit-pr</code> and <code>leaving-pr-comments</code> sharpen the review,
+watching and comment steps when installed; each has a written fallback.</p>
+<p><strong>Example</strong> (illustrative).</p>
+<pre tabindex="0"><code>fix the flaky date parsing in the invoice export. full stop.
+</code></pre>
+<ol>
+<li>It branches off the default branch, reproduces the failure, makes the smallest fix and watches
+the same reproduction pass; it adds one test that fails without the fix.</li>
+<li>A reviewer that did not build the change reviews the diff for up to three rounds. A ledger
+records each finding as fixed, disproved or declined; a finding that would only grow the PR
+becomes a named follow-up.</li>
+<li>It opens a real PR whose description starts with the problem, then the fix, then one line on
+how it was proved, and ends with the model and harness that made it.</li>
+<li>It waits on CI and review bots, fixes what is real, and proves each fix before pushing.</li>
+<li>When the merge gate passes it reports the PR link, head, proof, ledger and every decision it
+made for you, and leaves the PR open.</li>
+</ol>
+<p><strong>Tips.</strong></p>
+<ul>
+<li>A check GitHub refused to start because of a billing or spending-limit problem is not a code
+failure: it runs the same checks locally and says CI was skipped and why.</li>
+<li>When it must ask, it asks through the harness&#39;s question tool so the thread shows it is
+waiting; with no answer it leaves the PR open and unmerged.</li>
+</ul>
+<p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/full-stop/SKILL.md">SKILL.md</a>.</p>
+<hr>
+<h2 id="takeover">takeover</h2>
+<p><strong>What it does.</strong> Finishes someone else&#39;s PR, branch or agent thread toward its original goal,
+and keeps the original contributors&#39; credit: their commits keep their authorship, the PR
+description credits them and links the original, and a squash keeps human co-author credit.</p>
+<p><strong>Triggers.</strong> &quot;take over this PR&quot;, &quot;finish this branch&quot;, &quot;take over that agent&#39;s thread&quot;.</p>
+<p><strong>Prerequisites.</strong> Git and <code>gh</code>. <code>modernize</code>, <code>babysit-pr</code> and <code>leaving-pr-comments</code> are
+optional siblings with written fallbacks.</p>
+<p><strong>Example</strong> (illustrative).</p>
+<pre tabindex="0"><code>take over PR 412; the original author left
+</code></pre>
+<ol>
+<li>It reads the PR, its reviews and later corrections, resolves them to the actual head, and
+treats every &quot;done&quot; or &quot;tested&quot; in the handoff as a lead to check.</li>
+<li>It imports the original commits onto a new branch, updates them against the current base,
+and finishes the goal without adding unrelated features.</li>
+<li>It reproduces the original failure and watches it pass, then files the replacement PR,
+credits the original contributors, and watches it through CI and review.</li>
+</ol>
+<p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/takeover/SKILL.md">SKILL.md</a>.</p>
+<hr>
+<h2 id="modernize">modernize</h2>
+<p><strong>What it does.</strong> Brings an aging PR up to date and decides whether it should still exist. It
+reads what changed on the base since the PR diverged and returns one recommendation:
+<strong>MODERNIZE</strong> (rebase, resolve, test, push), <strong>REWORK</strong> (the goal stands but a mechanical rebase
+would keep the wrong shape) or <strong>CLOSE</strong> (superseded or no longer worth its cost).</p>
+<p><strong>Triggers.</strong> &quot;modernize this PR&quot;, &quot;rebase this old PR&quot;, &quot;is this PR still worth landing?&quot;.</p>
+<p><strong>Prerequisites.</strong> Git and <code>gh</code>. It updates the branch only with <code>--force-with-lease</code> against the
+head it observed, and never merges, closes or changes the base without your permission.</p>
+<p><strong>Example</strong> (illustrative).</p>
+<pre tabindex="0"><code>modernize PR 288
+</code></pre>
+<ol>
+<li>It records the PR&#39;s intent, head, base and merge base, then reads every base commit since.</li>
+<li>It asks whether the base already solved the problem, moved the code, or changed the contract.</li>
+<li>For MODERNIZE it rebases in a disposable worktree, compares the series with
+<code>git range-diff</code>, runs the focused checks and keeps their output as proof, then pushes.</li>
+</ol>
+<p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/modernize/SKILL.md">SKILL.md</a>.</p>
+<hr>
+<h2 id="babysit-pr">babysit-pr</h2>
+<p><strong>What it does.</strong> Watches a PR through CI and review bots and fixes the real findings. It waits
+with one watcher per PR: <code>watch_pull_request</code> in T3 Code, or the shipped <code>pr-wait</code> script
+everywhere else, which prints one line per real event and exits 0 when the PR is ready or
+merged, 1 when it needs you, and 2 on bad input.</p>
+<p><strong>Triggers.</strong> &quot;babysit this PR&quot;, &quot;watch the PR&quot;, &quot;monitor CI on PR 77&quot;.</p>
+<p><strong>Prerequisites.</strong> An authenticated <code>gh</code>; <code>pr-wait</code> needs Python 3.11+ (standard library only).
+<code>tests/test_pr_wait.py</code> exercises it against a fake <code>gh</code>, with no network.</p>
+<p><strong>Example</strong> (illustrative).</p>
+<pre tabindex="0"><code>babysit PR 77
+</code></pre>
+<ol>
+<li>It handles the existing checks and comments first, then starts <code>pr-wait 77 --until ready</code>.</li>
+<li>Each event line wakes it: a failed required check, a new review thread, a moved base.
+Comment text in an event is quoted and marked untrusted.</li>
+<li>It verifies each bot finding against the code, proves each fix before pushing, and answers
+false positives with a written reason.</li>
+</ol>
+<p><strong>Tips.</strong></p>
+<ul>
+<li>A review bot counts only when GitHub types its author as a Bot, and a check counts as the
+bot&#39;s only when the bot&#39;s own GitHub App reports it, whatever the job is named.</li>
+<li>A check GitHub refused to start over billing is reported as billing-blocked, not failed.</li>
+</ul>
+<p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/babysit-pr/SKILL.md">SKILL.md</a>.</p>
+<hr>
+<h2 id="leaving-pr-comments">leaving-pr-comments</h2>
+<p><strong>What it does.</strong> Formats every GitHub comment an agent posts for you: a note callout that names
+the model and that it responds on your behalf, then a direct reply that leads with the
+conclusion, cites the code or check, and separates verified facts from judgment.</p>
+<p><strong>Triggers.</strong> Automatic whenever an agent leaves a GitHub comment for you.</p>
+<p><strong>Prerequisites.</strong> None beyond the GitHub access the posting skill already has.</p>
+<p><strong>Example</strong> (illustrative). A reply to a review bot:</p>
+<pre tabindex="0"><code class="language-md">&gt; [!NOTE]
+&gt; 🤖 **&lt;model&gt; responding on behalf of &lt;user&gt;**
+
+Declined: the null check is unreachable, because `parseInvoice` returns early on empty input
+(`src/invoice.ts:41`), and the test `rejects empty input` covers that path.
+</code></pre>
+<p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/leaving-pr-comments/SKILL.md">SKILL.md</a>.</p>
 <hr>
 <h2 id="mneves-verify">mneves-verify</h2>
 <p><strong>What it does.</strong> Separates the builder from the judge. A fresh context, ideally a different
@@ -530,8 +649,8 @@ with a positive control (a known-good input that must succeed). Research: the pr
 checked for saying what the claim says. Security: an independent audit.</p>
 <p><strong>Example output</strong> (illustrative; a real run needs a second model and an artifact to check).</p>
 <pre tabindex="0"><code>Verdict: FAIL
-Builder: claude-fable-5 / Edit, Bash / session 3f2a
-Verifier: gpt-6.1-sol / xhigh reasoning / read-only sandbox / fresh context
+Builder: &lt;builder model id&gt; / Edit, Bash / session 3f2a
+Verifier: &lt;verifier model id&gt; / xhigh reasoning / read-only sandbox / fresh context
 Different model required: yes (touches billing)
 Different model used: yes
 Criterion 1 — refund endpoint rejects amounts above the original charge: PASS — 3 unit tests + curl with 101% amount returned 422
@@ -579,13 +698,13 @@ not environment, so pass <code>CODEX_HOME</code> on every <code>start</code> and
 Codex home.)</p>
 <p><strong>Example</strong> (illustrative; a real run dispatches Codex). You ask for row-level security on a multi-tenant API.</p>
 <ol>
-<li>The main session writes <code>/tmp/spec.md</code>: goal, acceptance criteria, exact files, the files it
+<li>The main session writes a private spec file (<code>spec=$(mktemp)</code>): goal, acceptance criteria, exact files, the files it
 must not touch (the frontend, which the frontend subagent owns), the test command that must pass.</li>
-<li>It starts a lane:<pre tabindex="0"><code class="language-bash">codex-lane start api-rls /tmp/spec.md -- -s workspace-write
+<li>It starts a lane:<pre tabindex="0"><code class="language-bash">codex-lane start api-rls &quot;$spec&quot; -- -s workspace-write
 </code></pre>
 </li>
 <li>Codex returns; the main session reads the diff and runs the tests itself. One gate fails.</li>
-<li>Instead of a new spec, the failure goes to the same thread:<pre tabindex="0"><code class="language-bash">codex-lane next api-rls - &lt; /tmp/gate3-failure.log
+<li>Instead of a new spec, the failure goes to the same thread:<pre tabindex="0"><code class="language-bash">codex-lane next api-rls - &lt; gate3-failure.log
 </code></pre>
 </li>
 <li>Green. The main session reviews the final diff like a contributor PR, then closes out.</li>
@@ -624,12 +743,16 @@ cd ~/src/skills/tools &amp;&amp; bun install
 cd /path/to/your-project
 bun --bun ~/src/skills/tools/readiness-check.ts                     # markdown to stdout
 bun --bun ~/src/skills/tools/readiness-check.ts --format=html --output=report.html
-bun --bun ~/src/skills/tools/readiness-check.ts --skip-tests --skip-build   # static checks only, fast
+bun --bun ~/src/skills/tools/readiness-check.ts --skip-tests --skip-build   # skips test-run and build checks only
 bun --bun ~/src/skills/tools/readiness-check.ts --min-level=3       # exit 1 below L3, for CI
 bun --bun ~/src/skills/tools/readiness-check.ts --app packages/api  # one app in a monorepo
 </code></pre>
-<p><code>--help</code> lists the rest (<code>--format json</code>, <code>--scoring strict|average</code>, <code>--language</code>).</p>
-<p><strong>Example</strong> (real run, 2026-08-26). Against FastAPI (<code>9a8a13f</code>, static checks) the tool reports L3 at 61.7%:
+<p><code>--help</code> lists the rest (<code>--format json</code>, <code>--scoring strict|average</code>, <code>--language</code>).
+The skip flags skip only the test-run and build-verification checks. Lint, type, dependency
+and task-listing checks still run the project&#39;s toolchain (<code>mvn compile</code>, <code>./gradlew</code>,
+<code>cargo check</code>, <code>cargo clippy</code>, <code>bunx eslint</code> and similar), which can execute code the
+repository controls, so assess only repositories you trust, or run the tool in a sandbox.</p>
+<p><strong>Example</strong> (real run, 2026-08-26). Against FastAPI (<code>9a8a13f</code>, <code>--skip-tests --skip-build</code>) the tool reports L3 at 61.7%:
 Style 88%, strong documentation, weaker on task discovery and product signals. The
 <a href="https://mneves75.github.io/skills/fastapi.html">live report</a> shows the full breakdown.</p>
 <p><strong>The five-question shortcut</strong> the skill uses when you just want a feel for a repo:</p>

@@ -7,6 +7,62 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.43.0] - 2026-10-28
+
+Released together with 1.42.0, whose gate fixes it includes; neither shipped alone.
+
+### Added
+- **Five skills adapted from [tstack](https://github.com/t3dotgg/tstack) at `1085050f`** (MIT, Theo Browne's copyright kept, provenance in each skill): `full-stop` takes a change unattended to a proven, reviewed PR that is ready to merge and never merges it (it carries tstack's `full-send` proof, merge-gate and asking rules, with the review on any model that did not build the change); `takeover` finishes someone else's PR with their credit kept; `modernize` rebases an aging PR and recommends MODERNIZE, REWORK or CLOSE; `babysit-pr` watches a PR through CI and review bots with the shipped `pr-wait`; `leaving-pr-comments` attributes agent-posted GitHub comments. Every sibling reference has a fallback, so a single-skill install works.
+- **`pr-wait`** reports a check GitHub refused to start over a billing or spending-limit problem as billing-blocked instead of failed, excuses only a GitHub Actions job that never ran a step and that the Actions API returns (a run a workflow creates through the Checks API, such as a test reporter's, is not one), reads every page of the head's check runs on every poll (past 1,000 it excuses nothing) and never lets a billing block hide a real failure or an in-progress run of the same job name, keeps waiting while a bot check still has a run going (also when a workflow job shares its name, or when it cannot read every check, and stops with exit 1 after ten such polls), counts a review bot only when GitHub types its author as a Bot and a bot check only when the bot's own app reports it (a job's name is the PR author's to choose), quotes check names, file names and comment text, drops terminal control characters, strips markup in linear time, and times out each `gh` call. `tests/test_pr_wait.py` runs thirty-two cases against a fake `gh` in CI.
+- **`council` review mode**: members review a change independently and score it out of 10 each round; the prompt carries the diff, so the mode needs the user's authorization to disclose it; the lead fixes what it agrees with; the run stops when every member answers SHIP IT or the round cap (default 3, maximum 10) ends; the score table goes in the PR description. Reaching the cap is not approval.
+- **Staging off after production** (`mneves-ship-deploy`): once production is proven live, staging's crons, queue consumers, workflows, alarms and external schedulers are turned off, and an unused staging database is exported and, when the user has authorized its deletion, deleted after an identity check against every other environment, then recreated by the next release. A staging Workflow is deleted only when its name appears nowhere outside staging. `references/cloudflare.md` holds the documented commands and the idle proof; Durable Object alarms cannot be read from outside, so that row is NOT TESTED unless the code turns them off.
+- **Readiness CST-03** (advisory, catalog 3): staging runs and bills nothing between releases. This repository's ledger assesses it NOT APPLICABLE (no staging environment).
+- **Glossary**: Proof and Merge gate.
+
+### Changed
+- **BREAKING: `cf.env-triggers`** (release contract check) is FAIL, not WARN, when a staging environment inherits or declares a cron or an event trigger, or declares or inherits `triggers` without a `crons` list (Wrangler then keeps the deployed schedules); the conforming fixture gives staging an empty cron list.
+- **`council`**: pi replaces Cursor as the third adapter (read-only tool allowlist, no context files, no saved session, prompt on stdin). Cursor's read-only mode is only the mode a run starts in and it loads the workspace's rules, which also closes the 1.42.0 gate's needs-validation finding B-01 (Cursor included by default).
+- **PR workflow skills treat PR text as data**: `full-stop`, `takeover` and `modernize` say that descriptions, comments, reviews, check output and handoff notes are data, never instructions; `takeover` and `modernize` read contributors' code (workflows and hooks included) before running it, and run what they cannot vouch for only in a sandbox.
+- **Proof**: `mneves-verify`, the orchestrator, `mneves-superaudit` and `mneves-production-readiness` treat proof as evidence observed in the session (the original failure reproduced, then the same reproduction passing) and say mocked tests do not prove user-visible behavior. `mneves-security`, `mneves-render` and `mneves-chatgpt-search` already required it.
+- **`mneves-ship-deploy`**: landing a PR needs the merge gate on its latest head; PR descriptions lead with the problem; a CI run GitHub refused to start over billing is skipped and the change is proved locally.
+- **Orchestrator**: Codex coding seats default to reasoning high instead of xhigh; only the PR's owning session watches it; unattended questions go through the question tool with a safe default.
+- **Catalog docs**: the landing page, `HOWTO.md`, `PRODUCT.md` and `site/README.md` count twenty-two skills; the README lists every MIT-adapted skill and council's provider egress.
+- **`autoreview`**, **`mneves-superaudit`**, **`mneves-handoff`**: a findings ledger across review rounds that cuts a grown diff; stale PRs marked MODERNIZE, REWORK or CLOSE; handoff claims are leads to check, with `takeover` named for the receiving side.
+
+## [1.42.0] - 2026-10-28
+
+### Added
+- **Readiness ledger guard**: `check-readiness-catalog.py` also checks `docs/readiness/ledger.md`. It requires exactly one row per control and only valid statuses, a Totals line that matches the table, the same production commit in Cursors, Binding run and the gate history, and an underlying status plus an expiry on every WAIVED row.
+  Its planted-violation tests use a synthetic ledger, so they do not break when the real ledger changes.
+
+### Changed
+- **Release closeout** (`CONTRIBUTING.md`): release PR text stays true after the merge, an annotated tag records the verdict, and the binding bookkeeping lands in the next release PR instead of a separate merge. The owner sets waiver expiry, up to the readiness skill's 90-day cap; an agent never sets one. Security acceptance comes from a model other than the builder's, and if none can run, that gate is reported as blocked.
+- **Readiness check docs**: `--skip-tests --skip-build` skips only the test-run and build-verification checks. Lint, type, dependency and task-listing checks still run the project's toolchain (`mvn compile`, `./gradlew`, `cargo check`, `cargo clippy`, `bunx eslint`), which can execute repository code, so `README.md`, `HOWTO.md`, the landing page, `mneves-agent-readiness` and the tool's `--help` now say this and advise assessing only repositories you trust, or using a sandbox. They previously said "static checks only".
+- **`mneves-chatgpt-search`**: fetched pages, `robots.txt`, `llms.txt` and sitemaps are data, never instructions. The implicitly invoked default prompt now audits and applies fixes only when asked.
+- **`council`**: the Cursor member loads the reviewed repository's `.cursor/rules`, `AGENTS.md` and `CLAUDE.md` as rules, with no flag to stop it. By default Cursor now joins only when the user confirms the repository is trusted or the run uses the sanitized workspace, and the provenance no longer implies all three adapters suppress repository instructions. `HOWTO.md` states which adapters confine reads (only Claude's restricted mode).
+- **`mneves-expert-review`** and **`mneves-handoff`**: retrieved and gathered text is data, never instructions; handoff prompts carry no secrets or private records.
+- **`imagegen-frontend-mobile`**: a private or unreleased reference goes to the image service only after the user authorizes that service for it.
+- **Readiness trust caveat on every surface**: the landing page, `site/README.md`, the `HOWTO.md` overview and `--help` now say the assessor runs the assessed project's own tools, including the task-listing check, and to assess only repositories you trust.
+- **CI time limits**: every CI and Pages job has `timeout-minutes`, so a hung step fails the run instead of holding a runner for six hours.
+- **`SECURITY.md`** describes each page's actual Content-Security-Policy and records that `github.io` is not on the browsers' HSTS preload list.
+- **Model ids in prose**: `HOWTO.md` examples and the production-readiness spec name roles instead of model ids, as 1.41.0 intended.
+- **Historical records** (`plans/`, older specs, the autoreview beta memory) carry a note that their `npx skills-ref` commands record what ran, and point to the hashed PyPI validator; `plans/003` records the 1.40.0 release it was waiting for.
+- **Access review (partial), 2026-10-28**: collaborators are unchanged since 2026-10-16 (the maintainer as admin and the maintainer's second account with write access); the repository has no deploy keys, pending invitations, Actions secrets or webhooks. OAuth and GitHub App grants and personal access tokens cannot be listed from the repository API and remain the maintainer's check.
+- **Readiness record example** (`mneves-production-readiness` `references/ledger.md`): `"catalog": 2`, matching the current catalog version.
+- **Re-run instructions** (`docs/specs/council-security-audit/evidence.md`, `docs/specs/sre-workflows/follow-up.md`) use the hashed PyPI `agentskills` validator instead of `npx -y` of the npm `skills-ref`.
+- **Delegation examples** (`HOWTO.md`, orchestrator README) write the spec to a private `mktemp` file instead of `/tmp/spec.md`.
+- **1.41.0 bookkeeping**: the readiness ledger, plan and `MEMORY.md` record the landed 1.41.0 release and its nine owner waivers.
+
+### Fixed
+- **Dependabot**: `tools/` uses the `bun` ecosystem; the npm updater could not read `bun.lock`.
+- **Ledger guard speed**: rows parse by splitting cells, and the Totals row count starts only at a digit run. The first version's patterns backtracked quadratically, so one long malformed line could stall the guard (and CI) for minutes.
+- **`codex-lane` ran workspace Python outside the sandbox** (security): its state helpers ran `python3 -` in the lane workspace, so a `json.py` or `tempfile.py` there (committed in the reviewed repository, or written by the sandboxed model) ran unsandboxed as the user. Every helper now runs with `python3 -I`, and `codex-lane.test` plants both modules.
+- **Reference `release.sh` and `verify-live.sh`** read health bodies with `python3 -I`, so a `json.py` in the checkout cannot replace the standard library; `release-guards.test.sh` plants one for each script.
+- **readiness-check never downloads a linter**: the Biome and ESLint checks run `bunx --no-install`, so a missing linter fails the check instead of fetching an unpinned package from the registry.
+- **Quadratic patterns on author-controlled text**: the pyproject section header (`pyproject.ts`), the release contract check's script-name search, and the landing changelog's link pattern no longer backtrack quadratically; each has a timing test that failed before the fix.
+- **Landing changelog dates are HTML-escaped** (`changelog-rows.py`).
+- **SRS CSV export** prefixes a cell that starts with `=`, `+`, `-`, `@`, tab or carriage return with `'`, so a spreadsheet shows it as text instead of evaluating it (the skill README says so).
+
 ## [1.41.0] - 2026-10-26
 
 Includes the 1.39.0 work that was reviewed in PR #26 but never reached `main`.

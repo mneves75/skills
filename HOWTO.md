@@ -1,6 +1,6 @@
 # How to use these skills
 
-Seventeen skills, one install. This page shows what each one does, how to trigger it, and what a
+Twenty-two skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the [README](README.md); for the exact
 procedure an agent follows, open `skills/<name>/SKILL.md`. Service level objectives and
 incident reviews are not skills: use the [SRE guides](docs/sre-guides/README.md) and
@@ -18,7 +18,8 @@ prefer git, clone the repo into your agent's skills directory; the README has th
 skill never shows up in your agent, it was probably not linked; the README's "Check the install"
 lists what each agent directory is missing.
 
-The readiness tool runs locally. An image-generation skill may send prompts and authorized
+The readiness tool runs locally and runs the assessed project's own build, lint and test tools,
+so point it only at repositories you trust. An image-generation skill may send prompts and authorized
 references to the image provider configured in your agent. Autoreview sends authorized review
 inputs to the selected review provider after scanning them for credentials.
 
@@ -380,7 +381,7 @@ you wrote in.
 **Audience levels.** `child`, `layperson`, `executive`, `junior`, `expert`. Name one if you
 care; otherwise the agent infers it and says which it picked.
 
-**Example** (recorded 2026-08-26, `claude -p` on claude-fable-5, verbatim).
+**Example** (recorded 2026-08-26 with `claude -p` on that date's Claude review model, verbatim).
 
 > **You:** Use the mneves-eli5 skill. Explain what a database index is to a product manager.
 >
@@ -421,7 +422,7 @@ version, a migration plan gets the full pass.
 "stress-test", "revisão rigorosa", "melhor solução", or before any high-stakes plan, design,
 recommendation or architecture decision.
 
-**Example** (recorded 2026-08-26, `claude -p` on claude-fable-5, verbatim; the prompt asked for under 400 words).
+**Example** (recorded 2026-08-26 with `claude -p` on that date's Claude review model, verbatim; the prompt asked for under 400 words).
 
 > **You:** Use the mneves-expert-review skill. Challenge this plan and return the improved version: "We will move user sessions from Redis to Postgres to cut one piece of infrastructure. Steps: 1) add a sessions table, 2) change the auth middleware to read/write Postgres, 3) run a script that copies live Redis keys into the table and deletes them from Redis, 4) turn off Redis. Session reads are rare so performance is not a concern."
 >
@@ -465,15 +466,20 @@ other's replies; after round one each is shown only the lead's changes and its o
 reply, which is what keeps the answers from converging on the first opinion. You get the final
 plan plus a faithful account of the objections, failures and skipped members.
 
+Ask it to review a change instead and it runs **review mode**: each member reviews the current
+implementation independently and scores it out of 10, the lead fixes what it agrees with between
+rounds, and the run stops when every member answers SHIP IT or the round cap (default three)
+ends. The score table goes into the PR description. Reaching the cap is not approval.
+
 Council is advice, not evidence. Agreement between members is not correctness, a test suite, an
 independent verifier, or a deploy gate.
 
 **Triggers.** "council", "convene the council", "two rounds of deliberation on this plan", "get
-a second opinion before I commit to this design". Not for ordinary delegation, code review, or
-verification — those have their own skills.
+a second opinion before I commit to this design", "council review this PR". Not for ordinary
+delegation or verification — those have their own skills.
 
 **Prerequisites.** Bash, a private writable directory for the session, at least one authenticated
-member CLI among Claude, Codex and Cursor, and your authorization to send the task and the
+member CLI among Claude, Codex and pi, and your authorization to send the task and the
 selected context to those providers. Members are capability-checked first: a missing binary, a
 missing flag, or an untrusted workspace is a skip, not a reason to add a bypass flag. When no
 member survives the check, the skill says so and returns your solo plan marked **un-counciled**
@@ -504,14 +510,167 @@ convene the council on this migration plan — two rounds
   where a member that folded early has to defend its answer against the revision.
 - Decide what context may leave your machine before you council a private task. The prompt-only
   mode exists for that, and it does not remove the provider disclosure.
-- Independence here is a protocol rule, not an operating-system sandbox: no adapter limits a
-  member's reads to the working directory, so treat a member as able to read anything you can.
-  What the run controls is what each member is given — never another member's reply, never the
-  session path.
+- Independence here is a protocol rule, not an operating-system sandbox: only Claude's restricted
+  mode confines its file tools to the working directories, and Codex and pi can read anything
+  you can, so treat every member as able to read anything you can. What the run controls is what
+  each member is given — never another member's reply, never the session path.
 - Pair it with `mneves-verify` once the plan becomes a change: the council argues about the plan,
   the verifier checks the artifact.
 
 Procedure: [SKILL.md](skills/council/SKILL.md).
+
+---
+
+## full-stop
+
+**What it does.** Takes a change from its current state to a pull request that is ready for you
+to merge, while you are not watching: it finishes the change, proves it, has a reviewer that did
+not build it review the diff, files the PR, watches CI and review bots, fixes real findings, and
+stops at the merge gate. It never merges, enables auto-merge or enters a merge queue.
+
+**Triggers.** "full stop", including a closing "Full stop." that reads like emphasis. Nothing
+else grants this autonomy.
+
+**Prerequisites.** Git, an authenticated GitHub CLI (`gh`), and the repository's own checks.
+The sibling skills `autoreview`, `babysit-pr` and `leaving-pr-comments` sharpen the review,
+watching and comment steps when installed; each has a written fallback.
+
+**Example** (illustrative).
+
+```
+fix the flaky date parsing in the invoice export. full stop.
+```
+
+1. It branches off the default branch, reproduces the failure, makes the smallest fix and watches
+   the same reproduction pass; it adds one test that fails without the fix.
+2. A reviewer that did not build the change reviews the diff for up to three rounds. A ledger
+   records each finding as fixed, disproved or declined; a finding that would only grow the PR
+   becomes a named follow-up.
+3. It opens a real PR whose description starts with the problem, then the fix, then one line on
+   how it was proved, and ends with the model and harness that made it.
+4. It waits on CI and review bots, fixes what is real, and proves each fix before pushing.
+5. When the merge gate passes it reports the PR link, head, proof, ledger and every decision it
+   made for you, and leaves the PR open.
+
+**Tips.**
+- A check GitHub refused to start because of a billing or spending-limit problem is not a code
+  failure: it runs the same checks locally and says CI was skipped and why.
+- When it must ask, it asks through the harness's question tool so the thread shows it is
+  waiting; with no answer it leaves the PR open and unmerged.
+
+Procedure: [SKILL.md](skills/full-stop/SKILL.md).
+
+---
+
+## takeover
+
+**What it does.** Finishes someone else's PR, branch or agent thread toward its original goal,
+and keeps the original contributors' credit: their commits keep their authorship, the PR
+description credits them and links the original, and a squash keeps human co-author credit.
+
+**Triggers.** "take over this PR", "finish this branch", "take over that agent's thread".
+
+**Prerequisites.** Git and `gh`. `modernize`, `babysit-pr` and `leaving-pr-comments` are
+optional siblings with written fallbacks.
+
+**Example** (illustrative).
+
+```
+take over PR 412; the original author left
+```
+
+1. It reads the PR, its reviews and later corrections, resolves them to the actual head, and
+   treats every "done" or "tested" in the handoff as a lead to check.
+2. It imports the original commits onto a new branch, updates them against the current base,
+   and finishes the goal without adding unrelated features.
+3. It reproduces the original failure and watches it pass, then files the replacement PR,
+   credits the original contributors, and watches it through CI and review.
+
+Procedure: [SKILL.md](skills/takeover/SKILL.md).
+
+---
+
+## modernize
+
+**What it does.** Brings an aging PR up to date and decides whether it should still exist. It
+reads what changed on the base since the PR diverged and returns one recommendation:
+**MODERNIZE** (rebase, resolve, test, push), **REWORK** (the goal stands but a mechanical rebase
+would keep the wrong shape) or **CLOSE** (superseded or no longer worth its cost).
+
+**Triggers.** "modernize this PR", "rebase this old PR", "is this PR still worth landing?".
+
+**Prerequisites.** Git and `gh`. It updates the branch only with `--force-with-lease` against the
+head it observed, and never merges, closes or changes the base without your permission.
+
+**Example** (illustrative).
+
+```
+modernize PR 288
+```
+
+1. It records the PR's intent, head, base and merge base, then reads every base commit since.
+2. It asks whether the base already solved the problem, moved the code, or changed the contract.
+3. For MODERNIZE it rebases in a disposable worktree, compares the series with
+   `git range-diff`, runs the focused checks and keeps their output as proof, then pushes.
+
+Procedure: [SKILL.md](skills/modernize/SKILL.md).
+
+---
+
+## babysit-pr
+
+**What it does.** Watches a PR through CI and review bots and fixes the real findings. It waits
+with one watcher per PR: `watch_pull_request` in T3 Code, or the shipped `pr-wait` script
+everywhere else, which prints one line per real event and exits 0 when the PR is ready or
+merged, 1 when it needs you, and 2 on bad input.
+
+**Triggers.** "babysit this PR", "watch the PR", "monitor CI on PR 77".
+
+**Prerequisites.** An authenticated `gh`; `pr-wait` needs Python 3.11+ (standard library only).
+`tests/test_pr_wait.py` exercises it against a fake `gh`, with no network.
+
+**Example** (illustrative).
+
+```
+babysit PR 77
+```
+
+1. It handles the existing checks and comments first, then starts `pr-wait 77 --until ready`.
+2. Each event line wakes it: a failed required check, a new review thread, a moved base.
+   Comment text in an event is quoted and marked untrusted.
+3. It verifies each bot finding against the code, proves each fix before pushing, and answers
+   false positives with a written reason.
+
+**Tips.**
+- A review bot counts only when GitHub types its author as a Bot, and a check counts as the
+  bot's only when the bot's own GitHub App reports it, whatever the job is named.
+- A check GitHub refused to start over billing is reported as billing-blocked, not failed.
+
+Procedure: [SKILL.md](skills/babysit-pr/SKILL.md).
+
+---
+
+## leaving-pr-comments
+
+**What it does.** Formats every GitHub comment an agent posts for you: a note callout that names
+the model and that it responds on your behalf, then a direct reply that leads with the
+conclusion, cites the code or check, and separates verified facts from judgment.
+
+**Triggers.** Automatic whenever an agent leaves a GitHub comment for you.
+
+**Prerequisites.** None beyond the GitHub access the posting skill already has.
+
+**Example** (illustrative). A reply to a review bot:
+
+```md
+> [!NOTE]
+> 🤖 **<model> responding on behalf of <user>**
+
+Declined: the null check is unreachable, because `parseInvoice` returns early on empty input
+(`src/invoice.ts:41`), and the test `rejects empty input` covers that path.
+```
+
+Procedure: [SKILL.md](skills/leaving-pr-comments/SKILL.md).
 
 ---
 
@@ -535,8 +694,8 @@ checked for saying what the claim says. Security: an independent audit.
 
 ```
 Verdict: FAIL
-Builder: claude-fable-5 / Edit, Bash / session 3f2a
-Verifier: gpt-6.1-sol / xhigh reasoning / read-only sandbox / fresh context
+Builder: <builder model id> / Edit, Bash / session 3f2a
+Verifier: <verifier model id> / xhigh reasoning / read-only sandbox / fresh context
 Different model required: yes (touches billing)
 Different model used: yes
 Criterion 1 — refund endpoint rejects amounts above the original charge: PASS — 3 unit tests + curl with 101% amount returned 422
@@ -593,16 +752,16 @@ Codex home.)
 
 **Example** (illustrative; a real run dispatches Codex). You ask for row-level security on a multi-tenant API.
 
-1. The main session writes `/tmp/spec.md`: goal, acceptance criteria, exact files, the files it
+1. The main session writes a private spec file (`spec=$(mktemp)`): goal, acceptance criteria, exact files, the files it
    must not touch (the frontend, which the frontend subagent owns), the test command that must pass.
 2. It starts a lane:
    ```bash
-   codex-lane start api-rls /tmp/spec.md -- -s workspace-write
+   codex-lane start api-rls "$spec" -- -s workspace-write
    ```
 3. Codex returns; the main session reads the diff and runs the tests itself. One gate fails.
 4. Instead of a new spec, the failure goes to the same thread:
    ```bash
-   codex-lane next api-rls - < /tmp/gate3-failure.log
+   codex-lane next api-rls - < gate3-failure.log
    ```
 5. Green. The main session reviews the final diff like a contributor PR, then closes out.
 
@@ -646,14 +805,18 @@ cd ~/src/skills/tools && bun install
 cd /path/to/your-project
 bun --bun ~/src/skills/tools/readiness-check.ts                     # markdown to stdout
 bun --bun ~/src/skills/tools/readiness-check.ts --format=html --output=report.html
-bun --bun ~/src/skills/tools/readiness-check.ts --skip-tests --skip-build   # static checks only, fast
+bun --bun ~/src/skills/tools/readiness-check.ts --skip-tests --skip-build   # skips test-run and build checks only
 bun --bun ~/src/skills/tools/readiness-check.ts --min-level=3       # exit 1 below L3, for CI
 bun --bun ~/src/skills/tools/readiness-check.ts --app packages/api  # one app in a monorepo
 ```
 
 `--help` lists the rest (`--format json`, `--scoring strict|average`, `--language`).
+The skip flags skip only the test-run and build-verification checks. Lint, type, dependency
+and task-listing checks still run the project's toolchain (`mvn compile`, `./gradlew`,
+`cargo check`, `cargo clippy`, `bunx eslint` and similar), which can execute code the
+repository controls, so assess only repositories you trust, or run the tool in a sandbox.
 
-**Example** (real run, 2026-08-26). Against FastAPI (`9a8a13f`, static checks) the tool reports L3 at 61.7%:
+**Example** (real run, 2026-08-26). Against FastAPI (`9a8a13f`, `--skip-tests --skip-build`) the tool reports L3 at 61.7%:
 Style 88%, strong documentation, weaker on task discovery and product signals. The
 [live report](https://mneves75.github.io/skills/fastapi.html) shows the full breakdown.
 

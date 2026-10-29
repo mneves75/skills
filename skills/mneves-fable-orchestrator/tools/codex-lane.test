@@ -230,4 +230,20 @@ if grep -RFl --exclude='codex-lane.test' 'CODEX_LANE_DIR/<lane>.*' "$TOOL_DIR/..
   fail 'cleanup guidance can delete artifacts belonging to dotted lanes'
 fi
 
+# A workspace json.py or tempfile.py (committed, or written by the sandboxed model)
+# must never run in the unsandboxed helpers: start runs in the workspace, next cds into it.
+mkdir -p "$TMP/shadow-ws"
+for mod in json tempfile; do
+  printf 'import os\nopen(os.environ["SHADOW_MARKER"], "a").write("%s.py ran\\n")\n' "$mod" > "$TMP/shadow-ws/$mod.py"
+done
+export SHADOW_MARKER="$TMP/shadow-marker" && : > "$SHADOW_MARKER"
+# No subshell: run must set rc and err in this shell, or the checks below read stale values.
+cd "$TMP/shadow-ws"
+CODEX_LANE_DIR="$TMP/lanes-shadow" FAKE_MODE=ok run "$LANE" start shadow "$TMP/spec.txt" -- -s read-only
+[ "$rc" -eq 0 ] || fail "start in a workspace with json.py exited $rc: $err"
+cd /
+CODEX_LANE_DIR="$TMP/lanes-shadow" FAKE_MODE=ok run "$LANE" next shadow 'continue'
+[ "$rc" -eq 0 ] || fail "next into a workspace with json.py exited $rc: $err"
+[ ! -s "$SHADOW_MARKER" ] || fail "workspace module ran outside the sandbox: $(tr '\n' ' ' < "$SHADOW_MARKER")"
+
 echo "test PASS"

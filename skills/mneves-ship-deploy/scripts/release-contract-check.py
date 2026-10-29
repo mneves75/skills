@@ -343,7 +343,8 @@ def release_view(repo: Repo, script: Path | None, kind: str = "file") -> list[Li
         root = repo.root.resolve()
         seen = {script.resolve()}
         for line in list(lines):
-            for candidate in re.findall(r"([\w./-]+\.(?:sh|bash|py|mjs|cjs|js|ts))\b", line.text):
+            # The lookbehind starts a match only at a token's first character, keeping the search linear.
+            for candidate in re.findall(r"(?<![\w./-])([\w./-]+\.(?:sh|bash|py|mjs|cjs|js|ts))\b", line.text):
                 for target in (script.parent / Path(candidate).name, repo.root / candidate.lstrip("/")):
                     if probe(target)[0] == "file" and target.resolve() not in seen and target.resolve().is_relative_to(root):
                         seen.add(target.resolve())
@@ -961,10 +962,46 @@ def cf_routes(config: WranglerConfig) -> Result:
                   + (f"; also {', '.join('env.' + n for n in bad[1:])}" if bad[1:] else ""))
 
 
+def scheduled(triggers: object) -> list:
+    """Cron schedules and event triggers: the scheduled work a triggers block deploys."""
+    if not isinstance(triggers, dict):
+        return []
+    found: list = []
+    for key in ("crons", "events"):
+        value = triggers.get(key)
+        found += value if isinstance(value, list) else [value] if value else []
+    return found
+
+
+def clears_schedules(triggers: object) -> bool:
+    # Wrangler replaces deployed schedules only when crons is set, so {} clears nothing.
+    return isinstance(triggers, dict) and isinstance(triggers.get("crons"), list)
+
+
 def cf_triggers(config: WranglerConfig) -> Result:
+    # Staging must run nothing on a schedule: an environment inherits top-level triggers unless it
+    # declares its own, and a schedule there bills while no release is in staging.
+    envs = environments(config)
+    for name, body in envs.items():
+        if "staging" not in name.lower():
+            continue
+        if "triggers" in body:
+            where = at(config, key_line(config, 'triggers', name) or env_line(config, name))
+            if scheduled(body["triggers"]):
+                return Result("cf.env-triggers", FAIL,
+                              f"{where} env.{name} declares scheduled work "
+                              f"{', '.join(map(str, scheduled(body['triggers'])))}; staging runs it only from a one-off manual trigger")
+            if not clears_schedules(body["triggers"]):
+                return Result("cf.env-triggers", FAIL,
+                              f"{where} env.{name} declares triggers without a crons list, which keeps the deployed "
+                              f"schedules; declare \"triggers\": {{\"crons\": []}}")
+        elif "triggers" in config.data and (scheduled(config.data["triggers"]) or not clears_schedules(config.data["triggers"])):
+            return Result("cf.env-triggers", FAIL,
+                          f"{at(config, env_line(config, name))} env.{name} inherits top-level triggers that run or keep scheduled work "
+                          f"({at(config, key_line(config, 'triggers'))}); declare \"triggers\": {{\"crons\": []}} there")
     if "triggers" not in config.data:
         return Result("cf.env-triggers", PASS, f"{config.path} sets no top-level triggers; nothing to inherit")
-    bad = [name for name, body in environments(config).items() if "triggers" not in body]
+    bad = [name for name, body in envs.items() if "triggers" not in body]
     if not bad:
         return Result("cf.env-triggers", PASS, f"{config.path} gives every environment its own triggers")
     return Result("cf.env-triggers", WARN,

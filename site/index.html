@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>mneves75/skills — a clear way forward for coding agents</title>
-<meta name="description" content="Seventeen portable skills for AI coding agents. Choose a procedure for security, review, planning, building, discovery or learning, then install it in the tools you already use.">
+<meta name="description" content="Twenty-two portable skills for AI coding agents. Choose a procedure for security, review, planning, building, discovery or learning, then install it in the tools you already use.">
 <meta property="og:title" content="mneves75/skills">
 <meta property="og:description" content="Reusable procedures for deliberate agent work. One install, any tool that reads SKILL.md.">
 <meta property="og:type" content="website">
@@ -94,7 +94,7 @@ h3{font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}
 <main>
 <section class="hero" aria-labelledby="h-hero">
   <h1 id="h-hero">Give your agent a clear way forward.</h1>
-  <div><p class="intro">Seventeen reusable procedures for AI coding agents. From the first plan to independent proof, use them with the tools you already have.</p>
+  <div><p class="intro">Twenty-two reusable procedures for AI coding agents. From the first plan to independent proof, use them with the tools you already have.</p>
   <div class="hero-links"><a class="action" href="#skills">Choose a skill</a><a href="howto.html">Read the guide</a></div>
   <p class="compatibility">Claude Code, Codex, Cursor, OpenCode, pi — and any tool that reads <code>SKILL.md</code>.</p></div>
 </section>
@@ -129,7 +129,12 @@ h3{font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}
   <section class="catalog-group" id="plan" aria-labelledby="h-plan">
     <div class="group-title"><h2 id="h-plan">Plan &amp; deliver</h2><p>Decide, coordinate and hand over.</p><p>Objectives and incident reviews are <a href="https://github.com/mneves75/skills/blob/main/docs/sre-guides/README.md">guides</a> and <a href="https://github.com/mneves75/skills/blob/main/docs/sre-prompts.md">copy-ready prompts</a>, not skills. Check each draft against your own evidence.</p></div>
     <div class="skill-list">
-      <article class="skill new"><h3>council</h3><p>Independent members argue with your plan, then the lead revises for exactly the rounds you asked for. Each member is shown only its own history. Advice, not verification.</p><p class="example">Try: “convene the council on this migration plan, two rounds”</p><span class="release-note">Added in 1.40.0</span><a class="guide" href="howto.html#council" aria-label="Read the council guide">Read the guide</a></article>
+      <article class="skill new"><h3>council</h3><p>Independent members argue with your plan, or review and score a change round by round. Each member is shown only its own history. Advice, not verification.</p><p class="example">Try: “convene the council on this migration plan, two rounds”</p><span class="release-note">Added in 1.40.0</span><a class="guide" href="howto.html#council" aria-label="Read the council guide">Read the guide</a></article>
+      <article class="skill new"><h3>full-stop</h3><p>Take a change unattended to a proven, reviewed PR that is ready for you to merge. A reviewer that did not build it, CI and bots watched to the merge gate. It never merges.</p><p class="example">Try: “fix the flaky export test. full stop.”</p><span class="release-note">Added in 1.43.0</span><a class="guide" href="howto.html#full-stop" aria-label="Read the full-stop guide">Read the guide</a></article>
+      <article class="skill new"><h3>takeover</h3><p>Finish someone else's PR, branch or agent thread toward its original goal, and keep the original contributors' credit.</p><p class="example">Try: “take over PR 412”</p><span class="release-note">Added in 1.43.0</span><a class="guide" href="howto.html#takeover" aria-label="Read the takeover guide">Read the guide</a></article>
+      <article class="skill new"><h3>modernize</h3><p>Rebase an aging PR and decide whether it should still exist: MODERNIZE, REWORK or CLOSE, with evidence from the base.</p><p class="example">Try: “modernize PR 288”</p><span class="release-note">Added in 1.43.0</span><a class="guide" href="howto.html#modernize" aria-label="Read the modernize guide">Read the guide</a></article>
+      <article class="skill new"><h3>babysit-pr</h3><p>Watch a PR through CI and review bots and fix the real findings. Ships <code>pr-wait</code>, which treats GitHub billing blocks as infrastructure.</p><p class="example">Try: “babysit PR 77”</p><span class="release-note">Added in 1.43.0</span><a class="guide" href="howto.html#babysit-pr" aria-label="Read the babysit-pr guide">Read the guide</a></article>
+      <article class="skill new"><h3>leaving-pr-comments</h3><p>Every comment an agent posts for you names the model and that it speaks for you, then leads with the conclusion and the evidence.</p><p class="example">Try: “reply to the bot's review on my behalf”</p><span class="release-note">Added in 1.43.0</span><a class="guide" href="howto.html#leaving-pr-comments" aria-label="Read the leaving-pr-comments guide">Read the guide</a></article>
       <article class="skill"><h3>mneves-fable-orchestrator</h3><p>The main session owns decisions and acceptance. Route bounded, ordinary and difficult work by capability; <code>codex-lane</code> preserves multi-round context. Model bindings have one Defaults owner.</p><p class="example">Try: “delegate”, “use codex”, “heavy task”</p><a class="guide" href="howto.html#mneves-fable-orchestrator" aria-label="Read the mneves-fable-orchestrator guide">Read the guide</a></article>
       <article class="skill"><h3>mneves-expert-review</h3><p>Stress-test a draft through first principles, relevant research, one combined challenge and distinct alternatives. Returns the improved deliverable.</p><p class="example">Try: “challenge this”, “stress-test”, “best possible answer”</p><a class="guide" href="howto.html#mneves-expert-review" aria-label="Read the mneves-expert-review guide">Read the guide</a></article>
       <article class="skill"><h3>mneves-handoff</h3><p>A clipboard-ready handoff that opens a discussion. The receiver reviews first and decides whether the task is still worth doing. Portable anchors, no filesystem paths.</p><p class="example">Try: “handoff the flaky login test”, “write a handoff for this bug”</p><a class="guide" href="howto.html#mneves-handoff" aria-label="Read the mneves-handoff guide">Read the guide</a></article>
@@ -161,21 +166,21 @@ h3{font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}
     <div class="step"><h3>Name the work.</h3><p>Each <code>SKILL.md</code> begins with a description. Your agent loads the matching procedure, or you call it directly: <code>/mneves-verify</code>.</p></div>
     <div class="step"><h3>Keep your boundaries.</h3><p>The steps run with your tools and permissions. Some skills ship helpers; others are Markdown only. A workflow preserves your scope and existing authority.</p></div>
   </div>
-  <p class="privacy-note">The readiness tooling runs locally. Image generation may send authorized prompts and references to your configured provider. Autoreview sends selected review inputs after credential scanning. Each procedure states its own requirements and limits. This site loads no third-party resources and sets no cookies.</p>
+  <p class="privacy-note">The readiness tooling runs locally and runs the assessed project's own build, lint and test tools, so point it only at repositories you trust, or use a sandbox. Image generation may send authorized prompts and references to your configured provider. Autoreview sends selected review inputs after credential scanning. Each procedure states its own requirements and limits. This site loads no third-party resources and sets no cookies.</p>
 </section>
 <section class="tool" aria-labelledby="h-tool">
-  <div><h2 id="h-tool">Find where the feedback loop breaks.</h2><p><code>mneves-agent-readiness</code> includes a Bun + TypeScript assessor with no runtime dependencies. Point it at the project you want to assess.</p><pre tabindex="0"><code>cd /path/to/your-project
+  <div><h2 id="h-tool">Find where the feedback loop breaks.</h2><p><code>mneves-agent-readiness</code> includes a Bun + TypeScript assessor with no runtime dependencies. Point it at a project you trust: its checks run that project's own tools.</p><pre tabindex="0"><code>cd /path/to/your-project
 bun --bun /path/to/skills/tools/readiness-check.ts \
   --format=html --output=report.html
 
-# Static checks only
+# Skip test and build runs (lint still runs project tools)
 bun --bun /path/to/skills/tools/readiness-check.ts \
   --skip-tests --skip-build
 
 # Gate a CI job
 bun --bun /path/to/skills/tools/readiness-check.ts \
   --min-level=3</code></pre></div>
-  <aside class="sample" aria-labelledby="h-sample"><h3 id="h-sample">A real sample assessment.</h3><p class="result">FastAPI · 61.7% · L3 Standardized</p><p class="provenance">Static checks at commit <code>9a8a13f</code>, 2026-08-26.</p><p>Style scored 88%. Documentation was strong; task discovery and product signals were weakest. This is a historical example, not a benchmark of these skills.</p><a href="fastapi.html">Read the sample report</a></aside>
+  <aside class="sample" aria-labelledby="h-sample"><h3 id="h-sample">A real sample assessment.</h3><p class="result">FastAPI · 61.7% · L3 Standardized</p><p class="provenance">Test and build runs skipped, at commit <code>9a8a13f</code>, 2026-08-26.</p><p>Style scored 88%. Documentation was strong; task discovery and product signals were weakest. This is a historical example, not a benchmark of these skills.</p><a href="fastapi.html">Read the sample report</a></aside>
 </section>
 <section class="resources" aria-label="Further reading">
   <div class="resource"><h3>Use the skills.</h3><p>Triggers, prerequisites, examples and tips for every procedure.</p><a href="howto.html">Open the how-to guide</a></div>
@@ -186,10 +191,10 @@ bun --bun /path/to/skills/tools/readiness-check.ts \
   <h2 id="h-log">What changed.</h2>
   <ul class="log">
     <!-- changelog:start -->
+        <li><span class="v">1.43.0<span class="d">2026-10-28</span></span><span>Five skills adapted from tstack at <code>1085050f</code> (MIT, Theo Browne's copyright kept, provenance in each skill): <code>full-stop</code> takes a change unattended to a proven, reviewed PR that is ready to merge and never merges it (it carries tstack's <code>full-send</code> proof, merge-gate and asking rules, with the review on any model that did not build the change); <code>takeover</code> finishes someone else's PR with their credit kept; <code>modernize</code> rebases an aging PR and recommends MODERNIZE, REWORK or CLOSE; <code>babysit-pr</code> watches a PR through CI and review bots with the shipped <code>pr-wait</code>; <code>leaving-pr-comments</code> attributes agent-posted GitHub comments.</span></li>
+        <li><span class="v">1.42.0<span class="d">2026-10-28</span></span><span>Readiness ledger guard: <code>check-readiness-catalog.py</code> also checks <code>docs/readiness/ledger.md</code>.</span></li>
         <li><span class="v">1.41.0<span class="d">2026-10-26</span></span><span><code>mneves-security</code> attack classes (<code>references/attack-classes.md</code>): core classes (indirect injection, access control, business logic, feature abuse, cryptography) and domain classes selected from the inventory (HTTP framing and identity, client side, CI and release, cloud, messaging, resource spend, data lifecycle, local IPC, native code, agents), closed by a coverage-critic pass.</span></li>
         <li><span class="v">1.40.0<span class="d">2026-10-23</span></span><span><code>council</code>: an attributed adaptation of Kitze's bounded multi-CLI deliberation protocol, with independent exact-round replies, faithful objection transcripts, private collision-resistant sessions, provider-disclosure boundaries, supervised timeouts, and capability-checked Claude/Codex/Cursor read-only adapters; unsupported CLIs skip explicitly and Gemini's headless auto-YOLO path is not shipped.</span></li>
-        <li><span class="v">1.38.0<span class="d">2026-10-18</span></span><span>SRE guides: service level objective and incident review procedures, kept as documents and prompts after their candidate skills failed evaluation.</span></li>
-        <li><span class="v">1.37.0<span class="d">2026-10-16</span></span><span><code>mneves-production-readiness</code>: gates staging and production deploys on evidence-backed readiness.</span></li>
         <!-- changelog:end -->
   </ul>
   <a href="https://github.com/mneves75/skills/blob/main/CHANGELOG.md">Read the full changelog</a>

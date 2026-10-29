@@ -15,7 +15,12 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 .
 ├── skills/
 │   ├── autoreview/                # Portable AI review CLI + security tests (MIT)
-│   ├── council/                   # Bounded independent CLI plan deliberation (MIT, adapted)
+│   ├── babysit-pr/                # PR watcher skill + scripts/pr-wait and its fake-gh test (MIT, adapted)
+│   ├── council/                   # Bounded independent CLI plan deliberation and scored review (MIT, adapted)
+│   ├── full-stop/                 # Unattended change to a ready, never-merged PR (MIT, adapted)
+│   ├── leaving-pr-comments/       # Attribution and style for agent-posted GitHub comments (MIT, adapted)
+│   ├── modernize/                 # Rebase an aging PR and decide whether it should exist (MIT, adapted)
+│   ├── takeover/                  # Finish someone else's PR with their credit kept (MIT, adapted)
 │   ├── security-audit/            # Six-phase source audit + Node validators (MIT, adapted)
 │   ├── imagegen-frontend-mobile/   # Mobile screen/flow image generation (MIT)
 │   ├── mneves-agent-readiness/    # Codebase readiness assessment (pairs with tools/)
@@ -57,9 +62,10 @@ python3 tools/scripts/check-pages.test.py  # actual Pages guard: real Git, fake 
 bash skills/mneves-fable-orchestrator/tools/codex-lane.test   # codex-lane e2e against a fake codex (no quota)
 python3 skills/mneves-ship-deploy/scripts/run-tests.py        # release contract check: planted violations, read-only
 bash skills/mneves-ship-deploy/assets/release-guards.test.sh  # reference release guards: throwaway repo, fake wrangler
-python3 tools/scripts/check-readiness-catalog.py  # readiness catalogs and preservation map: read-only
+python3 tools/scripts/check-readiness-catalog.py  # readiness catalogs, preservation map and ledger consistency: read-only
 bash tools/scripts/check-readiness-catalog.test   # planted-violation controls for the readiness catalog guard
 python3 skills/mneves-teach-back-srs/tests/test_srs_db.py    # SRS helper: concurrent reviews on a temporary database
+python3 skills/babysit-pr/tests/test_pr_wait.py              # pr-wait watcher against a fake gh (no network)
 tools/scripts/check-defaults-block.sh   # model ids only inside the orchestrator's Defaults block, with its verified-on date
 bash tools/scripts/check-defaults-block.test   # planted-violation controls for that guard
 bun --bun tools/readiness-check.ts --format=html --output=report.html   # assess cwd
@@ -94,7 +100,7 @@ bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no net
 - Skills are Markdown-first. Shipped executables are `bash` + `set -euo pipefail`, `bash -n`
   clean when written in Bash. Python helpers use Python 3.11+ and the standard library;
   each helper states its own floor and that claim must match the syntax it actually uses.
-  Executable skills are `autoreview`, `mneves-fable-orchestrator`, `mneves-ship-deploy`,
+  Executable skills are `autoreview`, `babysit-pr`, `mneves-fable-orchestrator`, `mneves-ship-deploy`,
   `mneves-teach-back-srs`, `security-audit`, and `mneves-render`; `security-audit`'s executables
   are dependency-free Node validators that need Node.js, not Python. The repository copy is
   canonical and each ships its relevant verification procedure

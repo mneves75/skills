@@ -91,9 +91,11 @@ git commit -m "chore(release): vX.Y.Z" -- <paths you touched>
 git push
 ```
 
-If the repo works PR-first, open the PR (`gh pr create`) and land it rather than pushing straight to the default branch. UI changes need before/after images in the PR body — sanitized.
+If the repo works PR-first, open the PR (`gh pr create`) and land it rather than pushing straight to the default branch. Open its description with the problem in plain words, then the solution, then one line on how the change was proved; do not lead with an inventory of edits. UI changes need before/after images in the PR body — sanitized.
 
-Land the PR only when authorized and when its merge does not bypass the production approval boundary.
+Land a PR only when it passes the merge gate on its latest head: the proof covers every change in the diff; required checks pass; review bots have finished and each finding is fixed or answered with a reason; no review still requests changes; and GitHub reports the branch mergeable, not BEHIND or DIRTY, with no base commits that landed after the last green run touching its files. Never use `--admin` or another bypass. A check GitHub refused to start over a billing or spending-limit problem (its failure annotation starts "The job was not started because" and names billing, failed payments or the spending limit) is not a code failure: run the same checks locally, record their output as that gate's evidence, and say in the report that CI was skipped and why.
+
+Merging also needs authorization, and a merge must not bypass the production approval boundary.
 
 ## Dev stop (projects with a dev environment)
 
@@ -128,6 +130,8 @@ git tag -a vX.Y.Z-beta<N> <commit> -m "vX.Y.Z-beta<N> — staging; security gate
 
 A waived gate records its IDs instead: `security gate: WAIVED SEC-19 gate:audit`. The same applies to every tag below and above.
 
+Staging's configuration runs nothing on a schedule: every trigger is declared empty, never inherited, and a scheduled job is exercised on staging with a one-off manual trigger.
+
 For `ship-prod`, then run the readiness gate for `production` on the same commit, with the same fallback. A production record never reuses the staging one; its verdict and open blockers go into the candidate presented for approval.
 
 `<N>` starts at 1 and increments for each verified staging build of the same target version — `v2.4.0-beta1`, `-beta2`, … A staging attempt that fails its live proof gets no tag: fix, deploy again, prove again. The clean tag `vX.Y.Z` is reserved for production. Never promote an unverified build.
@@ -155,6 +159,7 @@ git tag -a vX.Y.Z <commit> -m "vX.Y.Z; security gate: PASS" && git push origin v
 Then:
 
 - Confirm the tag points at the commit production serves.
+- **Turn staging off** in the same task, so it costs nothing while no release is in it: scheduled work, queue consumers, workflows (deleting a staging workflow needs the same authorization as the database below), Durable Object alarms, and external schedulers (a CI cron, a host scheduler) that act on staging. An idle staging service that only answers requests may stay, so its secrets survive. Then the staging database: when it holds nothing production lacks, no release is in staging, and the user has authorized deleting it (a standing rule of theirs, or a line in the production approval request that names the database), confirm its name and id are staging's and not production's, export it, delete it, and report the export's location; otherwise export it and report it for the owner. The next release recreates it (database, its id in configuration, migrations) before its staging stop. The release is not done until staging shows zero scheduled runs and zero writes, each with the check that proved it, and anything NOT TESTED named. On Cloudflare, follow [references/cloudflare.md](references/cloudflare.md#staging-off-after-production).
 - Publication (GitHub Release, npm, app stores) needs its own explicit `release`/`publish` ask — a tag and a deploy are not a release. When asked: `npm view <pkg>@<version>` proves the npm side; the GitHub Release body links the npm version page, tarball, integrity, and CI proof.
 - Bump the changelog to the next patch `Unreleased` and commit.
 - End on the repository's expected branch, preserving unrelated changes. Switch branches only when authorized; update with a fast-forward and verify `git status -sb`.
@@ -162,7 +167,7 @@ Then:
 
 ## Hard rules
 
-- Production and VPS: never drop a DB, delete records, or run destructive commands. Verify hostname, path, and backups first. Soft-delete only.
+- Production and VPS: never drop a DB, delete records, or run destructive commands. Verify hostname, path, and backups first. Soft-delete only. The unused staging database and staging workflows in Phase 5 are the only deletions this skill performs, and only with the user's authorization for them and after their identity checks (the database also export-first).
 - Secrets never appear in a tag message, changelog, PR body, or deploy log.
 - Never claim a deploy, gate, or verification succeeded unless you observed it. Partial run: say exactly where it stopped.
 - Abort at any phase on an unexpected repo state (dirty tree you did not create, wrong branch, foreign changes) and report rather than force through.

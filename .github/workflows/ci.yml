@@ -21,6 +21,7 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -95,6 +96,8 @@ jobs:
 
       - name: Readiness catalog (preservation map and planted violations)
         run: bash tools/scripts/check-readiness-catalog.test
+      - name: pr-wait watcher (fake gh, no network)
+        run: python3 skills/babysit-pr/tests/test_pr_wait.py
       - name: SRS helper (concurrent reviews, temporary SQLite)
         run: python3 skills/mneves-teach-back-srs/tests/test_srs_db.py
 
@@ -104,7 +107,7 @@ jobs:
           bash tools/scripts/check-defaults-block.test
 
       - name: Python syntax
-        run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py skills/mneves-ship-deploy/scripts/release-contract-check.py skills/mneves-ship-deploy/scripts/run-tests.py skills/mneves-ship-deploy/tests/test_release_contract_check.py tools/scripts/check-readiness-catalog.py skills/autoreview/scripts/test-review-harness.py
+        run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py skills/mneves-ship-deploy/scripts/release-contract-check.py skills/mneves-ship-deploy/scripts/run-tests.py skills/mneves-ship-deploy/tests/test_release_contract_check.py tools/scripts/check-readiness-catalog.py skills/autoreview/scripts/test-review-harness.py skills/babysit-pr/scripts/pr-wait skills/babysit-pr/tests/test_pr_wait.py
 
       - name: Security audit validator suites and syntax
         run: |
@@ -142,6 +145,7 @@ jobs:
 
   render-starters:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Install document engines and preview fonts
@@ -171,6 +175,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - name: Portable review and security tests (no provider calls)

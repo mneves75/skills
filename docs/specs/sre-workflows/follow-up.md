@@ -41,9 +41,9 @@ retirement. Details: "Round 4 (retention decision)" in [evaluation.md](evaluatio
      (never attempted). Positive controls cover an absence that a supplied source does show,
      which must still be reported as observed. Each variant is added alongside the frozen
      criteria; recorded failures stay as recorded.
-  2. Source checks pass: `npx -y skills-ref@0.1.5 validate` on `skills/mneves-slo/` and
-     `skills/mneves-incident-learning/` (or the cached pinned validator when `npx` cannot start,
-     recorded as such); `bash tools/scripts/build-site.test`; the other CI gates the change touches.
+  2. Source checks pass: `agentskills validate` (the hashed PyPI reference validator from
+     `AGENTS.md` Commands, never the npm `skills-ref`) on `skills/mneves-slo/` and
+     `skills/mneves-incident-learning/`; `bash tools/scripts/build-site.test`; the other CI gates the change touches.
   3. A fresh, source-blind full E1–E19 run on both arms, under item 2's method, meets every new
      variant, keeps E2, E3 and E13 met, and adds no new wrong behaviour.
 - **Rollout and recovery.** Documentation only; nothing deploys. If the run regresses, revert the

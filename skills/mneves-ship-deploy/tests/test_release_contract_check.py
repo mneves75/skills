@@ -293,6 +293,28 @@ def _m_env_missing_triggers(repo: Path) -> None:
     mutate(repo, "wrangler.jsonc", '      "triggers": { "crons": ["0 10 * * *"] },\n', "", count=1)
 
 
+def _m_staging_inherits_crons(repo: Path) -> None:
+    mutate(repo, "wrangler.jsonc", '      "triggers": { "crons": [] },\n', "", count=1)
+
+
+def _m_staging_declares_cron(repo: Path) -> None:
+    mutate(repo, "wrangler.jsonc", '      "triggers": { "crons": [] },\n', '      "triggers": { "crons": ["*/5 * * * *"] },\n', count=1)
+
+
+def _m_staging_empty_triggers(repo: Path) -> None:
+    mutate(repo, "wrangler.jsonc", '      "triggers": { "crons": [] },\n', '      "triggers": {},\n', count=1)
+
+
+def _m_staging_declares_event(repo: Path) -> None:
+    mutate(repo, "wrangler.jsonc", '      "triggers": { "crons": [] },\n',
+           '      "triggers": { "crons": [], "events": [{ "source": "artifacts" }] },\n', count=1)
+
+
+def _m_staging_inherits_empty_triggers(repo: Path) -> None:
+    mutate(repo, "wrangler.jsonc", '      "triggers": { "crons": [] },\n', "", count=1)
+    mutate(repo, "wrangler.jsonc", '  "triggers": { "crons": ["0 10 * * *"] },\n', '  "triggers": {},\n', count=1)
+
+
 def _m_cache_top(repo: Path) -> None:
     mutate(repo, "wrangler.jsonc", '  "main": "src/worker.ts",\n', '  "main": "src/worker.ts",\n  "cache": { "enabled": true },\n')
 
@@ -395,7 +417,12 @@ VIOLATIONS = [
     ("environment missing a kv binding", _m_env_missing_kv, "cf.env-bindings", "FAIL", False, r"kv_namespaces"),
     ("environment missing a d1 binding (not on the documented list)", _m_env_missing_d1, "cf.env-bindings", "WARN", True, r"d1_databases"),
     ("environment missing vars", _m_env_missing_vars, "cf.env-bindings", "WARN", False, r"vars"),
-    ("environment without its own triggers", _m_env_missing_triggers, "cf.env-triggers", "WARN", False, r"triggers"),
+    ("environment without its own triggers", _m_env_missing_triggers, "cf.env-triggers", "WARN", False, r"env\.production inherits triggers"),
+    ("staging inherits production's crons", _m_staging_inherits_crons, "cf.env-triggers", "FAIL", False, r"wrangler\.jsonc:\d+ env\.staging inherits"),
+    ("staging declares a cron", _m_staging_declares_cron, "cf.env-triggers", "FAIL", False, r"env\.staging declares scheduled work \*/5"),
+    ("staging triggers without a crons list", _m_staging_empty_triggers, "cf.env-triggers", "FAIL", False, r"env\.staging declares triggers without a crons list"),
+    ("staging inherits a top-level triggers block without crons", _m_staging_inherits_empty_triggers, "cf.env-triggers", "FAIL", False, r"env\.staging inherits top-level triggers that run or keep scheduled work"),
+    ("staging declares an event trigger", _m_staging_declares_event, "cf.env-triggers", "FAIL", False, r"env\.staging declares scheduled work"),
     ("Workers Cache on at the top level", _m_cache_top, "cf.worker-cache", "WARN", False, r"wrangler\.jsonc:\d+ Workers Cache is on for the top level; its key ignores Cookie and Authorization"),
     ("Workers Cache explicitly off", _m_cache_off, "cf.worker-cache", "PASS", False, r"off or absent"),
     ("Workers Cache on only under one environment", _m_cache_env_only, "cf.worker-cache", "WARN", False, r"wrangler\.jsonc:\d+ Workers Cache is on for env\.production;"),
@@ -636,6 +663,17 @@ class ReleaseScriptReading(Base):
                          "release.evidence", "release.rollback", "release.runtime-pin", "release.readiness"):
             with self.subTest(check_id):
                 self.assertEqual(statuses[check_id], "PASS")
+
+    def test_a_long_token_in_a_short_wrapper_stays_fast(self) -> None:
+        # The script-name search used to backtrack quadratically on one long path-like token.
+        impl = self.repo / "scripts" / "release-impl.sh"
+        shutil.move(self.repo / "scripts" / "release.sh", impl)
+        wrapper = '#!/usr/bin/env bash\n: ' + "a" * 60000 + '\nexec "$(dirname "$0")/release-impl.sh" "$@"\n'
+        (self.repo / "scripts" / "release.sh").write_text(wrapper)
+        (self.repo / "scripts" / "release.sh").chmod(0o755)
+        proc = run_checker(str(self.repo), "--json", timeout=5)
+        checks = {c["id"]: c["status"] for c in json.loads(proc.stdout)["repos"][0]["checks"]}
+        self.assertEqual(checks["release.readiness"], "PASS")
 
     def test_the_pin_the_repository_declares_is_the_one_the_script_must_read(self) -> None:
         (self.repo / ".nvmrc").unlink()

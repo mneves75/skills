@@ -17,9 +17,18 @@ disproved. Distinct from a gate's verdict (pass, block, waived) and from a fix s
 units it read and returns confirmed, needs-validation or rejected findings. It is not a deploy
 gate and it does not change the target.
 
-**Council**: Bounded independent deliberation over a plan by separate agent CLIs, one reply per
-member per requested round. It produces advice and a faithful objection record, never
-verification.
+**Council**: Bounded independent deliberation over a plan or a change by separate agent CLIs,
+one reply per member per round. It produces advice, a faithful objection record and, for a
+change, a score per member per round; never verification.
+
+**Proof**: Evidence of a change's effect that the agent observed itself in the current session:
+command output, a reproduction, a rendered screen. A builder's claim, a green deploy command or
+a mocked test of user-visible behavior is not proof.
+
+**Merge gate**: The conditions a pull request's latest head must meet before it may merge: proof
+covers the whole diff, required checks pass, review bots have finished, every finding is fixed or
+answered, no review requests changes, and the branch is current and mergeable. Passing it makes
+a PR ready; merging stays the owner's decision unless the owner granted it.
 
 **Evidence scope**: The environment and surface a check actually establishes, such as
 source configuration, local behavior, deployed behavior or an owner's dated attestation.

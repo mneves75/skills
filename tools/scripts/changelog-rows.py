@@ -18,7 +18,8 @@ def first_sentence(body: str) -> str:
     bullet = re.search(r"^- (.+)$", body, re.M)
     text = bullet.group(1) if bullet else ""
     text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
-    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+    # Classes exclude their own delimiters, so a long run of brackets cannot backtrack quadratically.
+    text = re.sub(r"\[([^\[\]]+)\]\([^()]+\)", r"\1", text)
     text = text.split(". ")[0].rstrip(".") + "."
     text = html.escape(text, quote=False)
     return re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
@@ -29,7 +30,7 @@ def main(changelog: str, index: str) -> None:
     if not entries:
         sys.exit("changelog-rows: no entries found in CHANGELOG.md")
     rows = "\n".join(
-        f'        <li><span class="v">{v}<span class="d">{d}</span></span>'
+        f'        <li><span class="v">{v}<span class="d">{html.escape(d)}</span></span>'
         f"<span>{first_sentence(body)}</span></li>"
         for v, d, body in entries
     )

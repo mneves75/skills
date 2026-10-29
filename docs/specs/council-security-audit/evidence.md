@@ -31,10 +31,12 @@ commit that carries the change — plus the commands that reproduce the release 
 
 ## Checks a reader can re-run
 
-These produce the same result from a clone; they are the release's reproducible evidence.
+These produce the same result from a clone; they are the release's reproducible evidence. The
+release itself ran the npm `skills-ref@0.1.5`, an unrelated individual's package; re-run with the
+hashed PyPI reference validator instead (`AGENTS.md` Commands).
 
 ```sh
-for d in skills/*/; do npx -y skills-ref@0.1.5 validate "$d"; done   # 17 default skills
+for d in skills/*/; do .scratch/skills-ref/bin/agentskills validate "$d"; done   # 17 default skills
 npx -y skills@latest add . --list                                    # discovers both new packages
 node skills/security-audit/validate-findings.test.cjs                # 34 tests
 node skills/security-audit/validate-coverage-ledger.test.cjs        # 31 tests
@@ -59,7 +61,8 @@ read `1.40.0` / `2026-10-23`. Every skill directory has exactly one card in `sit
   site, not before it.
 - **Owner-side evidence stays owner-side.** Provider spend caps, provider retention and the
   operator access inventory are covered only by the dated waivers in
-  [the readiness ledger](../../readiness/ledger.md), expiring 2026-10-25T23:59:59Z.
+  [the readiness ledger](../../readiness/ledger.md), expiring 2026-10-25T23:59:59Z (the 1.40.0
+  waivers; each later release records its own in its gate record and tag message).
 - **The deploy-gate verdict is release evidence.** The gate writes a record per candidate under
   `.scratch/security-gate/<commit>/`, which this repository ignores, and the release tag message
   carries the verdict for the deployed commit. Neither is restated here.

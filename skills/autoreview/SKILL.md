@@ -120,6 +120,13 @@ Treat `scoped-clean` as clean only for the selected target and requested priorit
 Verify findings against the actual code and task before changing anything.
 No extra review rounds for a nicer verdict; follow the owning workflow after fixes.
 
+When the owning workflow reviews again after fixes, keep a ledger across runs: finding,
+severity, and outcome (fixed with proof, disproved with evidence, or declined as a named
+follow-up). Another code path, a rare case or a small cost is low priority whatever label it
+came with. Review loops grow a change one cheap-looking fix at a time: if review grew the diff,
+cut first, and do not accept a finding just to end the loop. A timeout, an error or no reply
+is not approval.
+
 **Exit codes and the `--status-output` sidecar**: see
 [references/status-output.md](references/status-output.md).
 

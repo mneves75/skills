@@ -63,6 +63,28 @@ the [security deploy gate](skills/mneves-security/SKILL.md#deploy-gate) and
 candidate. Keep detailed reports and owner waivers private. Merge approval alone does
 not waive an open control.
 
+`main` is also what `npx skills add` installs, so every merge is a release that needs its
+own gate. Close a release without a second one:
+
+1. Tracked files in the release PR describe the candidate tree. Say that the binding result
+   lives in the private gate records and the `vX.Y.Z` tag message. Do not write claims that
+   the merge makes false, such as "not deployed" or "BLOCK".
+2. After CI and Pages succeed and the served files match the gated tree, create an annotated
+   `vX.Y.Z` tag on the merge commit (owner approval required). Its message carries these
+   lines: `Security gate:` (with the waived IDs), `Readiness gate:`, `Waivers:` (owner and
+   expiry), `Independent acceptance:` (when one ran), `Gated tree:`, `Gated commit:`, `CI:`
+   and `Deployed:`. A rollback to a tag skips
+   a new audit only when the tag message records the verdict.
+3. Fold the binding run's ledger bookkeeping (cursor, gate-history row, WAIVED rows) and the
+   `MEMORY.md` release state into the next release PR, never a standalone merge
+   ([gates.md](skills/mneves-production-readiness/references/gates.md)).
+   `tools/scripts/check-readiness-catalog.py` checks that the ledger stays consistent.
+
+Waiver expiry is the owner's choice, up to the readiness skill's 90-day cap; never set one on the
+owner's behalf. Security acceptance needs a model other than the builder's, and finders and their
+verifier run in separate contexts. When no such model can run (for example, both Codex accounts
+are out of quota), report the acceptance gate as blocked instead of reviewing with the same model.
+
 ## Skill Requirements
 
 Skills must stay discoverable by `npx skills@latest add mneves75/skills`: one folder per

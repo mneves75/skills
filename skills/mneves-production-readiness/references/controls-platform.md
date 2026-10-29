@@ -175,6 +175,16 @@ minimum scope that can mark it PASS.
   runaway agent loop.
 - Evidence: owner-attested or provider configuration.
 
+### CST-03 Staging idle between releases
+`advisory` · applies: a staging environment · triggers: deploy configuration, schedule configuration, release scripts
+- Verify: once production is deployed and proven live, staging runs nothing without a request:
+  its configuration declares every trigger empty instead of inheriting production's; queue
+  consumers, workflows, alarms and external schedulers aimed at it are off; and a staging
+  database that holds nothing production lacks is exported and deleted, then recreated by the
+  next release. The release shows zero scheduled runs and zero writes on staging.
+- Evidence: deploy configuration plus the provider's schedule, consumer and analytics reads,
+  or owner-attested.
+
 ## OBS: observability and incidents
 
 ### OBS-01 Structured logs

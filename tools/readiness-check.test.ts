@@ -90,3 +90,28 @@ test("checker rejects invalid option values instead of passing a CI gate vacuous
 		await rm(directory, { recursive: true, force: true });
 	}
 }, 60000);
+
+for (const [config, linter] of [["biome.json", "biome"], ["eslint.config.js", "eslint"]] as const) {
+	test(`the ${linter} check never asks bunx to download a missing package`, async () => {
+		const directory = await mkdtemp(join(tmpdir(), "readiness-bunx-"));
+		const bin = join(directory, "bin");
+		const argv = join(directory, "argv.txt");
+		try {
+			await mkdir(bin);
+			await Bun.write(join(directory, "package.json"), '{"name":"bunx-fixture"}');
+			await Bun.write(join(directory, config), "{}");
+			await Bun.write(join(bin, "bunx"), `#!/bin/sh\nprintf '%s\\n' "$*" >> '${argv}'\n`);
+			await chmod(join(bin, "bunx"), 0o755);
+			const checker = Bun.spawn([
+				process.execPath, new URL("./readiness-check.ts", import.meta.url).pathname,
+				"--language=typescript", "--skip-tests", "--skip-build", "--format=json",
+			], { cwd: directory, env: { PATH: `${bin}:${process.env["PATH"]}`, HOME: directory }, stdout: "ignore", stderr: "ignore" });
+			await checker.exited;
+			const calls = (await Bun.file(argv).text()).split("\n").filter((line) => line.includes(linter));
+			expect(calls.length).toBeGreaterThan(0);
+			for (const call of calls) expect(call.startsWith(`--no-install ${linter} `)).toBe(true);
+		} finally {
+			await rm(directory, { recursive: true, force: true });
+		}
+	});
+}
