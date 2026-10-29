@@ -107,9 +107,13 @@ operating-system updates.
 - `council` keeps each deliberation in a private session directory outside your project
   (conventional default `~/.council/`): the task, the plan, and every member's prompt, reply
   and log. It never prunes them, and it starts other authenticated CLIs (Claude, Codex or
-  Cursor), each under a read-only or restricted configuration. The task and plan you approve
+  pi), each under a read-only or restricted configuration. The task and plan you approve
   leave your machine to those providers under their own retention terms, and each member CLI
   keeps its own sessions under its own configuration.
+- `pr-wait` (in `babysit-pr`) keeps one small state file per watched PR in
+  `~/.local/state/pr-wait/` (`<owner>__<repo>__<number>.json` and its lock): ids of reported
+  events, a digest of each bot summary, the base commit and the merge state; no comment text.
+  It ignores a file older than six hours; delete the file to erase it.
 - `security-audit` writes its audit to a directory outside the target (conventional default
   `~/security-audit-skill/<repo-name>/run-<N>/`): the coverage ledger, findings, evidence and
   reports. It never prunes them. Source inspection stays read-only, and it runs
@@ -124,7 +128,7 @@ keeps no copy. To erase:
 
 1. **Local files the tools wrote.** Delete the readiness reports you asked for (`--output`),
    autoreview's `--output`, `--json-output` and `--status-output` files, `.ai-learn/srs.db`
-   and any SRS exports, the `codex-lane` files listed above, the `council` session directory
+   and any SRS exports, the `codex-lane` files listed above, the `pr-wait` state files, the `council` session directory
    (delete each session whole, after reading it, rather than a wildcard that could match
    another run), and the `security-audit` output directories. Each lives where you chose or
    where this file says; the tools shipped here keep no second copy of their own.
@@ -133,7 +137,7 @@ keeps no copy. To erase:
    the provider's account or data controls; no tool here can reach them.
 3. **The member CLIs' own stores.** `council` starts other agents, and `security-audit` runs
    target-controlled commands, so those tools persist their own sessions, chats and logs
-   wherever their configuration says — for example Cursor's chat store — and `council` cannot
+   wherever their configuration says — for example a CLI's own session store — and `council` cannot
    disable that for every member. This repository does not track, enumerate or erase those
    copies, and their retention was not tested here. Treat each CLI's own data controls as the
    place to erase them, and prefer a sanitized prompt-only run when that matters.

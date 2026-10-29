@@ -92,10 +92,12 @@ Done when `wrangler queues consumer list <queue> --json` prints `[]` for each st
 
 **Workflows.** A staging Workflow needs its own name, because Workflow names are account-wide.
 A Workflow can carry its own `schedules`, and removing them from the configuration may not
-clear them: delete the staging Workflow with `wrangler workflows delete <name>`, which also
-deletes its instances. Take `<name>` from the staging environment's `workflows` entry and
-compare it with every other environment's and the top level's: a name that appears outside
-staging is shared with production, so stop and report it instead of deleting.
+clear them: with the user's authorization for the deletion (SKILL.md Phase 5), delete the
+staging Workflow with `wrangler workflows delete <name>`, which also deletes its instances.
+Take `<name>` from the staging environment's `workflows` entry and compare it with every
+other environment's and the top level's, in every Wrangler configuration that can bind it
+(other Workers in the account included): a name that appears outside staging is shared with
+production, so stop and report it instead of deleting.
 Done when `wrangler workflows instances list <name> --status running --json` and the same with
 `--status queued` print nothing, or the Workflow no longer exists.
 
@@ -113,8 +115,9 @@ and no release is in staging. In order, stopping and reporting at the first step
 1. Read its identity: `wrangler d1 info <name> --json` (uuid, `write_queries_24h`,
    `rows_written_24h`), with `<name>` taken from the staging environment's `d1_databases` and
    nowhere else. Compare the uuid with every `database_id` and the name with every
-   `database_name` in the Wrangler configuration: both must equal the staging environment's
-   entry and differ from the top level's and every other environment's. Quote the compared
+   `database_name` in every Wrangler configuration that can bind it (other Workers in the
+   account included): both must equal the staging environment's entry and differ from the
+   top level's and every other environment's. Quote the compared
    values in the report. Any match outside staging, a missing staging entry or an id that
    cannot be read stops the deletion.
 2. Confirm it holds nothing production lacks. A staging database that served as the only copy
