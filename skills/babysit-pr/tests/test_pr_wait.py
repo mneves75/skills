@@ -41,7 +41,11 @@ elif args[:2] == ["pr", "diff"]:
 elif args[:2] == ["api", "graphql"]:
     query = next(a for a in args if a.startswith("query="))
     if "statusCheckRollup" in query:
-        contexts = {"nodes": scenario.get("rollup", [])}
+        # Pages of 100, like GitHub; the cursor is the next page's offset.
+        start = int(next((a.split("=", 1)[1] for a in args if a.startswith("after=")), "0"))
+        nodes = scenario.get("rollup", [])
+        more = start + 100 < len(nodes)
+        contexts = {"nodes": nodes[start:start + 100], "pageInfo": {"hasNextPage": more, "endCursor": str(start + 100)}}
         commit = {"oid": scenario["pr"]["headRefOid"], "statusCheckRollup": {"contexts": contexts}}
         pr = {"commits": {"nodes": [{"commit": commit}]}}
         print(json.dumps({"data": {"repository": {"pullRequest": pr}}}))
@@ -87,6 +91,11 @@ def check_run(name: str, conclusion: str | None, *messages: str, steps: int = 0,
     return {"__typename": "CheckRun", "name": name, "conclusion": conclusion, "steps": {"totalCount": steps},
             "databaseId": next(RUN_IDS), "isJob": job and app == "github-actions",
             "checkSuite": {"app": {"slug": app}}, "annotations": {"nodes": notes}}
+
+
+def filler(count: int) -> list[dict]:
+    """Passing runs that push the runs after them onto a later rollup page."""
+    return [check_run(f"lint-{i}", "SUCCESS") for i in range(count)]
 
 
 LOCKED = "The job was not started because your account is locked due to a billing issue."
@@ -191,6 +200,42 @@ class PrWaitTest(unittest.TestCase):
         stage = {"checks": [check("build", "pass"), check("greptile", "fail")],
                  "rollup": [check_run("build", "SUCCESS"), check_run("greptile", "FAILURE", "1 issue", app="greptile-apps"),
                             check_run("greptile", None, app="greptile-apps")]}
+        self.write_stages(stage)
+        watcher = subprocess.Popen(
+            [sys.executable, str(SCRIPT), "7", "--repo", "o/r", "--until", "ready", "--interval", "5"],
+            env=self.env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                watcher.wait(timeout=13)  # three polls: counting greptile done ends it after two
+        finally:
+            watcher.terminate()
+            out, _ = watcher.communicate(timeout=10)
+        self.assertNotIn("ready on", out)
+
+    def test_real_failure_on_a_later_page_still_fails(self) -> None:
+        self.write([check("build", "fail")],
+                   [check_run("build", "FAILURE", LOCKED), *filler(100),
+                    check_run("build", "FAILURE", "Process completed with exit code 1.")], 1)
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn('check failed: "build"', proc.stdout)
+
+    def test_billing_block_on_a_later_page_is_still_excused(self) -> None:
+        self.write([check("build", "fail")], [*filler(150), check_run("build", "FAILURE", LOCKED)], 1)
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn('billing-blocked (prove locally): "build"', proc.stdout)
+
+    def test_more_checks_than_pr_wait_reads_excuse_nothing(self) -> None:
+        self.write([check("build", "fail")], [check_run("build", "FAILURE", LOCKED), *filler(1000)], 1)
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn('check failed: "build"', proc.stdout)
+
+    def test_bot_run_going_on_a_later_page_keeps_ready_waiting(self) -> None:
+        stage = {"checks": [check("build", "pass"), check("greptile", "fail")],
+                 "rollup": [check_run("build", "SUCCESS"), check_run("greptile", "FAILURE", "1 issue", app="greptile-apps"),
+                            *filler(100), check_run("greptile", None, app="greptile-apps")]}
         self.write_stages(stage)
         watcher = subprocess.Popen(
             [sys.executable, str(SCRIPT), "7", "--repo", "o/r", "--until", "ready", "--interval", "5"],

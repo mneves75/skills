@@ -42,7 +42,9 @@ failure annotation starts with "The job was not started because" and names
 billing, failed payments or the spending limit. It must be a job GitHub's Actions API
 returns: a check run a workflow creates through the Checks API carries the same app and
 zero steps, and its text can come from the PR. It does not count as a failed check, so
-`green` and `ready` can pass without it; the summary line names it.
+`green` and `ready` can pass without it; the summary line names it. pr-wait reads
+every check on the head; with more than 1,000 it excuses nothing and counts no check
+as a bot's.
 
 Review bots count only when GitHub types the author as a Bot, so a person whose
 login contains a bot's name never marks a review done. A check counts as a
@@ -85,6 +87,8 @@ STATE_DIR = Path.home() / ".local" / "state" / "pr-wait"
 # instead of replaying hours of comments as new events.
 STALE_STATE_SECONDS = 6 * 3600
 MAX_FAILED_POLLS = 10
+# 100 checks per page. Past this many pages the read is incomplete, so nothing is excused.
+MAX_ROLLUP_PAGES = 10
 GH_TIMEOUT_SECONDS = 120
 TRANSIENT = re.compile(
     r"HTTP (5\d\d|429)|rate limit|timed? ?out|connection (reset|refused)|EOF|"
@@ -128,7 +132,7 @@ query($owner: String!, $name: String!, $number: Int!) {
 """
 
 ANNOTATIONS_QUERY = """
-query($owner: String!, $name: String!, $number: Int!) {
+query($owner: String!, $name: String!, $number: Int!, $after: String) {
   repository(owner: $owner, name: $name) {
     pullRequest(number: $number) {
       commits(last: 1) {
@@ -136,7 +140,8 @@ query($owner: String!, $name: String!, $number: Int!) {
           commit {
             oid
             statusCheckRollup {
-              contexts(first: 100) {
+              contexts(first: 100, after: $after) {
+                pageInfo { hasNextPage endCursor }
                 nodes {
                   __typename
                   ... on CheckRun {
@@ -402,23 +407,38 @@ class Watcher:
         failed checks GitHub never started for billing reasons; those of them with another
         run of the same name still going; the checks a review bot's own app reports; and
         every check with a run still going."""
+        # A partial read could hide the real failure or the running run that decides a
+        # name, so an error, a moved head or too many pages all excuse nothing.
+        nodes: list[Json] = []
+        cursor: str | None = None
         try:
-            proc = gh([
-                "api", "graphql", "-f", f"query={ANNOTATIONS_QUERY}",
-                "-f", f"owner={self.owner}", "-f", f"name={self.name}", "-F", f"number={self.pr}",
-            ])
-            commits = json.loads(proc.stdout)["data"]["repository"]["pullRequest"]["commits"]["nodes"]
+            for _ in range(MAX_ROLLUP_PAGES):
+                args = [
+                    "api", "graphql", "-f", f"query={ANNOTATIONS_QUERY}",
+                    "-f", f"owner={self.owner}", "-f", f"name={self.name}", "-F", f"number={self.pr}",
+                ]
+                if cursor:
+                    args += ["-f", f"after={cursor}"]
+                commits = json.loads(gh(args).stdout)["data"]["repository"]["pullRequest"]["commits"]["nodes"]
+                if not commits or commits[0]["commit"]["oid"] != head:
+                    return set(), set(), {}, set()
+                contexts = (commits[0]["commit"].get("statusCheckRollup") or {}).get("contexts") or {}
+                nodes += contexts.get("nodes") or []
+                page = contexts.get("pageInfo") or {}
+                if not page.get("hasNextPage"):
+                    break
+                cursor = page.get("endCursor")
+            else:
+                log(f"more than {MAX_ROLLUP_PAGES * 100} checks on {head[:7]}: excusing none")
+                return set(), set(), {}, set()
         except (GhError, ValueError, KeyError, TypeError) as error:
             log(f"could not read check runs: {error}")
             return set(), set(), {}, set()
-        if not commits or commits[0]["commit"]["oid"] != head:
-            return set(), set(), {}, set()
-        rollup = commits[0]["commit"].get("statusCheckRollup") or {}
         blocked: set[str] = set()
         failed: set[str] = set()
         running: set[str] = set()
         owners: dict[str, set[str | None]] = {}
-        for node in (rollup.get("contexts") or {}).get("nodes") or []:
+        for node in nodes:
             if node.get("__typename") == "StatusContext":
                 login, is_bot = who({"author": node.get("creator")})
                 owners.setdefault(node.get("context") or "", set()).add(bot_name(login) if is_bot else None)
