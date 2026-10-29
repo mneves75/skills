@@ -43,8 +43,8 @@ billing, failed payments or the spending limit. It must be a job GitHub's Action
 returns: a check run a workflow creates through the Checks API carries the same app and
 zero steps, and its text can come from the PR. It does not count as a failed check, so
 `green` and `ready` can pass without it; the summary line names it. pr-wait reads
-every check on the head; with more than 1,000 it excuses nothing and counts no check
-as a bot's.
+every check on the head. When it cannot read them all (more than 1,000, or a page
+fails), it excuses nothing and counts no gating bot done, so `ready` waits.
 
 Review bots count only when GitHub types the author as a Bot, so a person whose
 login contains a bot's name never marks a review done. A check counts as a
@@ -340,6 +340,7 @@ class Watcher:
         self.printed: set[str] = set()
         self.events = 0
         self.required: set[str] | None = None
+        self.jobs: dict[int, bool] = {}
         self.prev_snapshot: list[tuple[str, str]] | None = None
         self.pr_files: dict[str, set[str]] = {}
 
@@ -402,13 +403,12 @@ class Watcher:
                 checks[row["name"]] = row
         return checks
 
-    def rollup(self, head: str) -> tuple[set[str], set[str], dict[str, str], set[str]]:
+    def rollup(self, head: str) -> tuple[set[str], set[str], dict[str, set[str | None]], set[str]] | None:
         """Read on every poll, since a re-run changes the answer without moving the head:
         failed checks GitHub never started for billing reasons; those of them with another
-        run of the same name still going; the checks a review bot's own app reports; and
-        every check with a run still going."""
-        # A partial read could hide the real failure or the running run that decides a
-        # name, so an error, a moved head or too many pages all excuse nothing.
+        run of the same name still going; the bots that report each check name (None for
+        anything else); and every check with a run still going. None when the read is
+        incomplete: it could hide the real failure or the running run that decides a name."""
         nodes: list[Json] = []
         cursor: str | None = None
         try:
@@ -421,19 +421,23 @@ class Watcher:
                     args += ["-f", f"after={cursor}"]
                 commits = json.loads(gh(args).stdout)["data"]["repository"]["pullRequest"]["commits"]["nodes"]
                 if not commits or commits[0]["commit"]["oid"] != head:
-                    return set(), set(), {}, set()
+                    return None
                 contexts = (commits[0]["commit"].get("statusCheckRollup") or {}).get("contexts") or {}
-                nodes += contexts.get("nodes") or []
+                page_nodes = contexts.get("nodes") or []
+                if not all(isinstance(node, dict) for node in page_nodes):
+                    raise TypeError("a check entry is not an object")
+                nodes += page_nodes
                 page = contexts.get("pageInfo") or {}
                 if not page.get("hasNextPage"):
                     break
-                cursor = page.get("endCursor")
+                cursor, previous = page.get("endCursor"), cursor
+                if not cursor or cursor == previous:
+                    raise ValueError("GitHub gave no next page")
             else:
-                log(f"more than {MAX_ROLLUP_PAGES * 100} checks on {head[:7]}: excusing none")
-                return set(), set(), {}, set()
+                raise ValueError(f"more than {MAX_ROLLUP_PAGES * 100} checks")
         except (GhError, ValueError, KeyError, TypeError) as error:
-            log(f"could not read check runs: {error}")
-            return set(), set(), {}, set()
+            log(f"could not read every check on {head[:7]} ({error}): excusing none, no gating bot done")
+            return None
         blocked: set[str] = set()
         failed: set[str] = set()
         running: set[str] = set()
@@ -466,15 +470,16 @@ class Watcher:
         # of any run keeps the name failed, whatever its other runs say; a run still
         # going keeps it pending.
         names = blocked - failed
-        bot_checks = {name: bot for name, bots in owners.items() if len(bots) == 1 for bot in bots if bot}
-        return names - running, names & running, bot_checks, running
+        return names - running, names & running, owners, running
 
     def is_job(self, run_id: object) -> bool:
         """A job's id is its check run's id. A check run created through the Checks API,
         even with a workflow's token, has no job, so the Actions API does not find it."""
         if not isinstance(run_id, int):
             return False
-        return gh(["api", f"repos/{self.owner}/{self.name}/actions/jobs/{run_id}"], allow=(0, 1)).returncode == 0
+        if run_id not in self.jobs:
+            self.jobs[run_id] = gh(["api", f"repos/{self.owner}/{self.name}/actions/jobs/{run_id}"], allow=(0, 1)).returncode == 0
+        return self.jobs[run_id]
 
     def base_overlap(self, head: str, old: str, new: str) -> list[str]:
         """Files this PR touches that the new base commits also touch."""
@@ -518,7 +523,10 @@ class Watcher:
         threads = pr["reviewThreads"]["nodes"]
         self.events = 0
 
-        billing, rerunning, bot_checks, running = self.rollup(head)
+        read = self.rollup(head)
+        billing, rerunning, owners, running = read or (set(), set(), {}, set())
+        # A check is a bot's only when that bot alone reports it; a job of the same name keeps it gating.
+        bot_checks = {name: bot for name, bots in owners.items() if len(bots) == 1 for bot in bots if bot}
         # Required checks. With no required checks configured, every CI check
         # gates except the review bots' own checks.
         gate = self.required or {name for name in checks if name not in bot_checks}
@@ -589,12 +597,16 @@ class Watcher:
             summaries = [c for c in comments if who(c)[1] and bot_name(who(c)[0]) == bot]
             own_reviews = [r for r in reviews if who(r)[1] and bot_name(who(r)[0]) == bot]
             on_head = any((r.get("commit") or {}).get("oid") == head for r in own_reviews)
-            if own_checks:
-                # gh collapses a name's runs to the worst bucket, hiding a run still going.
-                done = all(c["bucket"] != "pending" for c in own_checks.values()) and not running & set(own_checks)
+            # Every name the bot reports on, shared or not: gh collapses a name's runs to the
+            # worst bucket, hiding a run still going, so the rollup's running set decides.
+            claimed = {name for name, bots in owners.items() if bot in bots}
+            if read is None and bot in GATING_BOTS:
+                done = False
+            elif claimed:
+                done = all(bucket(name) != "pending" for name in claimed) and not running & claimed
             else:
                 done = on_head or any(short in s["body"] for s in summaries)
-            seen = bool(own_checks or summaries or own_reviews)
+            seen = bool(claimed or own_checks or summaries or own_reviews)
             if bot in ADVISORY_BOTS and own_checks:
                 desc = next(iter(own_checks.values()))
                 bot_status[bot] = f"{bot} {snippet(desc['description'], 80) if desc['description'] else desc['bucket']} (advisory)"

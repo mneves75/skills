@@ -43,6 +43,9 @@ elif args[:2] == ["api", "graphql"]:
     if "statusCheckRollup" in query:
         # Pages of 100, like GitHub; the cursor is the next page's offset.
         start = int(next((a.split("=", 1)[1] for a in args if a.startswith("after=")), "0"))
+        if start >= scenario.get("rollup_error_from", 10**9):
+            print("GraphQL: Could not resolve to a node", file=sys.stderr)
+            sys.exit(1)
         nodes = scenario.get("rollup", [])
         more = start + 100 < len(nodes)
         contexts = {"nodes": nodes[start:start + 100], "pageInfo": {"hasNextPage": more, "endCursor": str(start + 100)}}
@@ -51,6 +54,8 @@ elif args[:2] == ["api", "graphql"]:
         print(json.dumps({"data": {"repository": {"pullRequest": pr}}}))
     else:
         print(json.dumps({"data": {"viewer": {"login": "me"}, "repository": {"pullRequest": scenario["pr"]}}}))
+elif args[:1] == ["api"] and "/rules/branches/" in args[1] and scenario.get("required"):
+    print("\n".join(scenario["required"]))
 elif args[:1] == ["api"] and ("/rules/branches/" in args[1] or "/protection/" in args[1]):
     print("gh: Not Found (HTTP 404)", file=sys.stderr)
     sys.exit(1)
@@ -247,6 +252,44 @@ class PrWaitTest(unittest.TestCase):
             watcher.terminate()
             out, _ = watcher.communicate(timeout=10)
         self.assertNotIn("ready on", out)
+
+    def bot_running_with_summary(self, rollup: list[dict], **scenario: object) -> None:
+        """build is required and green; greptile already summarized the head, but its check is running."""
+        self.scenario.write_text(json.dumps({
+            "pr": pull_request(), "checks": [check("build", "pass"), check("greptile", "pending")],
+            "rollup": [check_run("build", "SUCCESS"), check_run("greptile", None, app="greptile-apps"), *rollup],
+            "required": ["build"], **scenario}))
+        self.with_comment("greptile-apps", "Bot", f"Reviewed {HEAD[:7]}. Confidence score: 5/5")
+
+    def assert_ready_waits(self) -> None:
+        watcher = subprocess.Popen(
+            [sys.executable, str(SCRIPT), "7", "--repo", "o/r", "--until", "ready", "--interval", "5"],
+            env=self.env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        try:
+            with self.assertRaises(subprocess.TimeoutExpired):
+                watcher.wait(timeout=13)  # three polls; counting greptile done ends it after two
+        finally:
+            watcher.terminate()
+            out, _ = watcher.communicate(timeout=10)
+        self.assertNotIn("ready on", out)
+
+    def test_bot_with_a_run_going_waits_past_the_page_cap(self) -> None:
+        self.bot_running_with_summary(filler(1000))
+        self.assert_ready_waits()
+
+    def test_bot_with_a_run_going_waits_when_a_page_fails(self) -> None:
+        self.bot_running_with_summary(filler(148), rollup_error_from=100)
+        self.assert_ready_waits()
+
+    def test_job_sharing_a_bots_check_name_does_not_end_its_wait(self) -> None:
+        self.bot_running_with_summary([check_run("greptile", "SUCCESS")])
+        self.assert_ready_waits()
+
+    def test_malformed_check_entry_excuses_nothing(self) -> None:
+        self.write([check("build", "fail")], [check_run("build", "FAILURE", LOCKED), None], 1)
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn('check failed: "build"', proc.stdout)
 
     def test_job_named_like_a_bot_is_not_the_bot(self) -> None:
         # The PR author names workflow jobs; only the bot's own app speaks for the bot.
