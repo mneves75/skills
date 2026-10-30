@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.44.0] - 2026-10-30
+
+### Changed
+- **Orchestrator reviewer seat**: the reviewer runs on the builder-class models, crossed, so the model that built a change never reviews it: a change built on one column of the Defaults block is reviewed by the reviewer on the other column. Planning and plan advice stay on their own seats and do nothing else. Every id in the Defaults block was re-verified against the vendors' current model lists on 2026-10-30.
+- **`pr-wait`** fails closed on any malformed check entry: an entry with no type, or a field of the wrong shape, makes the read incomplete (nothing excused) instead of being skipped or crashing without a stdout line. A failure first seen on the tenth incomplete read is reported as the failure, before the "could not read every check" stop, and a read whose last commit is not the head now says so on stderr. The suite runs thirty-six cases.
+- **`babysit-pr`**: the exit-1 list names every case `pr-wait` exits 1 for; `ready` on a repository without Greptile or Macroscope waits for a review that never comes (use `green`); do not restart `pr-wait` after the "could not read every check" stop; a workflow job named like a review bot's check gates like any CI check.
+- **Egress notes**: the landing page, README and `SECURITY.md` say that council sends what you approve to each member CLI's provider and that `codex-lane` sends each delegated brief, and what Codex reads to answer it, to Codex under your account.
+- **Readiness ledger**: the 1.43.0 binding run is folded in (cursor `f7f3958`, SEC-12 and SEC-13 imported as PASS from the gate, ten owner waivers to 2027-01-25T23:59:59Z), as `CONTRIBUTING.md` requires of the next release.
+
 ## [1.43.0] - 2026-10-28
 
 Released together with 1.42.0, whose gate fixes it includes; neither shipped alone.

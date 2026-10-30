@@ -675,8 +675,9 @@ it varies inputs, retries, and checks persistence so a hard-coded success screen
 <h2 id="mneves-fable-orchestrator">mneves-fable-orchestrator</h2>
 <p><strong>What it does.</strong> Routes non-trivial work across the main session, Codex, and subagents when
 delegation creates independent progress or evidence. Building and reviewing run on different
-seats: the main session and every worker build, while planning, plan advice and code review run
-on separate reviewer seats, so the model that built a change never reviews it. The concrete
+seats: the main session and every worker build, planning and plan advice run on their own
+seats, and code review runs on the other host&#39;s reviewer (Codex reviews Claude-built work, Claude
+reviews Codex-built work), so the model that built a change never reviews it. The concrete
 models and reasoning tiers live only in the skill&#39;s Defaults block.
 Codex review has no automatic model fallback. The portable defaults do not change a running
 harness&#39;s main-session model. Caller overrides and actual host
