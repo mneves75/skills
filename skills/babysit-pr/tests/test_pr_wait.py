@@ -49,7 +49,7 @@ elif args[:2] == ["api", "graphql"]:
         nodes = scenario.get("rollup", [])
         more = start + 100 < len(nodes)
         contexts = {"nodes": nodes[start:start + 100], "pageInfo": {"hasNextPage": more, "endCursor": str(start + 100)}}
-        commit = {"oid": scenario["pr"]["headRefOid"], "statusCheckRollup": {"contexts": contexts}}
+        commit = {"oid": scenario.get("rollup_oid", scenario["pr"]["headRefOid"]), "statusCheckRollup": {"contexts": contexts}}
         pr = {"commits": {"nodes": [{"commit": commit}]}}
         print(json.dumps({"data": {"repository": {"pullRequest": pr}}}))
     else:
@@ -299,6 +299,41 @@ class PrWaitTest(unittest.TestCase):
         proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
         self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
         self.assertIn('check failed: "build"', proc.stdout)
+
+    def test_check_entry_without_a_type_excuses_nothing(self) -> None:
+        untyped = {k: v for k, v in check_run("build", "FAILURE", steps=3).items() if k != "__typename"}
+        self.write([check("build", "fail")], [check_run("build", "FAILURE", LOCKED), untyped], 1)
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn('check failed: "build"', proc.stdout)
+
+    def test_malformed_check_field_fails_closed_with_an_event(self) -> None:
+        broken = {**check_run("build", "FAILURE", LOCKED), "checkSuite": [{"app": {"slug": "github-actions"}}]}
+        self.write([check("build", "fail")], [broken], 1)
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn('check failed: "build"', proc.stdout)
+        self.assertNotIn("Traceback", proc.stderr)
+
+    def test_moved_head_is_logged_and_excuses_nothing(self) -> None:
+        self.scenario.write_text(json.dumps({
+            "pr": pull_request(), "checks": [check("build", "fail")], "checks_exit": 1,
+            "rollup": [check_run("build", "FAILURE", LOCKED)], "rollup_oid": "fff0000"}))
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn('check failed: "build"', proc.stdout)
+        self.assertIn("last commit is not the head", proc.stderr)
+
+    def test_failure_on_the_tenth_incomplete_read_is_reported(self) -> None:
+        waiting = {"checks": [check("build", "pending")], "rollup_error_from": 0}
+        failing = {"checks": [check("build", "fail")], "checks_exit": 1, "rollup_error_from": 0}
+        self.write_stages(*[waiting] * 9, failing)
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT), "7", "--repo", "o/r", "--until", "ready", "--interval", "5"],
+            env=self.env, capture_output=True, text=True, timeout=90)  # ten polls at five seconds
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn('check failed: "build"', proc.stdout)
+        self.assertNotIn("pr-wait stopped", proc.stdout)
 
     def test_malformed_check_entry_excuses_nothing(self) -> None:
         self.write([check("build", "fail")], [check_run("build", "FAILURE", LOCKED), None], 1)

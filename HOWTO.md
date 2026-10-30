@@ -723,8 +723,9 @@ the loop ends. Findings map to *fixed*, *disproved* or *blocked*, nothing else.
 
 **What it does.** Routes non-trivial work across the main session, Codex, and subagents when
 delegation creates independent progress or evidence. Building and reviewing run on different
-seats: the main session and every worker build, while planning, plan advice and code review run
-on separate reviewer seats, so the model that built a change never reviews it. The concrete
+seats: the main session and every worker build, planning and plan advice run on their own
+seats, and code review runs on the other host's reviewer (Codex reviews Claude-built work, Claude
+reviews Codex-built work), so the model that built a change never reviews it. The concrete
 models and reasoning tiers live only in the skill's Defaults block.
 Codex review has no automatic model fallback. The portable defaults do not change a running
 harness's main-session model. Caller overrides and actual host

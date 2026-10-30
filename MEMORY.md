@@ -14,15 +14,20 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
-- **1.43.0** (2026-10-28, PR #30, stacked on #29 and released together with 1.42.0): five PR
-  workflow skills adapted from tstack (`full-stop`, `takeover`, `modernize`, `babysit-pr` with
-  `pr-wait`, `leaving-pr-comments`), council review mode with pi in place of Cursor, proof as
-  evidence observed in the session, and staging turned off after production
-  (`cf.env-triggers` FAIL, readiness CST-03). Three Fable review rounds; every confirmed finding
-  was fixed with a test that failed first. The 1.42.0 gate's BLOCK fixes (`fix/1.42-fix-all`)
-  were merged into this release, and the owner waived SEC-15 (Pages cannot send response
-  headers) to 2027-01-25T23:59:59Z. The binding verdict lives in the private gate records and
-  the `v1.43.0` tag message.
+- **1.44.0** (2026-10-30): pr-wait fails closed on malformed or untyped check entries and
+  reports a failure seen on the tenth incomplete read; babysit-pr docs complete the exit list;
+  the orchestrator's reviewer seat moves to the builder-class models, crossed (owner rule
+  2026-10-30: planning models only plan and advise); 1.43.0's ledger bookkeeping folded in.
+- **1.43.0** (released and live 2026-10-29: PR #30 merged as `f7f3958`, which also closed #29;
+  tag `v1.43.0`): five PR workflow skills adapted from tstack (`full-stop`, `takeover`,
+  `modernize`, `babysit-pr` with `pr-wait`, `leaving-pr-comments`), council review mode with pi
+  in place of Cursor, proof as evidence observed in the session, and staging turned off after
+  production (`cf.env-triggers` FAIL, readiness CST-03). Seven gate candidates; each confirmed
+  Medium was fixed first at the owner's choice. The last, `3937725` (tree `63881a5`, equal to
+  the merge's), is WAIVED with no confirmed finding and independent acceptance PASS; readiness is
+  `ready` with 0 open blockers. Ten owner waivers run to 2027-01-25T23:59:59Z (SEC-15, SEC-17,
+  SEC-20, SEC-21, SEC-23, CMP-06, DEL-04, DEL-09, ASY-02, OPS-04). Main CI, Pages and all seven
+  served files matched the gated tree before the tag.
 - **1.42.0** (2026-10-28, PR #29): ledger consistency guard, release closeout procedure
   (`docs/specs/release-closeout/spec.md`), honest readiness-check docs (RC-A-01, Medium,
   pre-existing), skill-text hardenings and the Dependabot `bun` fix. The final gate round also
@@ -30,8 +35,7 @@ measure whether a *target* codebase is ready for agents.
   same pattern in the reference release scripts, quadratic regexes, `bunx` downloads, and SRS CSV
   formula cells; the owner asked to fix every finding, not defer them. The owner chose a
   fresh full security audit before merge, and waivers for the nine open controls to
-  2027-01-25T23:59:59Z. The binding result lives in the private gate records and the `v1.42.0`
-  tag message, and its ledger bookkeeping goes into the next release PR.
+  2027-01-25T23:59:59Z. It shipped inside 1.43.0 and was never tagged on its own.
 - **1.41.0** (2026-10-26, released and live): includes the unmerged 1.39.0 work,
   guideline corrections, readiness source checks and dead-code removal, hash-locked CI
   dependencies, the reference Agent Skills validator and CI-bound Pages publication.

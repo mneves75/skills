@@ -424,14 +424,11 @@ class Watcher:
                     args += ["-f", f"after={cursor}"]
                 commits = json.loads(gh(args).stdout)["data"]["repository"]["pullRequest"]["commits"]["nodes"]
                 if not commits or commits[0]["commit"]["oid"] != head:
-                    return None
+                    raise ValueError("GitHub's last commit is not the head")
                 contexts = (commits[0]["commit"].get("statusCheckRollup") or {}).get("contexts") or {}
                 page_nodes = contexts.get("nodes") or []
-                if not all(
-                    isinstance(node, dict) and (node.get("__typename") != "CheckRun" or isinstance(node.get("name"), str))
-                    for node in page_nodes
-                ):
-                    raise TypeError("a check entry is malformed")
+                if not all(isinstance(node, dict) for node in page_nodes):
+                    raise TypeError("a check entry is not an object")
                 nodes += page_nodes
                 page = contexts.get("pageInfo") or {}
                 if not page.get("hasNextPage"):
@@ -441,9 +438,14 @@ class Watcher:
                     raise ValueError("GitHub gave no next page")
             else:
                 raise ValueError(f"more than {MAX_ROLLUP_PAGES * 100} checks")
-        except (GhError, ValueError, KeyError, TypeError) as error:
+            return self.classify(nodes)
+        except (GhError, ValueError, KeyError, TypeError, AttributeError) as error:
             log(f"could not read every check on {head[:7]} ({error}): excusing none, no gating bot done")
             return None
+
+    def classify(self, nodes: list[Json]) -> tuple[set[str], set[str], dict[str, set[str | None]], set[str]]:
+        """The rollup's answer from a complete read. Raises on any entry that is not a
+        well-formed CheckRun or StatusContext, since skipping one could hide a failure."""
         blocked: set[str] = set()
         failed: set[str] = set()
         running: set[str] = set()
@@ -453,8 +455,8 @@ class Watcher:
                 login, is_bot = who({"author": node.get("creator")})
                 owners.setdefault(node.get("context") or "", set()).add(bot_name(login) if is_bot else None)
                 continue
-            if node.get("__typename") != "CheckRun":
-                continue
+            if node.get("__typename") != "CheckRun" or not isinstance(node.get("name"), str):
+                raise TypeError("a check entry is malformed")
             # A job's name is the PR author's to choose; the reporting app is not.
             app = ((node.get("checkSuite") or {}).get("app") or {}).get("slug")
             owners.setdefault(node["name"], set()).add(bot_name(app) if app != "github-actions" else None)
@@ -533,11 +535,6 @@ class Watcher:
         billing, rerunning, owners, running = read or (set(), set(), {}, set())
         # An incomplete read keeps every gating bot pending, so `ready` could never come.
         self.incomplete_reads = 0 if read is not None else self.incomplete_reads + 1
-        if self.until == "ready" and self.incomplete_reads >= MAX_FAILED_POLLS:
-            self.finish(1, [
-                f"pr-wait stopped: could not read every check on {short} for {self.incomplete_reads} polls, "
-                "so nothing was excused and no review bot counted done; check the PR by hand"
-            ])
         # A check is a bot's only when that bot alone reports it; a job of the same name keeps it gating.
         bot_checks = {name: bot for name, bots in owners.items() if len(bots) == 1 for bot in bots if bot}
         # Required checks. With no required checks configured, every CI check
@@ -695,6 +692,12 @@ class Watcher:
                 self.finish(1, [dirty_line])
             if fail_lines:
                 self.finish(1, fail_lines)
+            if self.until == "ready" and self.incomplete_reads >= MAX_FAILED_POLLS:
+                self.finish(1, [
+                    f"pr-wait stopped: could not read every check on {short} for {self.incomplete_reads} polls, "
+                    "so nothing was excused and no review bot counted done; check the PR by hand, "
+                    "do not restart pr-wait for this"
+                ])
             if green and self.until == "green":
                 self.reported.add(checks_key)
                 self.finish(0, [f"green on {short}: {summary}{self.behind(base, base_oid, head)}"])

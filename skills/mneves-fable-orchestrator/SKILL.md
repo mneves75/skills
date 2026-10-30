@@ -42,17 +42,18 @@ frontend subagent = Opus, latest release (Claude subagent alias `opus`) | gpt-6.
 ordinary worker   = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning high (Codex worker)
 bounded worker    = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning high (bounded Codex task)
 heavy executor    = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning high (Codex worker)
-reviewer          = Fable, latest release (Claude subagent alias `fable`) | gpt-6-astra, reasoning high (autoreview `--model gpt-6-astra`; no model fallback)
+reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning high | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol`; no model fallback)
 planner           = Fable, latest release (Claude subagent alias `fable`) | gpt-6-astra, reasoning xhigh (planning)
 plan advisor      = Fable, latest release (Claude `advisorModel` alias `fable`) | gpt-6-astra, reasoning xhigh (advice and plan review)
 specialist        = gpt-6.1-sol, reasoning high (specialist execution; a specialist review takes the reviewer seat)
 local fallback    = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the only substitute when no Claude or Codex seat for that role can run)
 ```
 
-The builder seats (main session, workers, heavy executor) never review their own output: review,
-planning and plan advice run on the separate seats above.
+The builder seats (main session, workers, heavy executor) never review their own output: a change is
+reviewed by the reviewer value in the other column from the seat that built it, and planning and
+plan advice run only on their own seats.
 
-Verified against the vendor model lists on 2026-10-28; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-10-30; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file).
 

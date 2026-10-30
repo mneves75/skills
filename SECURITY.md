@@ -104,7 +104,8 @@ operating-system updates.
   transcripts in `$CODEX_LANE_DIR` (default `~/.codex/lanes`, mode 700) and never prunes
   them. A lane owns `<lane>.json` and, per run, `<lane>.<UTC stamp>.<pid>.jsonl`, `.last.txt`
   and `.stderr.log`. To erase it, `drop` the lane, then delete exactly those names; never a
-  `<lane>.*` glob, which also matches dotted lanes such as `job.extra`.
+  `<lane>.*` glob, which also matches dotted lanes such as `job.extra`. Each brief, and what
+  Codex reads to answer it, leaves your machine to OpenAI under your Codex account's terms.
 - `council` keeps each deliberation in a private session directory outside your project
   (conventional default `~/.council/`): the task, the plan, and every member's prompt, reply
   and log. It never prunes them, and it starts other authenticated CLIs (Claude, Codex or

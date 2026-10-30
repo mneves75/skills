@@ -79,8 +79,9 @@ documentation (2026-10-28):
 Built as: the general rule in `mneves-ship-deploy`, the Cloudflare procedure in its
 `references/cloudflare.md`, `cf.env-triggers` raised from WARN to FAIL when a staging
 environment inherits or declares crons, and an advisory CST control in
-`mneves-production-readiness`. The staging D1 database is exported and deleted by the agent
-when it is unused: it holds nothing production lacks, no release is in staging, and its name and
+`mneves-production-readiness`. The staging D1 database is exported and deleted by the agent,
+under the user's standing or explicit authorization for that deletion (`mneves-ship-deploy`
+requires it), when it is unused: it holds nothing production lacks, no release is in staging, and its name and
 uuid are confirmed as staging's. Otherwise it is reported for the owner. The next release
 recreates it before its staging stop.
 

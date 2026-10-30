@@ -48,8 +48,9 @@ pr-wait <pr> [--repo owner/name] [--until ready|green|any-change]
 
 It prints one line per real event. It exits 0 when the `--until` condition is
 met or the PR merges, 1 when it needs you (a required check failed, conflicts,
-unresolved threads, PR closed), and 2 on bad input. It keeps its state in
-`~/.local/state/pr-wait/`.
+a BEHIND branch, unresolved threads, PR closed, GitHub unreachable, or `ready`
+unable to read every check for ten polls in a row), and 2 on bad input. It keeps
+its state in `~/.local/state/pr-wait/`.
 
 - `ready` (default): required checks green, Greptile or Macroscope reviewed the
   head, and no unresolved threads. Use this to babysit.
@@ -59,9 +60,12 @@ unresolved threads, PR closed), and 2 on bad input. It keeps its state in
 
 In Claude Code, run it with the Monitor tool (`timeout_ms: 3600000`), so each
 line wakes you. Without a monitor, run it as one long command. It ends on its
-own.
+own, except `ready` on a repository with no Greptile or Macroscope, which waits
+for a review that never comes: use `green` there.
 
-Start it again after you push, after you handle an exit 1, and after a resume.
+Start it again after you push, after you handle an exit 1, and after a resume,
+but not after the "could not read every check" stop: that needs you to check the
+PR by hand.
 It remembers what it already reported, so nothing that arrived in between is
 lost. If it says another pid already watches the PR, do not start a second one.
 Kill the old one only if its events do not reach you.
@@ -90,8 +94,8 @@ whose text can come from the PR) is still a failure whatever it printed. If GitH
 ever stops returning a refused job there, the check reads as failed, never excused. It reads
 every check on the head; when it cannot read them all (more than 1,000, or a page
 fails), it excuses none and counts no gating bot done, so `ready` waits; after ten
-such polls in a row it exits 1 and says so, and you check the PR by hand. Do not wait on it or retry it: run the same
-checks locally, record their output as the proof, and say plainly that CI was
+such polls in a row it exits 1 and says so, and you check the PR by hand. Do not wait
+on a billing-blocked check or re-run it: run the same checks locally, record their output as the proof, and say plainly that CI was
 skipped and why. Without `pr-wait`, read the annotations with
 `gh api repos/<owner>/<repo>/check-runs/<id>/annotations`.
 
@@ -112,7 +116,9 @@ If the repo has `.macroscope/check-run-agents/*.md`, read those rules before you
 reply to a Macroscope finding. Its findings cite them.
 
 CodeRabbit is advisory. Treat its findings like any other finding, but never
-wait for it and never hold a merge for it.
+wait for it and never hold a merge for it. A workflow job named exactly like a
+review bot's check makes that name gate like any CI check, since `gh` reports
+the two as one.
 
 If a review bot leaves feedback you believe is not worth addressing, reply with
 a written reason and resolve the comment. Format every comment

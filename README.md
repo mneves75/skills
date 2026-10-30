@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.43.0-blue)
+![Version](https://img.shields.io/badge/version-1.44.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -172,7 +172,8 @@ retain their upstream MIT licenses and copyrights; see the `LICENSE` file in eac
 The repository's readiness tooling runs locally. Image-generation workflows may send prompts and
 references to the configured image provider; autoreview sends scanned review inputs to the
 selected review provider; council sends the task, plan or diff you approve to each member CLI's
-provider. Authorize private-content disclosure before any of these workflows.
+provider; codex-lane sends each delegated brief, and whatever Codex reads to answer it, to Codex
+under your account. Authorize private-content disclosure before any of these workflows.
 
 ## Acknowledgments
 
