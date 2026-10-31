@@ -80,7 +80,7 @@ on a failed check.
 | `check_contrast.py` | at most six colours; every text pair at least 4.5:1 |
 | `music.py` | music and effects from timing.json, fixed seed |
 | `loudness.py` | two-pass loudnorm to -14 LUFS, true peak at most -1 dBTP, measured after |
-| `check_media.py` | size, frame rate (timestamp base, average and counted frames), duration, H.264 yuv420p, AAC 48 kHz, faststart |
+| `check_media.py` | size, frame rate (timestamp base, counted frames, an even presentation interval), duration, H.264 yuv420p, AAC 48 kHz, faststart |
 | `check_sync.py` | cuts on the beat with a swish; every kick, click, hit and final chord within one frame; `--sfx` finds each cue in its own stem |
 | `contact.py` | timecoded contact sheets |
 | `build.py` | all of the above in order, stopping at the first failure |
