@@ -111,10 +111,12 @@ def main() -> int:
             print(f"facts.py: {check} matches the pages ({len(unique)} facts)")
             return 0
         old, new = {f["text"] for f in committed}, {f["text"] for f in unique}
+        # Page text is untrusted: repr() escapes ESC, BEL and the other controls, so a page
+        # cannot drive the operator's terminal through these lines.
         for text in sorted(old - new):
-            print(f"FAIL stale fact, no longer on the pages: {text}")
+            print(f"FAIL stale fact, no longer on the pages: {text!r}")
         for text in sorted(new - old):
-            print(f"FAIL new page text missing from {check.name}: {text}")
+            print(f"FAIL new page text missing from {check.name}: {text!r}")
         if old == new:
             print(f"FAIL {check.name} differs from the pages in order, ids or links")
         print(f"facts.py: {check} is stale; regenerate it with facts.py")

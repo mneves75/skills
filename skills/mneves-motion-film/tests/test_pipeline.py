@@ -142,6 +142,18 @@ def main() -> int:
         run("facts match their page", check, True)
         page.write_text("<!doctype html><title>t</title><p>Preview first. Approve twice.</p>\n", encoding="utf-8")
         run("facts refuse a page edited since", check, False)
+        # Page text is untrusted: a stale or new line holding terminal controls is reported
+        # escaped, never as raw ESC/BEL bytes the operator's terminal would act on.
+        page.write_text("<!doctype html><title>t</title><p>New \x1b[2J\x1b[H line.</p>\n", encoding="utf-8")
+        write_json(root / "hostile.json", [{"id": "f0", "text": "Old \x1b]0;TITLE\x07 line.", "link": ""}])
+        hostile = subprocess.run(PY + [str(SCRIPTS / "facts.py"), "--check", str(root / "hostile.json"), "https://example.test/", str(page)],
+                                 capture_output=True, text=True, timeout=60)
+        said = hostile.stdout + hostile.stderr
+        escaped = hostile.returncode == 1 and "\x1b" not in said and "\x07" not in said and said.count("\\x1b") >= 3
+        print(f"{'PASS' if escaped else 'FAIL'} facts report hostile page text escaped: exit {hostile.returncode}")
+        if not escaped:
+            failures.append("facts report hostile page text escaped")
+            print(repr(said[-800:]))
 
         run("contrast", PY + [str(SCRIPTS / "check_contrast.py"), str(write_json(root / "theme.json", THEME))], True)
         low = json.loads(json.dumps(THEME))
