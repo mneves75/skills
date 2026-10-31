@@ -53,8 +53,8 @@ start `film/`, and add [assets/eslint.film.mjs](assets/eslint.film.mjs) to the E
    timing from `timing.json`. Rebuild the product's screens as live UI with its real text.
    Look at stills (`npx remotion still`) at frame 0, at every key press and at the last frame
    before the first full render.
-6. **Build and check.** `python3 -B film/scripts/build.py --composition <id>` runs, in order:
-   facts trace, contrast, music, loudness (mix and music alone), render, mux, muted copy,
+6. **Build and check.** `python3 -B film/scripts/build.py --composition <id> --site <url> --page <page.html>...`
+   runs, in order: facts freshness (the pages still give `facts.json`), facts trace, contrast, music, loudness (mix and music alone), render, mux, muted copy,
    media checks, sync, contact sheets. Done when it exits 0. Read every contact sheet
    yourself: overflow, clipped text, a still hold, a key press with no visible change.
 7. **Review rounds.** Each round, a new reviewer on the reviewer seat (never the model that
@@ -75,13 +75,13 @@ on a failed check.
 | Script | Checks or makes |
 |---|---|
 | `capture.py` | headless Chrome stills: hero, full page, phone |
-| `facts.py` | facts.json from the product's pages |
+| `facts.py` | facts.json from the product's pages; `--check` refuses one the pages no longer give |
 | `check_facts.py` | every copy line a verbatim substring of its fact; every line shown; no unknown `line()` id |
 | `check_contrast.py` | at most six colours; every text pair at least 4.5:1 |
 | `music.py` | music and effects from timing.json, fixed seed |
 | `loudness.py` | two-pass loudnorm to -14 LUFS, true peak at most -1 dBTP, measured after |
-| `check_media.py` | size, frame rate, duration, H.264 yuv420p, AAC 48 kHz, faststart |
-| `check_sync.py` | cuts on the beat with a swish; every kick, click, hit and final chord within one frame |
+| `check_media.py` | size, frame rate (timestamp base, average and counted frames), duration, H.264 yuv420p, AAC 48 kHz, faststart |
+| `check_sync.py` | cuts on the beat with a swish; every kick, click, hit and final chord within one frame; `--sfx` finds each cue in its own stem |
 | `contact.py` | timecoded contact sheets |
 | `build.py` | all of the above in order, stopping at the first failure |
 
@@ -115,6 +115,6 @@ describe the sound.
   state after a key), capture that real screen into the product's pages first, so it becomes a
   fact; never compose a line from permitted pieces.
 - Put key presses on a kick or a quiet eighth: a click on an open hat is masked by its noise,
-  and `check_sync.py` cannot measure it.
+  and `check_sync.py` cannot measure it in the mix; the per-kind stems (`--sfx`) prove the click is there.
 - Codex refuses to start outside a Git repository without `--skip-git-repo-check`; a review
   that exits at once has not reviewed anything.

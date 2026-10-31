@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Build the film end to end and check it: music, loudness, render, mux, checks, contact sheet.
 
-usage: build.py --composition <id> [--film film] [--src src] [--out out/film] [--draft]
+usage: build.py --composition <id> --site <url> --page <page.html> [--page ...] [--film film] [--src src] [--out out/film] [--draft]
 
 Run from the Remotion project's root. Reads timing.json, theme.json,
 copy.json and facts.json from --film (default film/), checks --src, renders
@@ -38,6 +38,8 @@ def main() -> int:
     parser.add_argument("--composition", required=True, help="Remotion composition id")
     parser.add_argument("--film", default="film", help="folder holding timing, theme, copy and facts JSON")
     parser.add_argument("--src", default="src", help="source folder the facts trace scans")
+    parser.add_argument("--site", required=True, help="the product's site URL, as facts.json was made with")
+    parser.add_argument("--page", action="append", required=True, help="a page facts.json was made from (repeat)")
     parser.add_argument("--out", default="out/film")
     parser.add_argument("--draft", action="store_true")
     options = parser.parse_args()
@@ -48,6 +50,7 @@ def main() -> int:
     seconds = timing["durationFrames"] / timing["fps"]
     py = [sys.executable, "-B"]
 
+    step("facts fresh", py + [str(SCRIPTS / "facts.py"), "--check", str(film / "facts.json"), options.site, *options.page])
     step("facts trace", py + [str(SCRIPTS / "check_facts.py"), str(film / "facts.json"), str(film / "copy.json"), options.src])
     step("text contrast", py + [str(SCRIPTS / "check_contrast.py"), str(film / "theme.json")])
     step("music", py + [str(SCRIPTS / "music.py"), str(film / "timing.json"), str(out)])
@@ -71,10 +74,10 @@ def main() -> int:
         size = ["--width", str(timing["width"]), "--height", str(timing["height"]), "--fps", str(timing["fps"]), "--seconds", str(seconds)]
         step("media: film", py + [str(SCRIPTS / "check_media.py"), str(out / "film.mp4"), *size, "--audio"])
         step("media: muted", py + [str(SCRIPTS / "check_media.py"), str(out / "film-muted.mp4"), *size])
-    step("sync", py + [str(SCRIPTS / "check_sync.py"), str(film / "timing.json"), str(out / "film.mp4")])
+    step("sync", py + [str(SCRIPTS / "check_sync.py"), str(film / "timing.json"), str(out / "film.mp4"), "--sfx", str(out)])
     step("contact sheets", py + [str(SCRIPTS / "contact.py"), str(out / "film.mp4"), str(out / "contact")])
     step("thumbnail sheet", py + [str(SCRIPTS / "contact.py"), str(out / "film.mp4"), str(out / "thumbs"), "--every", f"{seconds / 15:.4f}", "--per-sheet", "15"])
-    for leftover in ("mix.wav", "mix-norm.wav", "picture.mp4"):
+    for leftover in ("mix.wav", "mix-norm.wav", "sfx-swish.wav", "sfx-click.wav", "sfx-hit.wav", "picture.mp4"):
         (out / leftover).unlink(missing_ok=True)
     print(f"build.py: done -> {out}/film.mp4")
     return 0

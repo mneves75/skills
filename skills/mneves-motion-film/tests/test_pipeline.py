@@ -77,7 +77,7 @@ def main() -> int:
         mux = ["-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-ar", "48000", "-movflags", "+faststart", "-shortest"]
         ffmpeg("-i", str(root / "picture.mp4"), "-i", str(root / "mix-norm.wav"), *mux, str(root / "film.mp4"))
         run("media", PY + [str(SCRIPTS / "check_media.py"), str(root / "film.mp4"), *size, "--audio"], True)
-        run("sync", PY + [str(SCRIPTS / "check_sync.py"), str(timing), str(root / "film.mp4")], True)
+        run("sync", PY + [str(SCRIPTS / "check_sync.py"), str(timing), str(root / "film.mp4"), "--sfx", str(root)], True)
         run("contact sheet", PY + [str(SCRIPTS / "contact.py"), str(root / "film.mp4"), str(root / "contact"), "--every", "0.5"], True)
 
         # Planted violations: each check must refuse its own failure.
@@ -89,6 +89,16 @@ def main() -> int:
         run("sync refuses a cut off the beat", PY + [str(SCRIPTS / "check_sync.py"), str(write_json(root / "off.json", off_grid)), str(root / "film.mp4")], False)
         ffmpeg("-f", "lavfi", "-i", "testsrc2=size=320x180:rate=60:duration=4", "-pix_fmt", "yuv444p", "-c:v", "libx264", "-movflags", "+faststart", str(root / "444.mp4"))
         run("media refuses yuv444p", PY + [str(SCRIPTS / "check_media.py"), str(root / "444.mp4"), *size], False)
+        # The click sits on a kick: the mix alone would pass without it, its own stem does not.
+        silent = root / "no-click"
+        silent.mkdir()
+        no_click = {**TIMING, "cues": [c for c in TIMING["cues"] if c["kind"] != "click"]}
+        run("music without the click", PY + [str(SCRIPTS / "music.py"), str(write_json(silent / "timing.json", no_click)), str(silent)], True)
+        run("sync refuses a missing click", PY + [str(SCRIPTS / "check_sync.py"), str(timing), str(root / "film.mp4"), "--sfx", str(silent)], False)
+        # Every other frame dropped after 2 s: the timestamp base still says 60.
+        ffmpeg("-i", str(root / "film.mp4"), "-vf", "select=lt(t\\,2)+not(mod(n\\,2))", "-fps_mode", "vfr", "-c:v", "libx264",
+               "-pix_fmt", "yuv420p", "-c:a", "copy", "-movflags", "+faststart", str(root / "vfr.mp4"))
+        run("media refuses a variable frame rate", PY + [str(SCRIPTS / "check_media.py"), str(root / "vfr.mp4"), *size, "--audio"], False)
 
         facts = write_json(root / "facts.json", FACTS)
         src = root / "src"
@@ -99,6 +109,14 @@ def main() -> int:
         run("facts refuse a misquote", PY + [str(SCRIPTS / "check_facts.py"), str(facts), str(write_json(root / "bad.json", misquoted)), str(src)], False)
         unshown = {**COPY, "tail": {"text": "Preview first.", "fact": "f00000001"}}
         run("facts refuse a line never shown", PY + [str(SCRIPTS / "check_facts.py"), str(facts), str(write_json(root / "unshown.json", unshown)), str(src)], False)
+        page = root / "index.html"
+        page.write_text("<!doctype html><title>t</title><p>Preview first. Approve once.</p>\n", encoding="utf-8")
+        made = subprocess.run(PY + [str(SCRIPTS / "facts.py"), "https://example.test/", str(page)], capture_output=True, text=True, check=True)
+        (root / "made.json").write_text(made.stdout, encoding="utf-8")
+        check = PY + [str(SCRIPTS / "facts.py"), "--check", str(root / "made.json"), "https://example.test/", str(page)]
+        run("facts match their page", check, True)
+        page.write_text("<!doctype html><title>t</title><p>Preview first. Approve twice.</p>\n", encoding="utf-8")
+        run("facts refuse a page edited since", check, False)
 
         run("contrast", PY + [str(SCRIPTS / "check_contrast.py"), str(write_json(root / "theme.json", THEME))], True)
         low = json.loads(json.dumps(THEME))
