@@ -100,6 +100,16 @@ describe the sound.
 
 - Remotion's headless Chrome does not resolve `-apple-system`; put `system-ui` first.
 - Render with `--image-format=png`: JPEG frames come out yuvj420p, which some players reject.
-- A palette needs no seventh colour for borders and surfaces: use the ink at low opacity.
+- Six colours means six solid colours on screen: borders take a palette colour rather than ink
+  at low opacity, panels take no grey fill, nothing is dimmed for long, and a logo's near-white
+  is drawn in the palette's ink.
+- Phone players shrink a 1920 px frame about five times: terminal type under about 70 px
+  becomes unreadable. Show a prefix of each line (still a substring of its fact) in a close-up
+  rather than the whole line small.
+- When the product's real screen differs from what the film needs to show (a row left out, a
+  state after a key), capture that real screen into the product's pages first, so it becomes a
+  fact; never compose a line from permitted pieces.
+- Put key presses on a kick or a quiet eighth: a click on an open hat is masked by its noise,
+  and `check_sync.py` cannot measure it.
 - Codex refuses to start outside a Git repository without `--skip-git-repo-check`; a review
   that exits at once has not reviewed anything.
