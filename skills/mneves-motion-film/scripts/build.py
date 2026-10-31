@@ -52,6 +52,7 @@ def main() -> int:
 
     step("facts fresh", py + [str(SCRIPTS / "facts.py"), "--check", str(film / "facts.json"), options.site, *options.page])
     step("facts trace", py + [str(SCRIPTS / "check_facts.py"), str(film / "facts.json"), str(film / "copy.json"), options.src])
+    step("jsx literals", ["npx", "eslint", options.src])
     step("text contrast", py + [str(SCRIPTS / "check_contrast.py"), str(film / "theme.json")])
     step("music", py + [str(SCRIPTS / "music.py"), str(film / "timing.json"), str(out)])
     step("loudness: mix", py + [str(SCRIPTS / "loudness.py"), str(out / "mix.wav"), str(out / "mix-norm.wav")])

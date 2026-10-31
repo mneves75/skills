@@ -54,7 +54,7 @@ start `film/`, and add [assets/eslint.film.mjs](assets/eslint.film.mjs) to the E
    Look at stills (`npx remotion still`) at frame 0, at every key press and at the last frame
    before the first full render.
 6. **Build and check.** `python3 -B film/scripts/build.py --composition <id> --site <url> --page <page.html>...`
-   runs, in order: facts freshness (the pages still give `facts.json`), facts trace, contrast, music, loudness (mix and music alone), render, mux, muted copy,
+   runs, in order: facts freshness (the pages still give `facts.json`), facts trace, the project's ESLint (JSX literals), contrast, music, loudness (mix and music alone), render, mux, muted copy,
    media checks, sync, contact sheets. Done when it exits 0. Read every contact sheet
    yourself: overflow, clipped text, a still hold, a key press with no visible change.
 7. **Review rounds.** Each round, a new reviewer on the reviewer seat (never the model that
