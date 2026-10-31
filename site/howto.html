@@ -302,6 +302,30 @@ successful conversion still needs page-by-page visual inspection. Microsoft Word
 and PDF/UA conformance are separate checks, not implied by these tests.</p>
 <p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-render/SKILL.md">SKILL.md</a>.
 Starter commands: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-render/references/pandoc.md">Pandoc recipe</a>.</p>
+<h2 id="mneves-motion-film">mneves-motion-film</h2>
+<p><strong>What it does.</strong> Turns a brief (product, URL, audience, what they should do at the end) into a
+short product film and the evidence that it is right. Every line on screen is quoted verbatim
+from the product&#39;s own pages; the music is synthesized in code on a beat grid, so each cut and
+key press sounds on its frame; the film renders in a Remotion project and a reviewer that did
+not build it watches it until it says <code>ship</code>.</p>
+<p><strong>When to use it.</strong> You want a demo, launch or explainer video for a product with a website,
+and you want to be able to rebuild it after the site changes. Blank brief fields (length,
+format, music, voice) are decided by the agent and logged with their reasons.</p>
+<p><strong>Example</strong> (illustrative).</p>
+<blockquote>
+<p>Use mneves-motion-film for <a href="https://example.com">https://example.com</a>. Audience: junior developers on X. Last
+second: install it. Everything else is your call.</p>
+</blockquote>
+<p><strong>What you receive.</strong> The MP4 (H.264 yuv420p, AAC 48 kHz, faststart), the music alone, a
+thumbnail sheet, and the brief, facts, timing and ledger files: every decision, every number a
+check printed and every reviewer verdict, plus the seconds worth watching and hearing yourself.
+The scripts need Python 3.10+ and ffmpeg; rendering needs Node and Remotion 4; <code>capture.py</code>
+needs Chrome.</p>
+<p><strong>Maintaining it.</strong> Run <code>python3 skills/mneves-motion-film/tests/test_pipeline.py</code>: each check
+passes on a synthetic film and refuses its own planted violation (audio two frames late, a cut
+off the beat, yuv444p, a misquoted or unshown line, a faint pair, a seventh colour).</p>
+<p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-motion-film/SKILL.md">SKILL.md</a>.
+Review briefs: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-motion-film/references/review.md">review.md</a>.</p>
 <h2 id="autoreview">autoreview</h2>
 <h3>Local complexity and adversarial review</h3>
 <p>For supported code changes, the review skills use optional local

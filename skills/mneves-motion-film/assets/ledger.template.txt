@@ -1,0 +1,14 @@
+<product> film — ledger
+=======================
+
+Every number was printed by a script (build.py runs them all) or by the named
+reviewer. A round's numbers are from the build that round reviewed.
+
+Round <n> — <self-check | reviewer, verdict> (<date>)
+- Media: <w>x<h>, <fps> fps, <s> s, H.264 yuv420p, AAC 48 kHz, faststart; <MB>.
+- Contrast: <pair ratio, ...>; minimum 4.5.
+- Loudness: mix <before LUFS/dBTP> -> <after>; music alone <before> -> <after>.
+- Sync: <n> events, worst <ms> (limit one frame); negative control <ms, exit 1>.
+- Facts: <n> lines, <n> used, <failures>.
+- Muted test: <beats the viewer got; beats missed>.
+- Problems fixed, worst first: <problem -> fix>.

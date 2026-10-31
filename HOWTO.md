@@ -251,6 +251,36 @@ and PDF/UA conformance are separate checks, not implied by these tests.
 Procedure: [SKILL.md](skills/mneves-render/SKILL.md).
 Starter commands: [Pandoc recipe](skills/mneves-render/references/pandoc.md).
 
+## mneves-motion-film
+
+**What it does.** Turns a brief (product, URL, audience, what they should do at the end) into a
+short product film and the evidence that it is right. Every line on screen is quoted verbatim
+from the product's own pages; the music is synthesized in code on a beat grid, so each cut and
+key press sounds on its frame; the film renders in a Remotion project and a reviewer that did
+not build it watches it until it says `ship`.
+
+**When to use it.** You want a demo, launch or explainer video for a product with a website,
+and you want to be able to rebuild it after the site changes. Blank brief fields (length,
+format, music, voice) are decided by the agent and logged with their reasons.
+
+**Example** (illustrative).
+
+> Use mneves-motion-film for https://example.com. Audience: junior developers on X. Last
+> second: install it. Everything else is your call.
+
+**What you receive.** The MP4 (H.264 yuv420p, AAC 48 kHz, faststart), the music alone, a
+thumbnail sheet, and the brief, facts, timing and ledger files: every decision, every number a
+check printed and every reviewer verdict, plus the seconds worth watching and hearing yourself.
+The scripts need Python 3.10+ and ffmpeg; rendering needs Node and Remotion 4; `capture.py`
+needs Chrome.
+
+**Maintaining it.** Run `python3 skills/mneves-motion-film/tests/test_pipeline.py`: each check
+passes on a synthetic film and refuses its own planted violation (audio two frames late, a cut
+off the beat, yuv444p, a misquoted or unshown line, a faint pair, a seventh colour).
+
+Procedure: [SKILL.md](skills/mneves-motion-film/SKILL.md).
+Review briefs: [review.md](skills/mneves-motion-film/references/review.md).
+
 ## autoreview
 
 ### Local complexity and adversarial review

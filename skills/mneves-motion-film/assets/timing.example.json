@@ -1,0 +1,101 @@
+{
+ "fps": 60,
+ "bpm": 120,
+ "beatFrames": 30,
+ "durationFrames": 720,
+ "width": 1920,
+ "height": 1080,
+ "scenes": [
+  {
+   "id": "title",
+   "from": 0,
+   "to": 240
+  },
+  {
+   "id": "demo",
+   "from": 240,
+   "to": 540
+  },
+  {
+   "id": "end",
+   "from": 540,
+   "to": 720
+  }
+ ],
+ "cues": [
+  {
+   "frame": 240,
+   "kind": "swish",
+   "scene": "demo"
+  },
+  {
+   "frame": 330,
+   "kind": "click",
+   "key": "enter"
+  },
+  {
+   "frame": 420,
+   "kind": "hit"
+  },
+  {
+   "frame": 540,
+   "kind": "swish",
+   "scene": "end"
+  }
+ ],
+ "music": {
+  "chords": [
+   [
+    57,
+    60,
+    64
+   ],
+   [
+    53,
+    57,
+    60
+   ],
+   [
+    48,
+    52,
+    55
+   ],
+   [
+    55,
+    59,
+    62
+   ]
+  ],
+  "sections": [
+   {
+    "from": 0,
+    "to": 8,
+    "voices": [
+     "pad",
+     "kick",
+     "hat"
+    ]
+   },
+   {
+    "from": 8,
+    "to": 18,
+    "voices": [
+     "pad",
+     "kick",
+     "hat",
+     "bass",
+     "arp"
+    ]
+   }
+  ],
+  "final": {
+   "beat": 18,
+   "chord": [
+    57,
+    60,
+    64,
+    69
+   ]
+  }
+ }
+}

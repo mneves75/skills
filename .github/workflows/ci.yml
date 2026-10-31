@@ -107,7 +107,7 @@ jobs:
           bash tools/scripts/check-defaults-block.test
 
       - name: Python syntax
-        run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py skills/mneves-ship-deploy/scripts/release-contract-check.py skills/mneves-ship-deploy/scripts/run-tests.py skills/mneves-ship-deploy/tests/test_release_contract_check.py tools/scripts/check-readiness-catalog.py skills/autoreview/scripts/test-review-harness.py skills/babysit-pr/scripts/pr-wait skills/babysit-pr/tests/test_pr_wait.py
+        run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py skills/mneves-ship-deploy/scripts/release-contract-check.py skills/mneves-ship-deploy/scripts/run-tests.py skills/mneves-ship-deploy/tests/test_release_contract_check.py tools/scripts/check-readiness-catalog.py skills/autoreview/scripts/test-review-harness.py skills/babysit-pr/scripts/pr-wait skills/babysit-pr/tests/test_pr_wait.py skills/mneves-motion-film/scripts/*.py skills/mneves-motion-film/tests/test_pipeline.py
 
       - name: Security audit validator suites and syntax
         run: |
@@ -142,6 +142,18 @@ jobs:
           bun run typecheck
           bun run lint
           bun test
+
+  motion-film:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Install ffmpeg and a font for timecodes
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core
+      - name: Film checks pass a good film and refuse planted violations
+        run: python3 -B skills/mneves-motion-film/tests/test_pipeline.py
 
   render-starters:
     runs-on: ubuntu-24.04

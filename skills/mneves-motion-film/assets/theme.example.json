@@ -1,0 +1,26 @@
+{
+  "colours": {
+    "bg": "#0a0a0a",
+    "ink": "#efefec",
+    "muted": "#b4b4ae",
+    "accent": "#c8ff38"
+  },
+  "text": {
+    "body": [
+      "ink",
+      "bg"
+    ],
+    "secondary": [
+      "muted",
+      "bg"
+    ],
+    "accent": [
+      "accent",
+      "bg"
+    ],
+    "on-accent": [
+      "bg",
+      "accent"
+    ]
+  }
+}

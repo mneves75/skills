@@ -1,0 +1,10 @@
+{
+ "title.name": {
+  "text": "<product>",
+  "fact": "f<digest of the fact that names it>"
+ },
+ "end.url": {
+  "text": "<site address>",
+  "fact": "f<digest of the site address fact>"
+ }
+}
