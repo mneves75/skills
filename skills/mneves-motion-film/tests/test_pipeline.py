@@ -154,6 +154,29 @@ def main() -> int:
         if not escaped:
             failures.append("facts report hostile page text escaped")
             print(repr(said[-800:]))
+        # The extracted JSON escapes DEL and C1 controls too (json escapes only C0), and the
+        # loaded text keeps every character.
+        page.write_text("<!doctype html><title>t</title><p>A\x7fB\x85C\x9b2JD</p>\n", encoding="utf-8")
+        made = subprocess.run(PY + [str(SCRIPTS / "facts.py"), "https://example.test/", str(page)], capture_output=True, text=True, timeout=60)
+        raw = [c for c in made.stdout if c == "\x7f" or "\x80" <= c <= "\x9f"]
+        collapsed = " ".join("A\x7fB\x85C\x9b2JD".split())  # NEL is whitespace, so it collapses like a space
+        kept = any(f["text"] == collapsed for f in json.loads(made.stdout)) if made.returncode == 0 else False
+        ok = made.returncode == 0 and not raw and kept
+        print(f"{'PASS' if ok else 'FAIL'} facts JSON escapes DEL and C1 and keeps the text: exit {made.returncode}, raw {len(raw)}, kept {kept}")
+        if not ok:
+            failures.append("facts JSON escapes DEL and C1 and keeps the text")
+        # Chrome's stderr can carry page-driven text: capture.py reports it escaped.
+        chrome = root / "chrome-stub"
+        chrome.write_text("#!/bin/sh\nprintf 'page says \\033]0;TITLE\\007\\033[2J\\n' >&2\nexit 1\n", encoding="utf-8")
+        chrome.chmod(0o755)
+        shot = subprocess.run(PY + [str(SCRIPTS / "capture.py"), "https://example.test/", str(root / "shots"), "--chrome", str(chrome)],
+                              capture_output=True, text=True, timeout=120)
+        said = shot.stdout + shot.stderr
+        ok = shot.returncode != 0 and "page says" in said and "\x1b" not in said and "\x07" not in said
+        print(f"{'PASS' if ok else 'FAIL'} capture reports Chrome's stderr escaped: exit {shot.returncode}")
+        if not ok:
+            failures.append("capture reports Chrome's stderr escaped")
+            print(repr(said[-600:]))
 
         run("contrast", PY + [str(SCRIPTS / "check_contrast.py"), str(write_json(root / "theme.json", THEME))], True)
         low = json.loads(json.dumps(THEME))

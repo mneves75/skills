@@ -65,7 +65,7 @@ def main() -> int:
             # success is Chrome's own "written" line plus a non-empty file, whatever the exit code.
             written = "bytes written to file" in result.stderr and target.is_file() and target.stat().st_size > 0
             if not written:
-                print(f"FAIL {name}: exit {result.returncode}: {result.stderr.strip()[-400:]}", file=sys.stderr)
+                print(f"FAIL {name}: exit {result.returncode}: {result.stderr.strip()[-400:]!r}", file=sys.stderr)
                 failures += 1
             else:
                 note = f", Chrome exited {result.returncode} after writing it" if result.returncode else ""

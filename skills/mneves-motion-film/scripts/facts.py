@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import sys
 from html.parser import HTMLParser
 from pathlib import Path
@@ -121,8 +122,10 @@ def main() -> int:
             print(f"FAIL {check.name} differs from the pages in order, ids or links")
         print(f"facts.py: {check} is stale; regenerate it with facts.py")
         return 1
-    json.dump(unique, sys.stdout, ensure_ascii=False, indent=1)
-    sys.stdout.write("\n")
+    # json escapes C0 controls but not DEL or C1 (U+0080-U+009F); escape those too, so the
+    # output stays inert on a terminal. The loaded text is unchanged.
+    out = json.dumps(unique, ensure_ascii=False, indent=1)
+    sys.stdout.write(re.sub("[\x7f-\x9f]", lambda m: f"\\u{ord(m.group()):04x}", out) + "\n")
     return 0
 
 
