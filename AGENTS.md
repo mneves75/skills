@@ -29,6 +29,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── mneves-expert-review/      # Expert-panel review/optimization pass
 │   ├── mneves-handoff/            # Discussion-first handoff prompt for another agent (MIT, adapted)
 │   ├── mneves-render/             # Project-local Markdown -> HTML, editable DOCX and PDF
+│   ├── mneves-motion-film/        # Product film from a brief: facts, music, Remotion, checks (+ scripts/, tests/)
 │   ├── mneves-production-readiness/ # Deploy gate: readiness ledger, verdict per target, fix plan (+ references/)
 │   ├── mneves-security/           # Security/privacy audit, pre-deploy gate, safe fixes and evidence (+ references/)
 │   ├── mneves-fable-orchestrator/ # Model routing; Codex reference + tools/codex-lane (+ its test)
@@ -78,6 +79,7 @@ node skills/security-audit/validate-findings.test.cjs          # validator: plan
 node skills/security-audit/validate-coverage-ledger.test.cjs   # validator: planted valid/invalid coverage ledgers
 python3 skills/mneves-render/tests/test_check_ast.py  # actual Pandoc content-policy controls
 python3 skills/mneves-render/tests/test_starters.py   # Pandoc + WeasyPrint + Poppler acceptance
+python3 skills/mneves-motion-film/tests/test_pipeline.py  # film checks: synthetic film, planted violations (needs ffmpeg)
 python3 skills/autoreview/scripts/check-cccc.py /absolute/path/to/cccc  # real complexity controls
 tools/scripts/sync-pstack.sh <pstack-claude-repo> <commit>   # regenerate collections/pstack
 bash tools/scripts/sync-pstack.test    # sync e2e against a fixture repo (no network)

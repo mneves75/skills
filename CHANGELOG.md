@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`mneves-motion-film`**: a short product film from a brief. `facts.py` quotes the product's pages into `facts.json` and `check_facts.py` requires every on-screen line to be a verbatim substring of its fact; `music.py` synthesizes music and effects from `timing.json` and `loudness.py` brings them to -14 LUFS with true peak at most -1 dBTP; `check_media.py`, `check_contrast.py` and `check_sync.py` (every cut, click, kick and final chord within one frame) check the render; `build.py` runs them all around a Remotion render; `capture.py` takes the site's reference stills. Review rounds use a fresh reviewer on another model and a muted retelling test. `tests/test_pipeline.py` proves each check refuses its planted violation. Distilled from the devtrim demo film.
+
 ## [1.44.0] - 2026-10-30
 
 ### Changed

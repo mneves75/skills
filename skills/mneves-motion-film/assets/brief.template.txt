@@ -1,0 +1,22 @@
+<product> film — brief and decisions
+====================================
+
+Brief as given (<date>)
+- Type: <product or project>
+- Product URL: <url>
+- Audience: <who is watching>. Last second: <what they should do>.
+- <every other field the user filled, verbatim; blanks are decided below>
+
+Decisions (one line each: the choice, then why)
+- Length and format: <seconds> s, <aspect>, <width>x<height>.
+- Frame rate: <fps>.
+- Brand: colours from <source file>, at most six, each with its contrast; logo
+  from <source>; fonts from <source>.
+- Facts source: <pages>, extracted by facts.py into facts.json (<n> facts).
+- Reference video: <none / link>; breakdown <skipped / summary>.
+- Music: synthesized in code (music.py), <bpm> BPM, <key and progression>.
+- Sound: <music + sfx; voice or not, and why>.
+- Renderer: <Remotion project path>.
+
+Pauses (each choice taken, with the strongest rejected alternative)
+- Storyboard: chose <direction>, because <reason>. Rejected <other>: <reason>.
