@@ -106,6 +106,11 @@ describe the sound.
 - Phone players shrink a 1920 px frame about five times: terminal type under about 70 px
   becomes unreadable. Show a prefix of each line (still a substring of its fact) in a close-up
   rather than the whole line small.
+  The same holds for titles, dialogs and captions: a dialog line too long for 70 px goes on two
+  lines, each a substring of its fact, and a box title shows its key substring large.
+- Reviewers time reading, not only cuts: words enter at least 0.3 s apart with a longer pause
+  between phrases, and anything that leaves (a row moving out) is readable for 0.7 s first,
+  counted from the cut that brought it in.
 - When the product's real screen differs from what the film needs to show (a row left out, a
   state after a key), capture that real screen into the product's pages first, so it becomes a
   fact; never compose a line from permitted pieces.
