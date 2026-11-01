@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **`mneves-motion-film`**: a short product film from a brief. `facts.py` quotes the product's pages into `facts.json` and `check_facts.py` requires every on-screen line to be a verbatim substring of its fact; `music.py` synthesizes music and effects from `timing.json` and `loudness.py` brings them to -14 LUFS with true peak at most -1 dBTP; `check_media.py`, `check_contrast.py` and `check_sync.py` (every cut, click, kick and final chord within one frame) check the render; `build.py` runs them all around a Remotion render; `capture.py` takes the site's reference stills. Review rounds use a fresh reviewer on another model and a muted retelling test. `tests/test_pipeline.py` proves each check refuses its planted violation. Distilled from the devtrim demo film.
 
+### Changed
+- **`full-stop`** runs only when invoked by name (`/full-stop`, "run full-stop", "use the full-stop skill"); a message that merely ends in "Full stop." is ordinary punctuation. The grant no longer covers force-push, rebasing pushed commits or other history rewrites: conflicts are resolved by merging the default branch in. Project and user rules that say to ask before a test method stay in force. Existing auto-merge or merge-queue state is reported and never changed without the user, and the skill does not push to a PR that could merge on that push.
+- **pstack collection** synced from `mneves75/pstack-claude` `94d0400`, on the unmerged fork branch `fix/skill-audit-20261101`; the source, `based-on` `c8a00d6` and version 0.9.84 are unchanged. `why` investigates read-only and never retries a denied read with broader access. `babysit` defers to `babysit-pr`, keeps one owner per PR, limits its writes to the PR's head branch, reports the round cap as blocked, and its `gh` fallback reads every page of review comments.
+
 ## [1.44.0] - 2026-10-30
 
 ### Changed

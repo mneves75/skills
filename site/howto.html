@@ -550,13 +550,14 @@ the verifier checks the artifact.</li>
 to merge, while you are not watching: it finishes the change, proves it, has a reviewer that did
 not build it review the diff, files the PR, watches CI and review bots, fixes real findings, and
 stops at the merge gate. It never merges, enables auto-merge or enters a merge queue.</p>
-<p><strong>Triggers.</strong> &quot;full stop&quot;, including a closing &quot;Full stop.&quot; that reads like emphasis. Nothing
-else grants this autonomy.</p>
+<p><strong>Triggers.</strong> Only an explicit request for this workflow: <code>/full-stop</code>, &quot;run full-stop&quot; or
+&quot;use the full-stop skill&quot;. A message that merely ends with &quot;Full stop.&quot; is ordinary punctuation
+and grants nothing.</p>
 <p><strong>Prerequisites.</strong> Git, an authenticated GitHub CLI (<code>gh</code>), and the repository&#39;s own checks.
 The sibling skills <code>autoreview</code>, <code>babysit-pr</code> and <code>leaving-pr-comments</code> sharpen the review,
 watching and comment steps when installed; each has a written fallback.</p>
 <p><strong>Example</strong> (illustrative).</p>
-<pre tabindex="0"><code>fix the flaky date parsing in the invoice export. full stop.
+<pre tabindex="0"><code>/full-stop fix the flaky date parsing in the invoice export
 </code></pre>
 <ol>
 <li>It branches off the default branch, reproduces the failure, makes the smallest fix and watches
