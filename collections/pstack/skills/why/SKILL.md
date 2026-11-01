@@ -1,6 +1,6 @@
 ---
 name: why
-description: "Use for 'why does X work this way', 'why we picked Y', design rationale, regressions, postmortems, or data-backed thresholds. Discovers available MCPs and queries each evidence category (source control, issue tracker, long-form docs, real-time chat, infrastructure observability, error tracking, product analytics warehouse) in parallel, then returns a cited read on decisions and tradeoffs. Use how for runtime behavior."
+description: "Use for 'why does X work this way', 'why we picked Y', design rationale, regressions, postmortems, or data-backed thresholds. Starts from source control and adds the available evidence categories (issue tracker, long-form docs, real-time chat, infrastructure observability, error tracking, product analytics warehouse) that bear on the question, read-only and in parallel, then returns a cited read on decisions and tradeoffs with explicit unknowns. Use how for runtime behavior."
 ---
 
 # Why
@@ -13,7 +13,9 @@ Investigate the motivation and intent behind code. The companion `how` skill ans
 
 Each spawn below names a role line in `pstack-models.md` and a default in [Models](#models). Set `model` to that line's value, or to the default if the sheet or the line is missing. Leave `model` unset when the value is `auto` or `inherit-parent`. If the `Agent` tool rejects a slug, use the default and say so. If it rejects the default, use the closest valid slug of the same family from its error message.
 
-Every spawn is `general-purpose` with `readonly: false` (agent mode). **Do not use readonly/Ask mode.** It strips MCP access, which disables the MCP-backed investigators and the synthesizer's citation spot-checks. Investigators still shouldn't write anything.
+Every spawn is `general-purpose` with `readonly: true`. Investigators and the synthesizer only search and read: they never write files, post, comment, or change tickets, documents, dashboards or settings. If the host's read-only mode leaves a category's MCP unreachable, do not widen the spawn to get it: query that MCP from this session with read and search calls only, or record the category as not searched in read-only mode. A read that a host, a tool or a permission prompt denied stays denied. Record it in Sources Consulted; never retry it through a broader mode, another agent or changed permissions.
+
+On GitHub Copilot, the platform mapping's fallback that runs a read-only role needing MCP as `general-purpose` does not apply to these spawns: keep each investigator read-only, use only the main session's permitted reads, or report the category as a coverage gap.
 
 ## Operating Posture
 
@@ -31,11 +33,13 @@ Before spawning investigators, build the seed context inline: file paths and lin
 
 ## Step 3. Spawn Parallel Investigators
 
-**Default to the full parallel investigation.** The goal is a complete coverage map, not a minimal one. Document the null, don't skip the search.
+**Size the investigation to the question.** Source control is always searched. Add a category when its evidence can bear on this question (the roster below says what each one is best at), and search a selected category fully: document the null, don't skip the search. Unselected categories are explicit unknowns, not nulls.
+
+For a simple question, such as one commit whose PR or linked ticket states the reason, answer inline from the code anchor and skip the rest of Step 3 and Step 4: no investigators, no synthesizer. Keep the confidence language from `references/epistemics.md` and the [Output Format](#output-format), and list the categories you did not search.
 
 ### Discovery
 
-Before spawning investigators, list the available MCPs in the Claude Code environment. Use the tool list at the top of the system prompt (every MCP appears as a tool with prefix `mcp__<server>__<name>`). Otherwise read `.mcp.json` in the plugin/project, or run `claude mcp list`.
+Before spawning investigators, list the available MCPs in the Claude Code environment, to know which selected categories can be searched. Use the tool list at the top of the system prompt (every MCP appears as a tool with prefix `mcp__<server>__<name>`). Otherwise read `.mcp.json` in the plugin/project, or run `claude mcp list`.
 
 Map each available MCP to one evidence category:
 
@@ -49,18 +53,18 @@ Map each available MCP to one evidence category:
 
 Source control is always available through git and `gh`. For the other six, classify using the MCP name, server instructions, tool names, and resource descriptors. If an MCP could fit more than one category, choose the one matching its primary evidence. Record ambiguous cases in the coverage map.
 
-Spawn one investigator per category that has a matching MCP, all in a single message so they run concurrently, each owning exactly one tool or MCP. Don't ask one agent to cover multiple MCPs. `model`: the `why investigators` line, default in [Models](#models).
+Spawn one investigator per selected category that has a matching MCP, all in a single message so they run concurrently, each owning exactly one tool or MCP. Don't ask one agent to cover multiple MCPs. `model`: the `why investigators` line, default in [Models](#models).
 
 Each investigator's prompt is `references/investigator-prompt.md` filled in, plus:
 - the category playbook `references/sources/<source>.md` for the selected MCP, adapted from the examples in `references/source-playbook.md`
 - `references/sources/incident-postmortem.md` **if the target code looks defensive** (null checks, retry logic, timeout handling, rate limiting, feature flags, egress guards, OOM handlers)
 - the code anchor and the user's original question
 
-### Investigator roster, one per available evidence category
+### Investigator roster, one per selected evidence category
 
-Each category below is uniquely positioned to surface one shape of "why", shown after "Best at". Use it to know what to expect back, to name a gap when a category returns empty, and, only in the rare provably-irrelevant case, to justify a skip.
+Each category below is uniquely positioned to surface one shape of "why", shown after "Best at". Use it to choose the categories that bear on the question, to know what to expect back, and to name a gap when a category returns empty.
 
-1. **Source control** (git history, `gh` for PRs, code comments, tests). Always spawn, the only guaranteed source. Best at *implementation-time rationale captured during review*.
+1. **Source control** (git history, `gh` for PRs, code comments, tests). Always searched, the only guaranteed source. Best at *implementation-time rationale captured during review*.
 2. **Issue / ticket tracker** (e.g. Linear, Jira, GitHub Issues, Plane, Shortcut MCP). Best at *the product or business forcing function*. Strongest when the why is external to engineering.
 3. **Long-form documents** (e.g. Notion, Confluence, Google Docs, Coda MCP). Best at *long-form design rationale*, written out before it becomes code.
 4. **Real-time team chat** (e.g. Slack, Discord, Microsoft Teams, Mattermost MCP). Best at *real-time deliberation that never reached a doc*. Especially important when the source control, ticket, and doc paper trail is thin.
@@ -68,19 +72,20 @@ Each category below is uniquely positioned to surface one shape of "why", shown 
 6. **Error / exception tracking** (e.g. Sentry, Rollbar, Bugsnag, Airbrake MCP). Best at *the specific exceptions and error trajectories that motivated defensive or corrective code*. Strongest for catch blocks, null guards, type checks, retries, and other defenses.
 7. **Product analytics warehouse** (e.g. Databricks, Snowflake, BigQuery, ClickHouse, dbt, Redshift MCP). Best at *product and data reality that shaped the code*. Strongest for flag-gated code, experiment-driven ships, data migrations, and "where did this number come from" questions.
 
-### When to skip an investigator
+### Categories you do not search
 
-Only with an **explicit, written justification** that goes in the final Sources Consulted. Two valid reasons:
+Every category gets one line in the final Sources Consulted, with its reason:
 
-- **No MCP is available for that category** in this environment. Flag it as a gap, not a choice: "Real-time team chat skipped. No matching MCP available, so the conversational record was not searchable."
-- **The source is provably irrelevant**, not just "probably irrelevant." A high bar: "Error / exception tracking skipped. Target is a build-time script with no runtime code path."
+- **Not available.** No MCP for it in this environment. A gap, not a choice: "Real-time team chat not searched. No matching MCP available, so the conversational record was not searchable."
+- **Not selected.** Its evidence does not bear on this question: "Error / exception tracking not searched. Target is a build-time script with no runtime code path."
+- **Not reachable read-only, or a read was denied.** Name the denial; do not route around it.
 
-If your scope assessment suggests a single-commit trivial target where the PR description already contains the complete answer, you may answer inline **only after** confirming all seven available category searches would be redundant. Say so explicitly. This should be rare.
+What an unsearched category might hold stays in What We Don't Know. If the evidence you have leaves the question open, widen the search to the next most relevant category before concluding.
 
 ## Step 4. Synthesize
 
-Spawn one synthesizer. `model`: the `why synthesizer` line, default in [Models](#models). It gets:
-1. The investigator findings, including any null results and any categories skipped with justification
+When you spawned investigators, spawn one synthesizer (an inline answer has none). `model`: the `why synthesizer` line, default in [Models](#models). It gets:
+1. The investigator findings, including any null results, and each category not searched with its reason
 2. The code anchor
 3. The user's original question
 4. The epistemics framework from `references/epistemics.md`
@@ -92,7 +97,7 @@ Present the synthesizer's output to the user. You may lightly edit for clarity o
 
 ## Output Format
 
-The structure is the one in `references/synthesizer-prompt.md`: The Question, The Code in Question, What We Found, What We Can Reasonably Infer, Competing Hypotheses, What We Don't Know, Sources Consulted, Confidence Summary. Adapt as needed, but keep the confidence separation intact, and keep Sources Consulted as one line per investigator, including the ones that returned nothing or were skipped, with the reason.
+The structure is the one in `references/synthesizer-prompt.md`: The Question, The Code in Question, What We Found, What We Can Reasonably Infer, Competing Hypotheses, What We Don't Know, Sources Consulted, Confidence Summary. Adapt as needed, but keep the confidence separation intact, and keep Sources Consulted as one line per evidence category: searched (including the ones that returned nothing), not available, not selected, or not reachable read-only, with the reason.
 
 After Sources Consulted, if the user's `why` question is a precursor to changing this code, convert the lineage findings into a Preserve / Change / Avoid / Risk constraint set for planning the change.
 
