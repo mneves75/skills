@@ -558,8 +558,9 @@ to merge, while you are not watching: it finishes the change, proves it, has a r
 not build it review the diff, files the PR, watches CI and review bots, fixes real findings, and
 stops at the merge gate. It never merges, enables auto-merge or enters a merge queue.
 
-**Triggers.** "full stop", including a closing "Full stop." that reads like emphasis. Nothing
-else grants this autonomy.
+**Triggers.** Only an explicit request for this workflow: `/full-stop`, "run full-stop" or
+"use the full-stop skill". A message that merely ends with "Full stop." is ordinary punctuation
+and grants nothing.
 
 **Prerequisites.** Git, an authenticated GitHub CLI (`gh`), and the repository's own checks.
 The sibling skills `autoreview`, `babysit-pr` and `leaving-pr-comments` sharpen the review,
@@ -568,7 +569,7 @@ watching and comment steps when installed; each has a written fallback.
 **Example** (illustrative).
 
 ```
-fix the flaky date parsing in the invoice export. full stop.
+/full-stop fix the flaky date parsing in the invoice export
 ```
 
 1. It branches off the default branch, reproduces the failure, makes the smallest fix and watches
