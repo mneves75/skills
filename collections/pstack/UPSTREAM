@@ -1,5 +1,5 @@
 source: https://github.com/mneves75/pstack-claude.git
-commit: 2d6b8b8a5365642c32c72749ef03e6b52ed47409
+commit: 31511495d35f242c9bfeb512b0f7fb1c7661fe67
 based-on: c8a00d689cd19a6e3fb3b2faae3cbf236d0e94e4
-local-commits: 1
+local-commits: 2
 version: 0.9.84
