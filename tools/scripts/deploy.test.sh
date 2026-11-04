@@ -317,6 +317,20 @@ if [ "$code" -eq 0 ] && grep -q 'record .scratch/readiness/zzzz-current/producti
   ok "the current same-tree record is chosen over an obsolete one"
 else bad "obsolete record first (exit $code): $(grep -E 'readiness|deploy.sh' <<<"$out" | head -2)"; fi
 
+# 22. A newer same-tree assessment that blocks is authoritative: an older approval does not substitute.
+make_repo; head=$(cat "$FAKE_STATE/head"); tree=$(git -C "$tmp/work" rev-parse "release/9.9.9^{tree}")
+mkdir -p "$tmp/work/.scratch/readiness/reassessed"
+python3 -I - "$tmp/work/.scratch/readiness/$head/production.json" "$tmp/work/.scratch/readiness/reassessed/production.json" "$tree" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1])); d["created_at"] = "2026-11-04T00:00:00Z"; json.dump(d, open(sys.argv[1], "w"))
+newer = dict(d); newer["commit"] = "1" * 40; newer["tree"] = sys.argv[3]; newer["created_at"] = "2026-11-05T00:00:00Z"; newer["verdict"] = "not-ready"; newer["open_blockers"] = 1
+json.dump(newer, open(sys.argv[2], "w"))
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q 'the newest production readiness record for tree .*reassessed/production.json, does not admit it' <<<"$out" && grep -q '1 older record(s) for the same tree do not substitute' <<<"$out" && ! grep -q 'gh pr merge' "$FAKE_STATE/calls"; then
+  ok "a newer blocking assessment is not bypassed by an older approval"
+else bad "newer blocking record (exit $code): $(grep -E 'deploy.sh' <<<"$out" | head -2)"; fi
+
 # 12. A PASS record with no waivers releases, and the tag message carries no Waivers line.
 make_repo; python3 -I - "$tmp/work/.scratch/security-gate/$(cat "$FAKE_STATE/head")/production.json" "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" <<'PY'
 import json, sys

@@ -88,11 +88,11 @@ tree=$(git rev-parse "$head^{tree}")
 say "candidate: PR #$pr ($head_ref) head $head tree $tree"
 
 # A record binds to a tree. Security records state `tree`; readiness records state only `commit`, so the
-# tree is the commit's tree when that commit is in this repository. For each kind, every production record
-# with the candidate's tree is a candidate record, the head's own folder first and then newest first; the
-# first one that is valid in full (verdict, acceptance or blockers, waivers in force, validity window) is
-# used, so an obsolete record under another commit never hides a current one, and a record that fails any
-# check is named with its reason when none is valid.
+# tree is the commit's tree when that commit is in this repository. For each kind, the NEWEST production
+# record with the candidate's tree (by created_at; the head's own folder wins a tie) is the authoritative
+# assessment: it is used when valid in full (target, verdict, acceptance or blockers, waivers in force,
+# validity window) and refused with its reasons otherwise. An older approval never stands in for a newer
+# assessment that blocks or has gone stale: a reassessment can block production without changing a byte.
 select_record() {
   python3 -I - "$1" "$head" "$tree" "$records" <<'PY'
 import datetime, glob, json, os, subprocess, sys
@@ -156,25 +156,27 @@ def created(path):
         return ""
 
 own = os.path.join(records, kind, head, "production.json")
-others = [p for p in glob.glob(os.path.join(records, kind, "*", "production.json")) if p != own]
-others.sort(key=created, reverse=True)
-reasons = []
-for path in ([own] if os.path.isfile(own) else []) + others:
+matching = []
+unreadable = []
+for path in glob.glob(os.path.join(records, kind, "*", "production.json")):
     try:
         record = json.load(open(path, encoding="utf-8"))
     except (OSError, ValueError) as error:
-        reasons.append(f"{path}: unreadable ({error})"); continue
-    if tree_of(record) != tree:
-        continue
-    found = problems(record)
-    if not found:
-        print(path); sys.exit(0)
-    reasons.append(f"{path}: " + "; ".join(found))
-if reasons:
-    print(f"no valid production {kind} record for tree {tree}: " + " | ".join(reasons))
-else:
-    print(f"no production {kind} record for tree {tree} under {records}/{kind}/")
-sys.exit(1)
+        unreadable.append(f"{path}: unreadable ({error})"); continue
+    if tree_of(record) == tree:
+        matching.append((str(record.get("created_at") or ""), path == own, path, record))
+if not matching:
+    print(f"no production {kind} record for tree {tree} under {records}/{kind}/" + (" (" + "; ".join(unreadable) + ")" if unreadable else ""))
+    sys.exit(1)
+matching.sort(key=lambda item: (item[0], item[1]), reverse=True)
+_, _, newest_path, newest = matching[0]
+found = problems(newest)
+if found:
+    older = len(matching) - 1
+    print(f"the newest production {kind} record for tree {tree}, {newest_path}, does not admit it: " + "; ".join(found)
+          + (f" ({older} older record(s) for the same tree do not substitute for it)" if older else ""))
+    sys.exit(1)
+print(newest_path)
 PY
 }
 security=$(select_record security-gate) || fail "$security (run the mneves-security deploy gate on the candidate)"
