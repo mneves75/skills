@@ -23,8 +23,7 @@ blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--line);c
 <nav aria-label="Site" style="font-size:.875rem"><a href="./">mneves75/skills</a> · How to use the skills</nav>
 <main>
 <h1>How to use these skills</h1>
-<p>Twenty-three skills, one install. This page shows what each one does, how to trigger it, and what a
-session looks like. For the one-line summaries see the <a href="https://github.com/mneves75/skills/blob/main/README.md">README</a>; for the exact
+<p>This page shows what each skill does, how to trigger it, and what a session looks like. For the one-line summaries see the <a href="https://github.com/mneves75/skills/blob/main/README.md">README</a>; for the exact
 procedure an agent follows, open <code>skills/&lt;name&gt;/SKILL.md</code>. Service level objectives and
 incident reviews are not skills: use the <a href="https://github.com/mneves75/skills/blob/main/docs/sre-guides/README.md">SRE guides</a> and
 <a href="https://github.com/mneves75/skills/blob/main/docs/sre-prompts.md">prompts</a> on request.</p>
@@ -647,6 +646,9 @@ false positives with a written reason.</li>
 <li>A review bot counts only when GitHub types its author as a Bot, and a check counts as the
 bot&#39;s only when the bot&#39;s own GitHub App reports it, whatever the job is named.</li>
 <li>A check GitHub refused to start over billing is reported as billing-blocked, not failed.</li>
+<li><code>pr-wait</code> never calls a PR green when it could not read the required checks, and never calls
+it ready when the PR has more than 100 review threads or GitHub&#39;s page information is unclear:
+it exits 1 and you check by hand.</li>
 <li>If another watcher already owns the PR, it reports that watcher&#39;s state instead of starting a
 second one. When the same failure survives two fixes, or after three repair rounds, it stops
 and reports the PR as blocked; a stricter limit in your instructions wins.</li>

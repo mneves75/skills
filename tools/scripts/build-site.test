@@ -214,6 +214,9 @@ with tempfile.TemporaryDirectory(prefix='skills-build-site-') as scratch:
     page = target / 'site/rows-index.html'
     for label, entry, expect in (
         ('date markup is escaped', '## [9.9.9] - <img/src=x>\n\n- **Thing**: one.\n', '&lt;img/src=x&gt;'),
+        ('wrapped bullet keeps its whole first sentence',
+         '## [9.9.9] - 2026-01-01\n\n- **Thing**: starts on one line and\n  ends on the next. Then more.\n',
+         'starts on one line and ends on the next.</span>'),
         ('long bracket run stays fast', '## [9.9.9] - 2026-01-01\n\n- ' + '[' * 100000 + '\n', '9.9.9'),
         ('long link run stays fast', '## [9.9.9] - 2026-01-01\n\n- ' + '[a](' * 100000 + '\n', '9.9.9'),
     ):

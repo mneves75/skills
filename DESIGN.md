@@ -8,6 +8,7 @@ colors:
   blue-muted: "#d7e4ff"
   lime: "#def59b"
   on-lime: "#203615"
+  lime-code: "#c7de8b"
   paper: "#fff"
   ink: "#132236"
   muted: "#43556c"
@@ -70,7 +71,7 @@ typography:
     lineHeight: 1.55
   command:
     fontFamily: "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"
-    fontSize: ".79rem"
+    fontSize: ".8125rem"
     fontWeight: 400
     lineHeight: 1.8
 rounded:
@@ -171,7 +172,7 @@ Clean reading neutrals meet saturated installation blue and a small lime highlig
 
 ### Secondary
 
-- **Fresh Lime** (`lime`, `on-lime`): the new-procedure fill and its dark green text; also browser text selection and focus inside installation.
+- **Fresh Lime** (`lime`, `on-lime`, `lime-code`): the new-procedure fill and its dark green text; also browser text selection and focus inside installation. `lime-code` is the inline-code surface inside a new procedure, in both schemes, so its code never takes the dark-mode code surface.
 - **Night Focus Lime** (`focus-dark`): keyboard outlines on the dark reading surface.
 
 ### Neutral
@@ -225,7 +226,7 @@ The implemented responsive thresholds are maximum widths:
 
 - **Compact** (64rem): the opening ratio becomes (1.4fr / 1fr), the category column narrows (10rem), and install commands stack.
 - **Stacked** (48rem): the body baseline becomes (16px); the opening, category groups, steps, resources and assessor section become single-column. Category navigation keeps two columns, and the procedure list still has two.
-- **Narrow** (36rem): procedures become one column. The main heading uses a narrower fluid setting (`clamp(2.9rem,10.4vw,3.6rem)`), command text becomes smaller (.76rem), and release columns tighten (5.9rem / 1fr).
+- **Narrow** (36rem): procedures become one column. The main heading uses a narrower fluid setting (`clamp(2.9rem,10.4vw,3.6rem)`), command text and copy buttons stay at the 13px floor (.8125rem), and release columns tighten (5.9rem / 1fr).
 
 The rem thresholds correspond to (1024px), (768px) and (576px) at a (16px) root;
 the CSS keeps rem units. Header links wrap without a separate menu. Responsive

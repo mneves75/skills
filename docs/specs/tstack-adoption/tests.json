@@ -1,0 +1,120 @@
+{
+  "updated": "2026-11-04",
+  "scope": "tstack review and release follow-up",
+  "status": "released_in_1.45.1",
+  "checks": [
+    {
+      "name": "origin reconciliation before implementation",
+      "command": "git merge --no-edit origin/main",
+      "result": "pass",
+      "observed": "Already up to date",
+      "base": "c3dc2bb529da530e07572af6046d4e7312863711"
+    },
+    {
+      "name": "independent adversarial plan review",
+      "artifact": "plans/005-tstack-review-release.md",
+      "result": "pass",
+      "evidence_scope": "plan only; not source or release acceptance"
+    },
+    {
+      "name": "watcher regression fail-before proof",
+      "result": "expected_fail",
+      "observed": "9 focused tests on the original helper: 12 failing assertions/subtests; false green/ready output reproduced",
+      "evidence_scope": "builder-run log inspected by main; independent acceptance pending"
+    },
+    {
+      "name": "watcher focused suite after fix",
+      "result": "pass",
+      "observed": "9 tests in 115.898 seconds",
+      "evidence_scope": "builder-run log inspected by main; independent acceptance pending"
+    },
+    {
+      "name": "site baseline design inspector",
+      "command": "node <design-taste-frontend>/scripts/inspect.mjs site/index.html --out <private-evidence>/site-before --widths 1440,768,390",
+      "result": "fail",
+      "exit": 1,
+      "observed": "8 design-rule failures, 7 warnings; dark-mode inline-code contrast about 1:1",
+      "evidence_scope": "real local browser; generic style heuristics triaged in progress.md, no production acceptance"
+    },
+    {
+      "name": "watcher full suite after fix",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 skills/babysit-pr/tests/test_pr_wait.py",
+      "result": "pass",
+      "observed": "44 tests in 354.792 seconds; exit 0",
+      "evidence_scope": "builder-run full suite, log inspected by main"
+    },
+    {
+      "name": "main-session public CLI regression rerun",
+      "result": "pass",
+      "observed": "6 tests in 53.898 seconds; exit 0",
+      "cases": ["required-source refusals", "partial requirements", "older unresolved thread", "malformed page metadata", "exactly 100 resolved threads", "green remains checks-only"],
+      "evidence_scope": "main reran selected tests against corrected helper; fresh source-blind acceptance pending"
+    },
+    {
+      "name": "independent code review",
+      "target": "15e0298...3cbe27c",
+      "result": "pass",
+      "axes": {"standards": "pass; zero findings", "spec": "pass; zero findings"},
+      "evidence_scope": "fresh reviewers; source and saved regression evidence; no live GitHub acceptance"
+    },
+    {
+      "name": "skill specification validation",
+      "command": "agentskills validate skills/babysit-pr",
+      "target": "3cbe27c",
+      "result": "pass"
+    },
+    {
+      "name": "generated site regression controls",
+      "command": "bash tools/scripts/build-site.sh && bash tools/scripts/build-site.test",
+      "target": "3cbe27c",
+      "result": "pass",
+      "evidence_scope": "repeatable generated output, catalog consistency and planted rejection controls; no production acceptance"
+    },
+    {
+      "name": "mneves-verify watcher behavior acceptance",
+      "command": "python3 .scratch/independent-watcher/probe.py",
+      "target_sha256": "b21bb01c35d93f1289be1d057e4bf17da665b409576c8dd94ffb8a51c255b26b",
+      "result": "pass",
+      "observed": "24 independent source-blind CLI cases; exit 0; target hash unchanged",
+      "evidence_scope": "fresh verifier, different model from builder; no live GitHub, site or release acceptance"
+    },
+    {
+      "name": "site browser regression before correction",
+      "result": "expected_fail",
+      "exit": 1,
+      "observed": "clipboard unavailable/rejected/success and light contrast pass; dark pr-wait code fails at 1.01:1"
+    },
+    {
+      "name": "site browser regression after contrast correction",
+      "command": "bash tools/scripts/check-site-copy.sh <corrected-local-preview-url>",
+      "result": "pass",
+      "exit": 0,
+      "observed": "clipboard unavailable/rejected/success and contrast light/dark all pass",
+      "evidence_scope": "local browser; same five cases rerun successfully after final typography"
+    },
+    {
+      "name": "independent site review",
+      "target": "3cbe27c...e6a9830",
+      "result": "pass",
+      "axes": {"standards": "pass; zero findings", "spec": "pass; zero findings"}
+    },
+    {
+      "name": "mneves-verify local site acceptance",
+      "result": "pass",
+      "observed": "both copy buttons in all three clipboard states; contrast in both themes; six width/theme matrices without overflow; fourteen text/control elements at least 13px; keyboard navigation and focus; 23 guide anchors; reduced-motion visibility",
+      "index_sha256": "bcf39cbc7412ddbf5c06447a0b33e252b2dd08381c41c1ea8400d1a6f862de00",
+      "guide_sha256": "929120e32241766105a32dce850576815bc042e0b7976e237b1c9900fd047643",
+      "evidence_scope": "fresh independent local browser; not production or whole-inspector acceptance"
+    },
+    {
+      "name": "working-branch integration identity",
+      "target": "d0ac1a2",
+      "result": "pass",
+      "observed": "verified helper, index and guide hashes unchanged; reviewed implementation paths equal e6a9830"
+    },
+    {"name": "final-tree security and readiness gates", "result": "pending"},
+    {"name": "production served-byte and browser acceptance", "result": "pending"},
+    {"name": "GitHub CI", "result": "skipped", "reason": "explicit user instruction"},
+    {"name": "staging", "result": "skipped", "reason": "explicit user instruction; no staging configured"}
+  ]
+}

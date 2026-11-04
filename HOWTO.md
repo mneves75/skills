@@ -1,7 +1,6 @@
 # How to use these skills
 
-Twenty-three skills, one install. This page shows what each one does, how to trigger it, and what a
-session looks like. For the one-line summaries see the [README](README.md); for the exact
+This page shows what each skill does, how to trigger it, and what a session looks like. For the one-line summaries see the [README](README.md); for the exact
 procedure an agent follows, open `skills/<name>/SKILL.md`. Service level objectives and
 incident reviews are not skills: use the [SRE guides](docs/sre-guides/README.md) and
 [prompts](docs/sre-prompts.md) on request.
@@ -681,6 +680,9 @@ babysit PR 77
 - A review bot counts only when GitHub types its author as a Bot, and a check counts as the
   bot's only when the bot's own GitHub App reports it, whatever the job is named.
 - A check GitHub refused to start over billing is reported as billing-blocked, not failed.
+- `pr-wait` never calls a PR green when it could not read the required checks, and never calls
+  it ready when the PR has more than 100 review threads or GitHub's page information is unclear:
+  it exits 1 and you check by hand.
 - If another watcher already owns the PR, it reports that watcher's state instead of starting a
   second one. When the same failure survives two fixes, or after three repair rounds, it stops
   and reports the PR as blocked; a stricter limit in your instructions wins.

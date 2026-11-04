@@ -63,15 +63,31 @@ pr-wait <pr> [--repo owner/name] [--until ready|green|any-change]
 
 It prints one line per real event. It exits 0 when the `--until` condition is
 met or the PR merges, 1 when it needs you (a required check failed, conflicts,
-a BEHIND branch, unresolved threads, PR closed, GitHub unreachable, or `ready`
-unable to read every check for ten polls in a row), and 2 on bad input. It keeps
+a BEHIND branch, unresolved threads, PR closed, GitHub unreachable, the required
+checks unreadable, `ready` unable to read every check for ten polls in a row, or
+`ready` unable to read every review thread), and 2 on bad input. It keeps
 its state in `~/.local/state/pr-wait/`.
 
 - `ready` (default): required checks green, Greptile or Macroscope reviewed the
   head, and no unresolved threads. Use this to babysit.
-- `green`: required checks only. Use it when the repo has no Greptile or
-  Macroscope.
+- `green`: required checks only, never threads. Use it when the repo has no
+  Greptile or Macroscope.
 - `any-change`: exit on the first event.
+
+It reads the required checks from the base branch's rulesets and classic branch
+protection before the first poll. A 404 from either means none set there; when
+both say so, every CI check gates. Any other answer is never read as "no required
+checks": a refusal (403) stops it with exit 1, and GitHub being unreachable counts
+as a failed poll and is read again on the next. GitHub can answer a plain 404
+"Not Found" to a user without admin rights who asks for classic protection, so for
+such a user a required check that only classic protection names, and that has not
+started, may not be waited for.
+
+It reads the last 100 review threads. When GitHub says older ones exist, or does
+not clearly say none do, `ready` never passes: at the point it would, it stops with
+exit 1 ("could not read every review thread"), because an older unresolved thread
+may be hidden. A visible unresolved thread is reported first. The summary line
+then says "not every thread read".
 
 In Claude Code, run it with the Monitor tool (`timeout_ms: 3600000`), so each
 line wakes you. Without a monitor, run it as one long command. It ends on its
@@ -79,8 +95,9 @@ own, except `ready` on a repository with no Greptile or Macroscope, which waits
 for a review that never comes: use `green` there.
 
 Start it again after you push, after you handle an exit 1, and after a resume,
-but not after the "could not read every check" stop: that needs you to check the
-PR by hand.
+but not after the "could not read every check" or "could not read every review
+thread" stop, or a refused required-checks read: those need you to check the PR
+by hand.
 It remembers what it already reported, so nothing that arrived in between is
 lost. If it says another pid already watches the PR, do not start a second one.
 Kill the old one only if its events do not reach you.
@@ -177,6 +194,7 @@ Copyright (c) 2026 Theo Browne; distributed under the [MIT License](LICENSE). Lo
 Agent Skills metadata; `pr-wait` reports billing-blocked checks instead of failing on them,
 counts a review bot only when GitHub types its author as a Bot and a bot check only when the
 bot's own app reports it, quotes and marks untrusted comment text in its events (with control
-characters dropped and markup stripped in linear time), times out each `gh` call, and states its Python floor; an end-to-end test against a fake `gh`; proof for each fix; a
+characters dropped and markup stripped in linear time), times out each `gh` call, never
+reads a failed required-checks read or a truncated thread list as readiness, and states its Python floor; an end-to-end test against a fake `gh`; proof for each fix; a
 fallback for the comment-format sibling; one watcher owner per PR, a finite repair
 bound that yields to stricter host limits, and no history rewrite without clearance.

@@ -22,6 +22,13 @@ measure whether a *target* codebase is ready for agents.
   release procedure as a tested script) added; `plans/004` names the ledger-writing closeout
   script as the next step. Needs-validation items C-A6, C-A2, L-6, B-03 and AI-1 still wait for the owner's
   authorization of a disposable public repository or live provider calls.
+- **1.45.1** (2026-11-04): the nine commits PR #40 gained after 1.45.0 branched from it
+  (15e0298..c46c77c4: the tstack review record in `docs/specs/tstack-adoption/`, `plans/005`, the
+  `pr-wait` incomplete-read fixes, the landing-page contrast fix and `check-site-copy.sh`); the
+  1.45.0 binding run folded into the ledger (cursor `ccd51b4b`); `deploy.sh` refuses a readiness
+  record without `independent_acceptance` and prints each waiver id once; `changelog-rows.py` keeps
+  a wrapped bullet's whole sentence; skill-ledger rows reworded (D-B19). The 1.45.0 readiness
+  records were given `independent_acceptance` by hand after the verifier found them without it.
 - **1.44.0** (2026-10-30): pr-wait fails closed on malformed or untyped check entries and
   reports a failure seen on the tenth incomplete read; babysit-pr docs complete the exit list;
   the orchestrator's reviewer seat moves to the builder-class models, crossed (owner rule
