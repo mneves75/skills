@@ -51,9 +51,10 @@ local fallback    = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any h
 
 The builder seats (main session, workers, heavy executor) never review their own output: a change is
 reviewed by the reviewer value in the other column from the seat that built it, and planning and
-plan advice run only on their own seats.
+plan advice run only on their own seats. Crossing means the change leaves for the other column's
+provider: authorize that disclosure as you would for any review provider before dispatching it.
 
-Verified against the vendor model lists on 2026-10-30; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-11-04; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file).
 

@@ -1,6 +1,6 @@
 # How to use these skills
 
-Twenty-two skills, one install. This page shows what each one does, how to trigger it, and what a
+Twenty-three skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the [README](README.md); for the exact
 procedure an agent follows, open `skills/<name>/SKILL.md`. Service level objectives and
 incident reviews are not skills: use the [SRE guides](docs/sre-guides/README.md) and
@@ -21,7 +21,11 @@ lists what each agent directory is missing.
 The readiness tool runs locally and runs the assessed project's own build, lint and test tools,
 so point it only at repositories you trust. An image-generation skill may send prompts and authorized
 references to the image provider configured in your agent. Autoreview sends authorized review
-inputs to the selected review provider after scanning them for credentials.
+inputs to the selected review provider after scanning them for credentials. Council sends the
+task, plan or diff you approve to each member CLI's provider, and its members can read the
+repository you point them at; codex-lane sends each delegated brief, and what Codex reads to
+answer it, to Codex under your account; the motion-film reviewer step sends the brief and contact
+sheets to the reviewer CLI's provider.
 
 A skill is loaded when the agent decides your request matches its `description`. You can
 also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 skill".
@@ -257,7 +261,8 @@ Starter commands: [Pandoc recipe](skills/mneves-render/references/pandoc.md).
 short product film and the evidence that it is right. Every line on screen is quoted verbatim
 from the product's own pages; the music is synthesized in code on a beat grid, so each cut and
 key press sounds on its frame; the film renders in a Remotion project and a reviewer that did
-not build it watches it until it says `ship`.
+not build it watches it, for up to five rounds; after the fifth, the film is delivered with any
+open problem listed.
 
 **When to use it.** You want a demo, launch or explainer video for a product with a website,
 and you want to be able to rebuild it after the site changes. Blank brief fields (length,

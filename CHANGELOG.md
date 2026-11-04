@@ -7,12 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.45.0] - 2026-11-04
+
+Releases PR #40 and PR #39 together; PR #38 is closed as superseded by #40 (its `full-stop`
+text is byte-identical, its paginated review reads and read-only `why` spawns are in the
+regenerated collection, and its hand-edited collection conflicts with the regenerated one).
+
 ### Added
+- **`plans/004-release-1-45-closeout.md`**: this closeout and the next step, a script that writes the
+  ledger rows and the tag message from the gate records instead of hand-folding them.
 - **`mneves-motion-film`**: a short product film from a brief. `facts.py` quotes the product's pages into `facts.json` and `check_facts.py` requires every on-screen line to be a verbatim substring of its fact; `music.py` synthesizes music and effects from `timing.json` and `loudness.py` brings them to -14 LUFS with true peak at most -1 dBTP; `check_media.py`, `check_contrast.py` and `check_sync.py` (every cut, click, kick and final chord within one frame) check the render; `build.py` runs them all around a Remotion render; `capture.py` takes the site's reference stills. Review rounds use a fresh reviewer on another model and a muted retelling test. `tests/test_pipeline.py` proves each check refuses its planted violation. Distilled from the devtrim demo film.
 - **`docs/skill-ledger.md`**: the disposition (changed, retained, added, retired, excluded) and the kept controls of each of the 59 skills shipped before the pstack refresh and of the 32 upstream pstack names the collection does not carry as-is.
 - **`tools/scripts/statechart-runner.test`**: runs the collection's adapted statechart runner with fake `mise` and `java`. Missing tools stop it with the install command named and nothing installed; tools found through mise or `TLA2TOOLS`/`JAVA` are the ones it runs.
 
 ### Changed
+- **Readiness ledger**: the 1.44.0 binding run (`be1a548` → `d98853b`) and the PR #37 run
+  (`5336080` → `c3dc2bb`) are folded in: cursor `c3dc2bb`, two gate-history rows, SEC-11/12/13
+  imported from those gates, the rows they reread; Totals unchanged.
+- **Documentation items the 1.44.0 and PR #37 gates left**: `codex-lane` briefs go to the provider the
+  `codex` CLI is configured for (E-1/D-B9); the landing page, README, HOWTO and `SECURITY.md` say that
+  council members can read the repository, what Codex reads leaves with each brief, and what the
+  motion-film reviewer and capture steps send and load (D-B1r, D-B12); crossed review in the
+  orchestrator discloses the other column's provider (D-B6); `MEMORY.md` counts six 1.43.0 gate
+  candidates (D-B8); `babysit-pr` names the non-transient `gh` errors that exit 1 (D-B2r); the skill
+  count reads twenty-three (D-B10); `mneves-motion-film` joins the executable inventory with a
+  Python 3.11 floor (D-B11), its review stops after five rounds (D-B13), `facts.py` reads local
+  pages (D-B14), and the ESLint rule is described as a guard, not proof of rendering (D-M1).
+- **Orchestrator Defaults block** re-verified against the vendor model lists on 2026-11-04 (ids
+  unchanged).
+- **`tools/`**: Biome 2.3.11 → 2.6.4 (PR #39, Dependabot); lint, typecheck and the 102 tests pass on
+  the merged tree.
 - **`full-stop`** runs only when invoked by name (`/full-stop`, "run full-stop", "use the full-stop skill"); a message that merely ends in "Full stop." is ordinary punctuation. The grant no longer covers force-push, rebasing pushed commits or other history rewrites: conflicts are resolved by merging the default branch in. Project and user rules that say to ask before a test method stay in force. Existing auto-merge or merge-queue state is reported and never changed without the user, and the skill does not push to a PR that could merge on that push.
 - **`babysit-pr`** is the canonical PR watcher: it starts no second watcher on a PR another one owns, stops and reports blocked when the same failure survives two fixes or after three repair rounds (a stricter host or user limit wins), and brings the base in by merging, rebasing or force-pushing only with the user's clearance.
 - **`mneves-superaudit`** names the specialists it sequences (`autoreview`, `mneves-verify`, `mneves-security` or `security-audit`, `mneves-ship-deploy`, `mneves-production-readiness`) with a direct fallback when one is absent; a source audit is never reported as a deploy gate.

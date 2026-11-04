@@ -11,8 +11,9 @@ string (a `line()` call or a literal list the source maps through `line()`).
 A quoted id anywhere counts, so that second check catches a forgotten line; it
 does not prove the line renders, which the stills and contact sheets show.
 build.py also runs the project's ESLint, whose react/jsx-no-literals refuses
-any string written straight into the film's JSX, so nothing bypasses
-copy.json. Exits 1 on any failure.
+a string literal written straight into the film's JSX; that guards the copy.json
+route for literals only and, like this check, proves nothing about rendering.
+Exits 1 on any failure.
 """
 
 from __future__ import annotations

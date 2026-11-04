@@ -23,7 +23,7 @@ blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--line);c
 <nav aria-label="Site" style="font-size:.875rem"><a href="./">mneves75/skills</a> · How to use the skills</nav>
 <main>
 <h1>How to use these skills</h1>
-<p>Twenty-two skills, one install. This page shows what each one does, how to trigger it, and what a
+<p>Twenty-three skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the <a href="https://github.com/mneves75/skills/blob/main/README.md">README</a>; for the exact
 procedure an agent follows, open <code>skills/&lt;name&gt;/SKILL.md</code>. Service level objectives and
 incident reviews are not skills: use the <a href="https://github.com/mneves75/skills/blob/main/docs/sre-guides/README.md">SRE guides</a> and
@@ -39,7 +39,11 @@ lists what each agent directory is missing.</p>
 <p>The readiness tool runs locally and runs the assessed project&#39;s own build, lint and test tools,
 so point it only at repositories you trust. An image-generation skill may send prompts and authorized
 references to the image provider configured in your agent. Autoreview sends authorized review
-inputs to the selected review provider after scanning them for credentials.</p>
+inputs to the selected review provider after scanning them for credentials. Council sends the
+task, plan or diff you approve to each member CLI&#39;s provider, and its members can read the
+repository you point them at; codex-lane sends each delegated brief, and what Codex reads to
+answer it, to Codex under your account; the motion-film reviewer step sends the brief and contact
+sheets to the reviewer CLI&#39;s provider.</p>
 <p>A skill is loaded when the agent decides your request matches its <code>description</code>. You can
 also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use the mneves-eli5 skill&quot;.</p>
 <table tabindex="0">
@@ -307,7 +311,8 @@ Starter commands: <a href="https://github.com/mneves75/skills/blob/main/skills/m
 short product film and the evidence that it is right. Every line on screen is quoted verbatim
 from the product&#39;s own pages; the music is synthesized in code on a beat grid, so each cut and
 key press sounds on its frame; the film renders in a Remotion project and a reviewer that did
-not build it watches it until it says <code>ship</code>.</p>
+not build it watches it, for up to five rounds; after the fifth, the film is delivered with any
+open problem listed.</p>
 <p><strong>When to use it.</strong> You want a demo, launch or explainer video for a product with a website,
 and you want to be able to rebuild it after the site changes. Blank brief fields (length,
 format, music, voice) are decided by the agent and logged with their reasons.</p>

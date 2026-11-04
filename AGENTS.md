@@ -103,8 +103,8 @@ bash tools/scripts/statechart-runner.test   # adapted statechart runner with fak
 - Skills are Markdown-first. Shipped executables are `bash` + `set -euo pipefail`, `bash -n`
   clean when written in Bash. Python helpers use Python 3.11+ and the standard library;
   each helper states its own floor and that claim must match the syntax it actually uses.
-  Executable skills are `autoreview`, `babysit-pr`, `mneves-fable-orchestrator`, `mneves-ship-deploy`,
-  `mneves-teach-back-srs`, `security-audit`, and `mneves-render`; `security-audit`'s executables
+  Executable skills are `autoreview`, `babysit-pr`, `mneves-fable-orchestrator`, `mneves-motion-film`,
+  `mneves-ship-deploy`, `mneves-teach-back-srs`, `security-audit`, and `mneves-render`; `security-audit`'s executables
   are dependency-free Node validators that need Node.js, not Python. The repository copy is
   canonical and each ships its relevant verification procedure
   (`codex-lane.test` runs against a fake `codex` on `PATH`, so it never spends quota).

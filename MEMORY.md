@@ -14,6 +14,13 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.45.0** (2026-11-04): PR #40 (pstack 0.15.36 sync, `docs/skill-ledger.md`, bounded
+  workflows) and PR #39 (Biome 2.6.4) in one gated tree; PR #38 closed as superseded by #40; the
+  1.44.0 and PR #37 binding runs folded into the ledger (cursor `c3dc2bb`); the documentation and
+  hardening items those gates left (E-1/D-B9, D-B6, D-B8, D-B1r/D-B2r, D-B10 to D-B14, D-M1;
+  pr-wait L-9/H-A7, motion-film H-M2 to H-M6) done; `plans/004` names the closeout script as the
+  next step. Needs-validation items C-A6, C-A2, L-6, B-03 and AI-1 still wait for the owner's
+  authorization of a disposable public repository or live provider calls.
 - **1.44.0** (2026-10-30): pr-wait fails closed on malformed or untyped check entries and
   reports a failure seen on the tenth incomplete read; babysit-pr docs complete the exit list;
   the orchestrator's reviewer seat moves to the builder-class models, crossed (owner rule
@@ -22,7 +29,8 @@ measure whether a *target* codebase is ready for agents.
   tag `v1.43.0`): five PR workflow skills adapted from tstack (`full-stop`, `takeover`,
   `modernize`, `babysit-pr` with `pr-wait`, `leaving-pr-comments`), council review mode with pi
   in place of Cursor, proof as evidence observed in the session, and staging turned off after
-  production (`cf.env-triggers` FAIL, readiness CST-03). Seven gate candidates; each confirmed
+  production (`cf.env-triggers` FAIL, readiness CST-03). Six gate candidates (five drafts superseded
+  before binding, then `3937725`); each confirmed
   Medium was fixed first at the owner's choice. The last, `3937725` (tree `63881a5`, equal to
   the merge's), is WAIVED with no confirmed finding and independent acceptance PASS; readiness is
   `ready` with 0 open blockers. Ten owner waivers run to 2027-01-25T23:59:59Z (SEC-15, SEC-17,
