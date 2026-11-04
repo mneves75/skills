@@ -128,6 +128,8 @@ def problems(record):
             out.append(f"verdict is {record.get('verdict')!r}")
         if str(record.get("open_blockers", 0)) != "0":
             out.append(f"{record.get('open_blockers')} open blocker(s)")
+        if record.get("independent_acceptance") != "pass":  # readiness step 5, the verifier's own check
+            out.append(f"independent acceptance is {record.get('independent_acceptance')!r}")
     waivers = record.get("waivers")
     if waivers is None:
         waivers = []
@@ -190,6 +192,11 @@ sec_verdict=$(jget "$security" verdict); sec_accept=$(jget "$security" independe
 ready_verdict=$(jget "$readiness" verdict); ready_open=$(jget "$readiness" open_blockers)
 gated_commit=$(jget "$security" commit)
 sec_waivers=$(jget "$security" waivers); ready_waivers=$(jget "$readiness" waivers)
+# The Readiness line names only the waivers the readiness gate adds; the security ids it imports are on the Security line.
+ready_only=""
+for id in $ready_waivers; do
+  case " $sec_waivers " in *" $id "*) ;; *) ready_only="${ready_only:+$ready_only }$id" ;; esac
+done
 # The tag's Waivers line names every waiver with its own owner and expiry, grouped; a PASS with none prints no line.
 waivers_line=$(python3 -I - "$security" "$readiness" <<'PY'
 import json, sys
@@ -197,7 +204,10 @@ groups = {}
 for path in sys.argv[1:]:
     for waiver in json.load(open(path, encoding="utf-8")).get("waivers") or []:
         key = (str(waiver.get("owner")), str(waiver.get("expires")))
-        groups.setdefault(key, []).append(str(waiver.get("id") or waiver.get("control")))
+        ids = groups.setdefault(key, [])
+        name = str(waiver.get("id") or waiver.get("control"))
+        if name not in ids:  # the readiness record repeats the security ids it imports
+            ids.append(name)
 print("; ".join(f"{owner} to {expires} ({', '.join(ids)})" for (owner, expires), ids in groups.items()))
 PY
 )
@@ -229,7 +239,7 @@ tag_message() {
   # $1 merge commit, $2 CI run, $3 Pages run
   printf 'v%s\n\n%s\n\n' "$version" "$summary"
   printf 'Security gate: %s' "$(tr a-z A-Z <<<"$sec_verdict")"; [ -n "$sec_waivers" ] && printf ' (%s)' "${sec_waivers// /, }"; printf '\n'
-  printf 'Readiness gate: %s' "$ready_verdict"; [ -n "$ready_waivers" ] && printf ' (waived: %s)' "${ready_waivers// /, }"; printf '\n'
+  printf 'Readiness gate: %s' "$ready_verdict"; [ -n "$ready_only" ] && printf ' (waived: %s)' "${ready_only// /, }"; printf '\n'
   [ -n "$waivers_line" ] && printf 'Waivers: %s\n' "$waivers_line"
   printf 'Independent acceptance: %s\n' "$(tr a-z A-Z <<<"$sec_accept")"
   printf 'Gated tree: %s\n' "$tree"
