@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 from fractions import Fraction
@@ -41,10 +42,17 @@ def frame_times(path: str) -> tuple[Fraction, list[int]]:
 
 
 def faststart(path: str) -> bool:
-    """True when the top-level moov box comes before mdat."""
+    """True when the top-level moov box comes before mdat.
+
+    False as well when the walk cannot go on: a box shorter than its own header
+    (under 8 bytes, or under 16 with a 64-bit size; size 0 runs to the end of
+    the file) or the end of the file. Each box moves the walk forward, so it ends.
+    """
     with open(path, "rb") as handle:
+        length = os.fstat(handle.fileno()).st_size
         offset = 0
-        while True:
+        while offset + 8 <= length:
+            handle.seek(offset)
             header = handle.read(8)
             if len(header) < 8:
                 return False
@@ -54,14 +62,16 @@ def faststart(path: str) -> bool:
                 return True
             if kind == b"mdat":
                 return False
+            header_size = 8
             if size == 1:
-                size = int.from_bytes(handle.read(8), "big")
-                handle.seek(offset + size)
-            elif size == 0:
+                large = handle.read(8)
+                if len(large) < 8:
+                    return False
+                size, header_size = int.from_bytes(large, "big"), 16
+            if size < header_size:
                 return False
-            else:
-                handle.seek(offset + size)
             offset += size
+        return False
 
 
 def main() -> int:

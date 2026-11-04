@@ -45,6 +45,14 @@ regenerated collection, and its hand-edited collection conflicts with the regene
   pages (D-B14), and the ESLint rule is described as a guard, not proof of rendering (D-M1).
 - **Orchestrator Defaults block** re-verified against the vendor model lists on 2026-11-04 (ids
   unchanged).
+- **Hardening items the same gates left**, each with a test that fails on the previous code: `pr-wait`
+  treats a jobs-API answer other than success or HTTP 404 (403, 422, a network error) as an
+  incomplete read that excuses nothing, instead of classifying the check as failed (L-9), and
+  rejects a status context without a `context` string (H-A7); `mneves-motion-film` runs `npx --no`
+  so a missing eslint or remotion fails instead of being downloaded (H-M2), accepts only http(s)
+  URLs and passes them to Chrome after `--` (H-M3), bounds the MP4 box walk by the file length and
+  the box header (H-M4), and limits cue kinds to the three `music.py` renders before building a file
+  name (H-M5); every `actions/checkout` step in CI sets `persist-credentials: false` (H-M6).
 - **`tools/`**: Biome 2.3.11 → 2.6.4 (PR #39, Dependabot); lint, typecheck and the 102 tests pass on
   the merged tree.
 - **`full-stop`** runs only when invoked by name (`/full-stop`, "run full-stop", "use the full-stop skill"); a message that merely ends in "Full stop." is ordinary punctuation. The grant no longer covers force-push, rebasing pushed commits or other history rewrites: conflicts are resolved by merging the default branch in. Project and user rules that say to ask before a test method stay in force. Existing auto-merge or merge-queue state is reported and never changed without the user, and the skill does not push to a PR that could merge on that push.

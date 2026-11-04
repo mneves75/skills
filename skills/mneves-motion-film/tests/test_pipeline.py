@@ -6,8 +6,9 @@ usage: python3 tests/test_pipeline.py
 Synthesizes the music for a 4 s timing, normalises it, muxes it under a
 synthetic ffmpeg picture and requires every check to pass; then plants one
 violation per check (audio two frames late, yuv444p, a misquoted line, a line
-never shown, a low-contrast pair, a seventh colour, a cut off the beat) and
-requires each to fail. Needs python3 and ffmpeg/ffprobe on PATH.
+never shown, a low-contrast pair, a seventh colour, a cut off the beat, a cue
+kind outside swish/click/hit, malformed MP4 boxes, a non-http(s) capture URL)
+and requires each to fail. Needs python3 and ffmpeg/ffprobe on PATH.
 """
 
 from __future__ import annotations
@@ -96,6 +97,38 @@ def main() -> int:
         no_click = {**TIMING, "cues": [c for c in TIMING["cues"] if c["kind"] != "click"]}
         run("music without the click", PY + [str(SCRIPTS / "music.py"), str(write_json(silent / "timing.json", no_click)), str(silent)], True)
         run("sync refuses a missing click", PY + [str(SCRIPTS / "check_sync.py"), str(timing), str(root / "film.mp4"), "--sfx", str(silent)], False)
+        # A cue kind names a stem file: one outside music.py's kinds is refused by name, before any path is built.
+        stray = {**TIMING, "cues": [*TIMING["cues"], {"frame": 180, "kind": "../../x"}]}
+        sync = subprocess.run(PY + [str(SCRIPTS / "check_sync.py"), str(write_json(root / "stray.json", stray)), str(root / "film.mp4"),
+                                    "--sfx", str(root)], capture_output=True, text=True, timeout=300)
+        said = sync.stdout + sync.stderr
+        ok = sync.returncode != 0 and "unknown cue kind '../../x'" in said and "Traceback" not in said
+        print(f"{'PASS' if ok else 'FAIL'} sync refuses a cue kind outside swish, click, hit: exit {sync.returncode}")
+        if not ok:
+            failures.append("sync refuses a cue kind outside swish, click, hit")
+            print(said[-800:])
+        # Malformed top-level boxes end the faststart walk: a 64-bit size of 0 used to loop forever,
+        # and a size below the header's own length used to walk into the next bytes and find moov there.
+        boxes = {
+            "largesize 0": (1).to_bytes(4, "big") + b"ftyp" + bytes(8) + (8).to_bytes(4, "big") + b"moov",
+            "size 4": (4).to_bytes(4, "big") + (8).to_bytes(4, "big") + b"moov",
+            "largesize 12": (1).to_bytes(4, "big") + b"free" + (12).to_bytes(8, "big") + b"moov",
+        }
+        for label, data in boxes.items():
+            (root / f"box-{label}.mp4").write_bytes(data)
+        walk = ("import sys; sys.path.insert(0, sys.argv[1]); import check_media; "
+                "print(' '.join(str(check_media.faststart(p)) for p in sys.argv[2:]))")
+        cases = [*(str(root / f"box-{label}.mp4") for label in boxes), str(root / "film.mp4"), str(root / "picture.mp4")]
+        try:
+            walked = subprocess.run(PY + ["-c", walk, str(SCRIPTS), *cases], capture_output=True, text=True, timeout=20)
+            seen = walked.stdout.split()
+        except subprocess.TimeoutExpired:
+            seen = ["timeout"]
+        # film.mp4 was muxed with +faststart, picture.mp4 without: the controls keep their answers.
+        ok = seen == ["False"] * len(boxes) + ["True", "False"]
+        print(f"{'PASS' if ok else 'FAIL'} faststart ends on malformed boxes ({', '.join(boxes)}; controls True, False): {' '.join(seen)}")
+        if not ok:
+            failures.append("faststart ends on malformed boxes")
         # A kick expected on frame 0 over silence: the strongest of nothing is not an attack.
         only_kick = {"fps": 60, "bpm": 120, "scenes": [{"id": "a", "from": 0, "to": 240}], "cues": [],
                      "music": {"sections": [{"from": 0, "to": 1, "voices": ["kick"]}]}}
@@ -177,6 +210,27 @@ def main() -> int:
         if not ok:
             failures.append("capture reports Chrome's stderr escaped")
             print(repr(said[-600:]))
+        # capture.py takes only http(s), and hands Chrome the URL after "--" so it can never read as a switch.
+        record = root / "chrome-args.txt"
+        recorder = root / "chrome-recorder"
+        recorder.write_text(f"#!/bin/sh\nprintf '%s\\n' \"$@\" > '{record}'\nexit 1\n", encoding="utf-8")
+        recorder.chmod(0o755)
+        for url in ("file:///etc/passwd", "javascript:alert(1)", "https:///no-host"):
+            record.unlink(missing_ok=True)
+            shot = subprocess.run(PY + [str(SCRIPTS / "capture.py"), url, str(root / "shots"), "--chrome", str(recorder)],
+                                  capture_output=True, text=True, timeout=60)
+            ok = shot.returncode == 2 and "http or https" in shot.stderr and not record.exists()
+            print(f"{'PASS' if ok else 'FAIL'} capture refuses {url}: exit {shot.returncode}")
+            if not ok:
+                failures.append(f"capture refuses {url}")
+                print(shot.stdout[-400:], shot.stderr[-400:], sep="\n")
+        subprocess.run(PY + [str(SCRIPTS / "capture.py"), "https://example.test/", str(root / "shots"), "--chrome", str(recorder)],
+                       capture_output=True, text=True, timeout=60)
+        passed = record.read_text(encoding="utf-8").splitlines() if record.exists() else []
+        ok = passed[-2:] == ["--", "https://example.test/"]
+        print(f"{'PASS' if ok else 'FAIL'} capture passes the URL after --: {passed[-2:]}")
+        if not ok:
+            failures.append("capture passes the URL after --")
 
         run("contrast", PY + [str(SCRIPTS / "check_contrast.py"), str(write_json(root / "theme.json", THEME))], True)
         low = json.loads(json.dumps(THEME))
@@ -188,7 +242,9 @@ def main() -> int:
         run("contrast refuses a seventh colour", PY + [str(SCRIPTS / "check_contrast.py"), str(write_json(root / "many.json", many))], False)
 
         # build.py runs the project's ESLint (react/jsx-no-literals) before it renders, with a stub
-        # npx: a failing lint stops the build there; a passing one lets it go on to the music.
+        # npx: a failing lint stops the build there, naming what to install; a passing one lets it go
+        # on to the music and the render. Every npx call carries --no, so a missing package fails
+        # instead of being downloaded.
         film = root / "build-film"
         film.mkdir()
         page.write_text("<!doctype html><title>t</title><p>Preview first. Approve once.</p>\n", encoding="utf-8")
@@ -203,15 +259,22 @@ def main() -> int:
         for lint_exit, name in ((1, "build stops at a failing JSX lint"), (0, "build goes past a passing JSX lint")):
             stub = root / f"bin-{lint_exit}"
             stub.mkdir()
-            (stub / "npx").write_text(f'#!/bin/sh\n[ "$1" = eslint ] && exit {lint_exit}\nexit 0\n', encoding="utf-8")
+            calls = stub / "calls.txt"
+            (stub / "npx").write_text(
+                f'#!/bin/sh\necho "$*" >> \'{calls}\'\n[ "$1" = --no ] && shift\n[ "$1" = eslint ] && exit {lint_exit}\nexit 0\n',
+                encoding="utf-8")
             (stub / "npx").chmod(0o755)
             env = {**os.environ, "PATH": f"{stub}:{os.environ['PATH']}"}
             result = subprocess.run(build, capture_output=True, text=True, timeout=600, env=env)
             said = result.stdout + result.stderr
+            npx = [line.split()[:2] for line in calls.read_text(encoding="utf-8").splitlines()] if calls.exists() else []
             stopped = "jsx literals failed" in said
             went_on = "==> music" in said
-            ok = (stopped and not went_on) if lint_exit else (went_on and not stopped)
-            print(f"{'PASS' if ok else 'FAIL'} {name}: exit {result.returncode}")
+            if lint_exit:
+                ok = stopped and not went_on and "install eslint" in said and npx == [["--no", "eslint"]]
+            else:
+                ok = went_on and not stopped and npx == [["--no", "eslint"], ["--no", "remotion"]]
+            print(f"{'PASS' if ok else 'FAIL'} {name}: exit {result.returncode}, npx calls {npx}")
             if not ok:
                 failures.append(name)
                 print(said[-1500:])

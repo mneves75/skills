@@ -26,11 +26,11 @@ from pathlib import Path
 SCRIPTS = Path(__file__).resolve().parent
 
 
-def step(name: str, args: list[str]) -> None:
+def step(name: str, args: list[str], hint: str = "") -> None:
     print(f"==> {name}", flush=True)
     result = subprocess.run(args)
     if result.returncode != 0:
-        raise SystemExit(f"build.py: {name} failed (exit {result.returncode})")
+        raise SystemExit(f"build.py: {name} failed (exit {result.returncode}){'; ' + hint if hint else ''}")
 
 
 def main() -> int:
@@ -52,16 +52,17 @@ def main() -> int:
 
     step("facts fresh", py + [str(SCRIPTS / "facts.py"), "--check", str(film / "facts.json"), options.site, *options.page])
     step("facts trace", py + [str(SCRIPTS / "check_facts.py"), str(film / "facts.json"), str(film / "copy.json"), options.src])
-    step("jsx literals", ["npx", "eslint", options.src])
+    # npx --no runs only what the project installed; a missing package fails instead of being downloaded.
+    step("jsx literals", ["npx", "--no", "eslint", options.src], "if eslint is missing, install eslint in this project")
     step("text contrast", py + [str(SCRIPTS / "check_contrast.py"), str(film / "theme.json")])
     step("music", py + [str(SCRIPTS / "music.py"), str(film / "timing.json"), str(out)])
     step("loudness: mix", py + [str(SCRIPTS / "loudness.py"), str(out / "mix.wav"), str(out / "mix-norm.wav")])
     step("loudness: music", py + [str(SCRIPTS / "loudness.py"), str(out / "music.wav"), str(out / "music-norm.wav")])
     (out / "music-norm.wav").replace(out / "music.wav")
-    render = ["npx", "remotion", "render", options.composition, str(out / "picture.mp4"), "--muted", "--log=error", "--codec=h264", "--image-format=png", "--pixel-format=yuv420p", "--crf=18"]
+    render = ["npx", "--no", "remotion", "render", options.composition, str(out / "picture.mp4"), "--muted", "--log=error", "--codec=h264", "--image-format=png", "--pixel-format=yuv420p", "--crf=18"]
     if options.draft:
         render.append("--scale=0.5")
-    step("render", render)
+    step("render", render, "if remotion is missing, install @remotion/cli in this project")
     step("mux", [
         "ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(out / "picture.mp4"), "-i", str(out / "mix-norm.wav"),
         "-map", "0:v:0", "-map", "1:a:0", "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-ar", "48000",

@@ -11,7 +11,7 @@ Runs headless Chrome three times with a throwaway profile, at device scale 2:
   site-mobile@2x.png  390x844 viewport
 These are references for brand, hierarchy and copy, never footage: the film
 rebuilds every screen as real, animated UI. Exits 1 when Chrome fails or a
-screenshot is missing.
+screenshot is missing, 2 when the url is not http(s).
 """
 
 from __future__ import annotations
@@ -22,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+from urllib.parse import urlsplit
 
 CHROME_CANDIDATES = (
     "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
@@ -46,6 +47,10 @@ def main() -> int:
     parser.add_argument("--chrome")
     parser.add_argument("--full-height", type=int, default=8000)
     options = parser.parse_args()
+    parts = urlsplit(options.url)
+    if parts.scheme.lower() not in ("http", "https") or not parts.netloc:
+        print(f"capture.py: the url must be http or https with a host, not {options.url!r}", file=sys.stderr)
+        return 2
     chrome = find_chrome(options.chrome)
     out = Path(options.out_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -58,7 +63,8 @@ def main() -> int:
                 chrome, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--no-first-run",
                 "--no-default-browser-check", f"--user-data-dir={profile}", "--force-device-scale-factor=2",
                 f"--window-size={width},{height or options.full_height}", f"--screenshot={target.resolve()}",
-                "--virtual-time-budget=4000", options.url,
+                # "--" ends Chrome's switches, so the URL can never be read as one.
+                "--virtual-time-budget=4000", "--", options.url,
             ]
             result = subprocess.run(args, capture_output=True, text=True, timeout=120)
             # A tall window can trip Chrome's teardown watchdog after the file is written, so
