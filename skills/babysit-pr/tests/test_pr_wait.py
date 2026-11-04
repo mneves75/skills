@@ -53,12 +53,25 @@ elif args[:2] == ["api", "graphql"]:
         pr = {"commits": {"nodes": [{"commit": commit}]}}
         print(json.dumps({"data": {"repository": {"pullRequest": pr}}}))
     else:
-        print(json.dumps({"data": {"viewer": {"login": "me"}, "repository": {"pullRequest": scenario["pr"]}}}))
-elif args[:1] == ["api"] and "/rules/branches/" in args[1] and scenario.get("required"):
-    print("\n".join(scenario["required"]))
+        # GitHub returns the last 100 threads, and page information only when asked for it.
+        pr = scenario["pr"]
+        threads = pr["reviewThreads"]["nodes"]
+        page = {"pageInfo": {"hasPreviousPage": len(threads) > 100}} if "hasPreviousPage" in query else {}
+        if "thread_page_info" in scenario:  # "absent" drops it; any other value is returned as is
+            page = {} if scenario["thread_page_info"] == "absent" else {"pageInfo": scenario["thread_page_info"]}
+        pr = {**pr, "reviewThreads": {"nodes": threads[-100:], **page}}
+        print(json.dumps({"data": {"viewer": {"login": "me"}, "repository": {"pullRequest": pr}}}))
 elif args[:1] == ["api"] and ("/rules/branches/" in args[1] or "/protection/" in args[1]):
-    print("gh: Not Found (HTTP 404)", file=sys.stderr)
-    sys.exit(1)
+    # Rulesets answer from "required", classic protection from "protection"; neither set is a 404.
+    source = "rules" if "/rules/branches/" in args[1] else "protection"
+    if scenario.get(f"{source}_error"):
+        print(scenario[f"{source}_error"], file=sys.stderr)
+        sys.exit(1)
+    names = scenario.get("required" if source == "rules" else "protection")
+    if not names:
+        print("gh: Not Found (HTTP 404)", file=sys.stderr)
+        sys.exit(1)
+    print("\n".join(names))
 elif args[:1] == ["api"] and "/actions/jobs/" in args[1]:
     run_id = int(args[1].rsplit("/", 1)[1])
     if not any(n.get("databaseId") == run_id and n.get("isJob") for n in scenario.get("rollup", [])):
@@ -103,6 +116,12 @@ def filler(count: int) -> list[dict]:
     return [check_run(f"lint-{i}", "SUCCESS") for i in range(count)]
 
 
+def thread(n: int, resolved: bool = True) -> dict:
+    return {"isResolved": resolved, "path": f"src/f{n}.py", "line": n, "comments": {"nodes": [
+        {"id": f"t{n}", "url": f"https://github.com/o/r/pull/7#t{n}", "body": "please rename",
+         "author": {"login": "alice", "__typename": "User"}}]}}
+
+
 LOCKED = "The job was not started because your account is locked due to a billing issue."
 SPENDING = ("The job was not started because recent account payments have failed or your spending "
             "limit needs to be increased. Please check the 'Billing &amp; plans' section in your settings")
@@ -144,6 +163,43 @@ class PrWaitTest(unittest.TestCase):
         proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         self.assertIn(f"green on {HEAD[:7]}", proc.stdout)
+        # Both protection APIs answered 404: no protection, so every CI check gates.
+        self.assertIn("required checks: none set", proc.stderr)
+
+    def test_required_checks_read_refused_stops_without_green(self) -> None:
+        for source in ("rules", "protection"):
+            with self.subTest(source=source):
+                self.scenario.write_text(json.dumps({
+                    "pr": pull_request(), "checks": [check("build", "pass")],
+                    f"{source}_error": "gh: Resource not accessible by integration (HTTP 403)"}))
+                proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+                self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+                self.assertIn("pr-wait stopped: could not read required checks", proc.stdout)
+                self.assertNotIn("green on", proc.stdout)
+
+    def test_one_required_check_source_failing_is_not_a_partial_answer(self) -> None:
+        # Rulesets name build; classic protection, which may require more, refuses the read.
+        self.scenario.write_text(json.dumps({
+            "pr": pull_request(), "checks": [check("build", "pass")], "required": ["build"],
+            "protection_error": "gh: Must have admin rights to Repository. (HTTP 403)"}))
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn("pr-wait stopped: could not read required checks", proc.stdout)
+        self.assertNotIn("green on", proc.stdout)
+
+    def test_required_checks_recover_after_github_was_unreachable(self) -> None:
+        # Poll 1: the rules API stays down through every retry. Then it names deploy, which
+        # has not started, so green waits for it instead of passing on lint alone.
+        down = {"checks": [check("lint", "pass")], "rules_error": "gh: HTTP 502: Bad Gateway"}
+        up = {"checks": [check("lint", "pass")], "required": ["deploy"]}
+        done = {"checks": [check("lint", "pass"), check("deploy", "pass")], "required": ["deploy"]}
+        self.write_stages(down, up, up, done)
+        proc = subprocess.run(
+            [sys.executable, str(SCRIPT), "7", "--repo", "o/r", "--until", "green", "--interval", "5"],
+            env=self.env, capture_output=True, text=True, timeout=150)  # ~30 s of gh retries, then five polls
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn(f"green on {HEAD[:7]}: 2 pass; required 1/1 green", proc.stdout)
+        self.assertIn("poll failed (1/10): could not read required checks", proc.stderr)
 
     def test_code_failure_exits_one(self) -> None:
         self.write([check("build", "fail"), check("lint", "pass")], [check_run("build", "FAILURE", "Process completed with exit code 1.")], 1)
@@ -370,6 +426,53 @@ class PrWaitTest(unittest.TestCase):
         proc = self.run_wait("7", "--repo", "o/r", "--until", "ready", "--interval", "5")
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         self.assertIn(f"ready on {HEAD[:7]}", proc.stdout)
+
+    def write_reviewed(self, threads: list[dict], **scenario: object) -> None:
+        """Checks green and Greptile's own check done, so only the threads decide ready."""
+        pr = pull_request()
+        pr["reviewThreads"]["nodes"] = threads
+        self.scenario.write_text(json.dumps({
+            "pr": pr, "checks": [check("build", "pass"), check("Greptile Review", "pass")],
+            "rollup": [check_run("build", "SUCCESS"), check_run("Greptile Review", "SUCCESS", app="greptile-apps")],
+            **scenario}))
+
+    def test_exactly_one_hundred_resolved_threads_are_ready(self) -> None:
+        self.write_reviewed([thread(n) for n in range(100)])
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "ready", "--interval", "5")
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn(f"ready on {HEAD[:7]}", proc.stdout)
+
+    def test_unresolved_thread_older_than_the_last_hundred_is_never_ready(self) -> None:
+        self.write_reviewed([thread(0, resolved=False), *(thread(n) for n in range(1, 101))])
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "ready", "--interval", "5")
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn(f"pr-wait stopped: could not read every review thread on {HEAD[:7]}", proc.stdout)
+        self.assertNotIn("ready on", proc.stdout)
+
+    def test_missing_or_malformed_thread_page_info_is_never_ready(self) -> None:
+        for page_info in ("absent", None, {}, {"hasPreviousPage": None}, {"hasPreviousPage": "false"},
+                          {"hasPreviousPage": 0}, [{"hasPreviousPage": False}]):
+            with self.subTest(page_info=page_info):
+                self.write_reviewed([thread(1)], thread_page_info=page_info)
+                proc = self.run_wait("7", "--repo", "o/r", "--until", "ready", "--interval", "5")
+                self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+                self.assertIn("could not read every review thread", proc.stdout)
+                self.assertNotIn("ready on", proc.stdout)
+                self.assertNotIn("Traceback", proc.stderr)
+
+    def test_visible_unresolved_thread_blocks_ready(self) -> None:
+        self.write_reviewed([thread(1), thread(2, resolved=False)])
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "ready", "--interval", "5")
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn(f"blocked by 1 unresolved threads on {HEAD[:7]}: https://github.com/o/r/pull/7#t2", proc.stdout)
+        self.assertNotIn("ready on", proc.stdout)
+
+    def test_green_is_about_checks_not_threads(self) -> None:
+        self.write_reviewed([thread(0, resolved=False), *(thread(n) for n in range(1, 101))])
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn(f"green on {HEAD[:7]}", proc.stdout)
+        self.assertIn("0 unresolved threads (not every thread read)", proc.stdout)
 
     def test_billing_text_printed_by_a_job_that_ran_is_a_failure(self) -> None:
         # A job that ran can print any annotation (::error::); GitHub's refusal runs no step.

@@ -1,7 +1,7 @@
 # Map: adopt what tstack is worth
 
 Type: wayfinder:map
-Status: built; PR [feat: 1.43.0 tstack adoption](https://github.com/mneves75/skills/pull/30) awaits review and the owner's merge
+Status: shipped; PR [feat: 1.43.0 tstack adoption](https://github.com/mneves75/skills/pull/30) merged as `f7f3958` on 2026-10-29
 
 ## Destination
 
@@ -37,6 +37,33 @@ decisions are in [spec.md](spec.md).
   skills that lacked it, staging off in `mneves-ship-deploy` with readiness control CST-03, and
   Codex coding seats at reasoning high on the owner's word. Shipped as 1.43.0 in
   [CHANGELOG.md](../../../CHANGELOG.md).
+
+## Review, 2026-11-04
+
+Upstream HEAD is still `1085050f3baed1ac724caa4a8166145fb2ac88af`, so there is no new upstream
+content. A snapshot of that revision has the nine skills below; each keeps the disposition of
+release plan `plans/004-tstack-review-release.md`, and the fold-ins are credited in the named
+skills' provenance sections:
+
+| Upstream skill | Disposition |
+|---|---|
+| `full-stop` | Kept as an adaptation, invoked by name only, never merges |
+| `full-send` | Kept folded into `full-stop` (proof, merge gate, asking rules); no merging skill |
+| `sol-loop` | Kept folded into `full-stop`'s bounded review loop; `autoreview` and `council` cover independent review |
+| `file-pr` | Kept folded into the PR description rules of `full-stop` and `takeover` |
+| `babysit-pr` | Kept; `pr-wait` fixed for two incomplete reads inherited from upstream (below) |
+| `takeover` | Kept, with author credit, handoff verification and sibling fallbacks |
+| `modernize` | Kept, with the relevance verdict, observed-head lease and authorship controls |
+| `leaving-pr-comments` | Kept, with attribution and truthful-evidence rules |
+| `council` | Kept as the bounded advisory workflow with explicit missing-member results |
+
+No skill was added. The `pr-wait` fixes, each proved by fake-`gh` tests that fail on the
+previous helper, whose code for both paths matches upstream, and pass after the fix:
+
+- A required-checks read that fails with anything but 404 no longer counts as "none required",
+  which let `green` pass without a required check that had not started yet.
+- `ready` asked only for the last 100 review threads, so an older unresolved thread could be
+  missed. It now asks whether older threads exist and stops with exit 1 unless GitHub says no.
 
 ## Not yet specified
 
