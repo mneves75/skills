@@ -96,7 +96,7 @@ JSON
 {"schema":1,"unit":".","target":"production","commit":"$head","tree":"$tree","verdict":"waived","open_blockers":0,"blockers":"","independent_acceptance":"pass","created_at":"2026-11-04T00:00:00Z","waivers":[{"id":"SEC-15","owner":"@owner","reason":"r","expires":"$future"},{"id":"CMP-06","owner":"@owner","reason":"r","expires":"$future"}]}
 JSON
   cat > "$tmp/work/.scratch/readiness/$head/production.json" <<JSON
-{"schema":1,"unit":".","target":"production","catalog":3,"commit":"$head","tree":"$tree","verdict":"ready","open_blockers":0,"independent_acceptance":"pass","created_at":"2026-11-04T00:00:00Z","valid_until":"$soon","waivers":[{"id":"DEL-04","owner":"@owner","expires":"$future"}]}
+{"schema":1,"unit":".","target":"production","catalog":3,"commit":"$head","tree":"$tree","verdict":"ready","open_blockers":0,"independent_acceptance":"pass","created_at":"2026-11-04T00:00:00Z","valid_until":"$soon","waivers":[{"control":"DEL-04","owner":"@owner","reason":"r","expires":"$future"}]}
 JSON
   # The fake site serves the release bytes.
   mkdir -p "$FAKE_WEB"; echo "<h1>new</h1>" > "$FAKE_WEB/index.html"; echo "<p>guide</p>" > "$FAKE_WEB/howto.html"
@@ -230,7 +230,7 @@ else bad "huge changelog (exit $code): $(tail -3 <<<"$out")"; fi
 # 15. A readiness record in the house shape (no `tree`, waivers keyed `control`) is found by its commit and read.
 make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" <<'PY'
 import json, sys
-p = sys.argv[1]; d = json.load(open(p)); d.pop("tree"); d["waivers"] = [{"control": "DEL-04", "owner": "@owner", "expires": d["waivers"][0]["expires"]}]; json.dump(d, open(p, "w"))
+p = sys.argv[1]; d = json.load(open(p)); d.pop("tree"); d["waivers"] = [{"control": "DEL-04", "owner": "@owner", "reason": "r", "expires": d["waivers"][0]["expires"]}]; json.dump(d, open(p, "w"))
 PY
 out=$(run_deploy 7 --dry-run) && code=0 || code=$?
 if [ "$code" -eq 0 ] && grep -q 'Readiness gate: ready (waived: DEL-04)' <<<"$out"; then
@@ -285,7 +285,7 @@ else bad "unserved empty file (exit $code): $(tail -3 <<<"$out")"; fi
 make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" "$future" <<'PY'
 import json, sys, datetime
 p = sys.argv[1]; d = json.load(open(p))
-d["waivers"] = [{"control": "DEL-04", "owner": "@owner", "expires": sys.argv[2]}, {"control": "OPS-04", "owner": "@second", "expires": "2099-01-01T00:00:00Z"}]
+d["waivers"] = [{"control": "DEL-04", "owner": "@owner", "reason": "r", "expires": sys.argv[2]}, {"control": "OPS-04", "owner": "@second", "reason": "r", "expires": "2099-01-01T00:00:00Z"}]
 json.dump(d, open(p, "w"))
 PY
 out=$(run_deploy 7 --dry-run) && code=0 || code=$?
@@ -309,7 +309,7 @@ mv "$tmp/work/.scratch/readiness/$head" "$tmp/work/.scratch/readiness/zzzz-curre
 mkdir -p "$tmp/work/.scratch/readiness/aaaa-old"
 python3 -I - "$tmp/work/.scratch/readiness/zzzz-current/production.json" "$tmp/work/.scratch/readiness/aaaa-old/production.json" "$past" "$tree" <<'PY'
 import json, sys
-d = json.load(open(sys.argv[1])); d["tree"] = sys.argv[4]; d["commit"] = "0" * 40; d["created_at"] = "2026-11-04T00:00:00Z"; json.dump(d, open(sys.argv[1], "w"))
+d = json.load(open(sys.argv[1])); d["tree"] = sys.argv[4]; d["created_at"] = "2026-11-04T00:00:00Z"; json.dump(d, open(sys.argv[1], "w"))
 old = dict(d); old["created_at"] = "2026-01-01T00:00:00Z"; old["valid_until"] = sys.argv[3]; json.dump(old, open(sys.argv[2], "w"))
 PY
 out=$(run_deploy 7 --dry-run) && code=0 || code=$?
@@ -323,7 +323,7 @@ mkdir -p "$tmp/work/.scratch/readiness/offset"
 python3 -I - "$tmp/work/.scratch/readiness/$head/production.json" "$tmp/work/.scratch/readiness/offset/production.json" "$tree" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1])); d["created_at"] = "2026-11-04T12:00:00Z"; json.dump(d, open(sys.argv[1], "w"))
-later = dict(d); later["commit"] = "2" * 40; later["tree"] = sys.argv[3]; later["created_at"] = "2026-11-04T10:00:00-03:00"; later["verdict"] = "not-ready"; later["open_blockers"] = 1
+later = dict(d); later["tree"] = sys.argv[3]; later["created_at"] = "2026-11-04T10:00:00-03:00"; later["verdict"] = "not-ready"; later["open_blockers"] = 1
 json.dump(later, open(sys.argv[2], "w"))
 PY
 out=$(run_deploy 7) && code=0 || code=$?
@@ -337,7 +337,7 @@ mkdir -p "$tmp/work/.scratch/readiness/reassessed"
 python3 -I - "$tmp/work/.scratch/readiness/$head/production.json" "$tmp/work/.scratch/readiness/reassessed/production.json" "$tree" <<'PY'
 import json, sys
 d = json.load(open(sys.argv[1])); d["created_at"] = "2026-11-04T00:00:00Z"; json.dump(d, open(sys.argv[1], "w"))
-newer = dict(d); newer["commit"] = "1" * 40; newer["tree"] = sys.argv[3]; newer["created_at"] = "2026-11-05T00:00:00Z"; newer["verdict"] = "not-ready"; newer["open_blockers"] = 1
+newer = dict(d); newer["tree"] = sys.argv[3]; newer["created_at"] = "2026-11-04T13:00:00Z"; newer["verdict"] = "not-ready"; newer["open_blockers"] = 1
 json.dump(newer, open(sys.argv[2], "w"))
 PY
 out=$(run_deploy 7) && code=0 || code=$?
@@ -380,7 +380,7 @@ else bad "readiness without acceptance (exit $code): $out"; fi
 make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" "$future" <<'PY'
 import json, sys
 p = sys.argv[1]; d = json.load(open(p))
-d["waivers"] = [{"control": c, "owner": "@owner", "expires": sys.argv[2]} for c in ("SEC-15", "CMP-06", "DEL-04")]
+d["waivers"] = [{"control": c, "owner": "@owner", "reason": "r", "expires": sys.argv[2]} for c in ("SEC-15", "CMP-06", "DEL-04")]
 json.dump(d, open(p, "w"))
 PY
 out=$(run_deploy 7 --dry-run) && code=0 || code=$?
@@ -424,7 +424,7 @@ else bad "repeated key (exit $code): $out"; fi
 make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" "$future" <<'PY'
 import json, sys
 p = sys.argv[1]; d = json.load(open(p))
-d["waivers"] = [{"control": "DEL-*", "owner": "@owner", "expires": sys.argv[2]}]
+d["waivers"] = [{"control": "DEL-*", "owner": "@owner", "reason": "r", "expires": sys.argv[2]}]
 json.dump(d, open(p, "w"))
 PY
 touch "$tmp/work/DEL-x"
@@ -455,7 +455,7 @@ import json, os, sys
 root, head, soon = sys.argv[1:4]
 older = json.load(open(os.path.join(root, head, "production.json")))
 os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
-older["commit"] = "older0000000000000000000000000000000000"; older["created_at"] = "2026-11-03T00:00:00Z"
+older["created_at"] = "2026-11-03T00:00:00Z"
 json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
 # The head's own record is newer, blocks (not-ready), and repeats a key.
 text = json.dumps({**older, "commit": head, "created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1})
@@ -490,7 +490,7 @@ import json, os, sys
 root, head = sys.argv[1:3]
 older = json.load(open(os.path.join(root, head, "production.json")))
 os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
-older["commit"] = "older0000000000000000000000000000000000"; older["created_at"] = "2026-11-03T00:00:00Z"
+older["created_at"] = "2026-11-03T00:00:00Z"
 json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
 open(os.path.join(root, head, "production.json"), "w").write('{"schema": 1, "verdict": "not-re')  # truncated write
 PY
@@ -505,7 +505,7 @@ import json, os, sys
 root, head = sys.argv[1:3]
 older = json.load(open(os.path.join(root, head, "production.json")))
 os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
-older["commit"] = "older0000000000000000000000000000000000"; older["created_at"] = "2026-11-03T00:00:00Z"
+older["created_at"] = "2026-11-03T00:00:00Z"
 json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
 blocking = {**older, "commit": head, "created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1}
 text = json.dumps(blocking).rstrip("}") + ', "created_at": "2026-11-01T00:00:00Z"}'  # repeated, last value older than the approval
@@ -522,7 +522,7 @@ import json, os, sys
 root, head = sys.argv[1:3]
 older = json.load(open(os.path.join(root, head, "production.json")))
 os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
-older["commit"] = "older0000000000000000000000000000000000"; older["created_at"] = "2026-11-03T00:00:00Z"
+older["created_at"] = "2026-11-03T00:00:00Z"
 json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
 blocking = {**older, "commit": head, "created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1}
 text = json.dumps(blocking).rstrip("}") + ', "tree": "0000000000000000000000000000000000000000"}'  # repeated: last value another tree
@@ -538,7 +538,7 @@ make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/
 import json, sys
 p, past, future = sys.argv[1:4]
 d = json.load(open(p))
-d["waivers"] = [{"control": "DEL-04", "owner": "@owner", "expires": past}]
+d["waivers"] = [{"control": "DEL-04", "owner": "@owner", "reason": "r", "expires": past}]
 text = json.dumps(d)
 text = text.replace('"expires": "%s"}' % past, '"expires": "%s", "expires": "%s"}' % (past, future))
 assert text.count('"expires"') == 2
@@ -555,7 +555,7 @@ import json, os, sys
 root, head = sys.argv[1:3]
 older = json.load(open(os.path.join(root, head, "production.json")))
 os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
-older["commit"] = "older0000000000000000000000000000000000"; older["created_at"] = "2026-11-03T00:00:00Z"
+older["created_at"] = "2026-11-03T00:00:00Z"
 json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
 blocking = {k: v for k, v in older.items() if k not in ("commit", "tree")}
 blocking.update({"created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1})
@@ -572,7 +572,7 @@ import json, os, sys
 root, head = sys.argv[1:3]
 older = json.load(open(os.path.join(root, head, "production.json")))
 os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
-older["commit"] = "older0000000000000000000000000000000000"; older["created_at"] = "2026-11-03T00:00:00Z"
+older["created_at"] = "2026-11-03T00:00:00Z"
 blocking = {**older, "commit": head, "created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1}
 older["__repeated_keys__"] = {}
 json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
@@ -594,6 +594,85 @@ out=$(run_deploy 7) && code=0 || code=$?
 if [ "$code" -eq 1 ] && grep -q "no production readiness record for tree" <<<"$out" && grep -q "other0000.*unreadable" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
   ok "a record that cannot be opened is named in the refusal"
 else bad "unopenable record (exit $code): $out"; fi
+
+# Every in-scope record must be well-formed, even when a newer passing assessment exists.
+for historical in contradictory blocked; do
+  make_repo; head=$(cat "$FAKE_STATE/head")
+  python3 -I - "$tmp/work/.scratch/security-gate/$head/production.json" "$historical" <<'PYCASE'
+import json, pathlib, sys
+p = pathlib.Path(sys.argv[1]); d = json.loads(p.read_text())
+d.update(created_at="2026-01-01T00:00:00Z", open_blockers=1, blockers="F-1")
+if sys.argv[2] == "blocked": d["verdict"] = "block"
+other = p.parent.parent / "historical"; other.mkdir(); (other / "production.json").write_text(json.dumps(d))
+PYCASE
+  out=$(run_deploy 7 --dry-run) && code=0 || code=$?
+  if [ "$historical" = contradictory ]; then
+    if [ "$code" -eq 1 ] && grep -q 'historical/production.json' <<<"$out" && grep -q 'contradict' <<<"$out"; then
+      ok "an older contradictory assessment is malformed and cannot be ignored"
+    else bad "older contradictory assessment (exit $code): $out"; fi
+  elif [ "$code" -eq 0 ]; then
+    ok "a valid historical blocking assessment does not prevent a newer passing assessment"
+  else bad "valid older block (exit $code): $out"; fi
+done
+
+# A shorthand blocking assessment must be scoped and refused, rather than silently skipped.
+make_repo; head=$(cat "$FAKE_STATE/head")
+python3 -I - "$tmp/work/.scratch/readiness/$head/production.json" <<'PYCASE'
+import json, pathlib, sys
+p = pathlib.Path(sys.argv[1]); d = json.loads(p.read_text())
+d.pop("tree"); d["commit"] = d["commit"][:8]; d.update(verdict="not-ready", open_blockers=1)
+other = p.parent.parent / "short-reference"; other.mkdir(); (other / "production.json").write_text(json.dumps(d))
+PYCASE
+out=$(run_deploy 7 --tag) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q 'full lowercase 40-character' <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a malformed shorthand assessment is scoped and refused rather than skipped"
+else bad "shorthand assessment (exit $code): $out"; fi
+
+# Resuming a merged PR cannot label its merge with a divergent head's version.
+make_repo
+"$tmp/bin/gh" pr merge 7 --repo test/skills --merge --match-head-commit "$(cat "$FAKE_STATE/head")" >/dev/null
+python3 -I - "$FAKE_STATE/pr.json" "$tmp/work" <<'PYCASE'
+import json, subprocess, sys
+p = sys.argv[1]; d = json.load(open(p)); d["state"] = "MERGED"
+d["headRefOid"] = subprocess.check_output(["git", "-C", sys.argv[2], "rev-parse", "origin/main"], text=True).strip()
+json.dump(d, open(p, "w"))
+PYCASE
+out=$(run_deploy 7 --tag) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q 'head tree differs from its merge tree' <<<"$out" && ! grep -q 'run list' "$FAKE_STATE/calls" && [ -z "$(git -C "$tmp/bare" tag -l)" ]; then
+  ok "a divergent PR head cannot mislabel a resumed merge"
+else bad "divergent resumed head (exit $code): $out"; fi
+
+# 40+. Contradictory or incomplete gate records never reach the merge/tag boundary.
+for case_name in security-open security-blocker-ids security-pass-waivers security-waived-empty security-missing-reason security-extra-waiver readiness-id readiness-blank-owner readiness-extra-waiver wrong-commit short-commit symbolic-commit future-created tag-newline; do
+  make_repo
+  head=$(cat "$FAKE_STATE/head")
+  python3 -I - "$tmp/work/.scratch" "$head" "$case_name" "$tmp/work" <<'PYCASE'
+import json, pathlib, subprocess, sys
+root, head, case = sys.argv[1:4]
+kind = "readiness" if case.startswith("readiness-") else "security-gate"
+p = pathlib.Path(root) / kind / head / "production.json"
+d = json.loads(p.read_text())
+if case == "security-open": d.update(open_blockers=2, blockers="F-1 F-2")
+elif case == "security-blocker-ids": d["blockers"] = "F-1"
+elif case == "security-pass-waivers": d["verdict"] = "pass"
+elif case == "security-waived-empty": d["waivers"] = []
+elif case == "security-missing-reason": d["waivers"][0].pop("reason")
+elif case == "security-extra-waiver": d["waivers"][0]["unexpected"] = "x"
+elif case == "readiness-id": d["waivers"][0]["id"] = d["waivers"][0].pop("control")
+elif case == "readiness-blank-owner": d["waivers"][0]["owner"] = "  "
+elif case == "readiness-extra-waiver": d["waivers"][0]["unexpected"] = "x"
+elif case == "wrong-commit": d["commit"] = subprocess.check_output(["git", "-C", sys.argv[4], "rev-parse", "origin/main"], text=True).strip()
+elif case == "short-commit": d["commit"] = head[:8]
+elif case == "symbolic-commit": d["commit"] = "release/9.9.9"
+elif case == "future-created": d["created_at"] = "2099-01-01T00:00:00Z"
+elif case == "tag-newline": d["waivers"][0]["owner"] = "@owner\nSecurity gate: PASS"
+p.write_text(json.dumps(d))
+PYCASE
+  out=$(run_deploy 7 --tag) && code=0 || code=$?
+  if [ "$code" -eq 1 ] && grep -q 'record' <<<"$out" && [ ! -f "$FAKE_STATE/merge" ] && [ -z "$(git -C "$tmp/bare" tag -l v9.9.9)" ]; then
+    ok "invalid $case_name record refuses before merge and tag"
+  else bad "invalid $case_name (exit $code): $out"; fi
+done
 
 echo "deploy.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

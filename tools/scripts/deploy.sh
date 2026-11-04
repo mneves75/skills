@@ -97,6 +97,7 @@ if [ "$state" = MERGED ]; then
   git cat-file -e "$merge^{commit}" 2>/dev/null || fail "merge commit $merge is not in this repository after fetching main"
   git merge-base --is-ancestor "$merge" origin/main || fail "merge commit $merge is not on origin/main: nothing to resume"
   tree=$(git rev-parse "$merge^{tree}")
+  [ "$(git rev-parse "$head^{tree}")" = "$tree" ] || fail "PR #$pr head tree differs from its merge tree: cannot resume"
   say "candidate: PR #$pr ($head_ref) head $head, merged as $merge, tree $tree"
 else
   [ "$state" = OPEN ] || fail "PR #$pr is $state, not OPEN"
@@ -164,14 +165,22 @@ def when(value):
     return stamp
 
 def tree_of_commit(commit):
-    done = subprocess.run(["git", "rev-parse", "--verify", "-q", f"{commit}^{{tree}}"], capture_output=True, text=True)
+    done = subprocess.run(["git", "rev-parse", "--verify", "-q", "--end-of-options", f"{commit}^{{tree}}"], capture_output=True, text=True)
     return done.stdout.strip() or None
 
 def in_scope(path, text):
     """The candidate's own folder, or any text that names the candidate's tree or a commit whose tree it is."""
     if path == own or tree in text:
         return True
-    return any(tree_of_commit(cid) == tree for cid in set(re.findall(r"\b[0-9a-f]{40}\b", text)) if cid != tree)
+    candidates = set(re.findall(r"\b[0-9a-f]{40}\b", text))
+    # Malformed shorthand/symbolic commit values still scope an assessment: reject them below,
+    # rather than silently omitting a newer blocking record that names this tree through Git.
+    for value in re.findall(r'"commit"\s*:\s*("(?:[^"\\]|\\.)*")', text):
+        try:
+            candidates.add(json.loads(value))
+        except ValueError:
+            pass
+    return any(tree_of_commit(cid) == tree for cid in candidates if cid != tree)
 
 def shape_problems(record):
     """What makes a record malformed, whatever it says: judged on every in-scope record before any is chosen."""
@@ -183,14 +192,49 @@ def shape_problems(record):
         out.append("missing required key(s): " + ", ".join(missing))
     if unknown:
         out.append("key(s) outside the record contract: " + ", ".join(unknown))
-    # The stated tree binds; the commit's tree is consulted only when no tree is stated (house readiness records).
-    bound = str(record["tree"]) if record.get("tree") else (tree_of_commit(record["commit"]) if record.get("commit") else None)
+    commit = record.get("commit")
+    if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit):
+        out.append("commit must be a full lowercase 40-character SHA")
+        commit_tree = None
+    else:
+        commit_tree = tree_of_commit(commit)
+    stated_tree = record.get("tree")
+    if "tree" in record and (not isinstance(stated_tree, str) or not re.fullmatch(r"[0-9a-f]{40}", stated_tree)):
+        out.append("tree must be a full lowercase 40-character SHA")
+    bound = stated_tree if "tree" in record else commit_tree
     if bound != tree:
         out.append("does not bind the candidate's tree " + tree)
+    if commit_tree != tree:
+        out.append("commit's tree does not equal the candidate's tree " + tree)
     try:
-        when(record.get("created_at"))
+        if when(record.get("created_at")) > now:
+            out.append("created_at is in the future")
     except ValueError:
         out.append(f"unreadable created_at {record.get('created_at')!r}")
+    waivers = record.get("waivers")
+    if not isinstance(waivers, list) or any(not isinstance(w, dict) for w in waivers):
+        out.append("waivers is not a list of objects")
+    else:
+        fields = {"id" if kind == "security-gate" else "control", "owner", "reason", "expires"}
+        for index, waiver in enumerate(waivers):
+            if set(waiver) != fields:
+                out.append(f"waivers[{index}] must hold exactly {', '.join(sorted(fields))}")
+            for field, value in waiver.items():
+                if not isinstance(value, str) or not value.strip():
+                    out.append(f"waivers[{index}].{field} must be a non-empty string")
+                elif any(ord(char) < 32 or ord(char) == 127 for char in value):
+                    out.append(f"waivers[{index}].{field} contains a control character")
+    if kind == "security-gate":
+        count = record.get("open_blockers")
+        if type(count) is not int or count < 0:
+            out.append("open_blockers must be a non-negative integer")
+        else:
+            expected = "block" if count else ("waived" if waivers else "pass")
+            if record.get("verdict") != expected:
+                out.append("verdict contradicts open_blockers or the waivers array")
+            blockers = record.get("blockers")
+            if not isinstance(blockers, str) or bool(blockers.strip()) != bool(count):
+                out.append("blockers contradicts open_blockers")
     return out
 
 def verdict_problems(record):
@@ -203,10 +247,12 @@ def verdict_problems(record):
             out.append(f"verdict is {record.get('verdict')!r}")
         if record.get("independent_acceptance") != "pass":
             out.append(f"independent acceptance is {record.get('independent_acceptance')!r}")
+        if type(record.get("open_blockers")) is not int or record["open_blockers"] != 0:
+            out.append(f"{record.get('open_blockers')} open blocker(s)")
     else:
         if record.get("verdict") != "ready":
             out.append(f"verdict is {record.get('verdict')!r}")
-        if str(record.get("open_blockers", 0)) != "0":
+        if type(record.get("open_blockers")) is not int or record["open_blockers"] != 0:
             out.append(f"{record.get('open_blockers')} open blocker(s)")
         if record.get("independent_acceptance") != "pass":  # readiness step 5, the verifier's own check
             out.append(f"independent acceptance is {record.get('independent_acceptance')!r}")
@@ -316,11 +362,13 @@ say "readiness: $ready_verdict, $ready_open open blockers, record $readiness"
 # ---- 2. Version consistency at the candidate ---------------------------------------------------
 # Each file is read whole into the scratch directory first: a filter that stops early (grep -m1, an awk
 # `exit`) on a pipe from `git show` would otherwise close it mid-write and, under pipefail, abort the release.
+version_commit=$head
+[ "$resume" -eq 0 ] || version_commit=$merge
 for file in VERSION CHANGELOG.md README.md; do
-  git show "$head:$file" > "$scratch/$file" || fail "$file is not in commit $head"
+  git show "$version_commit:$file" > "$scratch/$file" || fail "$file is not in commit $version_commit"
 done
 version=$(tr -d '[:space:]' < "$scratch/VERSION")
-[[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "VERSION at $head is '$version'"
+[[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "VERSION at $version_commit is '$version'"
 top_entry=$(grep -m1 -E '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' "$scratch/CHANGELOG.md" || true)
 [[ $top_entry == "## [$version]"* ]] || fail "top CHANGELOG entry '$top_entry' is not $version"
 grep -q "badge/version-$version-" "$scratch/README.md" || fail "README badge is not $version"
