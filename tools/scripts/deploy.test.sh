@@ -499,5 +499,22 @@ if [ "$code" -eq 1 ] && grep -q "the candidate's own readiness record is unreada
   ok "an unreadable record in the candidate's own folder refuses; the older approval does not substitute"
 else bad "unreadable own record (exit $code): $out"; fi
 
+# 34. A blocking record whose created_at is repeated (the last value old) still ranks newest: it is judged and refused.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness" "$(cat "$FAKE_STATE/head")" <<'PY'
+import json, os, sys
+root, head = sys.argv[1:3]
+older = json.load(open(os.path.join(root, head, "production.json")))
+os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
+older["commit"] = "older0000000000000000000000000000000000"; older["created_at"] = "2026-11-03T00:00:00Z"
+json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
+blocking = {**older, "commit": head, "created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1}
+text = json.dumps(blocking).rstrip("}") + ', "created_at": "2026-11-01T00:00:00Z"}'  # repeated, last value older than the approval
+open(os.path.join(root, head, "production.json"), "w").write(text)
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "repeated key created_at" <<<"$out" && grep -q "verdict is 'not-ready'" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a blocking record with a repeated created_at still ranks newest and refuses"
+else bad "repeated created_at (exit $code): $out"; fi
+
 echo "deploy.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

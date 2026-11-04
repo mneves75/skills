@@ -223,7 +223,9 @@ for path in glob.glob(os.path.join(records, kind, "*", "production.json")):
     except (OSError, ValueError) as error:
         unreadable.append((path, f"{path}: unreadable ({error})")); continue
     if tree_of(record) == tree:
-        matching.append((created(record), path == own, path, record))
+        # A record with repeated keys ranks first whatever its timestamps say: it is judged (and refused) rather
+        # than demoted below an older approval by a repeated created_at.
+        matching.append((REPEATED in record, created(record), path == own, path, record))
 if not matching:
     print(f"no production {kind} record for tree {tree} under {records}/{kind}/" + (" (" + "; ".join(text for _, text in unreadable) + ")" if unreadable else ""))
     sys.exit(1)
@@ -234,8 +236,8 @@ if any(path == own for path, _ in unreadable):
     sys.exit(1)
 if unreadable:
     print("unreadable record(s) skipped: " + "; ".join(text for _, text in unreadable), file=sys.stderr)
-matching.sort(key=lambda item: (item[0], item[1]), reverse=True)
-stamp, _, newest_path, newest = matching[0]
+matching.sort(key=lambda item: (item[0], item[1], item[2]), reverse=True)
+_, stamp, _, newest_path, newest = matching[0]
 found = problems(newest)
 if stamp == EPOCH:
     found.insert(0, f"unreadable created_at {newest.get('created_at')!r}")
