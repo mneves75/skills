@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.45.3] - 2026-11-04
+
+Closes what the 1.45.1 verifier and finder left: the readiness record contract and the release
+script agree, the script judges each record's contract and resumes after a merge, and the ledger
+carries the 1.45.1 and 1.45.2 binding runs. Correction to the 1.45.2 paragraph below: it was true
+when written (12:25Z); 1.45.1 was then published by the automatic route (Pages run 41830567961,
+12:35Z) and tagged `v1.45.1` at 12:42Z, before the 1.45.2 waiver dispatch at 12:51Z.
+
+### Changed
+- **Readiness record contract** (`mneves-production-readiness`): the optional keys `tree`,
+  `independent_acceptance` (required for production), `evidence` and `reused_from` are defined, the
+  keys `deploy.sh` reads and writes.
+- **Readiness ledger**: the 1.45.1 binding run (candidate `63d95fe`, merged as `a53b03cf`) and the
+  1.45.2 run (another session's, candidate `64d2ac66`, pushed as `7587b764`) folded in; cursor
+  `7587b764`; the unbound-candidate note removed.
+- **`plans/005`** and **`docs/skill-ledger.md`**: the check-site-copy count (five cases) and the
+  orchestrator row's account of the 1.45.0 `SKILL.md` sentence (finder D's DOC-D2).
+
+### Fixed
+- **`deploy.sh`**: a record with a missing, unknown or repeated top-level key is refused before the
+  merge (the security and readiness contracts name the keys); the readiness-only waiver ids for the
+  tag's Readiness line are computed in Python, so an id is never word-split or glob-expanded by the
+  shell (finder D's D-4); a MERGED pull request resumes at the CI wait (no second merge, served
+  bytes, reuse records, tag), which the 1.45.1 release needed after its first CI attempt was
+  cancelled. `deploy.test.sh` cases 26 to 30 fail on the 1.45.2 script.
+
 ## [1.45.2] - 2026-11-04
 
 Publishes 1.45.1's content with the Pages CI waiver. 1.45.1 was merged to `main` as `a53b03c`
