@@ -17,7 +17,8 @@
 #    ungated tree with the rollback command, and nothing further runs (GitHub offers no base pin to close
 #    that window; branch protection "require branches to be up to date" would).
 #    Every waiver in both records must be unexpired: an expired waiver restores its blocker, so the record
-#    no longer admits the tree.
+#    no longer admits the tree. A record that states a validity window (`valid_until`, which readiness records
+#    carry) must still be inside it; a stale assessment is run again, not reused.
 # 4. Waits for the CI push run on main and the Pages run for the merge commit, then compares every tracked
 #    file under site/ with the bytes the site serves.
 # 5. Writes the reuse records for the merge commit (`reused_from` the gated candidate) and prints the
@@ -125,6 +126,15 @@ print(" ".join(bad))
 PY
 )
 [ -z "$expired" ] || fail "waiver(s) no longer in force: $expired; the gate must be renewed before this tree can merge"
+# A readiness assessment is valid for the window its record states; past it the run is repeated, not reused.
+for record in "$security" "$readiness"; do
+  until=$(jget "$record" valid_until)
+  [ -z "$until" ] && continue
+  python3 -I -c 'import datetime, sys
+when = datetime.datetime.fromisoformat(sys.argv[1].replace("Z", "+00:00"))
+sys.exit(0 if when.tzinfo and when > datetime.datetime.now(datetime.timezone.utc) else 1)' "$until" 2>/dev/null \
+    || fail "record $record was valid until $until; run that assessment again on this tree before merging"
+done
 # The tag's Waivers line comes from whichever record carries one; a PASS with none prints no line.
 waiver_owner=""; waiver_expiry=""
 for record in "$security" "$readiness"; do

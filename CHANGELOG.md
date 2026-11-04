@@ -22,10 +22,10 @@ regenerated collection, and its hand-edited collection conflicts with the regene
   security-gate record and a readiness record for the pull request head's tree, merges with
   `--match-head-commit` only after `git merge-tree` shows the merge would produce the gated tree (a
   main that moved under the candidate is refused before anything publishes), refuses a record whose
-  waiver has expired, waits for the CI and Pages runs, compares every served `site/` file with the
+  waiver has expired or whose validity window has passed, waits for the CI and Pages runs, compares every served `site/` file with the
   tree, writes the reuse records for the merge commit and prints or (`--tag`) creates the annotated
-  tag with the verdict lines. `deploy.test.sh` proves twelve cases against a throwaway repository, a
-  fake `gh` and a fake `curl`.
+  tag with the verdict lines. `deploy.test.sh` proves thirteen cases against a throwaway repository, a
+  fake `gh` and a fake `curl`, with fixture dates taken from the clock.
 - **`plans/004-release-1-45-closeout.md`**: this closeout and the next step, a script that writes the
   ledger rows and the tag message from the gate records instead of hand-folding them.
 - **`mneves-motion-film`**: a short product film from a brief. `facts.py` quotes the product's pages into `facts.json` and `check_facts.py` requires every on-screen line to be a verbatim substring of its fact; `music.py` synthesizes music and effects from `timing.json` and `loudness.py` brings them to -14 LUFS with true peak at most -1 dBTP; `check_media.py`, `check_contrast.py` and `check_sync.py` (every cut, click, kick and final chord within one frame) check the render; `build.py` runs them all around a Remotion render; `capture.py` takes the site's reference stills. Review rounds use a fresh reviewer on another model and a muted retelling test. `tests/test_pipeline.py` proves each check refuses its planted violation. Distilled from the devtrim demo film.

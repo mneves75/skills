@@ -16,6 +16,10 @@ bad() { echo "FAIL $1"; fail=$((fail + 1)); }
 
 export FAKE_STATE="$tmp/state" FAKE_WEB="$tmp/web"
 mkdir -p "$tmp/bin" "$FAKE_STATE" "$FAKE_WEB"
+# Fixture dates come from the clock, so the suite does not start failing on a calendar day.
+future=$(python3 -I -c 'import datetime; print((datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=400)).strftime("%Y-%m-%dT%H:%M:%SZ"))')
+soon=$(python3 -I -c 'import datetime; print((datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ"))')
+past=$(python3 -I -c 'import datetime; print((datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ"))')
 
 # ---- Fake gh: pr view / pr merge / run list, driven by $FAKE_STATE ----
 cat > "$tmp/bin/gh" <<'FAKE'
@@ -86,10 +90,10 @@ JSON
   echo '2002 completed success' > "$FAKE_STATE/pages"
   mkdir -p "$tmp/work/.scratch/security-gate/$head" "$tmp/work/.scratch/readiness/$head"
   cat > "$tmp/work/.scratch/security-gate/$head/production.json" <<JSON
-{"schema":1,"unit":".","target":"production","commit":"$head","tree":"$tree","verdict":"waived","open_blockers":0,"blockers":"","independent_acceptance":"pass","created_at":"2026-11-04T00:00:00Z","waivers":[{"id":"SEC-15","owner":"@owner","reason":"r","expires":"2027-01-25T23:59:59Z"},{"id":"CMP-06","owner":"@owner","reason":"r","expires":"2027-01-25T23:59:59Z"}]}
+{"schema":1,"unit":".","target":"production","commit":"$head","tree":"$tree","verdict":"waived","open_blockers":0,"blockers":"","independent_acceptance":"pass","created_at":"2026-11-04T00:00:00Z","waivers":[{"id":"SEC-15","owner":"@owner","reason":"r","expires":"$future"},{"id":"CMP-06","owner":"@owner","reason":"r","expires":"$future"}]}
 JSON
   cat > "$tmp/work/.scratch/readiness/$head/production.json" <<JSON
-{"schema":1,"unit":".","target":"production","catalog":3,"commit":"$head","tree":"$tree","verdict":"ready","open_blockers":0,"created_at":"2026-11-04T00:00:00Z","waivers":[{"id":"DEL-04","owner":"@owner","expires":"2027-01-25T23:59:59Z"}]}
+{"schema":1,"unit":".","target":"production","catalog":3,"commit":"$head","tree":"$tree","verdict":"ready","open_blockers":0,"created_at":"2026-11-04T00:00:00Z","valid_until":"$soon","waivers":[{"id":"DEL-04","owner":"@owner","expires":"$future"}]}
 JSON
   # The fake site serves the release bytes.
   mkdir -p "$FAKE_WEB"; echo "<h1>new</h1>" > "$FAKE_WEB/index.html"; echo "<p>guide</p>" > "$FAKE_WEB/howto.html"
@@ -184,6 +188,16 @@ out=$(run_deploy 7) && code=0 || code=$?
 if [ "$code" -eq 1 ] && grep -q 'DEL-04 (expired 2026-01-01T00:00:00Z)' <<<"$out" && ! grep -q 'gh pr merge' "$FAKE_STATE/calls"; then
   ok "an expired waiver refuses before the merge"
 else bad "expired waiver (exit $code): $out"; fi
+
+# 13. A readiness record past its validity window is refused before any merge call.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" "$past" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d["valid_until"] = sys.argv[2]; json.dump(d, open(p, "w"))
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "was valid until $past; run that assessment again" <<<"$out" && ! grep -q 'gh pr merge' "$FAKE_STATE/calls"; then
+  ok "a readiness assessment past its validity window refuses before the merge"
+else bad "stale readiness (exit $code): $out"; fi
 
 # 12. A PASS record with no waivers releases, and the tag message carries no Waivers line.
 make_repo; python3 -I - "$tmp/work/.scratch/security-gate/$(cat "$FAKE_STATE/head")/production.json" "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" <<'PY'
