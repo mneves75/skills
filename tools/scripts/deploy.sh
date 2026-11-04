@@ -221,14 +221,19 @@ for path in glob.glob(os.path.join(records, kind, "*", "production.json")):
     try:
         record = json.load(open(path, encoding="utf-8"), object_pairs_hook=note_repeats)
     except (OSError, ValueError) as error:
-        unreadable.append(f"{path}: unreadable ({error})"); continue
+        unreadable.append((path, f"{path}: unreadable ({error})")); continue
     if tree_of(record) == tree:
         matching.append((created(record), path == own, path, record))
 if not matching:
-    print(f"no production {kind} record for tree {tree} under {records}/{kind}/" + (" (" + "; ".join(unreadable) + ")" if unreadable else ""))
+    print(f"no production {kind} record for tree {tree} under {records}/{kind}/" + (" (" + "; ".join(text for _, text in unreadable) + ")" if unreadable else ""))
+    sys.exit(1)
+if any(path == own for path, _ in unreadable):
+    # The candidate's own record may be the newest assessment, and it may block: no other record stands in.
+    print(f"the candidate's own {kind} record is unreadable ({own}); fix or rewrite it, no other record substitutes: "
+          + "; ".join(text for _, text in unreadable))
     sys.exit(1)
 if unreadable:
-    print("unreadable record(s) skipped: " + "; ".join(unreadable), file=sys.stderr)
+    print("unreadable record(s) skipped: " + "; ".join(text for _, text in unreadable), file=sys.stderr)
 matching.sort(key=lambda item: (item[0], item[1]), reverse=True)
 stamp, _, newest_path, newest = matching[0]
 found = problems(newest)

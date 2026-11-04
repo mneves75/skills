@@ -484,5 +484,20 @@ if [ "$code" -eq 1 ] && grep -q "is not on origin/main" <<<"$out" && [ -z "$(git
   ok "a merge commit that is not on main does not resume or tag"
 else bad "off-main resume (exit $code): $out"; fi
 
+# 33. An unreadable record in the candidate's own folder refuses: it may be the assessment that blocks.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness" "$(cat "$FAKE_STATE/head")" <<'PY'
+import json, os, sys
+root, head = sys.argv[1:3]
+older = json.load(open(os.path.join(root, head, "production.json")))
+os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
+older["commit"] = "older0000000000000000000000000000000000"; older["created_at"] = "2026-11-03T00:00:00Z"
+json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
+open(os.path.join(root, head, "production.json"), "w").write('{"schema": 1, "verdict": "not-re')  # truncated write
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "the candidate's own readiness record is unreadable" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "an unreadable record in the candidate's own folder refuses; the older approval does not substitute"
+else bad "unreadable own record (exit $code): $out"; fi
+
 echo "deploy.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
