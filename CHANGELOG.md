@@ -30,11 +30,12 @@ when written (12:25Z); 1.45.1 was then published by the automatic route (Pages r
 - **`deploy.sh`**: a record with a missing, unknown or repeated top-level key is refused before the
   merge (the security and readiness contracts name the keys), and a newest same-tree record that
   blocks keeps blocking whatever its shape: a repeated key is a problem of that record, never a reason
-  to skip it for an older approval; skipped unreadable records are always reported; the readiness-only waiver ids for the
+  to skip it for an older approval; an unreadable record in the candidate's own folder refuses (it may be
+  the assessment that blocks) and other skipped unreadable records are always reported; the readiness-only waiver ids for the
   tag's Readiness line are computed in Python, so an id is never word-split or glob-expanded by the
   shell (finder D's D-4); a MERGED pull request resumes at the CI wait (no second merge, served
   bytes, reuse records, tag) only when its merge commit is on `main`, which the 1.45.1 release
-  needed after its first CI attempt was cancelled. `deploy.test.sh` cases 26 to 32 fail on the
+  needed after its first CI attempt was cancelled. `deploy.test.sh` cases 26 to 33 fail on the
   1.45.2 script.
 
 ## [1.45.2] - 2026-11-04
