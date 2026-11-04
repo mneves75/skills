@@ -75,7 +75,8 @@ approval. Write it only at the end of a binding run.
 
 Path: `<unit>/.scratch/readiness/<target>.json`, where `<unit>` is the deployable unit's
 directory (`.`, the repository root, for a single-unit repository); the repository ignores
-`.scratch/`. JSON with exactly these keys at the top level, including the waivers array:
+`.scratch/`. JSON with exactly these keys at the top level, including the waivers array, plus the
+optional keys listed after the example:
 
 ```json
 {
@@ -110,6 +111,11 @@ directory (`.`, the repository root, for a single-unit repository); the reposito
   relied-upon evidence expiry.
 - A waiver object holds exactly `control`, `owner`, `reason` and `expires`; the record's unit,
   target and commit are its scope, so it never repeats them.
+- Optional keys: `tree` (the candidate's tree hash, so a release script can bind the record to
+  every commit with that tree); `independent_acceptance`, `"pass"` when step 5 (the independent
+  check) passed, required for the production target; `evidence`, an object that names the
+  assessment, suite and network files the run produced; `reused_from`, the candidate's commit when
+  a release script copies the record for a merge commit with the same tree. No other key.
 - Release scripts parse the record as JSON, refuse unknown or repeated keys and incomplete
   waivers, refuse an expired waiver, and copy the record into the release evidence.
 
