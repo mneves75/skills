@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-13T06:42:06.303Z",
+  "generatedAt": "2026-11-04T06:38:49.000Z",
   "title": "Design System: mneves75/skills landing page",
   "extensions": {
     "colorMeta": {
@@ -86,6 +86,20 @@
           "oklch(72.14% 0.06171 136.23)",
           "oklch(83.57% 0.06171 136.23)",
           "oklch(95% 0.06171 136.23)"
+        ]
+      },
+      "lime-code": {
+        "role": "secondary",
+        "displayName": "Lime Code Surface",
+        "tonalRamp": [
+          "oklch(15% 0.11 121.35)",
+          "oklch(26.43% 0.11 121.35)",
+          "oklch(37.86% 0.11 121.35)",
+          "oklch(49.29% 0.11 121.35)",
+          "oklch(60.71% 0.11 121.35)",
+          "oklch(72.14% 0.11 121.35)",
+          "oklch(83.57% 0.11 121.35)",
+          "oklch(95% 0.11 121.35)"
         ]
       },
       "paper": {
@@ -364,6 +378,7 @@
         "--blue-muted": "{colors.blue-muted}",
         "--lime": "{colors.lime}",
         "--on-lime": "{colors.on-lime}",
+        "--lime-code": "{colors.lime-code}",
         "--code": "{colors.code}",
         "--focus": "{colors.focus}"
       },
@@ -426,7 +441,7 @@
       },
       {
         "breakpoint": "narrow",
-        "changes": "Procedures stack; display clamp(2.9rem,10.4vw,3.6rem); command .76rem; copy .8rem; category label .86rem; release column 5.9rem."
+        "changes": "Procedures stack; display clamp(2.9rem,10.4vw,3.6rem); command .8125rem; copy .8125rem; category label .86rem; release column 5.9rem."
       }
     ],
     "browserSurfaces": {
@@ -485,7 +500,7 @@
       "refersTo": "copy-button",
       "description": "Outlined copy control in its cobalt command context; the preview preserves styling, not clipboard behavior.",
       "html": "<div class=\"ds-install-preview\"><div class=\"ds-command\"><code class=\"ds-command-code\" tabindex=\"0\">npx skills@latest add mneves75/skills</code><button class=\"ds-copy\" type=\"button\" aria-label=\"Copy npx command\">Copy</button></div></div>",
-      "css": ".ds-install-preview{padding:1.65rem 2rem;background:var(--blue,#164bd6);color:var(--on-blue,#fff);border-radius:4px}.ds-command{display:grid;grid-template-columns:1fr auto;gap:.6rem;align-items:center;min-width:0;padding-block:.6rem;border-top:1px solid #7b9ff3}.ds-command-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:none;color:var(--on-blue,#fff);padding:0;white-space:normal;overflow-wrap:anywhere;font-size:.79rem;line-height:1.8}.ds-copy{font-family:var(--body,Bricolage,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);font-size:.85rem;line-height:1.55;min-height:44px;min-width:65px;border:1px solid #b9ceff;background:transparent;color:var(--on-blue,#fff);padding:.4rem .65rem;border-radius:4px;cursor:pointer}.ds-copy:hover{background:#fff;color:#164bd6}.ds-copy:disabled{cursor:wait;opacity:.7}.ds-copy:focus-visible{outline:3px solid var(--lime,#def59b);outline-offset:5px}.ds-command-code:focus-visible{outline:3px solid var(--lime,#def59b);outline-offset:5px}@media(max-width:64rem){.ds-command-code{font-size:.87rem}}@media(max-width:36rem){.ds-command-code{font-size:.76rem}.ds-copy{font-size:.8rem}}@media(forced-colors:active){.ds-copy{border:1px solid ButtonText}}"
+      "css": ".ds-install-preview{padding:1.65rem 2rem;background:var(--blue,#164bd6);color:var(--on-blue,#fff);border-radius:4px}.ds-command{display:grid;grid-template-columns:1fr auto;gap:.6rem;align-items:center;min-width:0;padding-block:.6rem;border-top:1px solid #7b9ff3}.ds-command-code{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:none;color:var(--on-blue,#fff);padding:0;white-space:normal;overflow-wrap:anywhere;font-size:.8125rem;line-height:1.8}.ds-copy{font-family:var(--body,Bricolage,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);font-size:.85rem;line-height:1.55;min-height:44px;min-width:65px;border:1px solid #b9ceff;background:transparent;color:var(--on-blue,#fff);padding:.4rem .65rem;border-radius:4px;cursor:pointer}.ds-copy:hover{background:#fff;color:#164bd6}.ds-copy:disabled{cursor:wait;opacity:.7}.ds-copy:focus-visible{outline:3px solid var(--lime,#def59b);outline-offset:5px}.ds-command-code:focus-visible{outline:3px solid var(--lime,#def59b);outline-offset:5px}@media(max-width:64rem){.ds-command-code{font-size:.87rem}}@media(max-width:36rem){.ds-command-code{font-size:.8125rem}.ds-copy{font-size:.8125rem}}@media(forced-colors:active){.ds-copy{border:1px solid ButtonText}}"
     },
     {
       "name": "Site Navigation",
@@ -517,7 +532,7 @@
       "refersTo": "new-procedure",
       "description": "The implemented lime emphasis for the newly added security procedure.",
       "html": "<article class=\"ds-new\"><h3>mneves-security</h3><p>Audit application security and privacy using current OWASP guidance, plan remediation and apply authorized safe fixes. Adversarial review and independent acceptance distinguish source evidence from deployed controls.</p><p class=\"ds-new-example\">Try: “audit security and privacy; fix confirmed local issues; do not deploy”</p><span class=\"ds-release-note\">Added in 1.34.0</span><a class=\"ds-new-guide\" href=\"howto.html#mneves-security\" aria-label=\"Read the mneves-security guide\">Read the guide</a></article>",
-      "css": ".ds-new{min-width:0;display:flex;flex-direction:column;align-items:start;gap:.55rem;font-family:var(--body,Bricolage,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);line-height:1.55;background:var(--lime,#def59b);color:var(--on-lime,#203615);padding:1.25rem;border-radius:4px;margin-top:-.1rem}.ds-new h3{margin:0;font-family:var(--display,Bricolage,Arial,sans-serif);font-weight:650;line-height:1.1;text-wrap:balance;font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}.ds-new p{margin:0;font-size:.95rem;max-width:45ch;color:var(--on-lime,#203615)}.ds-new .ds-new-example{font-size:.85rem;line-height:1.5}.ds-release-note{font-size:.75rem;font-weight:600;letter-spacing:.01em;line-height:1.4}.ds-new-guide{color:var(--on-lime,#203615);font-size:.88rem;min-height:32px;padding-top:.2rem;text-decoration-thickness:1px;text-underline-offset:.22em}.ds-new-guide:hover{text-decoration-thickness:2px}.ds-new-guide:focus-visible{outline:3px solid var(--on-lime,#203615);outline-offset:5px}@media(max-width:36rem){.ds-new{margin-top:0}.ds-new p{max-width:65ch}}@media(forced-colors:active){.ds-new{border:1px solid ButtonText}}"
+      "css": ".ds-new{min-width:0;display:flex;flex-direction:column;align-items:start;gap:.55rem;font-family:var(--body,Bricolage,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif);line-height:1.55;background:var(--lime,#def59b);color:var(--on-lime,#203615);padding:1.25rem;border-radius:4px;margin-top:-.1rem}.ds-new h3{margin:0;font-family:var(--display,Bricolage,Arial,sans-serif);font-weight:650;line-height:1.1;text-wrap:balance;font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}.ds-new p{margin:0;font-size:.95rem;max-width:45ch;color:var(--on-lime,#203615)}.ds-new .ds-new-example{font-size:.85rem;line-height:1.5}.ds-release-note{font-size:.8125rem;font-weight:600;letter-spacing:.01em;line-height:1.4}.ds-new-guide{color:var(--on-lime,#203615);font-size:.88rem;min-height:32px;padding-top:.2rem;text-decoration-thickness:1px;text-underline-offset:.22em}.ds-new-guide:hover{text-decoration-thickness:2px}.ds-new-guide:focus-visible{outline:3px solid var(--on-lime,#203615);outline-offset:5px}@media(max-width:36rem){.ds-new{margin-top:0}.ds-new p{max-width:65ch}}@media(forced-colors:active){.ds-new{border:1px solid ButtonText}}"
     },
     {
       "name": "Historical Sample",
