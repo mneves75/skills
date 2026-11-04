@@ -533,5 +533,21 @@ if [ "$code" -eq 1 ] && grep -q "repeated key tree" <<<"$out" && grep -q "verdic
   ok "a blocking record with a repeated tree still matches the candidate's tree and refuses"
 else bad "repeated tree (exit $code): $out"; fi
 
+# 36. A repeated key inside a waiver object (an expired expiry followed by a future one) refuses the record.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" "$past" "$future" <<'PY'
+import json, sys
+p, past, future = sys.argv[1:4]
+d = json.load(open(p))
+d["waivers"] = [{"control": "DEL-04", "owner": "@owner", "expires": past}]
+text = json.dumps(d)
+text = text.replace('"expires": "%s"}' % past, '"expires": "%s", "expires": "%s"}' % (past, future))
+assert text.count('"expires"') == 2
+open(p, "w").write(text)
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "repeated key waivers\[0\].expires" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a repeated key inside a waiver object refuses the record"
+else bad "nested repeated key (exit $code): $out"; fi
+
 echo "deploy.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

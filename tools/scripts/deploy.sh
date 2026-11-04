@@ -148,9 +148,20 @@ def problems(record):
     out = []
     required, optional = CONTRACT[kind]
     repeated = sorted(record.pop(REPEATED, {}))
-    for value in record.values():
-        if isinstance(value, dict) and value.pop(REPEATED, None):
-            repeated.append("(nested)")
+
+    def nested(value, where):
+        # Every object at any depth (a waiver inside the waivers array included) carries its own marker.
+        if isinstance(value, dict):
+            for key in value.pop(REPEATED, {}):
+                repeated.append(f"{where}.{key}")
+            for key, inner in value.items():
+                nested(inner, f"{where}.{key}")
+        elif isinstance(value, list):
+            for index, inner in enumerate(value):
+                nested(inner, f"{where}[{index}]")
+
+    for key, value in record.items():
+        nested(value, key)
     if repeated:
         out.append("repeated key " + ", ".join(repeated))
     missing = sorted(required - set(record))
