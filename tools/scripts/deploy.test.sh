@@ -99,7 +99,7 @@ run_deploy() { (cd "$tmp/work" && DEPLOY_REPO=test/skills DEPLOY_SITE_URL=https:
 # 1. Dry run: plan and tag message, no merge call.
 make_repo
 out=$(run_deploy 7 --dry-run) && code=0 || code=$?
-if [ "$code" -eq 0 ] && grep -q 'dry run: would merge PR #7' <<<"$out" && grep -q 'Security gate: WAIVED (SEC-15, CMP-06)' <<<"$out" && ! grep -q 'gh pr merge' "$FAKE_STATE/calls"; then
+if [ "$code" -eq 0 ] && grep -q 'dry run: would check the merge tree against origin/main, merge PR #7' <<<"$out" && grep -q 'Security gate: WAIVED (SEC-15, CMP-06)' <<<"$out" && ! grep -q 'gh pr merge' "$FAKE_STATE/calls"; then
   ok "dry run prints the plan and tag message and merges nothing"
 else bad "dry run (exit $code): $out"; fi
 
@@ -166,6 +166,37 @@ if [ "$code" -eq 0 ] && [ -n "$merge" ] && [ "$tagged" = v9.9.9 ] \
    && [ -f "$tmp/work/.scratch/readiness/$merge/production.json" ]; then
   ok "happy path merges, waits, verifies the served bytes, writes reuse records and pushes the annotated tag"
 else bad "happy path (exit $code, merge '$merge', tag '$tagged'): $out"; fi
+
+# 10. main moved under the candidate: the predicted merge tree differs, refused before any merge call.
+make_repo
+(cd "$FAKE_STATE/merger" && git checkout -q main && echo "hotfix" > HOTFIX.md && git add HOTFIX.md && git commit -q -m "hotfix on main" && git push -q origin main)
+out=$(run_deploy 7 --tag) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q 'would produce tree .* not the gated tree' <<<"$out" && ! grep -q 'gh pr merge' "$FAKE_STATE/calls" && [ -z "$(git -C "$tmp/bare" tag -l v9.9.9)" ]; then
+  ok "a main that moved under the candidate is refused before the merge"
+else bad "moved main (exit $code): $out"; fi
+
+# 11. An expired waiver in a record restores its blocker: refused before any merge call.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d["waivers"][0]["expires"] = "2026-01-01T00:00:00Z"; json.dump(d, open(p, "w"))
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q 'DEL-04 (expired 2026-01-01T00:00:00Z)' <<<"$out" && ! grep -q 'gh pr merge' "$FAKE_STATE/calls"; then
+  ok "an expired waiver refuses before the merge"
+else bad "expired waiver (exit $code): $out"; fi
+
+# 12. A PASS record with no waivers releases, and the tag message carries no Waivers line.
+make_repo; python3 -I - "$tmp/work/.scratch/security-gate/$(cat "$FAKE_STATE/head")/production.json" "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" <<'PY'
+import json, sys
+for p in sys.argv[1:]:
+    d = json.load(open(p)); d["waivers"] = []
+    if "verdict" in d and d["verdict"] == "waived": d["verdict"] = "pass"
+    json.dump(d, open(p, "w"))
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 0 ] && grep -q 'Security gate: PASS$' <<<"$out" && grep -q 'Readiness gate: ready$' <<<"$out" && ! grep -q '^ *Waivers:' <<<"$out"; then
+  ok "a PASS with no waivers releases and prints no Waivers line"
+else bad "no waivers (exit $code): $out"; fi
 
 # 9. Without --tag the happy path prints the message and creates no tag.
 make_repo

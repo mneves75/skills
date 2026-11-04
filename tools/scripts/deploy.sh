@@ -10,8 +10,14 @@
 #    acceptance pass) and `.scratch/readiness/<sha>/production.json` (verdict ready, no open blocker).
 #    A record for another commit with the same tree counts: the verdicts bind to the tree.
 # 2. Checks VERSION against the top CHANGELOG entry and the README badge at that commit.
-# 3. Merges with `gh pr merge --merge --match-head-commit`, so a head that moved after the gate is refused,
-#    then requires the merge commit's tree to equal the gated tree (otherwise stop: a new gate is needed).
+# 3. Computes the tree the merge would produce (`git merge-tree --write-tree origin/main <head>`, Git 2.38+)
+#    and refuses unless it equals the gated tree: when main moved under the candidate, merge main into the
+#    branch and gate again. Then merges with `gh pr merge --merge --match-head-commit` and checks the merge
+#    commit's tree again; a main that moved in the seconds between the two checks is reported as a published
+#    ungated tree with the rollback command, and nothing further runs (GitHub offers no base pin to close
+#    that window; branch protection "require branches to be up to date" would).
+#    Every waiver in both records must be unexpired: an expired waiver restores its blocker, so the record
+#    no longer admits the tree.
 # 4. Waits for the CI push run on main and the Pages run for the merge commit, then compares every tracked
 #    file under site/ with the bytes the site serves.
 # 5. Writes the reuse records for the merge commit (`reused_from` the gated candidate) and prints the
@@ -99,7 +105,31 @@ ready_verdict=$(jget "$readiness" verdict); ready_open=$(jget "$readiness" open_
 [ "${ready_open:-0}" = 0 ] || fail "readiness has $ready_open open blocker(s) ($readiness)"
 gated_commit=$(jget "$security" commit)
 sec_waivers=$(jget "$security" waivers); ready_waivers=$(jget "$readiness" waivers)
-waiver_owner=$(jget "$security" waivers.0.owner); waiver_expiry=$(jget "$security" waivers.0.expires)
+# An expired waiver restores its blocker, so a record that leans on one no longer admits the tree.
+expired=$(python3 -I - "$security" "$readiness" <<'PY'
+import datetime, json, sys
+now = datetime.datetime.now(datetime.timezone.utc)
+bad = []
+for path in sys.argv[1:]:
+    for waiver in json.load(open(path, encoding="utf-8")).get("waivers") or []:
+        if not isinstance(waiver, dict):
+            continue
+        expires = waiver.get("expires")
+        try:
+            when = datetime.datetime.fromisoformat(str(expires).replace("Z", "+00:00"))
+        except ValueError:
+            bad.append(f"{waiver.get('id')} (unreadable expiry {expires!r})"); continue
+        if when.tzinfo is None or when <= now:
+            bad.append(f"{waiver.get('id')} (expired {expires})")
+print(" ".join(bad))
+PY
+)
+[ -z "$expired" ] || fail "waiver(s) no longer in force: $expired; the gate must be renewed before this tree can merge"
+# The tag's Waivers line comes from whichever record carries one; a PASS with none prints no line.
+waiver_owner=""; waiver_expiry=""
+for record in "$security" "$readiness"; do
+  if [ -n "$(jget "$record" waivers)" ]; then waiver_owner=$(jget "$record" waivers.0.owner); waiver_expiry=$(jget "$record" waivers.0.expires); break; fi
+done
 say "security gate: $sec_verdict (acceptance $sec_accept) record $security"
 say "readiness: $ready_verdict, $ready_open open blockers, record $readiness"
 
@@ -127,19 +157,27 @@ tag_message() {
 }
 
 if [ "$dry_run" -eq 1 ]; then
-  say "dry run: would merge PR #$pr at $head, wait for CI and Pages, compare $(git ls-tree -r --name-only "$head" -- site/ | wc -l | tr -d ' ') served files, write reuse records, and tag v$version with:"
+  say "dry run: would check the merge tree against origin/main, merge PR #$pr at $head, wait for CI and Pages, compare $(git ls-tree -r --name-only "$head" -- site/ | wc -l | tr -d ' ') served files, write reuse records, and tag v$version with:"
   tag_message "<merge>" "<ci-run>" "<pages-run>" | sed 's/^/    /'
   exit 0
 fi
 
 # ---- 3. Merge ------------------------------------------------------------------------------------
+# The tree the merge would produce must be the gated one BEFORE main changes, since the merge itself
+# publishes: a moved main that changes the result means the branch must take main in and be gated again.
+git fetch -q origin main || fail "cannot fetch origin/main"
+base_tip=$(git rev-parse origin/main)
+predicted=$(git merge-tree --write-tree origin/main "$head" 2>/dev/null) || fail "the merge of $head into origin/main ($base_tip) does not apply cleanly (git merge-tree); merge main into the branch, resolve, and gate again"
+predicted=${predicted%%$'\n'*}
+[ "$predicted" = "$tree" ] || fail "merging $head into origin/main ($base_tip) would produce tree $predicted, not the gated tree $tree: main moved under the candidate; merge main into the branch and run the gate again"
+say "merge tree: $predicted equals the gated tree (origin/main at $base_tip)"
 gh pr merge "$pr" --repo "$repo" --merge --match-head-commit "$head" || fail "merge of PR #$pr refused"
 merge=$(gh pr view "$pr" --repo "$repo" --json mergeCommit --jq '.mergeCommit.oid')
 [ -n "$merge" ] && [ "$merge" != null ] || fail "PR #$pr shows no merge commit after the merge"
 git fetch -q origin main
 git cat-file -e "$merge^{commit}" 2>/dev/null || fail "merge commit $merge not found after fetching main"
 merge_tree=$(git rev-parse "$merge^{tree}")
-[ "$merge_tree" = "$tree" ] || fail "merge $merge has tree $merge_tree, not the gated tree $tree: main moved under the candidate; the verdict does not cover this tree, run a new gate before tagging"
+[ "$merge_tree" = "$tree" ] || fail "PUBLISHED AN UNGATED TREE: merge $merge has tree $merge_tree, not the gated tree $tree (main moved in the window between the check at $base_tip and the merge). No record, no tag. Roll back with: gh workflow run static.yml -f ref=$base_tip, then merge main into the branch and gate again"
 say "merged: $merge (tree equal to the gated tree)"
 
 # ---- 4. CI, Pages, served bytes ---------------------------------------------------------------------
