@@ -462,7 +462,7 @@ text = json.dumps({**older, "commit": head, "created_at": "2026-11-04T12:00:00Z"
 open(os.path.join(root, head, "production.json"), "w").write(text.rstrip("}") + ', "verdict": "not-ready"}')
 PY
 out=$(run_deploy 7) && code=0 || code=$?
-if [ "$code" -eq 1 ] && grep -q "repeated key verdict" <<<"$out" && grep -q "verdict is 'not-ready'" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+if [ "$code" -eq 1 ] && grep -q "repeated key verdict" <<<"$out" && grep -q "no other record substitutes" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
   ok "a newest blocking record with a repeated key still blocks; the older approval does not substitute"
 else bad "repeated key on the newest record (exit $code): $out"; fi
 
@@ -495,7 +495,7 @@ json.dump(older, open(os.path.join(root, "older000000000000000000000000000000000
 open(os.path.join(root, head, "production.json"), "w").write('{"schema": 1, "verdict": "not-re')  # truncated write
 PY
 out=$(run_deploy 7) && code=0 || code=$?
-if [ "$code" -eq 1 ] && grep -q "the candidate's own readiness record is unreadable" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+if [ "$code" -eq 1 ] && grep -q "in the candidate's own folder is unreadable" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
   ok "an unreadable record in the candidate's own folder refuses; the older approval does not substitute"
 else bad "unreadable own record (exit $code): $out"; fi
 
@@ -512,7 +512,7 @@ text = json.dumps(blocking).rstrip("}") + ', "created_at": "2026-11-01T00:00:00Z
 open(os.path.join(root, head, "production.json"), "w").write(text)
 PY
 out=$(run_deploy 7) && code=0 || code=$?
-if [ "$code" -eq 1 ] && grep -q "repeated key created_at" <<<"$out" && grep -q "verdict is 'not-ready'" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+if [ "$code" -eq 1 ] && grep -q "repeated key created_at" <<<"$out" && grep -q "no other record substitutes" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
   ok "a blocking record with a repeated created_at still ranks newest and refuses"
 else bad "repeated created_at (exit $code): $out"; fi
 
@@ -529,7 +529,7 @@ text = json.dumps(blocking).rstrip("}") + ', "tree": "00000000000000000000000000
 open(os.path.join(root, head, "production.json"), "w").write(text)
 PY
 out=$(run_deploy 7) && code=0 || code=$?
-if [ "$code" -eq 1 ] && grep -q "repeated key tree" <<<"$out" && grep -q "verdict is 'not-ready'" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+if [ "$code" -eq 1 ] && grep -q "repeated key tree" <<<"$out" && grep -q "no other record substitutes" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
   ok "a blocking record with a repeated tree still matches the candidate's tree and refuses"
 else bad "repeated tree (exit $code): $out"; fi
 
@@ -562,9 +562,38 @@ blocking.update({"created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "
 json.dump(blocking, open(os.path.join(root, head, "production.json"), "w"))
 PY
 out=$(run_deploy 7) && code=0 || code=$?
-if [ "$code" -eq 1 ] && grep -q "missing required key(s): commit" <<<"$out" && grep -q "verdict is 'not-ready'" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+if [ "$code" -eq 1 ] && grep -q "missing required key(s): commit" <<<"$out" && grep -q "no other record substitutes" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
   ok "the candidate's own record is judged even when it binds no tree; the older approval does not substitute"
 else bad "own record without binding (exit $code): $out"; fi
+
+# 38. A record cannot forge the repeated-key marker: an older same-tree approval carrying "__repeated_keys__" is malformed and refuses.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness" "$(cat "$FAKE_STATE/head")" <<'PY'
+import json, os, sys
+root, head = sys.argv[1:3]
+older = json.load(open(os.path.join(root, head, "production.json")))
+os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
+older["commit"] = "older0000000000000000000000000000000000"; older["created_at"] = "2026-11-03T00:00:00Z"
+blocking = {**older, "commit": head, "created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1}
+older["__repeated_keys__"] = {}
+json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
+json.dump(blocking, open(os.path.join(root, head, "production.json"), "w"))
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "key(s) outside the record contract: __repeated_keys__" <<<"$out" && grep -q 'older0000' <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a forged repeated-key marker is a key outside the contract: the record is named and refused"
+else bad "forged marker (exit $code): $out"; fi
+
+# 39. A record that cannot be opened is named when no record for the tree is found, not skipped in silence.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness" "$(cat "$FAKE_STATE/head")" <<'PY'
+import os, sys
+root, head = sys.argv[1:3]
+os.remove(os.path.join(root, head, "production.json"))
+os.makedirs(os.path.join(root, "other00000000000000000000000000000000000", "production.json"))  # a folder: open() fails
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "no production readiness record for tree" <<<"$out" && grep -q "other0000.*unreadable" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a record that cannot be opened is named in the refusal"
+else bad "unopenable record (exit $code): $out"; fi
 
 echo "deploy.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

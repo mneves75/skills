@@ -18,9 +18,10 @@
 #    that window; branch protection "require branches to be up to date" would).
 #    Every waiver in both records must be unexpired: an expired waiver restores its blocker, so the record
 #    no longer admits the tree. A record that states a validity window (`valid_until`, which readiness records
-#    carry) must still be inside it; a stale assessment is run again, not reused. Each record must hold
-#    exactly the keys its contract names (mneves-security report.md, mneves-production-readiness ledger.md):
-#    a missing, unknown or repeated key refuses the record.
+#    carry) must still be inside it; a stale assessment is run again, not reused. A record is in scope when
+#    it sits in the candidate's own folder or names the candidate's tree (or a commit with that tree) anywhere
+#    in its text; every in-scope record must be well-formed (readable, no repeated key at any depth, exactly
+#    the keys its contract names, bound to the tree) or the release refuses naming it; the newest one decides.
 #    A MERGED pull request resumes at step 4 (its merge commit's tree must be the gated one): for a
 #    release that stopped after the merge.
 # 4. Waits for the CI push run on main and the Pages run for the merge commit, then compares every tracked
@@ -113,27 +114,10 @@ fi
 # assessment that blocks or has gone stale: a reassessment can block production without changing a byte.
 select_record() {
   python3 -I - "$1" "$head" "$tree" "$records" <<'PY'
-import datetime, glob, json, os, subprocess, sys
+import datetime, glob, json, os, re, subprocess, sys
 kind, head, tree, records = sys.argv[1:5]
 now = datetime.datetime.now(datetime.timezone.utc)
-
-def when(value):
-    stamp = datetime.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-    if stamp.tzinfo is None:
-        raise ValueError("no timezone")
-    return stamp
-
-def trees_of(record):
-    """Every tree the record binds to: its `tree` value, or its `commit`'s tree, plus every earlier value of a repeated key."""
-    repeated = record.get(REPEATED) or {}
-    def tree_of_commit(commit):
-        done = subprocess.run(["git", "rev-parse", "--verify", "-q", f"{commit}^{{tree}}"], capture_output=True, text=True)
-        return done.stdout.strip() or None
-    # The stated tree binds; the commit's tree is consulted only when no tree is stated (house readiness records).
-    trees = {str(record["tree"])} if record.get("tree") else {t for t in [tree_of_commit(record["commit"])] if t} if record.get("commit") else set()
-    trees.update(str(t) for t in repeated.get("tree", []) if t)
-    trees.update(t for t in (tree_of_commit(c) for c in repeated.get("commit", []) if c) if t)
-    return trees
+own = os.path.join(records, kind, head, "production.json")
 
 CONTRACT = {
     # mneves-security references/report.md (the security record) and
@@ -143,37 +127,77 @@ CONTRACT = {
     "readiness": ({"schema", "unit", "target", "catalog", "commit", "verdict", "open_blockers", "created_at",
                    "valid_until", "waivers"}, {"tree", "independent_acceptance", "evidence", "reused_from"}),
 }
+REPEATED = object()  # a key no JSON document can contain, so a record cannot forge the marker
 
-def problems(record):
+def refuse(message):
+    print(f"the production {kind} record {message}")
+    sys.exit(1)
+
+def note_repeats(pairs):
+    """Last value wins, as json.load does, but every object remembers which of its keys were repeated."""
+    seen = {}
+    repeated = []
+    for key, value in pairs:
+        if key in seen:
+            repeated.append(key)
+        seen[key] = value
+    if repeated:
+        seen[REPEATED] = repeated
+    return seen
+
+def repeated_keys(value, where=""):
+    """Every repeated key at any depth (a waiver inside the waivers array included), as paths."""
+    found = []
+    if isinstance(value, dict):
+        found.extend(f"{where}.{key}" if where else key for key in value.pop(REPEATED, []))
+        for key, inner in value.items():
+            found.extend(repeated_keys(inner, f"{where}.{key}" if where else key))
+    elif isinstance(value, list):
+        for index, inner in enumerate(value):
+            found.extend(repeated_keys(inner, f"{where}[{index}]"))
+    return found
+
+def when(value):
+    stamp = datetime.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    if stamp.tzinfo is None:
+        raise ValueError("no timezone")
+    return stamp
+
+def tree_of_commit(commit):
+    done = subprocess.run(["git", "rev-parse", "--verify", "-q", f"{commit}^{{tree}}"], capture_output=True, text=True)
+    return done.stdout.strip() or None
+
+def in_scope(path, text):
+    """The candidate's own folder, or any text that names the candidate's tree or a commit whose tree it is."""
+    if path == own or tree in text:
+        return True
+    return any(tree_of_commit(cid) == tree for cid in set(re.findall(r"\b[0-9a-f]{40}\b", text)) if cid != tree)
+
+def shape_problems(record):
+    """What makes a record malformed, whatever it says: judged on every in-scope record before any is chosen."""
     out = []
     required, optional = CONTRACT[kind]
-    repeated = sorted(record.pop(REPEATED, {}))
-
-    def nested(value, where):
-        # Every object at any depth (a waiver inside the waivers array included) carries its own marker.
-        if isinstance(value, dict):
-            for key in value.pop(REPEATED, {}):
-                repeated.append(f"{where}.{key}")
-            for key, inner in value.items():
-                nested(inner, f"{where}.{key}")
-        elif isinstance(value, list):
-            for index, inner in enumerate(value):
-                nested(inner, f"{where}[{index}]")
-
-    for key, value in record.items():
-        nested(value, key)
-    if repeated:
-        out.append("repeated key " + ", ".join(repeated))
     missing = sorted(required - set(record))
     unknown = sorted(set(record) - required - optional)
     if missing:
         out.append("missing required key(s): " + ", ".join(missing))
     if unknown:
         out.append("key(s) outside the record contract: " + ", ".join(unknown))
+    # The stated tree binds; the commit's tree is consulted only when no tree is stated (house readiness records).
+    bound = str(record["tree"]) if record.get("tree") else (tree_of_commit(record["commit"]) if record.get("commit") else None)
+    if bound != tree:
+        out.append("does not bind the candidate's tree " + tree)
+    try:
+        when(record.get("created_at"))
+    except ValueError:
+        out.append(f"unreadable created_at {record.get('created_at')!r}")
+    return out
+
+def verdict_problems(record):
+    """What keeps the chosen record from admitting the tree."""
+    out = []
     if record.get("target") != "production":
         out.append(f"target is {record.get('target')!r}, not production")
-    if tree not in trees_of(record):
-        out.append("does not bind the candidate's tree " + tree)
     if kind == "security-gate":
         if record.get("verdict") not in ("pass", "waived"):
             out.append(f"verdict is {record.get('verdict')!r}")
@@ -207,61 +231,50 @@ def problems(record):
             out.append(f"unreadable valid_until {record['valid_until']!r}")
     return out
 
-EPOCH = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
-
-def created(record):
-    """The record's creation instant, for ordering; an unreadable one sorts oldest and is reported."""
+# 1. Scope: every record that may be an assessment of this tree, the candidate's own folder first of all.
+scope = []
+skipped = []  # records that cannot be opened, so cannot be scoped: named, never dropped in silence
+for path in sorted(glob.glob(os.path.join(records, kind, "*", "production.json"))):
     try:
-        return when(record.get("created_at"))
-    except ValueError:
-        return EPOCH
-
-own = os.path.join(records, kind, head, "production.json")
-matching = []
-unreadable = []
-REPEATED = "__repeated_keys__"
-
-def note_repeats(pairs):
-    """Last value wins, as json.load does, but the record keeps every earlier value of a repeated key."""
-    seen = {}
-    repeated = {}
-    for key, value in pairs:
-        if key in seen:
-            repeated.setdefault(key, []).append(seen[key])
-        seen[key] = value
+        text = open(path, encoding="utf-8").read()
+    except OSError as error:
+        if path == own:
+            refuse(f"in the candidate's own folder is unreadable ({error}); fix or rewrite it, no other record substitutes")
+        skipped.append(f"{path}: unreadable ({error})")
+        continue
+    if not in_scope(path, text):
+        continue
+    label = "in the candidate's own folder" if path == own else f"{path} (it names this tree)"
+    try:
+        record = json.loads(text, object_pairs_hook=note_repeats)
+    except ValueError as error:
+        refuse(f"{label} is unreadable ({error}); fix or rewrite it, no other record substitutes")
+    if not isinstance(record, dict):
+        refuse(f"{label} is not a JSON object; fix or rewrite it, no other record substitutes")
+    repeated = repeated_keys(record)
     if repeated:
-        seen[REPEATED] = repeated
-    return seen
+        refuse(f"{label} has a repeated key {', '.join(repeated)}; fix or rewrite it, no other record substitutes")
+    scope.append((path, record))
+if not scope:
+    print(f"no production {kind} record for tree {tree} under {records}/{kind}/"
+          + (" (" + "; ".join(skipped) + ")" if skipped else ""))
+    sys.exit(1)
+if skipped:
+    print("unreadable record(s) skipped: " + "; ".join(skipped), file=sys.stderr)
 
-for path in glob.glob(os.path.join(records, kind, "*", "production.json")):
-    try:
-        record = json.load(open(path, encoding="utf-8"), object_pairs_hook=note_repeats)
-    except (OSError, ValueError) as error:
-        unreadable.append((path, f"{path}: unreadable ({error})")); continue
-    # A record matches when any tree it names is the candidate's (a repeated tree or commit cannot hide it), and a
-    # record with repeated keys ranks first whatever its timestamps say: it is judged (and refused) rather than
-    # filtered out or demoted below an older approval by a value it repeats.
-    # The candidate's own record is the candidate's assessment by location: it is always judged, and refused when
-    # it binds another tree or none, rather than skipped for an older approval.
-    if path == own or tree in trees_of(record):
-        matching.append((REPEATED in record, created(record), path == own, path, record))
-if not matching:
-    print(f"no production {kind} record for tree {tree} under {records}/{kind}/" + (" (" + "; ".join(text for _, text in unreadable) + ")" if unreadable else ""))
-    sys.exit(1)
-if any(path == own for path, _ in unreadable):
-    # The candidate's own record may be the newest assessment, and it may block: no other record stands in.
-    print(f"the candidate's own {kind} record is unreadable ({own}); fix or rewrite it, no other record substitutes: "
-          + "; ".join(text for _, text in unreadable))
-    sys.exit(1)
-if unreadable:
-    print("unreadable record(s) skipped: " + "; ".join(text for _, text in unreadable), file=sys.stderr)
-matching.sort(key=lambda item: (item[0], item[1], item[2]), reverse=True)
-_, stamp, _, newest_path, newest = matching[0]
-found = problems(newest)
-if stamp == EPOCH:
-    found.insert(0, f"unreadable created_at {newest.get('created_at')!r}")
+# 2. Every in-scope record must be well-formed before any is chosen: a malformed assessment is never ranked around.
+for path, record in scope:
+    found = shape_problems(record)
+    if found:
+        refuse(f"{path} is malformed: " + "; ".join(found) + "; fix or rewrite it, no other record substitutes")
+
+# 3. The newest well-formed record is the authoritative assessment (the head's own wins a tie); an older
+#    approval never stands in for a newer assessment that blocks or has gone stale.
+scope.sort(key=lambda item: (when(item[1]["created_at"]), item[0] == own), reverse=True)
+newest_path, newest = scope[0]
+found = verdict_problems(newest)
 if found:
-    older = len(matching) - 1
+    older = len(scope) - 1
     print(f"the newest production {kind} record for tree {tree}, {newest_path}, does not admit it: " + "; ".join(found)
           + (f" ({older} older record(s) for the same tree do not substitute for it)" if older else ""))
     sys.exit(1)
