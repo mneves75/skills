@@ -172,6 +172,8 @@ def problems(record):
         out.append("key(s) outside the record contract: " + ", ".join(unknown))
     if record.get("target") != "production":
         out.append(f"target is {record.get('target')!r}, not production")
+    if tree not in trees_of(record):
+        out.append("does not bind the candidate's tree " + tree)
     if kind == "security-gate":
         if record.get("verdict") not in ("pass", "waived"):
             out.append(f"verdict is {record.get('verdict')!r}")
@@ -239,7 +241,9 @@ for path in glob.glob(os.path.join(records, kind, "*", "production.json")):
     # A record matches when any tree it names is the candidate's (a repeated tree or commit cannot hide it), and a
     # record with repeated keys ranks first whatever its timestamps say: it is judged (and refused) rather than
     # filtered out or demoted below an older approval by a value it repeats.
-    if tree in trees_of(record):
+    # The candidate's own record is the candidate's assessment by location: it is always judged, and refused when
+    # it binds another tree or none, rather than skipped for an older approval.
+    if path == own or tree in trees_of(record):
         matching.append((REPEATED in record, created(record), path == own, path, record))
 if not matching:
     print(f"no production {kind} record for tree {tree} under {records}/{kind}/" + (" (" + "; ".join(text for _, text in unreadable) + ")" if unreadable else ""))

@@ -123,7 +123,7 @@ import json, sys
 p = sys.argv[1]; d = json.load(open(p)); d["tree"] = "0" * 40; json.dump(d, open(p, "w"))
 PY
 out=$(run_deploy 7) && code=0 || code=$?
-if [ "$code" -eq 1 ] && grep -q 'no production security-gate record for tree' <<<"$out"; then ok "a record for another tree does not count"
+if [ "$code" -eq 1 ] && grep -q "does not bind the candidate's tree" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then ok "a record for another tree does not count"
 else bad "other-tree record (exit $code): $out"; fi
 
 # 4. Readiness not ready: refused.
@@ -548,6 +548,23 @@ out=$(run_deploy 7) && code=0 || code=$?
 if [ "$code" -eq 1 ] && grep -q "repeated key waivers\[0\].expires" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
   ok "a repeated key inside a waiver object refuses the record"
 else bad "nested repeated key (exit $code): $out"; fi
+
+# 37. The candidate's own record that binds no tree (commit and tree missing) is judged and refused, not skipped.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness" "$(cat "$FAKE_STATE/head")" <<'PY'
+import json, os, sys
+root, head = sys.argv[1:3]
+older = json.load(open(os.path.join(root, head, "production.json")))
+os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
+older["commit"] = "older0000000000000000000000000000000000"; older["created_at"] = "2026-11-03T00:00:00Z"
+json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
+blocking = {k: v for k, v in older.items() if k not in ("commit", "tree")}
+blocking.update({"created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1})
+json.dump(blocking, open(os.path.join(root, head, "production.json"), "w"))
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "missing required key(s): commit" <<<"$out" && grep -q "verdict is 'not-ready'" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "the candidate's own record is judged even when it binds no tree; the older approval does not substitute"
+else bad "own record without binding (exit $code): $out"; fi
 
 echo "deploy.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
