@@ -18,7 +18,11 @@
 #    that window; branch protection "require branches to be up to date" would).
 #    Every waiver in both records must be unexpired: an expired waiver restores its blocker, so the record
 #    no longer admits the tree. A record that states a validity window (`valid_until`, which readiness records
-#    carry) must still be inside it; a stale assessment is run again, not reused.
+#    carry) must still be inside it; a stale assessment is run again, not reused. Each record must hold
+#    exactly the keys its contract names (mneves-security report.md, mneves-production-readiness ledger.md):
+#    a missing, unknown or repeated key refuses the record.
+#    A MERGED pull request resumes at step 4 (its merge commit's tree must be the gated one): for a
+#    release that stopped after the merge.
 # 4. Waits for the CI push run on main and the Pages run for the merge commit, then compares every tracked
 #    file under site/ with the bytes the site serves.
 # 5. Writes the reuse records for the merge commit (`reused_from` the gated candidate) and prints the
@@ -80,12 +84,25 @@ PY
 pr_json=$(gh pr view "$pr" --repo "$repo" --json state,headRefOid,headRefName,baseRefName,mergeable,title)
 pr_field() { printf '%s' "$pr_json" | python3 -I -c 'import json,sys; print(json.load(sys.stdin)[sys.argv[1]])' "$1"; }
 state=$(pr_field state); head=$(pr_field headRefOid); head_ref=$(pr_field headRefName); base=$(pr_field baseRefName)
-[ "$state" = OPEN ] || fail "PR #$pr is $state, not OPEN"
 [ "$base" = main ] || fail "PR #$pr targets $base, not main"
-git fetch -q origin "+refs/heads/$head_ref:refs/remotes/origin/$head_ref" || fail "cannot fetch origin/$head_ref"
-git cat-file -e "$head^{commit}" 2>/dev/null || fail "head commit $head is not in this repository after the fetch"
-tree=$(git rev-parse "$head^{tree}")
-say "candidate: PR #$pr ($head_ref) head $head tree $tree"
+resume=0; merge=""
+if [ "$state" = MERGED ]; then
+  # A release that stopped after its merge (a cancelled CI run, a lost connection) resumes at the CI wait:
+  # the merge commit's tree must be the gated one, and the tag must not exist yet (step 2).
+  resume=1
+  merge=$(gh pr view "$pr" --repo "$repo" --json mergeCommit --jq '.mergeCommit.oid')
+  [ -n "$merge" ] && [ "$merge" != null ] || fail "PR #$pr is MERGED but shows no merge commit"
+  git fetch -q origin main || fail "cannot fetch origin/main"
+  git cat-file -e "$merge^{commit}" 2>/dev/null || fail "merge commit $merge is not in this repository after fetching main"
+  tree=$(git rev-parse "$merge^{tree}")
+  say "candidate: PR #$pr ($head_ref) head $head, merged as $merge, tree $tree"
+else
+  [ "$state" = OPEN ] || fail "PR #$pr is $state, not OPEN"
+  git fetch -q origin "+refs/heads/$head_ref:refs/remotes/origin/$head_ref" || fail "cannot fetch origin/$head_ref"
+  git cat-file -e "$head^{commit}" 2>/dev/null || fail "head commit $head is not in this repository after the fetch"
+  tree=$(git rev-parse "$head^{tree}")
+  say "candidate: PR #$pr ($head_ref) head $head tree $tree"
+fi
 
 # A record binds to a tree. Security records state `tree`; readiness records state only `commit`, so the
 # tree is the commit's tree when that commit is in this repository. For each kind, the NEWEST production
@@ -114,8 +131,24 @@ def tree_of(record):
     done = subprocess.run(["git", "rev-parse", "--verify", "-q", f"{commit}^{{tree}}"], capture_output=True, text=True)
     return done.stdout.strip() or None
 
+CONTRACT = {
+    # mneves-security references/report.md (the security record) and
+    # mneves-production-readiness references/ledger.md (the readiness record): every top-level key.
+    "security-gate": ({"schema", "unit", "target", "commit", "tree", "verdict", "open_blockers", "blockers",
+                       "independent_acceptance", "created_at", "waivers"}, {"reused_from"}),
+    "readiness": ({"schema", "unit", "target", "catalog", "commit", "verdict", "open_blockers", "created_at",
+                   "valid_until", "waivers"}, {"tree", "independent_acceptance", "evidence", "reused_from"}),
+}
+
 def problems(record):
     out = []
+    required, optional = CONTRACT[kind]
+    missing = sorted(required - set(record))
+    unknown = sorted(set(record) - required - optional)
+    if missing:
+        out.append("missing required key(s): " + ", ".join(missing))
+    if unknown:
+        out.append("key(s) outside the record contract: " + ", ".join(unknown))
     if record.get("target") != "production":
         out.append(f"target is {record.get('target')!r}, not production")
     if kind == "security-gate":
@@ -163,9 +196,17 @@ def created(record):
 own = os.path.join(records, kind, head, "production.json")
 matching = []
 unreadable = []
+def no_repeats(pairs):
+    seen = {}
+    for key, value in pairs:
+        if key in seen:
+            raise ValueError(f"repeated key {key}")
+        seen[key] = value
+    return seen
+
 for path in glob.glob(os.path.join(records, kind, "*", "production.json")):
     try:
-        record = json.load(open(path, encoding="utf-8"))
+        record = json.load(open(path, encoding="utf-8"), object_pairs_hook=no_repeats)
     except (OSError, ValueError) as error:
         unreadable.append(f"{path}: unreadable ({error})"); continue
     if tree_of(record) == tree:
@@ -193,10 +234,14 @@ ready_verdict=$(jget "$readiness" verdict); ready_open=$(jget "$readiness" open_
 gated_commit=$(jget "$security" commit)
 sec_waivers=$(jget "$security" waivers); ready_waivers=$(jget "$readiness" waivers)
 # The Readiness line names only the waivers the readiness gate adds; the security ids it imports are on the Security line.
-ready_only=""
-for id in $ready_waivers; do
-  case " $sec_waivers " in *" $id "*) ;; *) ready_only="${ready_only:+$ready_only }$id" ;; esac
-done
+# Computed in Python so that an id is never word-split or glob-expanded by the shell.
+ready_only=$(python3 -I - "$security" "$readiness" <<'PY'
+import json, sys
+ids = lambda path: [str(w.get("id") or w.get("control")) for w in json.load(open(path, encoding="utf-8")).get("waivers") or []]
+security = set(ids(sys.argv[1]))
+print(", ".join(c for c in ids(sys.argv[2]) if c not in security))
+PY
+)
 # The tag's Waivers line names every waiver with its own owner and expiry, grouped; a PASS with none prints no line.
 waivers_line=$(python3 -I - "$security" "$readiness" <<'PY'
 import json, sys
@@ -239,7 +284,7 @@ tag_message() {
   # $1 merge commit, $2 CI run, $3 Pages run
   printf 'v%s\n\n%s\n\n' "$version" "$summary"
   printf 'Security gate: %s' "$(tr a-z A-Z <<<"$sec_verdict")"; [ -n "$sec_waivers" ] && printf ' (%s)' "${sec_waivers// /, }"; printf '\n'
-  printf 'Readiness gate: %s' "$ready_verdict"; [ -n "$ready_only" ] && printf ' (waived: %s)' "${ready_only// /, }"; printf '\n'
+  printf 'Readiness gate: %s' "$ready_verdict"; [ -n "$ready_only" ] && printf ' (waived: %s)' "$ready_only"; printf '\n'
   [ -n "$waivers_line" ] && printf 'Waivers: %s\n' "$waivers_line"
   printf 'Independent acceptance: %s\n' "$(tr a-z A-Z <<<"$sec_accept")"
   printf 'Gated tree: %s\n' "$tree"
@@ -257,6 +302,9 @@ fi
 # ---- 3. Merge ------------------------------------------------------------------------------------
 # The tree the merge would produce must be the gated one BEFORE main changes, since the merge itself
 # publishes: a moved main that changes the result means the branch must take main in and be gated again.
+if [ "$resume" -eq 1 ]; then
+  say "resuming after the merge: $merge (tree equal to the gated tree)"
+else
 git fetch -q origin main || fail "cannot fetch origin/main"
 base_tip=$(git rev-parse origin/main)
 predicted=$(git merge-tree --write-tree origin/main "$head" 2>/dev/null) || fail "the merge of $head into origin/main ($base_tip) does not apply cleanly (git merge-tree); merge main into the branch, resolve, and gate again"
@@ -271,6 +319,7 @@ git cat-file -e "$merge^{commit}" 2>/dev/null || fail "merge commit $merge not f
 merge_tree=$(git rev-parse "$merge^{tree}")
 [ "$merge_tree" = "$tree" ] || fail "PUBLISHED AN UNGATED TREE: merge $merge has tree $merge_tree, not the gated tree $tree (main moved in the window between the check at $base_tip and the merge). No record, no tag. A Pages run for $merge may already be queued (gh run list --workflow static.yml --commit $merge); roll back with: gh workflow run static.yml -f ref=$base_tip after it, then merge main into the branch and gate again"
 say "merged: $merge (tree equal to the gated tree)"
+fi
 
 # ---- 4. CI, Pages, served bytes ---------------------------------------------------------------------
 wait_run() {

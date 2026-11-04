@@ -389,5 +389,65 @@ if [ "$code" -eq 0 ] && grep -q 'Readiness gate: ready (waived: DEL-04)' <<<"$ou
   ok "imported security ids stay off the Readiness line and appear once on the Waivers line"
 else bad "waiver dedupe (exit $code): $(grep -E 'Readiness gate|Waivers' <<<"$out" | head -2)"; fi
 
+# 26. A readiness record with a key outside its contract is refused before the merge.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d["phase"] = "binding"; json.dump(d, open(p, "w"))
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "key(s) outside the record contract: phase" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a record with a key outside its contract refuses before the merge"
+else bad "unknown key (exit $code): $out"; fi
+
+# 27. A readiness record without a required key (valid_until) is refused before the merge.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d.pop("valid_until"); json.dump(d, open(p, "w"))
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "missing required key(s): valid_until" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a record without a required key refuses before the merge"
+else bad "missing key (exit $code): $out"; fi
+
+# 28. A duplicated key in a record is unreadable, not silently last-wins.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" <<'PY'
+import sys
+p = sys.argv[1]; t = open(p).read().rstrip().rstrip("}")
+open(p, "w").write(t + ', "verdict": "ready"}')
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "repeated key verdict" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a record with a repeated key is unreadable and refuses before the merge"
+else bad "repeated key (exit $code): $out"; fi
+
+# 29. A waiver id with a glob character reaches the Readiness line literally, never as file names.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" "$future" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p))
+d["waivers"] = [{"control": "DEL-*", "owner": "@owner", "expires": sys.argv[2]}]
+json.dump(d, open(p, "w"))
+PY
+touch "$tmp/work/DEL-x"
+out=$(run_deploy 7 --dry-run) && code=0 || code=$?
+if [ "$code" -eq 0 ] && grep -q 'Readiness gate: ready (waived: DEL-\*)' <<<"$out" && ! grep -q 'DEL-x' <<<"$out"; then
+  ok "a glob character in a waiver id stays literal on the Readiness line"
+else bad "glob id (exit $code): $(grep 'Readiness gate' <<<"$out" | head -1)"; fi
+
+# 30. A MERGED pull request resumes after the merge: no second merge, CI and Pages waited, served bytes, records, tag.
+make_repo
+"$tmp/bin/gh" pr merge 7 --repo test/skills --merge --match-head-commit "$(cat "$FAKE_STATE/head")" >/dev/null
+merged=$(cat "$FAKE_STATE/merge")
+python3 -I - "$FAKE_STATE/pr.json" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d["state"] = "MERGED"; json.dump(d, open(p, "w"))
+PY
+: > "$FAKE_STATE/calls"
+out=$(run_deploy 7 --tag) && code=0 || code=$?
+if [ "$code" -eq 0 ] && ! grep -q 'pr merge' "$FAKE_STATE/calls" && grep -q "resuming after the merge: $merged" <<<"$out" \
+   && [ "$(git -C "$tmp/bare" rev-parse 'v9.9.9^{}' 2>/dev/null)" = "$merged" ] \
+   && [ -f "$tmp/work/.scratch/readiness/$merged/production.json" ]; then
+  ok "a merged pull request resumes at the CI wait without merging again and ends with the tag"
+else bad "resume (exit $code): $out"; fi
+
 echo "deploy.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
