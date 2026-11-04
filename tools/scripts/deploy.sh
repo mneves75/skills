@@ -149,11 +149,14 @@ def problems(record):
             out.append(f"unreadable valid_until {record['valid_until']!r}")
     return out
 
-def created(path):
+EPOCH = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
+
+def created(record):
+    """The record's creation instant, for ordering; an unreadable one sorts oldest and is reported."""
     try:
-        return str(json.load(open(path, encoding="utf-8")).get("created_at") or "")
-    except (OSError, ValueError):
-        return ""
+        return when(record.get("created_at"))
+    except ValueError:
+        return EPOCH
 
 own = os.path.join(records, kind, head, "production.json")
 matching = []
@@ -164,13 +167,15 @@ for path in glob.glob(os.path.join(records, kind, "*", "production.json")):
     except (OSError, ValueError) as error:
         unreadable.append(f"{path}: unreadable ({error})"); continue
     if tree_of(record) == tree:
-        matching.append((str(record.get("created_at") or ""), path == own, path, record))
+        matching.append((created(record), path == own, path, record))
 if not matching:
     print(f"no production {kind} record for tree {tree} under {records}/{kind}/" + (" (" + "; ".join(unreadable) + ")" if unreadable else ""))
     sys.exit(1)
 matching.sort(key=lambda item: (item[0], item[1]), reverse=True)
-_, _, newest_path, newest = matching[0]
+stamp, _, newest_path, newest = matching[0]
 found = problems(newest)
+if stamp == EPOCH:
+    found.insert(0, f"unreadable created_at {newest.get('created_at')!r}")
 if found:
     older = len(matching) - 1
     print(f"the newest production {kind} record for tree {tree}, {newest_path}, does not admit it: " + "; ".join(found)

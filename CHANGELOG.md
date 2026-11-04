@@ -16,8 +16,8 @@ regenerated collection, and its hand-edited collection conflicts with the regene
 ### Added
 - **`tools/scripts/init.sh`**: one idempotent command for the development setup (`tools/` locked
   dev tools, the Agent Skills reference validator in `.scratch/skills-ref`), reporting the host
-  programs the gates need; `--check` installs nothing. `init.test` proves the reports and refusals
-  against a fake PATH.
+  programs the gates need (`python3` itself at 3.11 or later, since that is the command the scripts
+  run); `--check` installs nothing. `init.test` proves the reports and refusals against a fake PATH.
 - **`tools/scripts/deploy.sh`**: the release procedure as a script. It refuses without a production
   security-gate record and a readiness record for the pull request head's tree, merges with
   `--match-head-commit` only after `git merge-tree` shows the merge would produce the gated tree (a
@@ -25,7 +25,7 @@ regenerated collection, and its hand-edited collection conflicts with the regene
   waiver has expired or whose validity window has passed, waits for the CI and Pages runs, compares every served `site/` file with the
   tree, writes the reuse records for the merge commit and prints or (`--tag`) creates the annotated
   tag with the verdict lines; it reads the candidate's files whole before filtering them, so a long
-  CHANGELOG cannot abort it through a closed pipe. `deploy.test.sh` proves twenty-two cases against a
+  CHANGELOG cannot abort it through a closed pipe. `deploy.test.sh` proves twenty-three cases against a
   throwaway repository, a fake `gh` and a fake `curl`, with fixture dates taken from the clock; it reads
   readiness records in their house shape (no `tree`, waivers keyed `control`) as well as security ones,
   refuses a record whose waivers are not a list of objects, and refuses a CHANGELOG paragraph that

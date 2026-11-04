@@ -317,6 +317,20 @@ if [ "$code" -eq 0 ] && grep -q 'record .scratch/readiness/zzzz-current/producti
   ok "the current same-tree record is chosen over an obsolete one"
 else bad "obsolete record first (exit $code): $(grep -E 'readiness|deploy.sh' <<<"$out" | head -2)"; fi
 
+# 23. Creation times are compared as instants, not strings: a later blocking record with a UTC offset wins.
+make_repo; head=$(cat "$FAKE_STATE/head"); tree=$(git -C "$tmp/work" rev-parse "release/9.9.9^{tree}")
+mkdir -p "$tmp/work/.scratch/readiness/offset"
+python3 -I - "$tmp/work/.scratch/readiness/$head/production.json" "$tmp/work/.scratch/readiness/offset/production.json" "$tree" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1])); d["created_at"] = "2026-11-04T12:00:00Z"; json.dump(d, open(sys.argv[1], "w"))
+later = dict(d); later["commit"] = "2" * 40; later["tree"] = sys.argv[3]; later["created_at"] = "2026-11-04T10:00:00-03:00"; later["verdict"] = "not-ready"; later["open_blockers"] = 1
+json.dump(later, open(sys.argv[2], "w"))
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q 'offset/production.json, does not admit it' <<<"$out" && ! grep -q 'gh pr merge' "$FAKE_STATE/calls"; then
+  ok "a later record with a UTC offset outranks an earlier Z-stamped approval"
+else bad "offset ordering (exit $code): $(grep -E 'deploy.sh' <<<"$out" | head -2)"; fi
+
 # 22. A newer same-tree assessment that blocks is authoritative: an older approval does not substitute.
 make_repo; head=$(cat "$FAKE_STATE/head"); tree=$(git -C "$tmp/work" rev-parse "release/9.9.9^{tree}")
 mkdir -p "$tmp/work/.scratch/readiness/reassessed"

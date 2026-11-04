@@ -7,7 +7,7 @@
 # It installs two things, both inside the repository:
 #   tools/node_modules      the locked dev tools (Biome, TypeScript, ast-grep, marked): `bun install --frozen-lockfile`
 #   .scratch/skills-ref     the Agent Skills reference validator (`agentskills`), from the hashed requirements file
-# and reports the host programs the gates need. Required: git, bun, node, a Python 3.11+ interpreter.
+# and reports the host programs the gates need. Required: git, bun, node, and `python3` at 3.11 or later (the command the scripts run).
 # Optional (named when absent, never installed): ffmpeg, ffprobe, gh, gitleaks, cccc, python3.10.
 # Nothing is written outside the repository. Run it from any directory; it finds the repository root itself.
 set -euo pipefail
@@ -38,15 +38,14 @@ optional() {
   else report absent "$program" "optional: $hint"; fi
 }
 
-# A Python 3.11+ interpreter: the gates run with `python3 -I`; `python3.11` is preferred when present.
+# The gates, deploy.sh and the helpers invoke `python3` itself, so that command must meet the 3.11 floor;
+# a separate `python3.11` does not help a script that calls `python3`.
 python=""
-for candidate in python3.11 python3; do
-  if command -v "$candidate" >/dev/null 2>&1 \
-     && "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null; then
-    python=$(command -v "$candidate"); break
-  fi
-done
-if [ -n "$python" ]; then report ok python3.11+ "$python"; else report missing python3.11+ "python.org, Homebrew or uv"; missing=1; fi
+if command -v python3 >/dev/null 2>&1 \
+   && python3 -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null; then
+  python=$(command -v python3)
+fi
+if [ -n "$python" ]; then report ok "python3 (3.11+)" "$python"; else report missing "python3 (3.11+)" "python3 must be 3.11 or later (python.org, Homebrew or uv); a python3.11 alias is not enough"; missing=1; fi
 
 need git "git-scm.com"
 need bun "https://bun.sh (the tools/ lockfile is Bun's)"

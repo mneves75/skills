@@ -18,8 +18,8 @@ fakes() {
   mkdir -p "$dir"
   for program in "$@"; do
     case $program in
-      python3.11=old) printf '#!/bin/sh\nexit 1\n' > "$dir/python3.11" ;;
-      python3.11) printf '#!/bin/sh\nexit 0\n' > "$dir/python3.11" ;;
+      python3=old) printf '#!/bin/sh\nexit 1\n' > "$dir/python3" ;;
+      python3) printf '#!/bin/sh\nexit 0\n' > "$dir/python3" ;;
       *) printf '#!/bin/sh\nexit 0\n' > "$dir/$program" ;;
     esac
   done
@@ -33,23 +33,24 @@ fakes() {
 }
 
 # 1. Everything required present: --check exits 0 and names the optional programs as absent.
-fakes "$tmp/full" git bun node python3.11
+fakes "$tmp/full" git bun node python3
 out=$(PATH="$tmp/full" bash "$root/tools/scripts/init.sh" --check 2>&1) && code=0 || code=$?
-if [ "$code" -eq 0 ] && grep -q '^ok *python3.11+' <<<"$out" && grep -q '^absent *ffmpeg' <<<"$out"; then
+if [ "$code" -eq 0 ] && grep -q '^ok *python3 (3.11+)' <<<"$out" && grep -q '^absent *ffmpeg' <<<"$out"; then
   ok "--check with the required programs exits 0 and lists optional ones as absent"
 else bad "--check with the required programs (exit $code): $out"; fi
 
 # 2. bun missing: exit 1 and the line names bun with its hint.
-fakes "$tmp/nobun" git node python3.11
+fakes "$tmp/nobun" git node python3
 out=$(PATH="$tmp/nobun" bash "$root/tools/scripts/init.sh" --check 2>&1) && code=0 || code=$?
 if [ "$code" -eq 1 ] && grep -q '^missing *bun *https://bun.sh' <<<"$out"; then
   ok "--check without bun exits 1 and names bun"
 else bad "--check without bun (exit $code): $out"; fi
 
-# 3. Python too old: python3.11 answers the version probe with failure and there is no python3.
-fakes "$tmp/oldpy" git bun node python3.11=old
+# 3. python3 too old (a python3.11 beside it does not help: the scripts call python3).
+fakes "$tmp/oldpy" git bun node python3=old
+printf '#!/bin/sh\nexit 0\n' > "$tmp/oldpy/python3.11"; chmod +x "$tmp/oldpy/python3.11"
 out=$(PATH="$tmp/oldpy" bash "$root/tools/scripts/init.sh" --check 2>&1) && code=0 || code=$?
-if [ "$code" -eq 1 ] && grep -q '^missing *python3.11+' <<<"$out"; then
+if [ "$code" -eq 1 ] && grep -q '^missing *python3 (3.11+)' <<<"$out"; then
   ok "--check with an old Python exits 1 and names the 3.11 floor"
 else bad "--check with an old Python (exit $code): $out"; fi
 
