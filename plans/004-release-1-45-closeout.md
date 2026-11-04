@@ -54,12 +54,18 @@ staging exists for this repository.
 - The 54 MiB of source clones under `.scratch/pstack-source-clones-20261104/`, created by another
   session; the owner removes them.
 
+## Added on the owner's 2026-11-04 instruction
+
+`tools/scripts/init.sh` (setup, with `init.test`) and `tools/scripts/deploy.sh` (the release
+procedure's steps 2 to 5 as one script, with `deploy.test.sh`). `deploy.sh` consumes the gate
+records; it does not write the ledger rows, which is the part below.
+
 ## Five years out: the closeout script
 
 Every closeout hand-folds the same facts (cursor, binding-run line, gate-history row, WAIVED rows,
 `MEMORY.md` state, the tag message) from two JSON records that already hold them. The next
 improvement is `tools/scripts/closeout.py <candidate-sha>`: it reads
 `.scratch/security-gate/<sha>/production.json` and `.scratch/readiness/<sha>/production.json`,
-rewrites the ledger header and gate-history row, prints the tag message in the house format, and
-refuses when the two records disagree on tree or verdict. `check-readiness-catalog.py` already
+rewrites the ledger header and gate-history row and refuses when the two records disagree on tree
+or verdict (`deploy.sh` already prints the tag message from them). `check-readiness-catalog.py`
 checks the result, so the script only has to produce it. Not built in 1.45.0.

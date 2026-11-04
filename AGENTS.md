@@ -39,6 +39,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   └── mneves-verify/             # Independent verification before done/fixed/shipped
 ├── collections/pstack/       # 42 vendored pstack skills (MIT); sources.json + adaptations/ -> tools/scripts/sync-pstack.sh
 ├── tools/                    # Readiness assessor (Bun + TypeScript): readiness-check.ts + lib/
+│   └── scripts/              # init.sh (setup), deploy.sh (gated merge -> CI/Pages -> served bytes -> tag), site build, sync, checks; each with its test
 ├── HOWTO.md                  # Per-skill usage guide with examples (rendered to site/howto.html)
 ├── PRODUCT.md · DESIGN.md     # Landing audience/constraints and extracted visual tokens
 ├── .impeccable/               # Tracked design extensions and development-only surface brief
@@ -54,6 +55,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 ## Commands
 
 ```bash
+tools/scripts/init.sh                   # one command for the two lines below; --check only reports (tools/scripts/init.test)
 cd tools && bun install                 # locked dev tools: Biome, TypeScript, ast-grep, marked
 python3 -m venv .scratch/skills-ref && .scratch/skills-ref/bin/pip install --require-hashes -r .github/requirements/skills-ref.txt   # reference validator: .scratch/skills-ref/bin/agentskills validate <skill-dir>
 bun run typecheck && bun run lint && bun test   # from tools/

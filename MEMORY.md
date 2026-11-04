@@ -18,8 +18,9 @@ measure whether a *target* codebase is ready for agents.
   workflows) and PR #39 (Biome 2.6.4) in one gated tree; PR #38 closed as superseded by #40; the
   1.44.0 and PR #37 binding runs folded into the ledger (cursor `c3dc2bb`); the documentation and
   hardening items those gates left (E-1/D-B9, D-B6, D-B8, D-B1r/D-B2r, D-B10 to D-B14, D-M1;
-  pr-wait L-9/H-A7, motion-film H-M2 to H-M6) done; `plans/004` names the closeout script as the
-  next step. Needs-validation items C-A6, C-A2, L-6, B-03 and AI-1 still wait for the owner's
+  pr-wait L-9/H-A7, motion-film H-M2 to H-M6) done; `tools/scripts/init.sh` and `deploy.sh` (the
+  release procedure as a tested script) added; `plans/004` names the ledger-writing closeout
+  script as the next step. Needs-validation items C-A6, C-A2, L-6, B-03 and AI-1 still wait for the owner's
   authorization of a disposable public repository or live provider calls.
 - **1.44.0** (2026-10-30): pr-wait fails closed on malformed or untyped check entries and
   reports a failure seen on the tenth incomplete read; babysit-pr docs complete the exit list;

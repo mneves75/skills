@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# Proves init.sh's reporting and refusals without installing anything: it runs `--check` against a
+# controlled PATH of fake programs. The install path is exercised by CI's own setup steps, which run the
+# same two commands. Usage: bash tools/scripts/init.test
+set -euo pipefail
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+root="$(cd "$here/../.." && pwd)"
+tmp="$(mktemp -d "${TMPDIR:-/tmp}/init-test.XXXXXX")"
+trap 'rm -rf "$tmp"' EXIT
+pass=0; fail=0
+ok() { echo "PASS $1"; pass=$((pass + 1)); }
+bad() { echo "FAIL $1"; fail=$((fail + 1)); }
+
+# A PATH with only the programs a case names. Each fake is a shell script that exits 0; the Python
+# fake answers the version probe with the version the case wants.
+fakes() {
+  local dir=$1; shift
+  mkdir -p "$dir"
+  for program in "$@"; do
+    case $program in
+      python3.11=old) printf '#!/bin/sh\nexit 1\n' > "$dir/python3.11" ;;
+      python3.11) printf '#!/bin/sh\nexit 0\n' > "$dir/python3.11" ;;
+      *) printf '#!/bin/sh\nexit 0\n' > "$dir/$program" ;;
+    esac
+  done
+  chmod +x "$dir"/*
+  # init.sh needs these POSIX tools; point at the real ones.
+  for tool in sed printf dirname basename head command; do
+    real=$(command -v "$tool" 2>/dev/null || true)
+    [ -n "$real" ] && [ -x "$real" ] && ln -sf "$real" "$dir/$tool"
+  done
+  ln -sf "$(command -v bash)" "$dir/bash"
+}
+
+# 1. Everything required present: --check exits 0 and names the optional programs as absent.
+fakes "$tmp/full" git bun node python3.11
+out=$(PATH="$tmp/full" bash "$root/tools/scripts/init.sh" --check 2>&1) && code=0 || code=$?
+if [ "$code" -eq 0 ] && grep -q '^ok *python3.11+' <<<"$out" && grep -q '^absent *ffmpeg' <<<"$out"; then
+  ok "--check with the required programs exits 0 and lists optional ones as absent"
+else bad "--check with the required programs (exit $code): $out"; fi
+
+# 2. bun missing: exit 1 and the line names bun with its hint.
+fakes "$tmp/nobun" git node python3.11
+out=$(PATH="$tmp/nobun" bash "$root/tools/scripts/init.sh" --check 2>&1) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q '^missing *bun *https://bun.sh' <<<"$out"; then
+  ok "--check without bun exits 1 and names bun"
+else bad "--check without bun (exit $code): $out"; fi
+
+# 3. Python too old: python3.11 answers the version probe with failure and there is no python3.
+fakes "$tmp/oldpy" git bun node python3.11=old
+out=$(PATH="$tmp/oldpy" bash "$root/tools/scripts/init.sh" --check 2>&1) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q '^missing *python3.11+' <<<"$out"; then
+  ok "--check with an old Python exits 1 and names the 3.11 floor"
+else bad "--check with an old Python (exit $code): $out"; fi
+
+# 4. An unknown argument prints the usage and exits 2; nothing runs.
+out=$(PATH="$tmp/full" bash "$root/tools/scripts/init.sh" --install-everything 2>&1) && code=0 || code=$?
+if [ "$code" -eq 2 ] && grep -q -- '--check' <<<"$out"; then ok "unknown argument exits 2 with the usage"
+else bad "unknown argument (exit $code): $out"; fi
+
+# 5. Outside the repository it refuses (exit 2) instead of installing somewhere else.
+mkdir -p "$tmp/elsewhere/tools/scripts"
+cp "$root/tools/scripts/init.sh" "$tmp/elsewhere/tools/scripts/init.sh"
+out=$(PATH="$tmp/full" bash "$tmp/elsewhere/tools/scripts/init.sh" --check 2>&1) && code=0 || code=$?
+if [ "$code" -eq 2 ] && grep -q 'not the mneves-skills repository root' <<<"$out"; then ok "refuses outside the repository"
+else bad "outside the repository (exit $code): $out"; fi
+
+echo "init.test: $pass passed, $fail failed"
+[ "$fail" -eq 0 ]

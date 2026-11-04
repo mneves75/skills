@@ -9,7 +9,7 @@ Supported runtimes for the shipped executables:
 | Runtime | Supported | Used by |
 |---|---|---|
 | Bun | 1.4.4 or later (CI pins 1.4.4) | the readiness tool in `tools/` |
-| Python | 3.11 or later | autoreview, `codex-lane`, `pr-wait`, the ship-deploy contract check, the SRS helper, render starters, the motion-film scripts, site build helpers |
+| Python | 3.11 or later | autoreview, `codex-lane`, `pr-wait`, the ship-deploy contract check, the SRS helper, render starters, the motion-film scripts, site build and release helpers |
 | Node.js | a release line upstream still maintains | security-audit validators, site build |
 
 The maintainer (@mneves75) owns these floors: when a runtime line reaches upstream end of
@@ -39,7 +39,8 @@ the SRS helper and its test (`skills/mneves-teach-back-srs/scripts/srs_db.py`, `
 PR watcher and its test (`skills/babysit-pr/scripts/pr-wait`, `tests/test_pr_wait.py`), the
 motion-film scripts and their test (`skills/mneves-motion-film/scripts/*.py`, `tests/test_pipeline.py`), the
 Node validators and their tests (`skills/security-audit/validate-*.cjs`, `*.test.cjs`), the
-Bun/TypeScript tool (`tools/`), the autoreview CLI and its packaged tests
+Bun/TypeScript tool and the repository's own setup, release and check scripts with their tests
+(`tools/`, `tools/scripts/`), the autoreview CLI and its packaged tests
 (`skills/autoreview/`), the git hook (`.githooks/`), and the GitHub workflows.
 
 Skill files are instructions executed by an AI agent with your permissions. Treat a skill
