@@ -132,7 +132,7 @@ import json, sys
 p = sys.argv[1]; d = json.load(open(p)); d["verdict"] = "not-ready"; d["open_blockers"] = 2; json.dump(d, open(p, "w"))
 PY
 out=$(run_deploy 7) && code=0 || code=$?
-if [ "$code" -eq 1 ] && grep -q "readiness verdict is 'not-ready'" <<<"$out"; then ok "readiness not ready refuses"
+if [ "$code" -eq 1 ] && grep -q "verdict is 'not-ready'" <<<"$out" && grep -q '2 open blocker' <<<"$out"; then ok "readiness not ready refuses"
 else bad "readiness not ready (exit $code): $out"; fi
 
 # 5. CHANGELOG top entry behind VERSION: refused.
@@ -188,7 +188,7 @@ import json, sys
 p = sys.argv[1]; d = json.load(open(p)); d["waivers"][0]["expires"] = "2026-01-01T00:00:00Z"; json.dump(d, open(p, "w"))
 PY
 out=$(run_deploy 7) && code=0 || code=$?
-if [ "$code" -eq 1 ] && grep -q 'DEL-04 (expired 2026-01-01T00:00:00Z)' <<<"$out" && ! grep -q 'gh pr merge' "$FAKE_STATE/calls"; then
+if [ "$code" -eq 1 ] && grep -q 'waiver DEL-04 expired 2026-01-01T00:00:00Z' <<<"$out" && ! grep -q 'gh pr merge' "$FAKE_STATE/calls"; then
   ok "an expired waiver refuses before the merge"
 else bad "expired waiver (exit $code): $out"; fi
 
@@ -292,6 +292,30 @@ out=$(run_deploy 7 --dry-run) && code=0 || code=$?
 if [ "$code" -eq 0 ] && grep -q "Waivers: @owner to $future (SEC-15, CMP-06, DEL-04); @second to 2099-01-01T00:00:00Z (OPS-04)" <<<"$out"; then
   ok "the tag names each waiver group with its own owner and expiry"
 else bad "waiver groups (exit $code): $(grep -i waivers <<<"$out" | head -2)"; fi
+
+# 20. A head-specific record for another target does not admit a production merge.
+make_repo; python3 -I - "$tmp/work/.scratch/security-gate/$(cat "$FAKE_STATE/head")/production.json" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d["target"] = "staging"; json.dump(d, open(p, "w"))
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "target is 'staging', not production" <<<"$out" && ! grep -q 'gh pr merge' "$FAKE_STATE/calls"; then
+  ok "a head-specific record for another target is refused"
+else bad "staging record (exit $code): $(tail -2 <<<"$out")"; fi
+
+# 21. An obsolete same-tree record under another commit does not hide a current one.
+make_repo; head=$(cat "$FAKE_STATE/head"); tree=$(git -C "$tmp/work" rev-parse "release/9.9.9^{tree}")
+mv "$tmp/work/.scratch/readiness/$head" "$tmp/work/.scratch/readiness/zzzz-current"
+mkdir -p "$tmp/work/.scratch/readiness/aaaa-old"
+python3 -I - "$tmp/work/.scratch/readiness/zzzz-current/production.json" "$tmp/work/.scratch/readiness/aaaa-old/production.json" "$past" "$tree" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1])); d["tree"] = sys.argv[4]; d["commit"] = "0" * 40; d["created_at"] = "2026-11-04T00:00:00Z"; json.dump(d, open(sys.argv[1], "w"))
+old = dict(d); old["created_at"] = "2026-01-01T00:00:00Z"; old["valid_until"] = sys.argv[3]; json.dump(old, open(sys.argv[2], "w"))
+PY
+out=$(run_deploy 7 --dry-run) && code=0 || code=$?
+if [ "$code" -eq 0 ] && grep -q 'record .scratch/readiness/zzzz-current/production.json' <<<"$out"; then
+  ok "the current same-tree record is chosen over an obsolete one"
+else bad "obsolete record first (exit $code): $(grep -E 'readiness|deploy.sh' <<<"$out" | head -2)"; fi
 
 # 12. A PASS record with no waivers releases, and the tag message carries no Waivers line.
 make_repo; python3 -I - "$tmp/work/.scratch/security-gate/$(cat "$FAKE_STATE/head")/production.json" "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" <<'PY'

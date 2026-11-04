@@ -88,68 +88,101 @@ tree=$(git rev-parse "$head^{tree}")
 say "candidate: PR #$pr ($head_ref) head $head tree $tree"
 
 # A record binds to a tree. Security records state `tree`; readiness records state only `commit`, so the
-# tree is the commit's tree when that commit is in this repository. The candidate's own folder is tried
-# first, then any production record whose tree is the candidate's.
-record_tree() {
-  local file=$1 stated commit
-  stated=$(jget "$file" tree)
-  if [ -n "$stated" ]; then printf '%s' "$stated"; return; fi
-  commit=$(jget "$file" commit)
-  [ -n "$commit" ] && git rev-parse --verify -q "$commit^{tree}" 2>/dev/null || true
-}
-find_record() {
-  local kind=$1 file
-  file="$records/$kind/$head/production.json"
-  if [ -f "$file" ] && [ "$(record_tree "$file")" = "$tree" ]; then printf '%s' "$file"; return; fi
-  for file in "$records"/"$kind"/*/production.json; do
-    [ -f "$file" ] || continue
-    [ "$(jget "$file" target)" = production ] || continue
-    [ "$(record_tree "$file")" = "$tree" ] && { printf '%s' "$file"; return; }
-  done
-  return 1
-}
-security=$(find_record security-gate) || fail "no production security-gate record for tree $tree under $records/security-gate/ (run the mneves-security deploy gate on the candidate)"
-readiness=$(find_record readiness) || fail "no production readiness record for tree $tree under $records/readiness/"
-sec_verdict=$(jget "$security" verdict); sec_accept=$(jget "$security" independent_acceptance)
-case $sec_verdict in pass|waived) ;; *) fail "security gate verdict is '$sec_verdict' ($security)" ;; esac
-[ "$sec_accept" = pass ] || fail "security gate independent acceptance is '$sec_accept' ($security)"
-ready_verdict=$(jget "$readiness" verdict); ready_open=$(jget "$readiness" open_blockers)
-[ "$ready_verdict" = ready ] || fail "readiness verdict is '$ready_verdict' ($readiness)"
-[ "${ready_open:-0}" = 0 ] || fail "readiness has $ready_open open blocker(s) ($readiness)"
-gated_commit=$(jget "$security" commit)
-sec_waivers=$(jget "$security" waivers); ready_waivers=$(jget "$readiness" waivers)
-# An expired waiver restores its blocker, so a record that leans on one no longer admits the tree.
-expired=$(python3 -I - "$security" "$readiness" <<'PY'
-import datetime, json, sys
+# tree is the commit's tree when that commit is in this repository. For each kind, every production record
+# with the candidate's tree is a candidate record, the head's own folder first and then newest first; the
+# first one that is valid in full (verdict, acceptance or blockers, waivers in force, validity window) is
+# used, so an obsolete record under another commit never hides a current one, and a record that fails any
+# check is named with its reason when none is valid.
+select_record() {
+  python3 -I - "$1" "$head" "$tree" "$records" <<'PY'
+import datetime, glob, json, os, subprocess, sys
+kind, head, tree, records = sys.argv[1:5]
 now = datetime.datetime.now(datetime.timezone.utc)
-bad = []
-for path in sys.argv[1:]:
-    waivers = json.load(open(path, encoding="utf-8")).get("waivers")
+
+def when(value):
+    stamp = datetime.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    if stamp.tzinfo is None:
+        raise ValueError("no timezone")
+    return stamp
+
+def tree_of(record):
+    if record.get("tree"):
+        return str(record["tree"])
+    commit = record.get("commit")
+    if not commit:
+        return None
+    done = subprocess.run(["git", "rev-parse", "--verify", "-q", f"{commit}^{{tree}}"], capture_output=True, text=True)
+    return done.stdout.strip() or None
+
+def problems(record):
+    out = []
+    if record.get("target") != "production":
+        out.append(f"target is {record.get('target')!r}, not production")
+    if kind == "security-gate":
+        if record.get("verdict") not in ("pass", "waived"):
+            out.append(f"verdict is {record.get('verdict')!r}")
+        if record.get("independent_acceptance") != "pass":
+            out.append(f"independent acceptance is {record.get('independent_acceptance')!r}")
+    else:
+        if record.get("verdict") != "ready":
+            out.append(f"verdict is {record.get('verdict')!r}")
+        if str(record.get("open_blockers", 0)) != "0":
+            out.append(f"{record.get('open_blockers')} open blocker(s)")
+    waivers = record.get("waivers")
     if waivers is None:
         waivers = []
     if not isinstance(waivers, list) or any(not isinstance(w, dict) for w in waivers):
-        bad.append(f"{path}: waivers is not a list of objects"); continue
-    for waiver in waivers:
-        expires = waiver.get("expires")
+        out.append("waivers is not a list of objects")
+    else:
+        for waiver in waivers:
+            name = waiver.get("id") or waiver.get("control")
+            try:
+                if when(waiver.get("expires")) <= now:
+                    out.append(f"waiver {name} expired {waiver.get('expires')}")
+            except ValueError:
+                out.append(f"waiver {name} has an unreadable expiry {waiver.get('expires')!r}")
+    if record.get("valid_until") is not None:
         try:
-            when = datetime.datetime.fromisoformat(str(expires).replace("Z", "+00:00"))
+            if when(record["valid_until"]) <= now:
+                out.append(f"was valid until {record['valid_until']}; run that assessment again on this tree")
         except ValueError:
-            bad.append(f"{waiver.get('id') or waiver.get('control')} (unreadable expiry {expires!r})"); continue
-        if when.tzinfo is None or when <= now:
-            bad.append(f"{waiver.get('id') or waiver.get('control')} (expired {expires})")
-print(" ".join(bad))
+            out.append(f"unreadable valid_until {record['valid_until']!r}")
+    return out
+
+def created(path):
+    try:
+        return str(json.load(open(path, encoding="utf-8")).get("created_at") or "")
+    except (OSError, ValueError):
+        return ""
+
+own = os.path.join(records, kind, head, "production.json")
+others = [p for p in glob.glob(os.path.join(records, kind, "*", "production.json")) if p != own]
+others.sort(key=created, reverse=True)
+reasons = []
+for path in ([own] if os.path.isfile(own) else []) + others:
+    try:
+        record = json.load(open(path, encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        reasons.append(f"{path}: unreadable ({error})"); continue
+    if tree_of(record) != tree:
+        continue
+    found = problems(record)
+    if not found:
+        print(path); sys.exit(0)
+    reasons.append(f"{path}: " + "; ".join(found))
+if reasons:
+    print(f"no valid production {kind} record for tree {tree}: " + " | ".join(reasons))
+else:
+    print(f"no production {kind} record for tree {tree} under {records}/{kind}/")
+sys.exit(1)
 PY
-)
-[ -z "$expired" ] || fail "waiver(s) no longer in force: $expired; the gate must be renewed before this tree can merge"
-# A readiness assessment is valid for the window its record states; past it the run is repeated, not reused.
-for record in "$security" "$readiness"; do
-  until=$(jget "$record" valid_until)
-  [ -z "$until" ] && continue
-  python3 -I -c 'import datetime, sys
-when = datetime.datetime.fromisoformat(sys.argv[1].replace("Z", "+00:00"))
-sys.exit(0 if when.tzinfo and when > datetime.datetime.now(datetime.timezone.utc) else 1)' "$until" 2>/dev/null \
-    || fail "record $record was valid until $until; run that assessment again on this tree before merging"
-done
+}
+security=$(select_record security-gate) || fail "$security (run the mneves-security deploy gate on the candidate)"
+readiness=$(select_record readiness) || fail "$readiness"
+sec_verdict=$(jget "$security" verdict); sec_accept=$(jget "$security" independent_acceptance)
+ready_verdict=$(jget "$readiness" verdict); ready_open=$(jget "$readiness" open_blockers)
+gated_commit=$(jget "$security" commit)
+sec_waivers=$(jget "$security" waivers); ready_waivers=$(jget "$readiness" waivers)
 # The tag's Waivers line names every waiver with its own owner and expiry, grouped; a PASS with none prints no line.
 waivers_line=$(python3 -I - "$security" "$readiness" <<'PY'
 import json, sys
