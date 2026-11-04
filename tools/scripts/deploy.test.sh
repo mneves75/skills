@@ -96,7 +96,7 @@ JSON
 {"schema":1,"unit":".","target":"production","commit":"$head","tree":"$tree","verdict":"waived","open_blockers":0,"blockers":"","independent_acceptance":"pass","created_at":"2026-11-04T00:00:00Z","waivers":[{"id":"SEC-15","owner":"@owner","reason":"r","expires":"$future"},{"id":"CMP-06","owner":"@owner","reason":"r","expires":"$future"}]}
 JSON
   cat > "$tmp/work/.scratch/readiness/$head/production.json" <<JSON
-{"schema":1,"unit":".","target":"production","catalog":3,"commit":"$head","tree":"$tree","verdict":"ready","open_blockers":0,"created_at":"2026-11-04T00:00:00Z","valid_until":"$soon","waivers":[{"id":"DEL-04","owner":"@owner","expires":"$future"}]}
+{"schema":1,"unit":".","target":"production","catalog":3,"commit":"$head","tree":"$tree","verdict":"ready","open_blockers":0,"independent_acceptance":"pass","created_at":"2026-11-04T00:00:00Z","valid_until":"$soon","waivers":[{"id":"DEL-04","owner":"@owner","expires":"$future"}]}
 JSON
   # The fake site serves the release bytes.
   mkdir -p "$FAKE_WEB"; echo "<h1>new</h1>" > "$FAKE_WEB/index.html"; echo "<p>guide</p>" > "$FAKE_WEB/howto.html"
@@ -364,6 +364,30 @@ out=$(run_deploy 7) && code=0 || code=$?
 if [ "$code" -eq 0 ] && grep -q 'tag message (create with --tag' <<<"$out" && [ -z "$(git -C "$tmp/bare" tag -l v9.9.9)" ]; then
   ok "without --tag the release prints the tag message and tags nothing"
 else bad "no-tag path (exit $code): $out"; fi
+
+# 24. A readiness record without the verifier's step-5 result (independent_acceptance) is refused before the merge.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d.pop("independent_acceptance", None); json.dump(d, open(p, "w"))
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "independent acceptance is None" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a readiness record without independent acceptance refuses before the merge"
+else bad "readiness without acceptance (exit $code): $out"; fi
+
+# 25. Readiness waivers that repeat the security gate's ids: the Readiness line names only the ids the
+# readiness gate adds, and the Waivers line names each id once.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" "$future" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p))
+d["waivers"] = [{"control": c, "owner": "@owner", "expires": sys.argv[2]} for c in ("SEC-15", "CMP-06", "DEL-04")]
+json.dump(d, open(p, "w"))
+PY
+out=$(run_deploy 7 --dry-run) && code=0 || code=$?
+if [ "$code" -eq 0 ] && grep -q 'Readiness gate: ready (waived: DEL-04)' <<<"$out" \
+   && grep -q "Waivers: @owner to $future (SEC-15, CMP-06, DEL-04)" <<<"$out"; then
+  ok "imported security ids stay off the Readiness line and appear once on the Waivers line"
+else bad "waiver dedupe (exit $code): $(grep -E 'Readiness gate|Waivers' <<<"$out" | head -2)"; fi
 
 echo "deploy.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

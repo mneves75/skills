@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
-<title>mneves75/skills — a clear way forward for coding agents</title>
-<meta name="description" content="Twenty-three portable skills for AI coding agents. Choose a procedure for security, review, planning, building, discovery or learning, then install it in the tools you already use.">
+<title>mneves75/skills — Skills for coding agents</title>
+<meta name="description" content="Portable skills for AI coding agents. Choose a procedure for security, review, planning, building, discovery or learning, then install it in the tools you already use.">
 <meta property="og:title" content="mneves75/skills">
 <meta property="og:description" content="Reusable procedures for deliberate agent work. One install, any tool that reads SKILL.md.">
 <meta property="og:type" content="website">
@@ -15,7 +15,7 @@
 <link rel="preload" href="assets/fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
 <style>
 @font-face{font-family:Bricolage;src:url('assets/fonts/bricolage-grotesque.woff2') format('woff2');font-weight:200 800;font-style:normal;font-display:swap}
-:root{color-scheme:light dark;--paper:#fff;--ink:#132236;--muted:#43556c;--rule:#d5dce5;--accent:#164bd6;--soft:#f0f5ff;--blue:#164bd6;--on-blue:#fff;--blue-muted:#d7e4ff;--lime:#def59b;--on-lime:#203615;--code:#edf1f7;--focus:#164bd6;--display:Bricolage,Arial,sans-serif;--body:Bricolage,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+:root{color-scheme:light dark;--paper:#fff;--ink:#132236;--muted:#43556c;--rule:#d5dce5;--accent:#164bd6;--soft:#f0f5ff;--blue:#164bd6;--on-blue:#fff;--blue-muted:#d7e4ff;--lime:#def59b;--on-lime:#203615;--lime-code:#c7de8b;--code:#edf1f7;--focus:#164bd6;--display:Bricolage,Arial,sans-serif;--body:Bricolage,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 @media(prefers-color-scheme:dark){:root{--paper:#111b2b;--ink:#f1f5fc;--muted:#b6c4d8;--rule:#36465d;--accent:#abc4ff;--soft:#1b2d49;--blue:#1645bd;--code:#21324a;--focus:#d8ee9c}}
 *{box-sizing:border-box}
 html{scroll-padding-top:2rem}
@@ -47,7 +47,7 @@ h3{font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}
 .install-head{display:flex;justify-content:space-between;align-items:baseline;gap:1.5rem;margin-bottom:1rem}.install h2{font-size:1.6rem;letter-spacing:-.015em}.install a{color:var(--on-blue);font-size:.9rem}
 .commands{display:grid;grid-template-columns:1fr 1fr;gap:2rem}
 .command{min-width:0;display:grid;grid-template-columns:1fr auto;gap:.6rem;align-items:center;padding-block:.6rem;border-top:1px solid #7b9ff3}
-.command code{background:none;color:var(--on-blue);padding:0;white-space:normal;overflow-wrap:anywhere;font-size:.79rem;line-height:1.8}
+.command code{background:none;color:var(--on-blue);padding:0;white-space:normal;overflow-wrap:anywhere;font-size:.8125rem;line-height:1.8}
 .command button{min-height:44px;min-width:65px;border:1px solid #b9ceff;background:transparent;color:var(--on-blue);padding:.4rem .65rem;border-radius:4px;font-size:.85rem}.command button:hover{background:#fff;color:#164bd6}
 .install :focus-visible{outline-color:var(--lime)}
 .copy-status{min-height:1.45em;margin-top:.5rem;font-size:.85rem;color:var(--blue-muted)}
@@ -62,8 +62,8 @@ h3{font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}
 .skill{min-width:0;display:flex;flex-direction:column;align-items:start;gap:.55rem}
 .skill p{font-size:.95rem;color:var(--muted);max-width:45ch}.skill .example{font-size:.85rem;line-height:1.5;color:var(--muted)}
 .skill .guide{font-size:.88rem;min-height:32px;padding-top:.2rem}
-.skill.new{background:var(--lime);color:var(--on-lime);padding:1.25rem;border-radius:4px;margin-top:-.1rem}.skill.new p,.skill.new .guide{color:var(--on-lime)}.skill.new :focus-visible{outline-color:var(--on-lime)}
-.release-note{font-size:.75rem;font-weight:600;letter-spacing:.01em;line-height:1.4}
+.skill.new{background:var(--lime);color:var(--on-lime);padding:1.25rem;border-radius:4px;margin-top:-.1rem}.skill.new p,.skill.new .guide{color:var(--on-lime)}.skill.new :focus-visible{outline-color:var(--on-lime)}.skill.new code{background:var(--lime-code);color:var(--on-lime)}
+.release-note{font-size:.8125rem;font-weight:600;letter-spacing:.01em;line-height:1.4}
 .collection{display:grid;grid-template-columns:1fr 2fr;gap:2.5rem;padding:1.6rem 0;border-top:1px solid var(--rule)}.collection h3{font-size:1.6rem}.collection p{color:var(--muted);font-size:.95rem;max-width:65ch}.collection a{display:inline-block;margin-top:.65rem}
 .how{padding-block:3.5rem;border-block:1px solid var(--rule)}.how h2{margin-bottom:1.8rem}
 .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:2.5rem}.step h3{margin-bottom:.7rem;font-size:1.35rem}.step p{color:var(--muted);font-size:.95rem;max-width:40ch}
@@ -79,7 +79,7 @@ h3{font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}
 @media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}.contents svg{transition:transform 140ms cubic-bezier(.2,0,0,1)}.contents a:hover svg{transform:translateY(2px)}}
 @media(max-width:64rem){.hero{gap:2rem;grid-template-columns:1.4fr 1fr}.catalog-group{grid-template-columns:10rem 1fr;gap:1.75rem}.commands{grid-template-columns:1fr;gap:.2rem}.command code{font-size:.87rem}}
 @media(max-width:48rem){body{font-size:16px}.masthead{gap:1rem;flex-wrap:wrap;padding-block:1.15rem}.nav{gap:1.15rem}.hero{grid-template-columns:1fr;gap:1.5rem;padding-block:2.5rem}.hero h1{max-width:14ch}.intro{max-width:55ch;font-size:1.08rem}.compatibility{margin-top:1rem}.hero-links{margin-top:1rem}.install{padding:1.3rem}.install-head{align-items:start}.catalog{padding-block:2.5rem}.section-heading{display:block}.section-heading p{margin-top:.75rem}.contents{grid-template-columns:1fr 1fr;margin-bottom:2rem}.catalog-group{grid-template-columns:1fr;gap:1.4rem}.group-title h2{max-width:none}.group-title p{max-width:none;margin-top:.4rem}.skill-list{column-gap:1.5rem}.steps,.resources{grid-template-columns:1fr;gap:1.7rem}.collection{grid-template-columns:1fr;gap:.7rem}.tool{grid-template-columns:1fr;gap:1.75rem;padding-block:2.75rem}.how{padding-block:2.75rem}.resources{padding-bottom:2.5rem}.history{padding-block:2.75rem}}
-@media(max-width:36rem){h1{font-size:clamp(2.9rem,10.4vw,3.6rem)}.brand{font-size:1rem}.nav{gap:1rem;font-size:.88rem}.skill-list{grid-template-columns:1fr;row-gap:1.6rem}.skill p{max-width:65ch}.skill.new{margin-top:0}.install-head{flex-wrap:wrap;gap:.5rem}.command code{font-size:.76rem}.command button{font-size:.8rem}.contents a{font-size:.86rem}.log li{grid-template-columns:5.9rem 1fr;gap:.8rem}.section-heading h2{font-size:2.3rem}}
+@media(max-width:36rem){h1{font-size:clamp(2.9rem,10.4vw,3.6rem)}.brand{font-size:1rem}.nav{gap:1rem;font-size:.88rem}.skill-list{grid-template-columns:1fr;row-gap:1.6rem}.skill p{max-width:65ch}.skill.new{margin-top:0}.install-head{flex-wrap:wrap;gap:.5rem}.command code{font-size:.8125rem}.command button{font-size:.8125rem}.contents a{font-size:.86rem}.log li{grid-template-columns:5.9rem 1fr;gap:.8rem}.section-heading h2{font-size:2.3rem}}
 @media(forced-colors:active){.action,.command button,.contents a,.skill.new,.sample{border:1px solid ButtonText}}
 </style>
 <script src="copy-command.js" defer></script>
@@ -93,8 +93,8 @@ h3{font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}
 </header>
 <main>
 <section class="hero" aria-labelledby="h-hero">
-  <h1 id="h-hero">Give your agent a clear way forward.</h1>
-  <div><p class="intro">Twenty-three reusable procedures for AI coding agents. From the first plan to independent proof, use them with the tools you already have.</p>
+  <h1 id="h-hero">Skills for coding agents.</h1>
+  <div><p class="intro">Reusable procedures for AI coding agents. From the first plan to independent proof, use them with the tools you already have.</p>
   <div class="hero-links"><a class="action" href="#skills">Choose a skill</a><a href="howto.html">Read the guide</a></div>
   <p class="compatibility">Claude Code, Codex, Cursor, OpenCode, pi — and any tool that reads <code>SKILL.md</code>.</p></div>
 </section>
@@ -192,10 +192,10 @@ bun --bun /path/to/skills/tools/readiness-check.ts \
   <h2 id="h-log">What changed.</h2>
   <ul class="log">
     <!-- changelog:start -->
-        <li><span class="v">1.45.0<span class="d">2026-11-04</span></span><span><code>tools/scripts/init.sh</code>: one idempotent command for the development setup (<code>tools/</code> locked.</span></li>
+        <li><span class="v">1.45.1<span class="d">2026-11-04</span></span><span><code>pr-wait</code> (both defects inherited from tstack <code>1085050f</code> and still present there): a failed read of the base branch's required checks no longer counts as "none required".</span></li>
+        <li><span class="v">1.45.0<span class="d">2026-11-04</span></span><span><code>tools/scripts/init.sh</code>: one idempotent command for the development setup (<code>tools/</code> locked dev tools, the Agent Skills reference validator in <code>.scratch/skills-ref</code>), reporting the host programs the gates need (<code>python3</code> itself at 3.11 or later, since that is the command the scripts run); <code>--check</code> installs nothing.</span></li>
         <li><span class="v">1.44.0<span class="d">2026-10-30</span></span><span>Orchestrator reviewer seat: the reviewer runs on the builder-class models, crossed, so the model that built a change never reviews it: a change built on one column of the Defaults block is reviewed by the reviewer on the other column.</span></li>
         <li><span class="v">1.43.0<span class="d">2026-10-28</span></span><span>Five skills adapted from tstack at <code>1085050f</code> (MIT, Theo Browne's copyright kept, provenance in each skill): <code>full-stop</code> takes a change unattended to a proven, reviewed PR that is ready to merge and never merges it (it carries tstack's <code>full-send</code> proof, merge-gate and asking rules, with the review on any model that did not build the change); <code>takeover</code> finishes someone else's PR with their credit kept; <code>modernize</code> rebases an aging PR and recommends MODERNIZE, REWORK or CLOSE; <code>babysit-pr</code> watches a PR through CI and review bots with the shipped <code>pr-wait</code>; <code>leaving-pr-comments</code> attributes agent-posted GitHub comments.</span></li>
-        <li><span class="v">1.42.0<span class="d">2026-10-28</span></span><span>Readiness ledger guard: <code>check-readiness-catalog.py</code> also checks <code>docs/readiness/ledger.md</code>.</span></li>
         <!-- changelog:end -->
   </ul>
   <a href="https://github.com/mneves75/skills/blob/main/CHANGELOG.md">Read the full changelog</a>

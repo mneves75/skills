@@ -15,8 +15,9 @@ MARKERS = re.compile(r"(<!-- changelog:start -->).*?(<!-- changelog:end -->)", r
 
 
 def first_sentence(body: str) -> str:
-    bullet = re.search(r"^- (.+)$", body, re.M)
-    text = bullet.group(1) if bullet else ""
+    # A bullet wraps onto indented continuation lines; the sentence may end on any of them.
+    bullet = re.search(r"^- (.+(?:\n[ \t]+\S.*)*)", body, re.M)
+    text = " ".join(line.strip() for line in bullet.group(1).splitlines()) if bullet else ""
     text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
     # Classes exclude their own delimiters, so a long run of brackets cannot backtrack quadratically.
     text = re.sub(r"\[([^\[\]]+)\]\([^()]+\)", r"\1", text)

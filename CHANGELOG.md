@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.45.1] - 2026-11-04
+
+Releases the nine commits PR #40 gained after 1.45.0 branched from it (15e0298 to c46c77c4: the
+tstack review record, the `pr-wait` incomplete-read fixes and the landing-page contrast fix), the
+1.45.0 binding run folded into the readiness ledger, and the `deploy.sh` corrections the 1.45.0
+closeout owed.
+
+### Fixed
+- **`pr-wait`** (both defects inherited from tstack `1085050f` and still present there): a failed read of the base branch's required checks no longer counts as "none required". A 404 from rulesets or classic protection still means none set there; any other refusal stops with exit 1, an unreachable GitHub retries on the next poll, and nothing is cached until both sources were read. `ready` asks GitHub whether review threads exist before the last 100 and passes only on an explicit no; more threads, or missing or malformed page information, stop it with exit 1 ("could not read every review thread") instead of reporting ready past an unresolved thread it never saw. `green` stays about checks. The suite runs forty-four cases.
+- **Landing page**: inline code in new-skill (lime) cards had about 1:1 contrast in dark mode; a lime-owned code surface now gives 8.91:1 in both schemes, and `check-site-copy.sh` checks computed contrast in light and dark mode. Release notes and install commands stay at 13px or larger at every width. The hero, title and meta description drop the stale skill count and the old tagline.
+
 ## [1.45.0] - 2026-11-04
 
 Releases PR #40 and PR #39 together; PR #38 is closed as superseded by #40 (its `full-stop`
