@@ -1,5 +1,6 @@
 # Deploy site/ (landing page, HOWTO, sample report) to GitHub Pages, only after CI passes on
 # the same main commit. Roll back: gh workflow run static.yml -f ref=<earlier tag or commit>
+# An owner's CI waiver for the exact main tip: CONTRIBUTING.md, "Skipping GitHub CI for a release".
 #
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2025-2026 Marcus Neves
@@ -16,6 +17,14 @@ on:
       ref:
         description: Tag or commit whose site/ to publish (default main)
         required: false
+      ci_waiver_sha:
+        description: Owner CI waiver only - full commit id of the main tip, approved in the github-pages environment
+        required: false
+        type: string
+      ci_waiver_reason:
+        description: Owner CI waiver only - why GitHub CI is skipped for this commit
+        required: false
+        type: string
 
 permissions:
   actions: read
@@ -41,13 +50,33 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha || inputs.ref || github.sha }}
           fetch-depth: 0
       # A CI re-run or a late run for an older commit must not roll the site back; only a
-      # dispatch (an explicit rollback) may publish a commit behind the main tip.
+      # dispatch (an explicit rollback) may publish a commit behind the main tip. A CI waiver
+      # publishes only the main tip that the environment variable approves; any other waiver
+      # request fails instead of falling back to the CI route.
       - name: Publish only the main tip, or a commit on main when dispatched
         env:
           EVENT: ${{ github.event_name }}
           GH_TOKEN: ${{ github.token }}
+          CI_WAIVER_SHA: ${{ inputs.ci_waiver_sha }}
+          CI_WAIVER_REASON: ${{ inputs.ci_waiver_reason }}
+          CI_WAIVER_APPROVED_SHA: ${{ vars.CI_WAIVER_APPROVED_SHA }}
         run: |
-          if [ "$EVENT" = workflow_dispatch ]; then
+          refuse() { echo "Refusing the CI waiver: $1" >&2; exit 1; }
+          if [ -n "$CI_WAIVER_SHA" ] || [ -n "$CI_WAIVER_REASON" ]; then
+            [ "$EVENT" = workflow_dispatch ] || refuse "only a manual dispatch may request one"
+            [[ "$CI_WAIVER_SHA" =~ ^[0123456789abcdef]{40}$ ]] \
+              || refuse "ci_waiver_sha must be a full lowercase 40-character commit id"
+            [[ "$CI_WAIVER_REASON" =~ [^[:space:]] ]] || refuse "ci_waiver_reason is blank"
+            [ "$CI_WAIVER_APPROVED_SHA" = "$CI_WAIVER_SHA" ] \
+              || refuse "CI_WAIVER_APPROVED_SHA in the github-pages environment does not approve this commit"
+            head=$(git rev-parse --verify 'HEAD^{commit}')
+            main=$(git rev-parse --verify 'origin/main^{commit}')
+            [ "$head" = "$CI_WAIVER_SHA" ] || refuse "the checked-out commit is $head, not the waived commit"
+            [ "$main" = "$CI_WAIVER_SHA" ] || refuse "the waived commit is not the current main tip $main"
+            printf '## CI WAIVED, not passed\n\nCommit: %s\n\nOwner reason: %s\n' \
+              "$CI_WAIVER_SHA" "$CI_WAIVER_REASON" >> "$GITHUB_STEP_SUMMARY"
+            echo "CI WAIVED, not passed, for $CI_WAIVER_SHA: $CI_WAIVER_REASON"
+          elif [ "$EVENT" = workflow_dispatch ]; then
             git merge-base --is-ancestor HEAD origin/main
             conclusion=$(gh run list --workflow ci.yml --commit "$(git rev-parse HEAD)" \
               --branch main --event push --limit 1 --json conclusion --jq '.[0].conclusion')

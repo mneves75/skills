@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.45.2] - 2026-11-04
+
+Publishes 1.45.1's content with the Pages CI waiver. 1.45.1 was merged to `main` as `a53b03c`
+(PR #42) but not published: when 1.45.2 was prepared, Pages still served 1.45.0 and there was no
+`v1.45.1` tag. The 1.45.1 entry below lists what this release also carries.
+
+### Added
+- **Pages CI waiver** (`static.yml`): a manual dispatch may publish without GitHub CI only for the
+  exact `main` tip that `vars.CI_WAIVER_APPROVED_SHA` resolves to, with a nonblank reason, after
+  the publisher's operator gate proves that value comes from the `github-pages` environment alone;
+  the run summary says CI was waived, not passed. Any other waiver request fails, and automatic
+  deploys and rollbacks still require CI. `check-pages.test.py` proves each refusal;
+  CONTRIBUTING documents the manual release sequence.
+
 ## [1.45.1] - 2026-11-04
 
 Releases the nine commits PR #40 gained after 1.45.0 branched from it (15e0298 to c46c77c4: the
@@ -32,7 +46,7 @@ closeout owed.
 - **`changelog-rows.py`**: a first bullet that wraps onto indented lines keeps its whole first
   sentence in the landing page's changelog row (finder B's D-B21; the 1.45.0 row ended
   mid-parenthesis). `build-site.test` proves it.
-- **`pr-wait`** (both defects inherited from tstack `1085050f` and still present there): a failed read of the base branch's required checks no longer counts as "none required". A 404 from rulesets or classic protection still means none set there; any other refusal stops with exit 1, an unreachable GitHub retries on the next poll, and nothing is cached until both sources were read. `ready` asks GitHub whether review threads exist before the last 100 and passes only on an explicit no; more threads, or missing or malformed page information, stop it with exit 1 ("could not read every review thread") instead of reporting ready past an unresolved thread it never saw. `green` stays about checks. The suite runs forty-four cases.
+- **`pr-wait`** (both defects inherited from tstack `1085050f` and still present there): a failed read of the base branch's required checks no longer counts as "none required". A 404 from rulesets or classic protection still means none set there; any other refusal stops with exit 1, an unreachable GitHub retries on the next poll, and nothing is cached until both sources were read. `ready` asks GitHub whether review threads exist before the last 100 and passes only on an explicit no; more threads, or missing or malformed page information, stop it with exit 1 ("could not read every review thread") instead of reporting ready past an unresolved thread it never saw. `green` stays about checks. The suite runs forty-six cases.
 - **Landing page**: inline code in new-skill (lime) cards had about 1:1 contrast in dark mode; a lime-owned code surface now gives 8.91:1 in both schemes, and `check-site-copy.sh` checks computed contrast in light and dark mode. Release notes and install commands stay at 13px or larger at every width. The hero, title and meta description drop the stale skill count and the old tagline.
 
 ## [1.45.0] - 2026-11-04

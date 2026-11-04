@@ -45,9 +45,12 @@ row is active. Advisory entries follow.
   `block`, or each remaining block waived there by a named owner with an expiry.
 - Rollout and recovery: evidence only; nothing deploys. A gate that blocks leaves the current
   production site untouched.
-- Mechanical gate: Pages enforces CI success and source ancestry through `static.yml`.
-  This repository's security/readiness records are operating requirements before merging;
-  that workflow does not itself enforce them. The merger must check the exact-candidate
+- Mechanical gate: Pages enforces CI success and source ancestry through `static.yml`, except
+  for an owner's CI waiver dispatch, which publishes only the exact `main` tip equal to the
+  resolved approval variable; the publisher's operator gate proves before dispatch that the
+  value comes from the `github-pages` environment alone (from 1.45.2). This repository's
+  security/readiness records are operating requirements before merging; that workflow does not
+  itself enforce them. The merger must check the exact-candidate
   verdicts before publishing.
 
 ## 2. Second administrator and account recovery
@@ -96,6 +99,11 @@ row is active. Advisory entries follow.
 - Closed 2026-10-26 for DEL-03: `static.yml` publishes only after CI succeeds for a push to
   `main`, and only the `main` tip (ledger row DEL-03). MNT-02 (advisory) stays open: read the
   `main` ruleset through the API and record whether it requires review and the CI checks.
+- 2026-11-04, 1.45.2 candidate (unbound): an owner's CI waiver dispatch may publish the exact
+  `main` tip without CI when it equals the resolved `vars.CI_WAIVER_APPROVED_SHA`; any other
+  waiver request fails. The workflow cannot prove that value's environment-only provenance, so
+  the operator gate in `CONTRIBUTING.md` proves it before dispatch. Proven locally only; the next
+  binding run reassesses DEL-03 on the pushed merge commit.
 
 ## 5. Exercised rollback
 
@@ -119,6 +127,9 @@ row is active. Advisory entries follow.
 - Rollout and recovery: step 3 is the recovery; a fresh `main` push whose CI passes also
   republishes the tip.
 - Mechanical gate: each release tag message prints the rollback command for the version before it.
+- 2026-11-04, 1.45.2 candidate (unbound): the rollback route is unchanged, but a release
+  published under an owner's CI waiver has no successful CI run, so it cannot be a rollback
+  target; roll back to a version whose CI passed.
 
 ## 6. People seats and continuity (advisory)
 

@@ -1,6 +1,6 @@
 # Tstack review — run notes
 
-Updated: 2026-11-04. Status: released in 1.45.1 (the branch's head `c46c77c4` merged through `release/1.45.1-r2`; 1.45.0 had released the branch at `a322c9f3`).
+Updated: 2026-11-04. Status: part of the 1.45.2 candidate. The branch's head `c46c77c4` merged to `main` with 1.45.1 (PR #42, `a53b03c`; 1.45.0 had released the branch at `a322c9f3`), which was not published: when 1.45.2 was prepared, Pages served 1.45.0 and there was no `v1.45.1` tag. 1.45.2 adds DEL-01. The binding result lives in the private gate records and the eventual `v1.45.2` tag; this file makes no release claim.
 Plan: [review and release acceptance](../../../plans/005-tstack-review-release.md).
 Machine-readable results: [tests.json](tests.json).
 
@@ -71,7 +71,8 @@ Another active release session owns `release/1.45.0`, changes the same watcher, 
 setup/deployment tooling. This session's isolated fixes were merged into the existing pstack
 working PR at `d0ac1a2`, preserving the newer plan and run notes. Its temporary branch and
 worktree were then removed. The other session's worktree remains untouched. Final release
-integration, versioning and publication ownership remain unresolved.
+integration, versioning and publication ownership remained unresolved then (settled
+2026-11-04; see the 1.45.2 paragraph below).
 
 The other session's recorded plan still waits for main CI, whereas the current task explicitly
 skips GitHub CI and staging. Reconcile that discrepancy before publication. No deployment or
@@ -107,6 +108,47 @@ Historical specs and handoffs retain their dates and
 original observations. Repeated historical scratch-only setup runners support a small tracked
 initialization script; that implementation must be reconciled with the active release session.
 
+## DEL-01 CI waiver (2026-11-04)
+
+Implemented on `release/1.45.1-ci-waiver` from candidate `63d95fe`: `static.yml` accepts an owner's
+CI waiver only for a manual dispatch naming the exact `main` tip that the `github-pages`
+environment's `CI_WAIVER_APPROVED_SHA` approves, with a nonblank reason, and records `CI WAIVED,
+not passed`. `check-pages.test.py` runs the real guard on temporary Git with a fake `gh`: 32 cases
+(27 explicit, 5 CI conclusions) plus a structure test. Before the guard change the new test failed
+19 cases against the original workflow; after it, all pass, and all 10 planted mutations of the
+guard fail the test. `actionlint` and `git diff --check` are clean. CONTRIBUTING documents the
+manual sequence: gates on the candidate tree, `[skip ci]` merge, a fresh readiness binding run on
+the pushed merge commit, environment approval, dispatch, served-byte comparison, approval deletion
+even on failure, and the tag.
+
+Not established: the live route on GitHub (environment variable scope, `[skip ci]` suppressing
+the automatic run, the dispatch itself). Independent review, the binding run and publication are
+pending. Publisher ownership with the concurrent release session was then unresolved.
+
+Review, 2026-11-04: independent behavioral and Standards review passed at `74f4e6c`. The Spec
+review failed with one P2: `vars.CI_WAIVER_APPROVED_SHA` also resolves a same-name repository or
+organization variable, so the shell cannot prove the approval's environment-only provenance, and
+the default `GITHUB_TOKEN` cannot read environments (a separate token or App was judged
+disproportionate). The reviewer accepted an operator gate instead: before dispatch the publisher
+reads the matching id from the `github-pages` environment variable endpoint, proves no same-name
+repository variable, and rules out organization inheritance by the verified owner type; any read
+error or unknown scope blocks, the evidence is bound to the merge commit, and the snapshot does not
+stop a concurrent configuration change. CONTRIBUTING, plan 005, the readiness ledger and plan, the
+changelog bullet and the structure test's message now say the workflow enforces only equality with
+the resolved value. The guard and the behavioral assertions are unchanged. The Spec re-verification
+is pending. The owner has since asked to deploy and the main session owns publication, which
+settles the ownership question above; security, readiness and the live release remain pending.
+
+Release 1.45.2, 2026-11-04: the concurrent session's 1.45.1 (PR #42) merged to `main` as `a53b03c`
+without DEL-01 and was not published (the first attempt of its main CI run was cancelled under the
+owner's CI skip; Pages served 1.45.0 and no `v1.45.1` tag exists). This branch carries `74f4e6c`
+(the guard, pushed with PR #43), `5cbdf10` (the operator gate) and `9efe4d8` (the merge of that
+`main`), so the candidate is 1.45.2: 1.45.1's content plus DEL-01. The main session publishes it
+through CONTRIBUTING's manual sequence, with the operator gate before dispatch. Pending: the Spec
+re-verification, the security gate and the readiness binding run on the final tree, the operator
+gate, publication, the served-byte check and the `v1.45.2` tag. The readiness cursor stays at the
+deployed `ccd51b4b`.
+
 ## Next acceptance steps
 
 - [x] Reproduce and fix the watcher failures; full suite and independent acceptance pass.
@@ -116,6 +158,8 @@ initialization script; that implementation must be reconciled with the active re
 - [ ] Reconcile the active release session's setup/deployment scripts rather than adding duplicates.
    Setup must be repository-local; deployment must preserve exact-commit security/readiness gates
    and must not invent a staging environment for this static Pages repository.
+- [x] Implement DEL-01's exact-commit CI waiver with failing-first and planted-mutation controls.
+- [ ] Spec re-verification of DEL-01's operator-gate correction (behavioral and Standards passed at `74f4e6c`).
 - [ ] Qualify the final integrated tree before merge to main, publication, tag and attributable cleanup.
 
 ## Cleanup and handoff
@@ -129,3 +173,5 @@ prior gate records and source snapshots still needed for the release.
 No merge to main, version bump, production tag or deployment was performed by this session.
 The publishing session must incorporate PR #40's verified follow-up commits, reconcile its
 deployment script with the explicit CI skip, then run the final exact-tree release gates.
+Since then PR #42 merged those commits as 1.45.1 (`a53b03c`); 1.45.2 publishes through
+CONTRIBUTING's manual CI-waiver sequence, not `deploy.sh`.

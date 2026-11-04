@@ -1,7 +1,7 @@
 {
   "updated": "2026-11-04",
   "scope": "tstack review and release follow-up",
-  "status": "released_in_1.45.1",
+  "status": "included_in_1.45.2_candidate",
   "checks": [
     {
       "name": "origin reconciliation before implementation",
@@ -112,6 +112,40 @@
       "result": "pass",
       "observed": "verified helper, index and guide hashes unchanged; reviewed implementation paths equal e6a9830"
     },
+    {
+      "name": "DEL-01 Pages CI waiver guard, before the change",
+      "target": "63d95fe",
+      "command": "python3 tools/scripts/check-pages.test.py",
+      "result": "expected_fail",
+      "observed": "19 subcases fail against the original static.yml guard"
+    },
+    {
+      "name": "DEL-01 Pages CI waiver guard, after the change",
+      "command": "python3 tools/scripts/check-pages.test.py",
+      "result": "pass",
+      "exit": 0,
+      "observed": "32 guard cases on real temporary Git with a fake gh, plus the YAML structure test; actionlint clean",
+      "evidence_scope": "local only; the live GitHub route is untested"
+    },
+    {
+      "name": "DEL-01 planted guard mutations",
+      "result": "pass",
+      "observed": "10 of 10 planted mutations fail the test"
+    },
+    {
+      "name": "DEL-01 independent behavioral and Standards review",
+      "target": "74f4e6c",
+      "result": "pass"
+    },
+    {
+      "name": "DEL-01 independent Spec review",
+      "target": "74f4e6c",
+      "result": "fail",
+      "observed": "P2: vars.CI_WAIVER_APPROVED_SHA can resolve a same-name repository or organization variable, so the workflow cannot prove environment-only provenance",
+      "resolution": "operator gate before dispatch documented in CONTRIBUTING.md; guard unchanged"
+    },
+    {"name": "DEL-01 Spec re-verification of the operator-gate correction", "result": "pending"},
+    {"name": "1.45.1 publication", "target": "a53b03c", "result": "not_published", "observed": "merged to main by PR #42; when 1.45.2 was prepared, Pages served 1.45.0 and no v1.45.1 tag existed"},
     {"name": "final-tree security and readiness gates", "result": "pending"},
     {"name": "production served-byte and browser acceptance", "result": "pending"},
     {"name": "GitHub CI", "result": "skipped", "reason": "explicit user instruction"},
