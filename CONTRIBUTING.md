@@ -100,18 +100,32 @@ owner's skip, release by hand:
 4. After acceptance, a repository administrator sets the merge commit's full id as the
    `CI_WAIVER_APPROVED_SHA` variable of the `github-pages` environment:
    `gh variable set CI_WAIVER_APPROVED_SHA --env github-pages --body <sha>`. It is not a secret,
-   and a dispatch cannot set it. Do not create a repository variable with that name: it would also
-   reach the deploy job.
-5. Dispatch Pages with the same id and the owner's reason:
+   and a dispatch cannot set it.
+5. Operator gate, immediately before the dispatch. The workflow reads the approval as
+   `vars.CI_WAIVER_APPROVED_SHA`, which a repository or organization variable of the same name can
+   also supply, and it checks only that the resolved value equals the waived id. The publisher
+   proves where the value comes from, with `<repo>` as `owner/name`:
+   - `gh api repos/<repo>/environments/github-pages/variables/CI_WAIVER_APPROVED_SHA --jq .value`
+     prints exactly the merge commit's full id.
+   - `gh api repos/<repo>/actions/variables/CI_WAIVER_APPROVED_SHA` fails with HTTP 404: no
+     repository variable has that name.
+   - `gh api repos/<repo> --jq .owner.type` prints `User` or `Organization`. For `Organization`,
+     `gh api --paginate repos/<repo>/actions/organization-variables --jq '.variables[].name'`
+     must succeed and list no `CI_WAIVER_APPROVED_SHA`.
+
+   Any other answer, a read error or an unknown owner type blocks the dispatch. Keep the commands'
+   output with the release's private records, bound to the merge commit's id. It is a snapshot:
+   it does not stop a concurrent configuration change, so dispatch right after it.
+6. Dispatch Pages with the same id and the owner's reason:
    `gh workflow run static.yml --ref main -f ref=<sha> -f ci_waiver_sha=<sha> -f ci_waiver_reason='<reason>'`.
    The guard refuses, without querying CI, unless the id is a full lowercase commit id equal to the
-   checked-out commit, the current `main` tip and the approved value, and the reason is not blank.
-   If `main` has moved, approve and gate the new tip instead.
-6. The run summary reads `CI WAIVED, not passed`. Compare every served `site/` file with the tree,
+   checked-out commit, the current `main` tip and the resolved approval value, and the reason is not
+   blank. If `main` has moved, approve, gate and prove the new tip instead.
+7. The run summary reads `CI WAIVED, not passed`. Compare every served `site/` file with the tree,
    as `deploy.sh` does.
-7. Delete the approval whether the dispatch and verification succeeded or failed:
-   `gh variable delete CI_WAIVER_APPROVED_SHA --env github-pages`. A retry sets it again.
-8. Create the annotated tag as above, with a `CI:` line that says the owner waived CI and why,
+8. Delete the approval whether the operator gate, the dispatch and the verification succeeded or
+   failed: `gh variable delete CI_WAIVER_APPROVED_SHA --env github-pages`. A retry sets it again.
+9. Create the annotated tag as above, with a `CI:` line that says the owner waived CI and why,
    in place of a run.
 
 A waived commit has no successful CI run, so the ordinary rollback dispatch cannot republish it later.

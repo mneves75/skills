@@ -16,9 +16,10 @@ closeout owed.
 
 ### Added
 - **Pages CI waiver** (`static.yml`): a manual dispatch may publish without GitHub CI only for the
-  exact `main` tip that the `github-pages` environment's `CI_WAIVER_APPROVED_SHA` approves, with a
-  nonblank reason; the run summary says CI was waived, not passed. Any other waiver request fails,
-  and automatic deploys and rollbacks still require CI. `check-pages.test.py` proves each refusal;
+  exact `main` tip that `vars.CI_WAIVER_APPROVED_SHA` resolves to, with a nonblank reason, after
+  the publisher's operator gate proves that value comes from the `github-pages` environment alone;
+  the run summary says CI was waived, not passed. Any other waiver request fails, and automatic
+  deploys and rollbacks still require CI. `check-pages.test.py` proves each refusal;
   CONTRIBUTING documents the manual release sequence.
 
 ### Changed

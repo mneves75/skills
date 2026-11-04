@@ -124,6 +124,20 @@ Not established: the live route on GitHub (environment variable scope, `[skip ci
 the automatic run, the dispatch itself). Independent review, the binding run and publication are
 pending. Publisher ownership with the concurrent release session remains unresolved.
 
+Review, 2026-11-04: independent behavioral and Standards review passed at `74f4e6c`. The Spec
+review failed with one P2: `vars.CI_WAIVER_APPROVED_SHA` also resolves a same-name repository or
+organization variable, so the shell cannot prove the approval's environment-only provenance, and
+the default `GITHUB_TOKEN` cannot read environments (a separate token or App was judged
+disproportionate). The reviewer accepted an operator gate instead: before dispatch the publisher
+reads the matching id from the `github-pages` environment variable endpoint, proves no same-name
+repository variable, and rules out organization inheritance by the verified owner type; any read
+error or unknown scope blocks, the evidence is bound to the merge commit, and the snapshot does not
+stop a concurrent configuration change. CONTRIBUTING, plan 005, the readiness ledger and plan, the
+changelog bullet and the structure test's message now say the workflow enforces only equality with
+the resolved value. The guard and the behavioral assertions are unchanged. The Spec re-verification
+is pending. The owner has since asked to deploy and the main session owns publication, which
+settles the ownership question above; security, readiness and the live release remain pending.
+
 ## Next acceptance steps
 
 - [x] Reproduce and fix the watcher failures; full suite and independent acceptance pass.
@@ -134,7 +148,7 @@ pending. Publisher ownership with the concurrent release session remains unresol
    Setup must be repository-local; deployment must preserve exact-commit security/readiness gates
    and must not invent a staging environment for this static Pages repository.
 - [x] Implement DEL-01's exact-commit CI waiver with failing-first and planted-mutation controls.
-- [ ] Independent review of DEL-01; resolve publisher ownership with the concurrent release session.
+- [ ] Spec re-verification of DEL-01's operator-gate correction (behavioral and Standards passed at `74f4e6c`).
 - [ ] Qualify the final integrated tree before merge to main, publication, tag and attributable cleanup.
 
 ## Cleanup and handoff

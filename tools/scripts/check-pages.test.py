@@ -146,7 +146,8 @@ class PagesGuardTests(unittest.TestCase):
             self.assertIn(f"\n          {variable}: ${{{{ {expression} }}}}\n", step)
             self.assertEqual(WORKFLOW.count(expression), 1, f"{expression} is used only as guard data")
         self.assertEqual(re.findall(r"\$\{\{[^}]*\bvars\.", WORKFLOW), ["${{ vars."],
-                         "The approval comes only from the deployment environment's variable")
+                         "The guard reads the approval only through this one vars expression; its scope is "
+                         "proved by the publisher's operator gate (CONTRIBUTING.md), not by the workflow")
         self.assertIn("    environment:\n      name: github-pages\n", WORKFLOW)
 
 

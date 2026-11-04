@@ -46,9 +46,11 @@ row is active. Advisory entries follow.
 - Rollout and recovery: evidence only; nothing deploys. A gate that blocks leaves the current
   production site untouched.
 - Mechanical gate: Pages enforces CI success and source ancestry through `static.yml`, except
-  for an owner's CI waiver dispatch, which publishes only the exact `main` tip that the
-  `github-pages` environment approves (from 1.45.1). This repository's security/readiness records are operating requirements before merging;
-  that workflow does not itself enforce them. The merger must check the exact-candidate
+  for an owner's CI waiver dispatch, which publishes only the exact `main` tip equal to the
+  resolved approval variable; the publisher's operator gate proves before dispatch that the
+  value comes from the `github-pages` environment alone (from 1.45.1). This repository's
+  security/readiness records are operating requirements before merging; that workflow does not
+  itself enforce them. The merger must check the exact-candidate
   verdicts before publishing.
 
 ## 2. Second administrator and account recovery
@@ -98,8 +100,9 @@ row is active. Advisory entries follow.
   `main`, and only the `main` tip (ledger row DEL-03). MNT-02 (advisory) stays open: read the
   `main` ruleset through the API and record whether it requires review and the CI checks.
 - 2026-11-04, 1.45.1 candidate (unbound): an owner's CI waiver dispatch may publish the exact
-  `main` tip without CI when the `github-pages` environment's `CI_WAIVER_APPROVED_SHA` approves
-  it; any other waiver request fails. Proven locally only; the next binding run reassesses
+  `main` tip without CI when it equals the resolved `vars.CI_WAIVER_APPROVED_SHA`; any other
+  waiver request fails. The workflow cannot prove that value's environment-only provenance, so
+  the operator gate in `CONTRIBUTING.md` proves it before dispatch. Proven locally only; the next binding run reassesses
   DEL-03 on the pushed merge commit.
 
 ## 5. Exercised rollback

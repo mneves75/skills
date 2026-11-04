@@ -132,7 +132,19 @@
       "result": "pass",
       "observed": "10 of 10 planted mutations fail the test"
     },
-    {"name": "DEL-01 independent review", "result": "pending"},
+    {
+      "name": "DEL-01 independent behavioral and Standards review",
+      "target": "74f4e6c",
+      "result": "pass"
+    },
+    {
+      "name": "DEL-01 independent Spec review",
+      "target": "74f4e6c",
+      "result": "fail",
+      "observed": "P2: vars.CI_WAIVER_APPROVED_SHA can resolve a same-name repository or organization variable, so the workflow cannot prove environment-only provenance",
+      "resolution": "operator gate before dispatch documented in CONTRIBUTING.md; guard unchanged"
+    },
+    {"name": "DEL-01 Spec re-verification of the operator-gate correction", "result": "pending"},
     {"name": "final-tree security and readiness gates", "result": "pending"},
     {"name": "production served-byte and browser acceptance", "result": "pending"},
     {"name": "GitHub CI", "result": "skipped", "reason": "explicit user instruction"},
