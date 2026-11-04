@@ -123,14 +123,17 @@ def when(value):
         raise ValueError("no timezone")
     return stamp
 
-def tree_of(record):
-    if record.get("tree"):
-        return str(record["tree"])
-    commit = record.get("commit")
-    if not commit:
-        return None
-    done = subprocess.run(["git", "rev-parse", "--verify", "-q", f"{commit}^{{tree}}"], capture_output=True, text=True)
-    return done.stdout.strip() or None
+def trees_of(record):
+    """Every tree the record binds to: its `tree` value, or its `commit`'s tree, plus every earlier value of a repeated key."""
+    repeated = record.get(REPEATED) or {}
+    def tree_of_commit(commit):
+        done = subprocess.run(["git", "rev-parse", "--verify", "-q", f"{commit}^{{tree}}"], capture_output=True, text=True)
+        return done.stdout.strip() or None
+    # The stated tree binds; the commit's tree is consulted only when no tree is stated (house readiness records).
+    trees = {str(record["tree"])} if record.get("tree") else {t for t in [tree_of_commit(record["commit"])] if t} if record.get("commit") else set()
+    trees.update(str(t) for t in repeated.get("tree", []) if t)
+    trees.update(t for t in (tree_of_commit(c) for c in repeated.get("commit", []) if c) if t)
+    return trees
 
 CONTRACT = {
     # mneves-security references/report.md (the security record) and
@@ -144,7 +147,7 @@ CONTRACT = {
 def problems(record):
     out = []
     required, optional = CONTRACT[kind]
-    repeated = sorted(set(record.pop(REPEATED, [])))
+    repeated = sorted(record.pop(REPEATED, {}))
     for value in record.values():
         if isinstance(value, dict) and value.pop(REPEATED, None):
             repeated.append("(nested)")
@@ -206,12 +209,12 @@ unreadable = []
 REPEATED = "__repeated_keys__"
 
 def note_repeats(pairs):
-    """Last value wins, as json.load does, but the record remembers which keys were repeated."""
+    """Last value wins, as json.load does, but the record keeps every earlier value of a repeated key."""
     seen = {}
-    repeated = []
+    repeated = {}
     for key, value in pairs:
         if key in seen:
-            repeated.append(key)
+            repeated.setdefault(key, []).append(seen[key])
         seen[key] = value
     if repeated:
         seen[REPEATED] = repeated
@@ -222,9 +225,10 @@ for path in glob.glob(os.path.join(records, kind, "*", "production.json")):
         record = json.load(open(path, encoding="utf-8"), object_pairs_hook=note_repeats)
     except (OSError, ValueError) as error:
         unreadable.append((path, f"{path}: unreadable ({error})")); continue
-    if tree_of(record) == tree:
-        # A record with repeated keys ranks first whatever its timestamps say: it is judged (and refused) rather
-        # than demoted below an older approval by a repeated created_at.
+    # A record matches when any tree it names is the candidate's (a repeated tree or commit cannot hide it), and a
+    # record with repeated keys ranks first whatever its timestamps say: it is judged (and refused) rather than
+    # filtered out or demoted below an older approval by a value it repeats.
+    if tree in trees_of(record):
         matching.append((REPEATED in record, created(record), path == own, path, record))
 if not matching:
     print(f"no production {kind} record for tree {tree} under {records}/{kind}/" + (" (" + "; ".join(text for _, text in unreadable) + ")" if unreadable else ""))

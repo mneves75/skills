@@ -516,5 +516,22 @@ if [ "$code" -eq 1 ] && grep -q "repeated key created_at" <<<"$out" && grep -q "
   ok "a blocking record with a repeated created_at still ranks newest and refuses"
 else bad "repeated created_at (exit $code): $out"; fi
 
+# 35. A blocking record whose tree key is repeated (the last value another tree) still matches the candidate's tree.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness" "$(cat "$FAKE_STATE/head")" <<'PY'
+import json, os, sys
+root, head = sys.argv[1:3]
+older = json.load(open(os.path.join(root, head, "production.json")))
+os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
+older["commit"] = "older0000000000000000000000000000000000"; older["created_at"] = "2026-11-03T00:00:00Z"
+json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
+blocking = {**older, "commit": head, "created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1}
+text = json.dumps(blocking).rstrip("}") + ', "tree": "0000000000000000000000000000000000000000"}'  # repeated: last value another tree
+open(os.path.join(root, head, "production.json"), "w").write(text)
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "repeated key tree" <<<"$out" && grep -q "verdict is 'not-ready'" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a blocking record with a repeated tree still matches the candidate's tree and refuses"
+else bad "repeated tree (exit $code): $out"; fi
+
 echo "deploy.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
