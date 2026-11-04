@@ -29,6 +29,13 @@ measure whether a *target* codebase is ready for agents.
   record without `independent_acceptance` and prints each waiver id once; `changelog-rows.py` keeps
   a wrapped bullet's whole sentence; skill-ledger rows reworded (D-B19). The 1.45.0 readiness
   records were given `independent_acceptance` by hand after the verifier found them without it.
+  Merged to `main` as `a53b03c` (PR #42) but not published; 1.45.2 carries it.
+- **1.45.2** (candidate, 2026-11-04, not published): 1.45.1's content plus the Pages CI waiver
+  (DEL-01; branch `release/1.45.1-ci-waiver`, PR #43). The workflow enforces only equality with the
+  resolved `vars.CI_WAIVER_APPROVED_SHA`; the publisher's operator gate in CONTRIBUTING proves that
+  value comes from the `github-pages` environment alone before dispatch. The main session
+  publishes; Spec re-verification, security gate, readiness binding run, publication and the
+  `v1.45.2` tag are pending. The ledger cursor stays at the deployed `ccd51b4b`.
 - **1.44.0** (2026-10-30): pr-wait fails closed on malformed or untyped check entries and
   reports a failure seen on the tenth incomplete read; babysit-pr docs complete the exit list;
   the orchestrator's reviewer seat moves to the builder-class models, crossed (owner rule

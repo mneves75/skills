@@ -1,7 +1,7 @@
 {
   "updated": "2026-11-04",
   "scope": "tstack review and release follow-up",
-  "status": "included_in_1.45.1_candidate",
+  "status": "included_in_1.45.2_candidate",
   "checks": [
     {
       "name": "origin reconciliation before implementation",
@@ -145,6 +145,7 @@
       "resolution": "operator gate before dispatch documented in CONTRIBUTING.md; guard unchanged"
     },
     {"name": "DEL-01 Spec re-verification of the operator-gate correction", "result": "pending"},
+    {"name": "1.45.1 publication", "target": "a53b03c", "result": "not_published", "observed": "merged to main by PR #42; when 1.45.2 was prepared, Pages served 1.45.0 and no v1.45.1 tag existed"},
     {"name": "final-tree security and readiness gates", "result": "pending"},
     {"name": "production served-byte and browser acceptance", "result": "pending"},
     {"name": "GitHub CI", "result": "skipped", "reason": "explicit user instruction"},

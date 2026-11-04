@@ -7,12 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.45.1] - 2026-11-04
+## [1.45.2] - 2026-11-04
 
-Releases the nine commits PR #40 gained after 1.45.0 branched from it (15e0298 to c46c77c4: the
-tstack review record, the `pr-wait` incomplete-read fixes and the landing-page contrast fix), the
-1.45.0 binding run folded into the readiness ledger, and the `deploy.sh` corrections the 1.45.0
-closeout owed.
+Publishes 1.45.1's content with the Pages CI waiver. 1.45.1 was merged to `main` as `a53b03c`
+(PR #42) but not published: when 1.45.2 was prepared, Pages still served 1.45.0 and there was no
+`v1.45.1` tag. The 1.45.1 entry below lists what this release also carries.
 
 ### Added
 - **Pages CI waiver** (`static.yml`): a manual dispatch may publish without GitHub CI only for the
@@ -21,6 +20,13 @@ closeout owed.
   the run summary says CI was waived, not passed. Any other waiver request fails, and automatic
   deploys and rollbacks still require CI. `check-pages.test.py` proves each refusal;
   CONTRIBUTING documents the manual release sequence.
+
+## [1.45.1] - 2026-11-04
+
+Releases the nine commits PR #40 gained after 1.45.0 branched from it (15e0298 to c46c77c4: the
+tstack review record, the `pr-wait` incomplete-read fixes and the landing-page contrast fix), the
+1.45.0 binding run folded into the readiness ledger, and the `deploy.sh` corrections the 1.45.0
+closeout owed.
 
 ### Changed
 - **Readiness ledger**: the 1.45.0 binding run (candidate `edeb131`, merged as `ccd51b4b`, same tree)
