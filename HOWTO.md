@@ -219,7 +219,8 @@ never proves a tested restore, an on-call rotation or a live certificate. Organi
 record, a fresh verifier rechecks every blocker that newly passed. Only you waive a blocker,
 with an expiry; a comment in the code cannot.
 
-**Release contract.** The run writes `.scratch/readiness/<target>.json`. A release script that
+**Release contract.** The run writes `<unit>/.scratch/readiness/<commit>/<target>.json`, using
+the candidate's full commit id. Production records include `independent_acceptance: "pass"`. A release script that
 declares contract version 2 refuses to deploy without a valid record for that exact commit and
 target (see `mneves-ship-deploy`).
 

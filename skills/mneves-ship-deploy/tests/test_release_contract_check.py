@@ -148,12 +148,18 @@ class Readiness(Base):
         return report_for(self.repo)["release.readiness"]
 
     def test_record_read_and_refusal_pass(self) -> None:
-        check = self.readiness('record="$root/.scratch/readiness/$target.json"\n'
+        check = self.readiness('record="$root/.scratch/readiness/$commit/$target.json"\n'
                                '[ -f "$record" ] || die "missing readiness record"\n'
                                'cat "$record"\n')
         self.assertEqual(check["status"], "PASS")
         self.assertTrue(check["heuristic"])
         self.assertRegex(check["evidence"], r"scripts/release.sh:\d+")
+
+    def test_flat_record_path_does_not_adopt_the_canonical_contract(self) -> None:
+        check = self.readiness('# release-contract: 2\nrecord="$root/.scratch/readiness/$target.json"\n'
+                               '[ -f "$record" ] || die "missing readiness record"\n'
+                               'cat "$record"\n')
+        self.assertEqual(check["status"], "FAIL")
 
     def test_contract_two_or_later_without_enforcement_fails(self) -> None:
         for version in (2, 3):
@@ -168,13 +174,13 @@ class Readiness(Base):
 
     def test_comments_messages_and_unrelated_failure_are_not_enforcement(self) -> None:
         for decoy in (
-            '# cat .scratch/readiness/staging.json || exit 1\n',
-            'echo "cat .scratch/readiness/staging.json || exit 1"\n',
-            'record=".scratch/readiness/staging.json"\necho "$record"\nexit 1\n',
-            'cat .scratch/readiness/staging.json\n[ -f package.json ] || exit 1\n',
-            'record=".scratch/readiness/staging.json"\ncat "$record"\n[ -f "$record" ] || echo "die"\n',
-            'cat .scratch/readiness/staging.json || echo "exit 1"\n',
-            'record=".scratch/readiness/staging.json"\n[ ! -f "$record" ] || exit 1\ncat "$record"\n',
+            '# cat .scratch/readiness/$commit/staging.json || exit 1\n',
+            'echo "cat .scratch/readiness/$commit/staging.json || exit 1"\n',
+            'record=".scratch/readiness/$commit/staging.json"\necho "$record"\nexit 1\n',
+            'cat .scratch/readiness/$commit/staging.json\n[ -f package.json ] || exit 1\n',
+            'record=".scratch/readiness/$commit/staging.json"\ncat "$record"\n[ -f "$record" ] || echo "die"\n',
+            'cat .scratch/readiness/$commit/staging.json || echo "exit 1"\n',
+            'record=".scratch/readiness/$commit/staging.json"\n[ ! -f "$record" ] || exit 1\ncat "$record"\n',
         ):
             with self.subTest(decoy=decoy):
                 self.assertEqual(self.readiness("# release-contract: 2\n" + decoy)["status"], "FAIL")
@@ -187,12 +193,12 @@ class Readiness(Base):
 
     def test_refusal_after_deploy_is_not_enforcement(self) -> None:
         check = self.readiness('# release-contract: 2\nwrangler deploy\n'
-                               'record=".scratch/readiness/staging.json"\n'
+                               'record=".scratch/readiness/$commit/staging.json"\n'
                                'cat "$record" || die "missing"\n')
         self.assertEqual(check["status"], "FAIL")
 
     def test_existence_without_a_reader_is_not_enforcement(self) -> None:
-        check = self.readiness('# release-contract: 2\nrecord=".scratch/readiness/staging.json"\n'
+        check = self.readiness('# release-contract: 2\nrecord=".scratch/readiness/$commit/staging.json"\n'
                                '[ -f "$record" ] || die "missing"\nwrangler deploy\n')
         self.assertEqual(check["status"], "FAIL")
 
@@ -200,12 +206,12 @@ class Readiness(Base):
         for reader in ('cat "$record"', 'read value < "$record"', 'grep -q ready "$record"',
                        'awk "1" "$record"', 'sed -n 1p "$record"', 'test_read < "$record"'):
             with self.subTest(reader=reader):
-                check = self.readiness('# release-contract: 2\nrecord=".scratch/readiness/staging.json"\n'
+                check = self.readiness('# release-contract: 2\nrecord=".scratch/readiness/$commit/staging.json"\n'
                                        + reader + ' || die "missing"\nwrangler deploy\n')
                 self.assertEqual(check["status"], "PASS")
 
     def test_uncalled_functions_are_an_explicit_heuristic_limit(self) -> None:
-        check = self.readiness('check_record() {\nrecord=".scratch/readiness/staging.json"\n'
+        check = self.readiness('check_record() {\nrecord=".scratch/readiness/$commit/staging.json"\n'
                                'cat "$record" || die "missing"\n}\nwrangler deploy\n')
         self.assertTrue(check["heuristic"])
         self.assertIn("function invocation is not proven", check["evidence"])

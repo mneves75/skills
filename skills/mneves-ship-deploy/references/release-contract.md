@@ -41,11 +41,12 @@ choice: a two-line shell wrapper around an existing script conforms.
     deploys and tags nothing. It may fetch from the remote and read the live staging page.
 
 11. **Readiness record** (contract version 2). Before building, it reads
-    `<unit>/.scratch/readiness/<target>.json` (`<unit>` is `.` for a single-unit repository; see
+    `<unit>/.scratch/readiness/<commit>/<target>.json` (`<unit>` is `.` for a single-unit repository; see
     the format below) and
-    refuses unless the record is a regular file, `schema` is 1, `unit`, `target` and the full
+    refuses symlinked parents or records and requires a regular file, `schema` 1, catalog 3, `unit`, `target` and the full
     `commit` match this release, `verdict` is `ready`, `open_blockers` is 0, `created_at` is not
-    in the future and `valid_until` has not passed. It copies the record into the run's evidence
+    in the future and `valid_until` has not passed or exceeded 24 hours after creation or any
+    waiver expiry. Production requires `independent_acceptance: "pass"`. It copies the record into the run's evidence
     and summarizes it in `release.json`. `--waive readiness=<reason>` skips the check for an
     unavailable gate or an owner-approved incident repair; control-level gaps are waived inside
     the record, never with this flag. `--check` prints the readiness status without failing.
@@ -70,7 +71,7 @@ an equivalent review) writes the record for one deployable unit, target and cand
   "schema": 1,
   "unit": ".",
   "target": "staging",
-  "catalog": 1,
+  "catalog": 3,
   "commit": "<full 40-character SHA>",
   "verdict": "ready",
   "open_blockers": 0,
@@ -80,18 +81,26 @@ an equivalent review) writes the record for one deployable unit, target and cand
 }
 ```
 
-The release script parses the record as JSON and checks its exact schema: these top-level keys
-and no others, a key never repeated in any object, and a waivers list whose objects hold
+The release script parses the record as JSON and checks its schema: these required top-level keys,
+the optional keys below, a key never repeated in any object, and a waivers list whose objects hold
 exactly `control`, `owner`, `reason` and `expires`. A field nested deeper or packed beside
 another therefore never stands in for a top-level one, and a waiver whose `expires` has passed
 is refused. Timestamps
 are UTC in exactly the form `YYYY-MM-DDTHH:MM:SSZ` and compare as strings. The gate that writes
-the record keeps `valid_until` within 24 hours of `created_at`; the release script checks only
-that `created_at` is not in the future and `valid_until` has not passed. The record proves that
+the record and the release script both keep `valid_until` after `created_at`, within 24 hours of
+creation and no later than any waiver expiry. The script also checks that `created_at` is not in
+the future and `valid_until` has not passed. The record proves that
 the gate ran for these bytes; it does not authorize a deploy, and production still needs the
 owner's approval. Readiness waivers inside the record are the owner's, with expiries. A waiver
 object holds those four fields only: the record's unit, target and commit are its scope, and the
 reference script refuses a waiver that repeats any record field.
+
+Optional top-level keys are `tree` (the candidate's full tree hash, checked against Git),
+`independent_acceptance` (`pass`, `fail` or `blocked`; production requires `pass`), `evidence`
+(an object naming the assessment's files), and `reused_from` (the original candidate's full
+40-character commit id). No other key is accepted. Staging does not require independent
+production acceptance. The record's folder is its candidate's full 40-character commit id;
+the old flat `<target>.json` path is not read.
 
 In a public repository, host names, URLs and account ids stay out of the committed scripts:
 they come from an ignored file the scripts read at run time (the reference scripts read

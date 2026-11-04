@@ -713,12 +713,16 @@ def readiness(repo: Repo, script: Path | None, view: list[Line] | None) -> Resul
         return no_script(check_id)
     declared = re.search(r"(?m)^\s*#\s*release-contract:\s*(\d+)\s*$", repo.require(script) or "") if script else None
     version = int(declared.group(1)) if declared else 0
-    # Track the path and its assigned variable, then require both a read and a connected refusal.
+    # Track the commit-scoped path and its variable, then require a read and connected refusal.
+    variable = r"\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*\})"
+    commit = rf"(?:[0-9a-f]{{40}}|{variable})"
+    target = rf"(?:dev|staging|production|{variable})"
+    record_path = re.compile(rf"\.scratch/readiness/{commit}/{target}\.json")
     deploy = first_deploy(view)
     before_deploy = view[:view.index(deploy)] if deploy else view
     code = [(line, line.text.split(" #", 1)[0]) for line in before_deploy]
     for line, text in code:
-        if is_message(text) or ".scratch/readiness/" not in text:
+        if is_message(text) or not record_path.search(text):
             continue
         assignment = re.search(r"\b([A-Za-z_][A-Za-z0-9_]*)=[\"']?[^\n]*\.scratch/readiness/", text)
         ref = (r"\$\{?" + re.escape(assignment.group(1)) + r"\b\}?" if assignment

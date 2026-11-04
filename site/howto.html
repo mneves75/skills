@@ -11,7 +11,7 @@
 @media (prefers-color-scheme:dark){:root{--bg:#0f0f0f;--fg:#eaeaea;--muted:#999;--line:#2a2a2a;--code:#1c1c1c;--link:#7aa2ff}}
 body{margin:0 auto;max-width:46rem;padding:2rem 1.25rem 4rem;font:16px/1.6 -apple-system,system-ui,sans-serif;color:var(--fg);background:var(--bg)}
 h1,h2,h3{line-height:1.25}h1{font-size:2rem}h2{margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--line)}
-a{color:var(--link)}code{font:0.9em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--code);padding:.1em .3em;border-radius:3px}
+a{color:var(--link)}code{font:0.9em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--code);padding:.1em .3em;border-radius:3px;overflow-wrap:anywhere}
 p,li,blockquote{max-width:36em}
 pre{background:var(--code);padding:1rem;overflow-x:auto;border-radius:6px;white-space:pre-wrap;overflow-wrap:anywhere}pre code{background:none;padding:0}
 table{border-collapse:collapse;width:100%;margin:1rem 0;display:block;overflow-x:auto}th,td{text-align:left;padding:.5rem;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}th{color:var(--muted);font-weight:600}
@@ -278,7 +278,8 @@ never proves a tested restore, an on-call rotation or a live certificate. Organi
 (SOC 2, on-call, ownership of accounts) need a dated owner statement. Before a production
 record, a fresh verifier rechecks every blocker that newly passed. Only you waive a blocker,
 with an expiry; a comment in the code cannot.</p>
-<p><strong>Release contract.</strong> The run writes <code>.scratch/readiness/&lt;target&gt;.json</code>. A release script that
+<p><strong>Release contract.</strong> The run writes <code>&lt;unit&gt;/.scratch/readiness/&lt;commit&gt;/&lt;target&gt;.json</code>, using
+the candidate&#39;s full commit id. Production records include <code>independent_acceptance: &quot;pass&quot;</code>. A release script that
 declares contract version 2 refuses to deploy without a valid record for that exact commit and
 target (see <code>mneves-ship-deploy</code>).</p>
 <p><strong>Prerequisites and limits.</strong> Markdown only; no scanner or network service. <code>mneves-security</code>,

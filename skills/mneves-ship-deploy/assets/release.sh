@@ -295,20 +295,23 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# readiness_fields <file>: the record's fields, one "key<TAB>value" line each (strings keep their
-# quotes), then one "expires<TAB>value" line per waiver. The record is parsed as JSON and checked
-# against its exact schema: these keys at the top level and no others, a list of waiver objects
+# readiness_fields <file> <tree>: the record's fields, one "key<TAB>value" line each (strings keep their
+# quotes). The record is parsed as JSON and checked against its schema: required and optional
+# keys at the top level, a list of waiver objects
 # holding exactly control, owner, reason and expires, no key repeated in any object. A field nested
 # deeper or packed beside another can therefore never stand in for a top-level one.
 readiness_fields() {
   python3 -I -c '
-import json, re, sys
+import datetime, json, re, sys
 
 KEYS = ("schema", "unit", "target", "catalog", "commit", "verdict", "open_blockers",
         "created_at", "valid_until")
+OPTIONAL = ("tree", "independent_acceptance", "evidence", "reused_from")
 WAIVER = ("control", "owner", "reason", "expires")
 TEXT = re.compile(r"^[ !#-\[\]-~]+$")  # printable ASCII without quote or backslash
 PATTERNS = {"target": re.compile(r"^(dev|staging|production)$"), "commit": re.compile(r"^[0-9a-f]+$")}
+SHA = re.compile(r"^[0-9a-f]{40}$")
+UTC = re.compile(r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$")
 
 
 def fail(why):
@@ -333,6 +336,15 @@ def whole(value):
     return isinstance(value, int) and not isinstance(value, bool)
 
 
+def timestamp(value, label):
+    try:
+        if not isinstance(value, str) or not UTC.fullmatch(value):
+            raise ValueError("not canonical UTC")
+        return datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError:
+        fail("%s must be YYYY-MM-DDTHH:MM:SSZ with valid ranges" % label)
+
+
 try:
     with open(sys.argv[1], encoding="utf-8") as handle:
         record = json.load(handle, object_pairs_hook=pairs, parse_constant=constant)
@@ -341,7 +353,7 @@ except (ValueError, UnicodeDecodeError) as error:
 if not isinstance(record, dict):
     fail("the readiness record is not a JSON object")
 for key in record:
-    if key not in KEYS and key != "waivers":
+    if key not in KEYS + OPTIONAL and key != "waivers":
         fail("unknown readiness record key %s" % key)
 for key in KEYS + ("waivers",):
     if key not in record:
@@ -356,6 +368,20 @@ for key in KEYS:
         ok = isinstance(value, str) and bool(TEXT.match(value)) and bool(PATTERNS.get(key, TEXT).match(value))
     if not ok:
         fail("malformed %s value" % key)
+if "tree" in record and (not isinstance(record["tree"], str) or not SHA.fullmatch(record["tree"]) or record["tree"] != sys.argv[2]):
+    fail("tree must match the candidate tree")
+if "independent_acceptance" in record and record["independent_acceptance"] not in ("pass", "fail", "blocked"):
+    fail("malformed independent_acceptance value")
+if record["target"] == "production" and record.get("independent_acceptance") != "pass":
+    fail("production independent_acceptance must be pass")
+if "evidence" in record and not isinstance(record["evidence"], dict):
+    fail("evidence must be an object")
+if "reused_from" in record and (not isinstance(record["reused_from"], str) or not SHA.fullmatch(record["reused_from"])):
+    fail("reused_from must be a full lowercase 40-character SHA")
+created = timestamp(record["created_at"], "created_at")
+until = timestamp(record["valid_until"], "valid_until")
+if not created < until or until - created > datetime.timedelta(hours=24):
+    fail("valid_until must be after created_at and within 24 hours")
 waivers = record["waivers"]
 if not isinstance(waivers, list) or not all(isinstance(item, dict) for item in waivers):
     fail("waivers must be a list of waiver objects")
@@ -365,33 +391,23 @@ for waiver in waivers:
             fail("waiver objects must not repeat %s; the record'"'"'s %s is their scope" % (key, key))
         if key not in WAIVER:
             fail("unknown waiver key %s" % key)
-    if set(waiver) != set(WAIVER) or not all(isinstance(waiver[key], str) and TEXT.match(waiver[key]) for key in WAIVER):
+    if set(waiver) != set(WAIVER) or not all(isinstance(waiver[key], str) and waiver[key].strip() and TEXT.match(waiver[key]) for key in WAIVER):
         fail("every readiness waiver needs control, owner, reason and expires as text")
+    expiry = timestamp(waiver["expires"], "a readiness waiver has expired (malformed expires)")
+    if expiry <= created:
+        fail("a readiness waiver has expired before created_at")
+    if until > expiry:
+        fail("valid_until exceeds a readiness waiver expiry")
 for key in KEYS:
     value = record[key]
     print("%s\t%s" % (key, value if whole(value) else "\"%s\"" % value))
-for waiver in waivers:
-    print("expires\t\"%s\"" % waiver["expires"])
-' "$1"
+' "$1" "$2"
 }
 readiness_value() { printf '%s\n' "$readiness_data" | awk -F '\t' -v key="$1" '$1 == key { print $2 }'; }
 readiness_error() { readiness_problem="$*"; return 1; }
-readiness_timestamp() {
-  local stamp="$1" year month day last_day
-  [[ "$stamp" =~ ^\"[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])T([01][0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]Z\"$ ]] || return 1
-  year=$((10#${stamp:1:4})); month="${stamp:6:2}"; day=$((10#${stamp:9:2}))
-  case "$month" in
-    02)
-      last_day=28
-      if (( year % 400 == 0 || (year % 4 == 0 && year % 100 != 0) )); then last_day=29; fi ;;
-    04 | 06 | 09 | 11) last_day=30 ;;
-    *) last_day=31 ;;
-  esac
-  [ "$day" -le "$last_day" ]
-}
 check_readiness() {
-  local record="$root/$UNIT/.scratch/readiness/$target.json" now created stamp parent expiry
-  for parent in "$root/$UNIT/.scratch" "$root/$UNIT/.scratch/readiness"; do
+  local record="$root/$UNIT/.scratch/readiness/$commit/$target.json" now created parent candidate_tree
+  for parent in "$root/$UNIT/.scratch" "$root/$UNIT/.scratch/readiness" "$root/$UNIT/.scratch/readiness/$commit"; do
     [ ! -L "$parent" ] || { readiness_error "readiness parent is a symlink: $parent"; return 1; }
   done
   [ ! -L "$record" ] || { readiness_error "record is a symlink: $record"; return 1; }
@@ -399,34 +415,23 @@ check_readiness() {
   [ -f "$record" ] || { readiness_error "record is not a regular file: $record"; return 1; }
   readiness_tmp="$(mktemp -d "${TMPDIR:-/tmp}/release-readiness.XXXXXX")" || { readiness_error "cannot create private snapshot"; return 1; }
   cp "$record" "$readiness_tmp/readiness.json" || { readiness_error "cannot copy readiness record"; return 1; }
-  readiness_data="$(readiness_fields "$readiness_tmp/readiness.json")" || { readiness_error "$readiness_data"; return 1; }
+  candidate_tree="$(git -C "$root" rev-parse "$commit^{tree}")" || { readiness_error "cannot resolve candidate tree"; return 1; }
+  readiness_data="$(readiness_fields "$readiness_tmp/readiness.json" "$candidate_tree")" || { readiness_error "$readiness_data"; return 1; }
   [ "$(readiness_value schema)" = 1 ] || { readiness_error "schema must be 1"; return 1; }
   [ "$(readiness_value unit)" = "\"$(json_escape "$UNIT")\"" ] || { readiness_error "unit does not match $UNIT"; return 1; }
   [ "$(readiness_value target)" = "\"$target\"" ] || { readiness_error "target does not match $target"; return 1; }
-  [[ "$(readiness_value catalog)" =~ ^[1-9][0-9]*$ ]] || { readiness_error "catalog must be a positive integer"; return 1; }
+  [ "$(readiness_value catalog)" = 3 ] || { readiness_error "catalog must be 3"; return 1; }
   [[ "$commit" =~ ^[0-9a-f]{40}$ ]] && [ "$(readiness_value commit)" = "\"$commit\"" ] || { readiness_error "commit must match the full 40-character lowercase SHA $commit"; return 1; }
   [ "$(readiness_value verdict)" = '"ready"' ] || { readiness_error "verdict must be ready"; return 1; }
   [ "$(readiness_value open_blockers)" = 0 ] || { readiness_error "open_blockers must be 0"; return 1; }
   created="$(readiness_value created_at)"
   readiness_until="$(readiness_value valid_until)"
-  for stamp in "created_at=$created" "valid_until=$readiness_until"; do
-    readiness_timestamp "${stamp#*=}" || { readiness_error "${stamp%%=*} must be YYYY-MM-DDTHH:MM:SSZ with valid ranges"; return 1; }
-  done
   created="${created#\"}"; created="${created%\"}"
   readiness_until="${readiness_until#\"}"; readiness_until="${readiness_until%\"}"
   now="$(date -u +%Y-%m-%dT%H:%M:%SZ)" || { readiness_error "cannot read UTC time"; return 1; }
   [[ ! "$created" > "$now" ]] || { readiness_error "created_at is in the future"; return 1; }
   [[ "$readiness_until" > "$now" ]] || { readiness_error "valid_until has expired"; return 1; }
   readiness_deadline="$readiness_until"
-  while IFS= read -r expiry; do
-    [ -n "$expiry" ] || continue
-    readiness_timestamp "$expiry" || { readiness_error "a readiness waiver has expired (malformed expires)"; return 1; }
-    expiry="${expiry#\"}"; expiry="${expiry%\"}"
-    [[ "$expiry" > "$now" ]] || { readiness_error "a readiness waiver has expired"; return 1; }
-    if [[ "$expiry" < "$readiness_deadline" ]]; then readiness_deadline="$expiry"; fi
-  done << EXPIRIES
-$(readiness_value expires)
-EXPIRIES
 }
 
 readiness_reason="$(waiver_reason readiness)"

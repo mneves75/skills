@@ -35,7 +35,12 @@ when written (12:25Z); 1.45.1 was then published by the automatic route (Pages r
 ### Fixed
 - **Release record integrity**: reject contradictory security verdicts, incomplete waivers,
   mismatched commit/tree identities, future assessment timestamps and control characters in
-  tag metadata. Resumed releases bind version metadata to the merge being verified.
+  tag metadata. Validate record scope and expiry bounds, including escaped JSON identifiers.
+  Resumed releases bind version metadata to the merge being verified.
+- **Readiness consumers**: align the shipped release starter, contract checker, fixtures and
+  usage guide with commit-scoped records and required production independent acceptance.
+- **Mobile guide**: wrap long inline code so full record paths remain readable without
+  widening the page on narrow screens.
 - **`deploy.sh`**: one rule decides which gate records count. A record is in scope when it sits in the
   candidate's own folder or names the candidate's tree (or a commit with that tree) anywhere in its text;
   every in-scope record must be well-formed (readable, no repeated key at any depth, exactly its contract's

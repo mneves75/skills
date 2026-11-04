@@ -19,8 +19,11 @@ export FAKE_STATE="$tmp/state" FAKE_WEB="$tmp/web"
 mkdir -p "$tmp/bin" "$FAKE_STATE" "$FAKE_WEB"
 # Fixture dates come from the clock, so the suite does not start failing on a calendar day.
 future=$(python3 -I -c 'import datetime; print((datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=400)).strftime("%Y-%m-%dT%H:%M:%SZ"))')
-soon=$(python3 -I -c 'import datetime; print((datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ"))')
+soon=$(python3 -I -c 'import datetime; print((datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ"))')
 past=$(python3 -I -c 'import datetime; print((datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(days=1)).strftime("%Y-%m-%dT%H:%M:%SZ"))')
+export FIXTURE_CREATED=$(python3 -I -c 'import datetime; print((datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(minutes=3)).strftime("%Y-%m-%dT%H:%M:%SZ"))')
+export FIXTURE_OLDER=$(python3 -I -c 'import datetime; print((datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(minutes=5)).strftime("%Y-%m-%dT%H:%M:%SZ"))')
+export FIXTURE_NEWER=$(python3 -I -c 'import datetime; print((datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(minutes=1)).strftime("%Y-%m-%dT%H:%M:%SZ"))')
 
 # ---- Fake gh: pr view / pr merge / run list, driven by $FAKE_STATE ----
 cat > "$tmp/bin/gh" <<'FAKE'
@@ -93,10 +96,10 @@ JSON
   echo '2002 completed success' > "$FAKE_STATE/pages"
   mkdir -p "$tmp/work/.scratch/security-gate/$head" "$tmp/work/.scratch/readiness/$head"
   cat > "$tmp/work/.scratch/security-gate/$head/production.json" <<JSON
-{"schema":1,"unit":".","target":"production","commit":"$head","tree":"$tree","verdict":"waived","open_blockers":0,"blockers":"","independent_acceptance":"pass","created_at":"2026-11-04T00:00:00Z","waivers":[{"id":"SEC-15","owner":"@owner","reason":"r","expires":"$future"},{"id":"CMP-06","owner":"@owner","reason":"r","expires":"$future"}]}
+{"schema":1,"unit":".","target":"production","commit":"$head","tree":"$tree","verdict":"waived","open_blockers":0,"blockers":"","independent_acceptance":"pass","reused_from":"","created_at":"$FIXTURE_CREATED","waivers":[{"id":"SEC-15","owner":"@owner","reason":"r","expires":"$future"},{"id":"CMP-06","owner":"@owner","reason":"r","expires":"$future"}]}
 JSON
   cat > "$tmp/work/.scratch/readiness/$head/production.json" <<JSON
-{"schema":1,"unit":".","target":"production","catalog":3,"commit":"$head","tree":"$tree","verdict":"ready","open_blockers":0,"independent_acceptance":"pass","created_at":"2026-11-04T00:00:00Z","valid_until":"$soon","waivers":[{"control":"DEL-04","owner":"@owner","reason":"r","expires":"$future"}]}
+{"schema":1,"unit":".","target":"production","catalog":3,"commit":"$head","tree":"$tree","verdict":"ready","open_blockers":0,"independent_acceptance":"pass","evidence":{"assessment":"local.md"},"reused_from":"$head","created_at":"$FIXTURE_CREATED","valid_until":"$soon","waivers":[{"control":"DEL-04","owner":"@owner","reason":"r","expires":"$future"}]}
 JSON
   # The fake site serves the release bytes.
   mkdir -p "$FAKE_WEB"; echo "<h1>new</h1>" > "$FAKE_WEB/index.html"; echo "<p>guide</p>" > "$FAKE_WEB/howto.html"
@@ -185,7 +188,9 @@ else bad "moved main (exit $code): $out"; fi
 # 11. An expired waiver in a record restores its blocker: refused before any merge call.
 make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" <<'PY'
 import json, sys
-p = sys.argv[1]; d = json.load(open(p)); d["waivers"][0]["expires"] = "2026-01-01T00:00:00Z"; json.dump(d, open(p, "w"))
+p = sys.argv[1]; d = json.load(open(p)); d["waivers"][0]["expires"] = "2026-01-01T00:00:00Z"
+d.update(created_at="2025-12-31T23:00:00Z", valid_until="2026-01-01T00:00:00Z")
+json.dump(d, open(p, "w"))
 PY
 out=$(run_deploy 7) && code=0 || code=$?
 if [ "$code" -eq 1 ] && grep -q 'waiver DEL-04 expired 2026-01-01T00:00:00Z' <<<"$out" && ! grep -q 'gh pr merge' "$FAKE_STATE/calls"; then
@@ -194,8 +199,10 @@ else bad "expired waiver (exit $code): $out"; fi
 
 # 13. A readiness record past its validity window is refused before any merge call.
 make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" "$past" <<'PY'
-import json, sys
-p = sys.argv[1]; d = json.load(open(p)); d["valid_until"] = sys.argv[2]; json.dump(d, open(p, "w"))
+import datetime, json, sys
+p = sys.argv[1]; d = json.load(open(p)); d["valid_until"] = sys.argv[2]
+d["created_at"] = (datetime.datetime.strptime(sys.argv[2], "%Y-%m-%dT%H:%M:%SZ") - datetime.timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ")
+json.dump(d, open(p, "w"))
 PY
 out=$(run_deploy 7) && code=0 || code=$?
 if [ "$code" -eq 1 ] && grep -q "was valid until $past; run that assessment again" <<<"$out" && ! grep -q 'gh pr merge' "$FAKE_STATE/calls"; then
@@ -308,36 +315,36 @@ make_repo; head=$(cat "$FAKE_STATE/head"); tree=$(git -C "$tmp/work" rev-parse "
 mv "$tmp/work/.scratch/readiness/$head" "$tmp/work/.scratch/readiness/zzzz-current"
 mkdir -p "$tmp/work/.scratch/readiness/aaaa-old"
 python3 -I - "$tmp/work/.scratch/readiness/zzzz-current/production.json" "$tmp/work/.scratch/readiness/aaaa-old/production.json" "$past" "$tree" <<'PY'
-import json, sys
-d = json.load(open(sys.argv[1])); d["tree"] = sys.argv[4]; d["created_at"] = "2026-11-04T00:00:00Z"; json.dump(d, open(sys.argv[1], "w"))
-old = dict(d); old["created_at"] = "2026-01-01T00:00:00Z"; old["valid_until"] = sys.argv[3]; json.dump(old, open(sys.argv[2], "w"))
+import datetime, json, os, sys
+d = json.load(open(sys.argv[1])); d["tree"] = sys.argv[4]; d["created_at"] = os.environ["FIXTURE_CREATED"]; json.dump(d, open(sys.argv[1], "w"))
+old = dict(d); old["created_at"] = (datetime.datetime.strptime(sys.argv[3], "%Y-%m-%dT%H:%M:%SZ") - datetime.timedelta(hours=1)).strftime("%Y-%m-%dT%H:%M:%SZ"); old["valid_until"] = sys.argv[3]; json.dump(old, open(sys.argv[2], "w"))
 PY
 out=$(run_deploy 7 --dry-run) && code=0 || code=$?
 if [ "$code" -eq 0 ] && grep -q 'record .scratch/readiness/zzzz-current/production.json' <<<"$out"; then
   ok "the current same-tree record is chosen over an obsolete one"
 else bad "obsolete record first (exit $code): $(grep -E 'readiness|deploy.sh' <<<"$out" | head -2)"; fi
 
-# 23. Creation times are compared as instants, not strings: a later blocking record with a UTC offset wins.
+# 23. The canonical UTC format is enforced before an offset-stamped assessment can be ranked.
 make_repo; head=$(cat "$FAKE_STATE/head"); tree=$(git -C "$tmp/work" rev-parse "release/9.9.9^{tree}")
 mkdir -p "$tmp/work/.scratch/readiness/offset"
 python3 -I - "$tmp/work/.scratch/readiness/$head/production.json" "$tmp/work/.scratch/readiness/offset/production.json" "$tree" <<'PY'
-import json, sys
-d = json.load(open(sys.argv[1])); d["created_at"] = "2026-11-04T12:00:00Z"; json.dump(d, open(sys.argv[1], "w"))
+import json, os, sys
+d = json.load(open(sys.argv[1])); d["created_at"] = os.environ["FIXTURE_CREATED"]; json.dump(d, open(sys.argv[1], "w"))
 later = dict(d); later["tree"] = sys.argv[3]; later["created_at"] = "2026-11-04T10:00:00-03:00"; later["verdict"] = "not-ready"; later["open_blockers"] = 1
 json.dump(later, open(sys.argv[2], "w"))
 PY
 out=$(run_deploy 7) && code=0 || code=$?
-if [ "$code" -eq 1 ] && grep -q 'offset/production.json, does not admit it' <<<"$out" && ! grep -q 'gh pr merge' "$FAKE_STATE/calls"; then
-  ok "a later record with a UTC offset outranks an earlier Z-stamped approval"
-else bad "offset ordering (exit $code): $(grep -E 'deploy.sh' <<<"$out" | head -2)"; fi
+if [ "$code" -eq 1 ] && grep -q 'offset/production.json' <<<"$out" && grep -q 'UTC YYYY-MM-DDTHH:MM:SSZ' <<<"$out" && ! grep -q 'gh pr merge' "$FAKE_STATE/calls"; then
+  ok "a noncanonical offset timestamp is refused before ranking"
+else bad "offset timestamp (exit $code): $(grep -E 'deploy.sh' <<<"$out" | head -2)"; fi
 
 # 22. A newer same-tree assessment that blocks is authoritative: an older approval does not substitute.
 make_repo; head=$(cat "$FAKE_STATE/head"); tree=$(git -C "$tmp/work" rev-parse "release/9.9.9^{tree}")
 mkdir -p "$tmp/work/.scratch/readiness/reassessed"
 python3 -I - "$tmp/work/.scratch/readiness/$head/production.json" "$tmp/work/.scratch/readiness/reassessed/production.json" "$tree" <<'PY'
-import json, sys
-d = json.load(open(sys.argv[1])); d["created_at"] = "2026-11-04T00:00:00Z"; json.dump(d, open(sys.argv[1], "w"))
-newer = dict(d); newer["tree"] = sys.argv[3]; newer["created_at"] = "2026-11-04T13:00:00Z"; newer["verdict"] = "not-ready"; newer["open_blockers"] = 1
+import json, os, sys
+d = json.load(open(sys.argv[1])); d["created_at"] = os.environ["FIXTURE_CREATED"]; json.dump(d, open(sys.argv[1], "w"))
+newer = dict(d); newer["tree"] = sys.argv[3]; newer["created_at"] = os.environ["FIXTURE_NEWER"]; newer["verdict"] = "not-ready"; newer["open_blockers"] = 1
 json.dump(newer, open(sys.argv[2], "w"))
 PY
 out=$(run_deploy 7) && code=0 || code=$?
@@ -455,10 +462,10 @@ import json, os, sys
 root, head, soon = sys.argv[1:4]
 older = json.load(open(os.path.join(root, head, "production.json")))
 os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
-older["created_at"] = "2026-11-03T00:00:00Z"
+older["created_at"] = os.environ["FIXTURE_OLDER"]
 json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
 # The head's own record is newer, blocks (not-ready), and repeats a key.
-text = json.dumps({**older, "commit": head, "created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1})
+text = json.dumps({**older, "commit": head, "created_at": os.environ["FIXTURE_NEWER"], "verdict": "not-ready", "open_blockers": 1})
 open(os.path.join(root, head, "production.json"), "w").write(text.rstrip("}") + ', "verdict": "not-ready"}')
 PY
 out=$(run_deploy 7) && code=0 || code=$?
@@ -490,7 +497,7 @@ import json, os, sys
 root, head = sys.argv[1:3]
 older = json.load(open(os.path.join(root, head, "production.json")))
 os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
-older["created_at"] = "2026-11-03T00:00:00Z"
+older["created_at"] = os.environ["FIXTURE_OLDER"]
 json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
 open(os.path.join(root, head, "production.json"), "w").write('{"schema": 1, "verdict": "not-re')  # truncated write
 PY
@@ -505,9 +512,9 @@ import json, os, sys
 root, head = sys.argv[1:3]
 older = json.load(open(os.path.join(root, head, "production.json")))
 os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
-older["created_at"] = "2026-11-03T00:00:00Z"
+older["created_at"] = os.environ["FIXTURE_OLDER"]
 json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
-blocking = {**older, "commit": head, "created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1}
+blocking = {**older, "commit": head, "created_at": os.environ["FIXTURE_NEWER"], "verdict": "not-ready", "open_blockers": 1}
 text = json.dumps(blocking).rstrip("}") + ', "created_at": "2026-11-01T00:00:00Z"}'  # repeated, last value older than the approval
 open(os.path.join(root, head, "production.json"), "w").write(text)
 PY
@@ -522,9 +529,9 @@ import json, os, sys
 root, head = sys.argv[1:3]
 older = json.load(open(os.path.join(root, head, "production.json")))
 os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
-older["created_at"] = "2026-11-03T00:00:00Z"
+older["created_at"] = os.environ["FIXTURE_OLDER"]
 json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
-blocking = {**older, "commit": head, "created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1}
+blocking = {**older, "commit": head, "created_at": os.environ["FIXTURE_NEWER"], "verdict": "not-ready", "open_blockers": 1}
 text = json.dumps(blocking).rstrip("}") + ', "tree": "0000000000000000000000000000000000000000"}'  # repeated: last value another tree
 open(os.path.join(root, head, "production.json"), "w").write(text)
 PY
@@ -555,10 +562,10 @@ import json, os, sys
 root, head = sys.argv[1:3]
 older = json.load(open(os.path.join(root, head, "production.json")))
 os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
-older["created_at"] = "2026-11-03T00:00:00Z"
+older["created_at"] = os.environ["FIXTURE_OLDER"]
 json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
 blocking = {k: v for k, v in older.items() if k not in ("commit", "tree")}
-blocking.update({"created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1})
+blocking.update({"created_at": os.environ["FIXTURE_NEWER"], "verdict": "not-ready", "open_blockers": 1})
 json.dump(blocking, open(os.path.join(root, head, "production.json"), "w"))
 PY
 out=$(run_deploy 7) && code=0 || code=$?
@@ -572,8 +579,8 @@ import json, os, sys
 root, head = sys.argv[1:3]
 older = json.load(open(os.path.join(root, head, "production.json")))
 os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
-older["created_at"] = "2026-11-03T00:00:00Z"
-blocking = {**older, "commit": head, "created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1}
+older["created_at"] = os.environ["FIXTURE_OLDER"]
+blocking = {**older, "commit": head, "created_at": os.environ["FIXTURE_NEWER"], "verdict": "not-ready", "open_blockers": 1}
 older["__repeated_keys__"] = {}
 json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
 json.dump(blocking, open(os.path.join(root, head, "production.json"), "w"))
@@ -643,7 +650,7 @@ if [ "$code" -eq 1 ] && grep -q 'head tree differs from its merge tree' <<<"$out
 else bad "divergent resumed head (exit $code): $out"; fi
 
 # 40+. Contradictory or incomplete gate records never reach the merge/tag boundary.
-for case_name in security-open security-blocker-ids security-pass-waivers security-waived-empty security-missing-reason security-extra-waiver readiness-id readiness-blank-owner readiness-extra-waiver wrong-commit short-commit symbolic-commit future-created tag-newline; do
+for case_name in security-open security-blocker-ids security-pass-waivers security-waived-empty security-missing-reason security-extra-waiver readiness-id readiness-blank-owner readiness-extra-waiver readiness-null-until readiness-long-window readiness-offset-created readiness-wrong-schema readiness-wrong-unit readiness-wrong-catalog readiness-evidence readiness-reused-from readiness-nan security-wrong-schema security-wrong-unit wrong-commit short-commit symbolic-commit future-created tag-newline; do
   make_repo
   head=$(cat "$FAKE_STATE/head")
   python3 -I - "$tmp/work/.scratch" "$head" "$case_name" "$tmp/work" <<'PYCASE'
@@ -661,6 +668,15 @@ elif case == "security-extra-waiver": d["waivers"][0]["unexpected"] = "x"
 elif case == "readiness-id": d["waivers"][0]["id"] = d["waivers"][0].pop("control")
 elif case == "readiness-blank-owner": d["waivers"][0]["owner"] = "  "
 elif case == "readiness-extra-waiver": d["waivers"][0]["unexpected"] = "x"
+elif case == "readiness-null-until": d["valid_until"] = None
+elif case == "readiness-long-window": d["valid_until"] = "2099-01-01T00:00:00Z"
+elif case == "readiness-offset-created": d["created_at"] = "2026-11-04T00:00:00+00:00"
+elif case in ("readiness-wrong-schema", "security-wrong-schema"): d["schema"] = 999
+elif case in ("readiness-wrong-unit", "security-wrong-unit"): d["unit"] = "other"
+elif case == "readiness-wrong-catalog": d["catalog"] = "3"
+elif case == "readiness-evidence": d["evidence"] = []
+elif case == "readiness-reused-from": d["reused_from"] = []
+elif case == "readiness-nan": d["evidence"] = {"assessment": float("nan")}
 elif case == "wrong-commit": d["commit"] = subprocess.check_output(["git", "-C", sys.argv[4], "rev-parse", "origin/main"], text=True).strip()
 elif case == "short-commit": d["commit"] = head[:8]
 elif case == "symbolic-commit": d["commit"] = "release/9.9.9"
@@ -673,6 +689,20 @@ PYCASE
     ok "invalid $case_name record refuses before merge and tag"
   else bad "invalid $case_name (exit $code): $out"; fi
 done
+
+make_repo; head=$(cat "$FAKE_STATE/head")
+python3 -I - "$tmp/work/.scratch/readiness/$head/production.json" <<'PYCASE'
+import json, os, pathlib, re, sys
+p = pathlib.Path(sys.argv[1]); d = json.loads(p.read_text())
+d.update(created_at=os.environ["FIXTURE_NEWER"], verdict="not-ready", open_blockers=1)
+text = re.sub(r'"(?:[^"\\]|\\.)*"', lambda match: '"' + ''.join(
+    "\\u%04x" % ord(char) for char in json.loads(match.group())) + '"', json.dumps(d))
+other = p.parent.parent / "escaped-block"; other.mkdir(); (other / "production.json").write_text(text)
+PYCASE
+out=$(run_deploy 7 --tag) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q 'escaped-block/production.json' <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "an escaped same-tree blocking assessment is scoped and refused"
+else bad "escaped blocking assessment (exit $code): $out"; fi
 
 echo "deploy.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

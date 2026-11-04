@@ -134,6 +134,9 @@ def refuse(message):
     print(f"the production {kind} record {message}")
     sys.exit(1)
 
+def invalid_constant(value):
+    raise ValueError(f"{value} is not a JSON value")
+
 def note_repeats(pairs):
     """Last value wins, as json.load does, but every object remembers which of its keys were repeated."""
     seen = {}
@@ -159,13 +162,15 @@ def repeated_keys(value, where=""):
     return found
 
 def when(value):
-    stamp = datetime.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-    if stamp.tzinfo is None:
-        raise ValueError("no timezone")
-    return stamp
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z", value):
+        raise ValueError("timestamp must be UTC YYYY-MM-DDTHH:MM:SSZ")
+    return datetime.datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
 
 def tree_of_commit(commit):
-    done = subprocess.run(["git", "rev-parse", "--verify", "-q", "--end-of-options", f"{commit}^{{tree}}"], capture_output=True, text=True)
+    try:
+        done = subprocess.run(["git", "rev-parse", "--verify", "-q", "--end-of-options", f"{commit}^{{tree}}"], capture_output=True, text=True)
+    except ValueError:  # a malformed JSON string can contain a NUL; it is not a Git revision
+        return None
     return done.stdout.strip() or None
 
 def in_scope(path, text):
@@ -173,13 +178,24 @@ def in_scope(path, text):
     if path == own or tree in text:
         return True
     candidates = set(re.findall(r"\b[0-9a-f]{40}\b", text))
-    # Malformed shorthand/symbolic commit values still scope an assessment: reject them below,
-    # rather than silently omitting a newer blocking record that names this tree through Git.
-    for value in re.findall(r'"commit"\s*:\s*("(?:[^"\\]|\\.)*")', text):
-        try:
-            candidates.add(json.loads(value))
-        except ValueError:
-            pass
+    # Decode before deciding scope. Keeping object pairs also preserves names hidden by a
+    # duplicate key, so escaped or repeated fields cannot conceal a newer assessment.
+    def names(value):
+        if isinstance(value, (list, tuple)):
+            if len(value) == 2 and value[0] == "commit" and isinstance(value[1], str):
+                candidates.add(value[1])
+            for item in value:
+                yield from names(item)
+        elif isinstance(value, str):
+            yield value
+    try:
+        decoded = json.loads(text, object_pairs_hook=list)
+        for value in names(decoded):
+            if tree in value:
+                return True
+            candidates.update(re.findall(r"\b[0-9a-f]{40}\b", value))
+    except ValueError:
+        pass  # malformed text that names this tree is still scoped by its raw identifiers
     return any(tree_of_commit(cid) == tree for cid in candidates if cid != tree)
 
 def shape_problems(record):
@@ -192,6 +208,19 @@ def shape_problems(record):
         out.append("missing required key(s): " + ", ".join(missing))
     if unknown:
         out.append("key(s) outside the record contract: " + ", ".join(unknown))
+    if type(record.get("schema")) is not int or record["schema"] != 1:
+        out.append("schema must be 1")
+    if record.get("unit") != ".":
+        out.append("unit must be . for this repository release")
+    if kind == "readiness" and (type(record.get("catalog")) is not int or record["catalog"] != 3):
+        out.append("catalog must be 3")
+    if "evidence" in record and not isinstance(record["evidence"], dict):
+        out.append("evidence must be an object")
+    if "reused_from" in record:
+        reused = record["reused_from"]
+        empty_security_origin = kind == "security-gate" and reused == ""
+        if not isinstance(reused, str) or not (empty_security_origin or re.fullmatch(r"[0-9a-f]{40}", reused)):
+            out.append("reused_from must be a full lowercase 40-character SHA (or empty for security)")
     commit = record.get("commit")
     if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40}", commit):
         out.append("commit must be a full lowercase 40-character SHA")
@@ -207,10 +236,15 @@ def shape_problems(record):
     if commit_tree != tree:
         out.append("commit's tree does not equal the candidate's tree " + tree)
     try:
-        if when(record.get("created_at")) > now:
+        created = when(record.get("created_at"))
+        if created > now:
             out.append("created_at is in the future")
+        if kind == "readiness":
+            until = when(record.get("valid_until"))
+            if not created < until or until - created > datetime.timedelta(hours=24):
+                out.append("valid_until must be after created_at and within 24 hours")
     except ValueError:
-        out.append(f"unreadable created_at {record.get('created_at')!r}")
+        out.append("created_at or valid_until is not a valid UTC YYYY-MM-DDTHH:MM:SSZ timestamp")
     waivers = record.get("waivers")
     if not isinstance(waivers, list) or any(not isinstance(w, dict) for w in waivers):
         out.append("waivers is not a list of objects")
@@ -224,6 +258,12 @@ def shape_problems(record):
                     out.append(f"waivers[{index}].{field} must be a non-empty string")
                 elif any(ord(char) < 32 or ord(char) == 127 for char in value):
                     out.append(f"waivers[{index}].{field} contains a control character")
+            try:
+                expiry = when(waiver.get("expires"))
+                if kind == "readiness" and when(record.get("valid_until")) > expiry:
+                    out.append(f"valid_until exceeds waivers[{index}] expiry")
+            except ValueError:
+                out.append(f"waivers[{index}] or valid_until has an unreadable UTC expiry")
     if kind == "security-gate":
         count = record.get("open_blockers")
         if type(count) is not int or count < 0:
@@ -292,7 +332,7 @@ for path in sorted(glob.glob(os.path.join(records, kind, "*", "production.json")
         continue
     label = "in the candidate's own folder" if path == own else f"{path} (it names this tree)"
     try:
-        record = json.loads(text, object_pairs_hook=note_repeats)
+        record = json.loads(text, object_pairs_hook=note_repeats, parse_constant=invalid_constant)
     except ValueError as error:
         refuse(f"{label} is unreadable ({error}); fix or rewrite it, no other record substitutes")
     if not isinstance(record, dict):

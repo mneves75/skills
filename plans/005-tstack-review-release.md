@@ -82,7 +82,7 @@ Use one isolated release worktree and an authorized implementation model. Other 
 | `tools/scripts/check-defaults-block.sh` | Release/date/defaults agree |
 | `python3 tools/scripts/check-readiness-catalog.py` | Catalog and ledger consistent |
 | `tools/scripts/build-site.sh` and `bash tools/scripts/build-site.test` | Generated site current and controls pass |
-| `bash tools/scripts/check-site-copy.sh <preview-url>` | Three clipboard cases and two contrast cases pass in a real browser |
+| `bash tools/scripts/check-site-copy.sh <preview-url>` | Three clipboard cases, four mobile/desktop overflow cases and two contrast cases pass in a real browser |
 | `cccc --no-cache --min 0 <changed-supported-source>` | Record actual coverage and diagnostics; no invented threshold |
 | Existing local CI-equivalent checks appropriate to the changed tree | Passing results, with reused unchanged evidence and untested platforms explicit |
 
