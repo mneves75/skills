@@ -1,7 +1,7 @@
 {
   "updated": "2026-11-04",
   "scope": "tstack review and release follow-up",
-  "status": "in_progress",
+  "status": "local_fixes_verified_release_coordination_pending",
   "checks": [
     {
       "name": "origin reconciliation before implementation",
@@ -90,7 +90,27 @@
       "result": "pass",
       "exit": 0,
       "observed": "clipboard unavailable/rejected/success and contrast light/dark all pass",
-      "evidence_scope": "local browser; final typography and independent site acceptance pending"
+      "evidence_scope": "local browser; same five cases rerun successfully after final typography"
+    },
+    {
+      "name": "independent site review",
+      "target": "3cbe27c...e6a9830",
+      "result": "pass",
+      "axes": {"standards": "pass; zero findings", "spec": "pass; zero findings"}
+    },
+    {
+      "name": "mneves-verify local site acceptance",
+      "result": "pass",
+      "observed": "both copy buttons in all three clipboard states; contrast in both themes; six width/theme matrices without overflow; fourteen text/control elements at least 13px; keyboard navigation and focus; 23 guide anchors; reduced-motion visibility",
+      "index_sha256": "bcf39cbc7412ddbf5c06447a0b33e252b2dd08381c41c1ea8400d1a6f862de00",
+      "guide_sha256": "929120e32241766105a32dce850576815bc042e0b7976e237b1c9900fd047643",
+      "evidence_scope": "fresh independent local browser; not production or whole-inspector acceptance"
+    },
+    {
+      "name": "working-branch integration identity",
+      "target": "d0ac1a2",
+      "result": "pass",
+      "observed": "verified helper, index and guide hashes unchanged; reviewed implementation paths equal e6a9830"
     },
     {"name": "final-tree security and readiness gates", "result": "pending"},
     {"name": "production served-byte and browser acceptance", "result": "pending"},

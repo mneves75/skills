@@ -1,6 +1,6 @@
 # Tstack review — run notes
 
-Updated: 2026-11-04. Status: implementation and independent verification in progress.
+Updated: 2026-11-04. Status: isolated fixes verified and integrated; release ownership unresolved.
 Plan: [review and release acceptance](../../../plans/004-tstack-review-release.md).
 Machine-readable results: [tests.json](tests.json).
 
@@ -67,10 +67,11 @@ recorded inspector failures, not a claim that the generic score passed.
 
 ## Open coordination
 
-Another active release session owns `release/1.45.0`, is changing the same watcher, and is adding
-setup/deployment tooling. This session owns `release/1.45.0-tstack-20261104`. Neither worktree
-may overwrite the other. Final integration, versioning and publication ownership remain unresolved;
-finish independent regression evidence before asking for a final handoff decision.
+Another active release session owns `release/1.45.0`, changes the same watcher, and adds
+setup/deployment tooling. This session's isolated fixes were merged into the existing pstack
+working PR at `d0ac1a2`, preserving the newer plan and run notes. Its temporary branch and
+worktree were then removed. The other session's worktree remains untouched. Final release
+integration, versioning and publication ownership remain unresolved.
 
 The other session's recorded plan still waits for main CI, whereas the current task explicitly
 skips GitHub CI and staging. Reconcile that discrepancy before publication. No deployment or
@@ -89,12 +90,19 @@ the usage guide, and ran all `build-site.test` controls successfully. A global-c
 denied during setup; installing the locked tools with Bun's documented repository-local
 `--cache-dir` succeeded without changing global configuration or the lockfile.
 
+The site unit is `e6a9830`: both review axes pass with zero findings. Fresh independent local
+acceptance passed both copy controls' three outcomes, light/dark contrast, six viewport/theme
+font and overflow checks, keyboard navigation/focus, all 23 guide anchors and reduced-motion
+visibility. Final source and served bytes matched; the guide's count-free opening was rechecked
+after regeneration. The working-branch merge preserves the exact verified helper and site hashes.
+
 ## Documentation coverage
 
 A separate read-only reviewer read all 37 current Markdown files under `docs/` and the new
 `tests.json`; the two historical screenshot assets were excluded from that textual review.
-The watcher commit fixes the stale PR #30 status. Remaining documentation integration includes
-deferred release-ledger bookkeeping and stale catalog counts in the site and usage-guide intro.
+The watcher commit fixes the stale PR #30 status; the site unit removes stale catalog counts from
+the landing page, its README and the usage-guide intro. Deferred release-ledger bookkeeping still
+belongs to final release integration.
 Historical specs and handoffs retain their dates and
 original observations. Repeated historical scratch-only setup runners support a small tracked
 initialization script; that implementation must be reconciled with the active release session.
@@ -104,8 +112,20 @@ initialization script; that implementation must be reconciled with the active re
 - [x] Reproduce and fix the watcher failures; full suite and independent acceptance pass.
 - [x] Complete the all-documents review; preserve historical documents as history.
 - [x] Complete fresh Standards and Spec reviews of the watcher; both pass with zero findings.
-- [ ] Finish independent site acceptance and review of its final source/documentation diff.
+- [x] Finish independent site acceptance and both review axes of its final source/documentation diff.
 - [ ] Reconcile the active release session's setup/deployment scripts rather than adding duplicates.
    Setup must be repository-local; deployment must preserve exact-commit security/readiness gates
    and must not invent a staging environment for this static Pages repository.
 - [ ] Qualify the final integrated tree before merge to main, publication, tag and attributable cleanup.
+
+## Cleanup and handoff
+
+Removed this session's consumed worktree (about 243 MiB apparent size, including its local tools
+and cache) and its local/remote temporary branch. Stopped both temporary HTTP servers and the
+implementation CLI; browser sessions closed. Private regression, review and screenshot evidence
+is retained for release acceptance. Preserved the other release worktree, historical handoffs,
+prior gate records and source snapshots still needed for the release.
+
+No merge to main, version bump, production tag or deployment was performed by this session.
+The publishing session must incorporate PR #40's verified follow-up commits, reconcile its
+deployment script with the explicit CI skip, then run the final exact-tree release gates.
