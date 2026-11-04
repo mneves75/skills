@@ -50,7 +50,10 @@ depends on the change's own instrumentation is circular — discard it. A measur
 inconclusive and is reported as such.
 
 **Security.** Audit the changed surface before any production gate, and say plainly whether the audit
-covered the diff or the whole application. Every negative assertion and security gate needs a
+covered the diff or the whole application. Use the sibling `mneves-security` when installed; a deep
+source audit the user asked for runs through `security-audit` instead, never both as full audits, and a
+source-audit result alone is never a deploy-gate verdict. Without either, audit the changed surface
+directly and say that no gate ran. Every negative assertion and security gate needs a
 positive control placed where the gate actually looks — a control outside the rule's path or selector
 scope proves nothing. A header, CSP, or policy claim only counts when tested against the *served*
 artifact, not the source that was meant to produce it.
@@ -77,7 +80,8 @@ this skill authorizes it.
 
 Use the destination's documented release sequence. A staging or production deploy runs
 through `mneves-ship-deploy` when installed; either way the `mneves-security` deploy gate (a
-full audit of the exact candidate, not the diff) and the readiness gate run before it, and
+full audit of the exact candidate, not the diff) and the readiness gate (`mneves-production-readiness`
+when installed) run before it, and
 without the security skill the deploy is blocked unless the owner waives that gate by name. Update required metadata/docs, commit
 task-owned paths, and perform only explicitly authorized push/tag/deploy steps. A staging task
 does not automatically require a tag or deployment. Verify the actual destination and artifact,

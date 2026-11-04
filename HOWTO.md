@@ -558,8 +558,9 @@ to merge, while you are not watching: it finishes the change, proves it, has a r
 not build it review the diff, files the PR, watches CI and review bots, fixes real findings, and
 stops at the merge gate. It never merges, enables auto-merge or enters a merge queue.
 
-**Triggers.** "full stop", including a closing "Full stop." that reads like emphasis. Nothing
-else grants this autonomy.
+**Triggers.** Only an explicit request for this workflow: `/full-stop`, "run full-stop" or
+"use the full-stop skill". A message that merely ends with "Full stop." is ordinary punctuation
+and grants nothing.
 
 **Prerequisites.** Git, an authenticated GitHub CLI (`gh`), and the repository's own checks.
 The sibling skills `autoreview`, `babysit-pr` and `leaving-pr-comments` sharpen the review,
@@ -568,7 +569,7 @@ watching and comment steps when installed; each has a written fallback.
 **Example** (illustrative).
 
 ```
-fix the flaky date parsing in the invoice export. full stop.
+/full-stop fix the flaky date parsing in the invoice export
 ```
 
 1. It branches off the default branch, reproduces the failure, makes the smallest fix and watches
@@ -675,6 +676,10 @@ babysit PR 77
 - A review bot counts only when GitHub types its author as a Bot, and a check counts as the
   bot's only when the bot's own GitHub App reports it, whatever the job is named.
 - A check GitHub refused to start over billing is reported as billing-blocked, not failed.
+- If another watcher already owns the PR, it reports that watcher's state instead of starting a
+  second one. When the same failure survives two fixes, or after three repair rounds, it stops
+  and reports the PR as blocked; a stricter limit in your instructions wins.
+- It brings the base branch in by merging; it rebases or force-pushes only with your clearance.
 
 Procedure: [SKILL.md](skills/babysit-pr/SKILL.md).
 
@@ -1072,7 +1077,7 @@ writes and deployments retain the host's authorization rules.
 
 ## pstack collection
 
-[`collections/pstack`](collections/pstack/) adds 36 skills from Lauren Tan's pstack. It is not
+[`collections/pstack`](collections/pstack/) adds 42 skills from Lauren Tan's pstack. It is not
 part of the install above:
 
 ```bash
@@ -1084,7 +1089,11 @@ other pstack workflows. `how` and `why` answer "how does X work" and "why is X t
 `interrogate` attacks a plan or diff with several reviewers, and `swarm` fans out parallel
 workers. Without the pstack-claude plugin, dispatches to `pstack:*` agents fall back to a
 general-purpose subagent; the collection README explains this and lists the overlaps with Matt
-Pocock's skills.
+Pocock's skills. `statechart`, the two formal-verification skills, `ketchup-video` and the
+`thermos` reviews run only when you name them ("/statechart for the checkout flow"), and none
+installs a tool unless that install is already authorized or you approve it.
+[`docs/skill-ledger.md`](docs/skill-ledger.md) records why each skill is kept, changed or
+left out.
 
 ## Combining them
 

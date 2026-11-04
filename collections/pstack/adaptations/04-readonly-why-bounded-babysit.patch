@@ -1,0 +1,186 @@
+Adaptation 04-readonly-why-bounded-babysit
+
+why investigators and the synthesizer stay read-only; a denied read is recorded, never retried through
+a broader mode. babysit defers to an installed babysit-pr, keeps one owner per PR, writes only commits
+and pushes on the PR's head branch, reads every page of review comments, and reports the round cap as
+blocked, never ready.
+
+Fork source: https://github.com/mneves75/pstack-claude commits 2d6b8b8, 3151149 (pull request #1, unmerged).
+Applies to the port's plugins/pstack/skills tree after the patches numbered before it.
+
+diff --git a/babysit/SKILL.md b/babysit/SKILL.md
+index 13a9ecf3ffa96b3cbfc4aec7ab5365997a790575..0e92ad5252807c7b64ad770630cb518dc1ac05d3 100644
+--- a/babysit/SKILL.md
++++ b/babysit/SKILL.md
+@@ -11,7 +11,11 @@ On GitHub Copilot, read the [platform mapping](../poteto-mode/references/copilot
+ 
+ On Muse, read the [platform mapping](../poteto-mode/references/muse-tools.md), including its per-skill notes, before following this skill.
+ 
+-Claude Code analog of Cursor's built-in `/babysit`. The implementation is a loop over `gh` CLI plus the Claude Code `loop` skill for pacing.
++Claude Code analog of Cursor's built-in `/babysit`. The implementation is a loop over `gh` CLI, paced by the Claude Code `loop` skill when it is installed.
++
++When the `babysit-pr` skill is installed, use it instead: its watcher is the authoritative one, and this skill adds nothing to it. The steps below are the complete fallback for an install that has only this skill and `gh`.
++
++A PR has one continuation owner. Before starting a loop, check whether another watcher already owns this PR (`babysit-pr`, the poteto-mode playbook, a `loop` or scheduled re-check from earlier in this session). If one does, report its state and do not start a second.
+ 
+ Inside poteto-mode, the **Babysit** playbook ([`../poteto-mode/playbooks/babysit.md`](../poteto-mode/playbooks/babysit.md)) supersedes this skill: it owns mode declaration, the merge frontier, stack safety, and the `watch-pr` watcher. This skill stays the standalone `/babysit` entry point for a single PR outside a poteto-mode run.
+ 
+@@ -30,36 +34,38 @@ Inside poteto-mode, the **Babysit** playbook ([`../poteto-mode/playbooks/babysit
+    ```
+ 
+ 2. **Triage in priority order.**
+-   - Merge conflicts (`mergeStateStatus == DIRTY`): run the **fix-merge-conflicts** skill. Force-push only if the branch is yours and not shared.
+-   - Failing checks (`statusCheckRollup` entries with `conclusion: FAILURE`): run the **fix-ci** skill. Root-cause the failure; fix the underlying code or test; commit; push.
+-   - Review comments: run the **get-pr-comments** skill for the summary, then act only on feedback you actually agree with. When a comment has a single mechanical answer — a rename, a guard clause, a formatting nit — make the edit and quote the comment in the commit message. When it hinges on a judgement call, or you can't tell what's being asked, don't guess: leave it and reply with what you would have done.
++   - Merge conflicts (`mergeStateStatus == DIRTY`): run the **fix-merge-conflicts** skill when installed; otherwise merge the base branch into the PR branch and resolve each conflict by reading both sides. Never force-push without the user's clearance (see Hard rules).
++   - Failing checks (`statusCheckRollup` entries with `conclusion: FAILURE`): run the **fix-ci** skill when installed; otherwise read the failing log with `gh run view <run-id> --log-failed` and reproduce it locally. Root-cause the failure; fix the underlying code or test; commit; push.
++   - Review comments: run the **get-pr-comments** skill for the summary when installed; otherwise read `gh pr view <number> --comments` and `gh api --paginate repos/{owner}/{repo}/pulls/<number>/comments`. Act only on feedback you actually agree with. When a comment has a single mechanical answer — a rename, a guard clause, a formatting nit — make the edit and quote the comment in the commit message. When it hinges on a judgement call, or you can't tell what's being asked, don't guess: leave it and put what you would have done in the report.
+    - Review-bot comments (Bugbot and similar automation): classify fix/dismiss/ask before acting, per [`bugbot-triage.md`](../poteto-mode/references/bugbot-triage.md). Ask by default on security, data, and high-severity findings.
+ 
+-3. **Loop.** Use the Claude Code `loop` skill to pace re-checks. Pick the interval from what you're watching:
+-   - Active CI run: poll `gh pr checks --watch` (it blocks until checks finish, so no separate loop interval needed).
++3. **Loop.** Use the Claude Code `loop` skill to pace re-checks when it is installed; otherwise re-run steps 1–2 yourself at the interval below and state the cadence in the report. Pick the interval from what you're watching:
++   - Active CI run: poll `gh pr checks <number> --watch` (it blocks until checks finish, so no separate loop interval needed).
+    - Awaiting reviewer: 20–30 min heartbeat.
+    - Idle but want to catch new comments: hourly.
+ 
+ 4. **When to stop.**
+    - Build is green, every comment resolved, branch merges cleanly → call it ready.
+-   - You've run three rounds of fix → push → recheck and it still isn't fully green → stop, summarise what's still broken, and hand control back.
++   - You've run three rounds of fix → push → recheck and it still isn't fully green → stop, summarise what's still broken, and hand control back. Report the PR as blocked, not ready: the round cap is an escalation signal, never a completion.
+    - The next fix would force a design choice → pause and put it to the user with `AskUserQuestion`.
+ 
+ 5. **Report.** Summarize fixes applied, comments addressed, comments deferred (with reason), current PR status. Cite each commit by SHA.
+ 
+ ## Hard rules
+ 
++- Invoking babysit on a PR covers commits and pushes to that PR's own head branch. Posting replies or comments, resolving threads, requesting reviewers, `gh pr ready` and any other write to the PR or the forge need the user's explicit request or a standing permission for that write; otherwise put the draft in the report.
++
+ - Don't rewrite history on a branch others may have pulled. If a rebase or force-push looks necessary, clear it with the user first.
+ - Don't tweak a test's expected values just to get a pass. Only change an assertion when the behaviour genuinely changed and the assertion was pinned to the old behaviour.
+ - Never skip hooks (`--no-verify`).
+ - Never bypass a failing check by marking it as not required.
+-- `gh pr ready` only when all checks are green and no unresolved review comments remain.
++- `gh pr ready` only when the user asked for it, all checks are green and no unresolved review comments remain.
+ 
+ ## Cross-refs
+ 
+ - Opening a PR does not start a babysit; inside poteto-mode the Babysit playbook owns the request and starts only when asked.
+ - Use `interrogate` before opening if the diff is contested; once open, babysit takes over.
+-- Use `unslop` on any prose you write here (PR comments, commit messages, status reports).
++- Use the active writing preferences on any prose you write here (PR comments, commit messages, status reports).
+ 
+ ## Provenance
+ 
+diff --git a/why/SKILL.md b/why/SKILL.md
+index 282a333715cd5eb72ab565bad640a1a136f8491a..dd3f745b73d590893873abd6f9ce2e08caa01697 100644
+--- a/why/SKILL.md
++++ b/why/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: why
+-description: "Use for 'why does X work this way', 'why we picked Y', design rationale, regressions, postmortems, or data-backed thresholds. Discovers available MCPs and queries each evidence category (source control, issue tracker, long-form docs, real-time chat, infrastructure observability, error tracking, product analytics warehouse) in parallel, then returns a cited read on decisions and tradeoffs. Use how for runtime behavior."
++description: "Use for 'why does X work this way', 'why we picked Y', design rationale, regressions, postmortems, or data-backed thresholds. Starts from source control and adds the available evidence categories (issue tracker, long-form docs, real-time chat, infrastructure observability, error tracking, product analytics warehouse) that bear on the question, read-only and in parallel, then returns a cited read on decisions and tradeoffs with explicit unknowns. Use how for runtime behavior."
+ ---
+ 
+ # Why
+@@ -15,7 +15,9 @@ Investigate the motivation and intent behind code. The companion `how` skill ans
+ 
+ Each spawn below names a role line in `pstack-models.md` and a default in [Models](#models). Set `model` to that line's value, or to the default if the sheet or the line is missing. Leave `model` unset when the value is `auto` or `inherit-parent`. If the `Agent` tool rejects a slug, use the default and say so. If it rejects the default, use the closest valid slug of the same family from its error message. Pick each subagent's reasoning level for the job, per the Subagents section of the **poteto-mode** skill.
+ 
+-Every spawn is `general-purpose` with `readonly: false` (agent mode). **Do not use readonly/Ask mode.** It strips MCP access, which disables the MCP-backed investigators and the synthesizer's citation spot-checks. Investigators still shouldn't write anything.
++Every spawn is `general-purpose` with `readonly: true`. Investigators and the synthesizer only search and read: they never write files, post, comment, or change tickets, documents, dashboards or settings. If the host's read-only mode leaves a category's MCP unreachable, do not widen the spawn to get it: query that MCP from this session with read and search calls only, or record the category as not searched in read-only mode. A read that a host, a tool or a permission prompt denied stays denied. Record it in Sources Consulted; never retry it through a broader mode, another agent or changed permissions.
++
++On GitHub Copilot, the platform mapping's fallback that runs a read-only role needing MCP as `general-purpose` does not apply to these spawns: keep each investigator read-only, use only the main session's permitted reads, or report the category as a coverage gap.
+ 
+ ## Operating Posture
+ 
+@@ -33,11 +35,13 @@ Before spawning investigators, build the seed context inline: file paths and lin
+ 
+ ## Step 3. Spawn Parallel Investigators
+ 
+-**Default to the full parallel investigation.** The goal is a complete coverage map, not a minimal one. Document the null, don't skip the search.
++**Size the investigation to the question.** Source control is always searched. Add a category when its evidence can bear on this question (the roster below says what each one is best at), and search a selected category fully: document the null, don't skip the search. Unselected categories are explicit unknowns, not nulls.
++
++For a simple question, such as one commit whose PR or linked ticket states the reason, answer inline from the code anchor and skip the rest of Step 3 and Step 4: no investigators, no synthesizer. Keep the confidence language from `references/epistemics.md` and the [Output Format](#output-format), and list the categories you did not search.
+ 
+ ### Discovery
+ 
+-Before spawning investigators, list the available MCPs in the Claude Code environment. Use the tool list at the top of the system prompt (every MCP appears as a tool with prefix `mcp__<server>__<name>`). Otherwise read `.mcp.json` in the plugin/project, or run `claude mcp list`.
++Before spawning investigators, list the available MCPs in the Claude Code environment, to know which selected categories can be searched. Use the tool list at the top of the system prompt (every MCP appears as a tool with prefix `mcp__<server>__<name>`). Otherwise read `.mcp.json` in the plugin/project, or run `claude mcp list`.
+ 
+ Map each available MCP to one evidence category:
+ 
+@@ -51,18 +55,18 @@ Map each available MCP to one evidence category:
+ 
+ Source control is always available through git and `gh`. For the other six, classify using the MCP name, server instructions, tool names, and resource descriptors. If an MCP could fit more than one category, choose the one matching its primary evidence. Record ambiguous cases in the coverage map.
+ 
+-Spawn one investigator per category that has a matching MCP, all in a single message so they run concurrently, each owning exactly one tool or MCP. Don't ask one agent to cover multiple MCPs. `model`: the `why investigators` line, default in [Models](#models).
++Spawn one investigator per selected category that has a matching MCP, all in a single message so they run concurrently, each owning exactly one tool or MCP. Don't ask one agent to cover multiple MCPs. `model`: the `why investigators` line, default in [Models](#models).
+ 
+ Each investigator's prompt is `references/investigator-prompt.md` filled in, plus:
+ - the category playbook `references/sources/<source>.md` for the selected MCP, adapted from the examples in `references/source-playbook.md`
+ - `references/sources/incident-postmortem.md` **if the target code looks defensive** (null checks, retry logic, timeout handling, rate limiting, feature flags, egress guards, OOM handlers)
+ - the code anchor and the user's original question
+ 
+-### Investigator roster, one per available evidence category
++### Investigator roster, one per selected evidence category
+ 
+-Each category below is uniquely positioned to surface one shape of "why", shown after "Best at". Use it to know what to expect back, to name a gap when a category returns empty, and, only in the rare provably-irrelevant case, to justify a skip.
++Each category below is uniquely positioned to surface one shape of "why", shown after "Best at". Use it to choose the categories that bear on the question, to know what to expect back, and to name a gap when a category returns empty.
+ 
+-1. **Source control** (git history, `gh` for PRs, code comments, tests). Always spawn, the only guaranteed source. Best at *implementation-time rationale captured during review*.
++1. **Source control** (git history, `gh` for PRs, code comments, tests). Always searched, the only guaranteed source. Best at *implementation-time rationale captured during review*.
+ 2. **Issue / ticket tracker** (e.g. Linear, Jira, GitHub Issues, Plane, Shortcut MCP). Best at *the product or business forcing function*. Strongest when the why is external to engineering.
+ 3. **Long-form documents** (e.g. Notion, Confluence, Google Docs, Coda MCP). Best at *long-form design rationale*, written out before it becomes code.
+ 4. **Real-time team chat** (e.g. Slack, Discord, Microsoft Teams, Mattermost MCP). Best at *real-time deliberation that never reached a doc*. Especially important when the source control, ticket, and doc paper trail is thin.
+@@ -70,19 +74,20 @@ Each category below is uniquely positioned to surface one shape of "why", shown
+ 6. **Error / exception tracking** (e.g. Sentry, Rollbar, Bugsnag, Airbrake MCP). Best at *the specific exceptions and error trajectories that motivated defensive or corrective code*. Strongest for catch blocks, null guards, type checks, retries, and other defenses.
+ 7. **Product analytics warehouse** (e.g. Databricks, Snowflake, BigQuery, ClickHouse, dbt, Redshift MCP). Best at *product and data reality that shaped the code*. Strongest for flag-gated code, experiment-driven ships, data migrations, and "where did this number come from" questions.
+ 
+-### When to skip an investigator
++### Categories you do not search
+ 
+-Only with an **explicit, written justification** that goes in the final Sources Consulted. Two valid reasons:
++Every category gets one line in the final Sources Consulted, with its reason:
+ 
+-- **No MCP is available for that category** in this environment. Flag it as a gap, not a choice: "Real-time team chat skipped. No matching MCP available, so the conversational record was not searchable."
+-- **The source is provably irrelevant**, not just "probably irrelevant." A high bar: "Error / exception tracking skipped. Target is a build-time script with no runtime code path."
++- **Not available.** No MCP for it in this environment. A gap, not a choice: "Real-time team chat not searched. No matching MCP available, so the conversational record was not searchable."
++- **Not selected.** Its evidence does not bear on this question: "Error / exception tracking not searched. Target is a build-time script with no runtime code path."
++- **Not reachable read-only, or a read was denied.** Name the denial; do not route around it.
+ 
+-If your scope assessment suggests a single-commit trivial target where the PR description already contains the complete answer, you may answer inline **only after** confirming all seven available category searches would be redundant. Say so explicitly. This should be rare.
++What an unsearched category might hold stays in What We Don't Know. If the evidence you have leaves the question open, widen the search to the next most relevant category before concluding.
+ 
+ ## Step 4. Synthesize
+ 
+-Spawn one synthesizer. `model`: the `why synthesizer` line, default in [Models](#models). It gets:
+-1. The investigator findings, including any null results and any categories skipped with justification
++When you spawned investigators, spawn one synthesizer (an inline answer has none). `model`: the `why synthesizer` line, default in [Models](#models). It gets:
++1. The investigator findings, including any null results, and each category not searched with its reason
+ 2. The code anchor
+ 3. The user's original question
+ 4. The epistemics framework from `references/epistemics.md`
+@@ -94,7 +99,7 @@ Present the synthesizer's output to the user. You may lightly edit for clarity o
+ 
+ ## Output Format
+ 
+-The structure is the one in `references/synthesizer-prompt.md`: The Question, The Code in Question, What We Found, What We Can Reasonably Infer, Competing Hypotheses, What We Don't Know, Sources Consulted, Confidence Summary. Adapt as needed, but keep the confidence separation intact, and keep Sources Consulted as one line per investigator, including the ones that returned nothing or were skipped, with the reason.
++The structure is the one in `references/synthesizer-prompt.md`: The Question, The Code in Question, What We Found, What We Can Reasonably Infer, Competing Hypotheses, What We Don't Know, Sources Consulted, Confidence Summary. Adapt as needed, but keep the confidence separation intact, and keep Sources Consulted as one line per evidence category: searched (including the ones that returned nothing), not available, not selected, or not reachable read-only, with the reason.
+ 
+ After Sources Consulted, if the user's `why` question is a precursor to changing this code, convert the lineage findings into a Preserve / Change / Avoid / Risk constraint set for planning the change.
+ 
+diff --git a/why/references/investigator-prompt.md b/why/references/investigator-prompt.md
+index 3f5cbce2389bf8d23ba8a577ace2a21afc1d4172..cae0160b77d70d98ebe027d4dbdf61919d73f764 100644
+--- a/why/references/investigator-prompt.md
++++ b/why/references/investigator-prompt.md
+@@ -6,6 +6,8 @@ Fill in the placeholders. Append the one category playbook `sources/<source>.md`
+ 
+ You are investigating the historical context and motivation behind a piece of code. Other investigators search other sources in parallel, and a separate synthesizer combines all findings into the final answer. Go deep on your assigned source only. Gather evidence accurately rather than writing prose.
+ 
++You are read-only. Search and read only: never write files, post, comment, or change tickets, documents, dashboards, saved queries or settings. If a read is denied, record the denial under Gaps and stop that line of search; do not retry it through another tool, mode or agent.
++
+ Work like a **careful, cautious, and precise investigator**. Surface evidence and describe it accurately, including the parts that don't fit a tidy story. Boring and exact beats plausible. One verbatim quote with a precise citation is worth more than a paragraph of summary.
+ 
+ For human rulings, follow [Claims about human decisions](epistemics.md#claims-about-human-decisions). Return the attributable original wording and source, label agent interpretations, and flag missing originals and copied summaries.

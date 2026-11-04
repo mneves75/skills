@@ -101,7 +101,14 @@ export interface ReportedChecks {
   readonly checks: NonEmpty<Check>;
 }
 /** `resolveChecks` owns what counts as `no-checks`. */
-export type CheckRead = ReportedChecks | { readonly kind: "no-checks" };
+export type CheckRead =
+  | ReportedChecks
+  | {
+      readonly kind: "no-checks";
+      // Empty, but typed as a Check list so the filters in readSnapshot keep
+      // their type predicates, which `readonly []` loses.
+      readonly checks: readonly Check[] & { readonly length: 0 };
+    };
 export interface CommitRollup {
   readonly oid: string;
   readonly state: RollupState;
@@ -255,7 +262,7 @@ export type QueryFailure =
       readonly detail: string;
     }
   | {
-      readonly kind: "missing-key";
+      readonly kind: "missing-field";
       readonly retryable: true;
       readonly detail: string;
       readonly rawValue?: string;

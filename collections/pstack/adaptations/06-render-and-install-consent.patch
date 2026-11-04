@@ -1,0 +1,159 @@
+Adaptation 06-render-and-install-consent
+
+Added here, not in the fork. statechart and ketchup-video work in an allowed scratch folder instead of
+always outside the repository and use tools that are already installed. An install runs only where the
+user or the host's policy already authorized it; otherwise the user approves it immediately before it
+runs. statechart renders with Pele only when it is available or its install is authorized, and
+otherwise hands over the Mermaid text with the rendering limitation; its scripts/package.json drops the
+test command and its test-only lockfile, because the test corpus is excluded from the collection.
+babysit's round cap yields to a stricter limit in the user's or repository's instructions, and the
+poteto-mode babysit playbook gains the same finite repair bound. create-formal-verification-skill
+follows the same install rule; it and ketchup-video gain fallbacks for a missing statechart or ketchup.
+
+Fork source: https://github.com/mneves75/pstack-claude commits none (this repository).
+Applies to the port's plugins/pstack/skills tree after the patches numbered before it.
+
+diff --git a/babysit/SKILL.md b/babysit/SKILL.md
+index 0e92ad5252807c7b64ad770630cb518dc1ac05d3..4c621923658deacbd6ef3cecd1611c6bae4a1ae3 100644
+--- a/babysit/SKILL.md
++++ b/babysit/SKILL.md
+@@ -46,7 +46,7 @@ Inside poteto-mode, the **Babysit** playbook ([`../poteto-mode/playbooks/babysit
+ 
+ 4. **When to stop.**
+    - Build is green, every comment resolved, branch merges cleanly → call it ready.
+-   - You've run three rounds of fix → push → recheck and it still isn't fully green → stop, summarise what's still broken, and hand control back. Report the PR as blocked, not ready: the round cap is an escalation signal, never a completion.
++   - You've run three rounds of fix → push → recheck and it still isn't fully green → stop, summarise what's still broken, and hand control back. Report the PR as blocked, not ready: the round cap is an escalation signal, never a completion. A stricter limit in the user's or the repository's instructions wins, such as stopping when the same failure survives two fixes.
+    - The next fix would force a design choice → pause and put it to the user with `AskUserQuestion`.
+ 
+ 5. **Report.** Summarize fixes applied, comments addressed, comments deferred (with reason), current PR status. Cite each commit by SHA.
+diff --git a/create-formal-verification-skill/SKILL.md b/create-formal-verification-skill/SKILL.md
+index d7ffdba3d2beb0e496907a296f328ef9d479c854..0f2ff8a8ed5dd1f2b9ce7e425ea9d99b1848abf5 100644
+--- a/create-formal-verification-skill/SKILL.md
++++ b/create-formal-verification-skill/SKILL.md
+@@ -21,7 +21,7 @@ A good target is a promise the code makes, where a break harms users and tests r
+ 
+ ## Let the question choose the tool
+ 
+-Pick the tool that answers the question at the lowest cost: a model checker, a proof assistant, an SMT-backed verifier, or another tool. Whether events can happen in a bad order usually suits a model checker over a small model of the design, and TLA+ is the default for that in any language. Whether the code itself behaves for every input, as with memory safety, overflow, or a data-structure invariant, usually suits a verifier that runs on the code. If no verifier runs on this language, say so, and test the real code with generated inputs, not a hand model of the function. A property that must hold at every size, where a bound is not enough, can need a proof. Prefer a tool that the repo's developers can install and run, and tell the user why you chose it.
++Use a verifier and runtime that are already installed when one fits. Installing one downloads from the network: install only where the user or the host's policy has already authorized it, and otherwise name the install and get the user's approval immediately before running it. Pick the tool that answers the question at the lowest cost: a model checker, a proof assistant, an SMT-backed verifier, or another tool. Whether events can happen in a bad order usually suits a model checker over a small model of the design, and TLA+ is the default for that in any language. Whether the code itself behaves for every input, as with memory safety, overflow, or a data-structure invariant, usually suits a verifier that runs on the code. If no verifier runs on this language, say so, and test the real code with generated inputs, not a hand model of the function. A property that must hold at every size, where a bound is not enough, can need a proof. Prefer a tool that the repo's developers can install and run, and tell the user why you chose it.
+ 
+ ## What makes it good
+ 
+@@ -37,7 +37,7 @@ Pick the tool that answers the question at the lowest cost: a model checker, a p
+ 
+ Write a project-local skill with frontmatter that names the area and says when to use it. Name the skill for the area, never `verify` or a `verify-` prefix, which belong to the driver skill `/create-verification-skill` writes. On Claude Code it lives at `.claude/skills/<area>/SKILL.md`. Without frontmatter, the skill never registers. From the skill alone, the next agent must be able to tell whether a change touches the verified code, run the check, tell a real bug from a modeling error, and update the verification when a change is intended. Put the coverage record and the sync commit in the skill, and tell the next agent to move the sync commit forward only after it confirms that the verification describes the code at the new commit. Use this repo's real commands, paths, and nouns, and leave no placeholders.
+ 
+-If the check is a TLA+ model, tell the next agent to read every result with the pstack [`/statechart`](../statechart/SKILL.md) skill. It shows each invariant violation the checker finds as its shortest path in plain words. When the check passes, `/statechart` draws a chart of how the system moves between states. Refer to `/statechart` by name. Its commands, options, and file paths change between releases and machines, so copy none of them into the generated skill or its scripts.
++If the check is a TLA+ model, tell the next agent to read every result with the pstack [`/statechart`](../statechart/SKILL.md) skill. It shows each invariant violation the checker finds as its shortest path in plain words. When the check passes, `/statechart` draws a chart of how the system moves between states. When `/statechart` is not installed, tell the next agent to read the model checker's counterexample trace directly and restate it as numbered steps in the code's words. Refer to `/statechart` by name. Its commands, options, and file paths change between releases and machines, so copy none of them into the generated skill or its scripts.
+ 
+ ## Prove it before you hand off
+ 
+diff --git a/ketchup-video/SKILL.md b/ketchup-video/SKILL.md
+index 396b0848a6f2d6ea9a8304703b74b7386901251f..a34b8c4a076955e506be6ff1f293ea4e3b2d6831 100644
+--- a/ketchup-video/SKILL.md
++++ b/ketchup-video/SKILL.md
+@@ -5,7 +5,7 @@ description: "Catch the user up like /ketchup, with a short subtitled video of s
+ 
+ # Ketchup video
+ 
+-Follow [`/ketchup`](../ketchup/SKILL.md), but show what happened in a short subtitled video instead of its summary and visuals. Its window starts at the last message the user wrote before `/ketchup-video`, not before any earlier `/ketchup`. Writing and rendering the video, outside the repo, is the one exception to its read-only rule. The reply is ketchup's opening sentence, the embedded video, one line naming any work left that you can do yourself, and the action items. When the video shows a call's options, call each option by the name the video gives it. If the render fails, say so in one line and give only the calls.
++Follow [`/ketchup`](../ketchup/SKILL.md); when it is not installed, do its job yourself: read-only, catch the user up in plain words on what changed in this chat since their last message, and list every call waiting on them with what they need to decide it. Show what happened in a short subtitled video instead of its summary and visuals. Its window starts at the last message the user wrote before `/ketchup-video`, not before any earlier `/ketchup`. Writing and rendering the video is the one exception to its read-only rule. Do it in the repository's git-ignored scratch directory or the session scratch folder your harness gives you, and outside the repository only where the user's instructions already allow it. Render with tools that are already installed; installing one downloads from the network, so install only where the user or the host's policy has already authorized it, and otherwise get the user's approval immediately before installing. When no tool is available, treat it as a failed render. The reply is ketchup's opening sentence, the embedded video, one line naming any work left that you can do yourself, and the action items. When the video shows a call's options, call each option by the name the video gives it. If the render fails, say so in one line and give only the calls.
+ 
+ ## Slides
+ 
+diff --git a/poteto-mode/playbooks/babysit.md b/poteto-mode/playbooks/babysit.md
+index bb15956a3c50b1d690450a871bca30f75c796e60..56095447981faf66c72a32c958e4b0d04caf75a1 100644
+--- a/poteto-mode/playbooks/babysit.md
++++ b/poteto-mode/playbooks/babysit.md
+@@ -15,7 +15,7 @@ Babysitting starts when the user asks for it, which is normally once a phase or
+ 
+    On GitHub, stop at `READY` for one PR (single or stack mode). Queued mode never emits `READY`. A blocker-free frontier is a non-terminal `WAITING` with reason `merge-queue`. Report that frontier merge-ready and stop the watcher. Do not leave it running until merges happen. That is Shipping's job. If another actor merges the frontier and the watcher reports `ADVANCE`, continue with the new frontier. `COMPLETE` is terminal if another actor finishes the queue.
+ 
+-   Answer a user question mid-loop and continue. Only an explicit stop ends the loop before the active forge's stop condition. On GitHub, that is `READY` in single or stack mode, or a `WAITING`/`merge-queue` report or `COMPLETE` in queued mode. On Origin, that is the merge-ready state defined above. For a GitHub queued stack, capture the PR list bottom-to-top once and pass the same frozen list to every rearm. Revise the list only for the sanctioned follow-up PR from step 4. Append it at the end, drop the merged owner, and rearm with the corrected snapshot.
++   Answer a user question mid-loop and continue. Only an explicit stop or the repair bound ends the loop before the active forge's stop condition. The repair bound: when the same check or finding survives two fixes, or three push waves on the frontier have not reached the stop condition, stop and report the frontier as blocked, not ready, with what still fails. A stricter limit in the user's or the repository's instructions wins. On GitHub, that is `READY` in single or stack mode, or a `WAITING`/`merge-queue` report or `COMPLETE` in queued mode. On Origin, that is the merge-ready state defined above. For a GitHub queued stack, capture the PR list bottom-to-top once and pass the same frozen list to every rearm. Revise the list only for the sanctioned follow-up PR from step 4. Append it at the end, drop the merged owner, and rearm with the corrected snapshot.
+ 7. **Classify CI before any retrigger.** Flake or infrastructure earns one fresh build, never a job retry. One retry only. An identical second failure means it was never flake, so reclassify and read the child logs instead of retrying blind. A failure in code the diff never touches means a stale base, so check with `git merge-base --is-ancestor` before assuming flake. Report a stale base as needing a rebase instead of burning retries. Only a failure in the diff's own code gets a commit.
+ 8. **Bugbot is triaged skeptically, always.** Verify each claim against the code per `../references/bugbot-triage.md`. Fix real findings with a red-first proof in the lowest PR that owns the code, never at the tip unless the owning PR has merged. In that case, use step 4's sanctioned follow-up PR. Per step 2, upstack fixes wait for step 5's next frontier-driven push wave. Push that wave before replying so the reply cites the commit. On Origin, reply with `origin pr thread reply <thread-id> <pr> --body-file <reply-file>`. On GitHub, call `gh api --method POST "repos/<owner>/<repo>/pulls/<pr>/comments/<comment-id>/replies" --input <payload.json>` and put the reply body in the JSON file as data. Never interpolate comment text or a reply into a shell command. Dismiss noise with the concrete disproof on the thread. On GitHub, use the watcher's Bugbot pass count. On Origin, derive the pass count from `origin pr thread list` and the review history. From the third pass on, lean toward dismissing documented patterns, still escalating anything touching security, auth, billing, data, or migrations rather than dismissing it yourself. Never churn code to quiet a bot.
+ 9. **Stop at the human's line.** Owner approval is a wait, not a blocker to fix. Babysitting never authorizes merging. Only an explicit request to merge, land, ship, or merge when ready does. Route that request to Shipping. Surface the escalation and keep working the rest. After GitHub reports `READY`, a queued `WAITING`/`merge-queue` stop, or `COMPLETE`, or after Origin reports the frontier merge-ready, sweep the run's triage decisions once. Offer any team-useful dismissal pattern as a candidate entry in the shared rubric (`../references/bugbot-triage.md`) and its own PR. Never keep it only in private memory.
+diff --git a/statechart/SKILL.md b/statechart/SKILL.md
+index 46150386e595bed867cdbfec50c7bc527bb843b1..50b8754dd63158617099787881652dd7dd0688ae 100644
+--- a/statechart/SKILL.md
++++ b/statechart/SKILL.md
+@@ -9,7 +9,7 @@ The chart shows how a system moves between states, in the words of the person wh
+ 
+ ## Run
+ 
+-Work in a scratch folder outside the repo. Write a TLA+ spec and its config. Then run:
++Work in a scratch folder: the repository's git-ignored scratch directory, or the session scratch folder your harness gives you. Write outside the repository only where the user's instructions already allow it. Write a TLA+ spec and its config. Then run:
+ 
+ ```sh
+ <skill dir>/scripts/statechart SPEC.tla [--config FILE] [--view FILE] [--out DIR]
+@@ -17,7 +17,7 @@ Work in a scratch folder outside the repo. Write a TLA+ spec and its config. The
+ 
+ `scripts/statechart.ts` is TypeScript, so run it with a runtime that can execute TypeScript.
+ 
+-The runner installs nothing. TLC and Java must already be installed through mise, or `TLA2TOOLS` must name `tla2tools.jar` and `JAVA` a Java 11 or later binary. When they are missing the runner stops and names the `mise install` command; installing them downloads from the network, so run it only with the user's go-ahead.
++The runner installs nothing. TLC and Java must already be installed through mise, or `TLA2TOOLS` must name `tla2tools.jar` and `JAVA` a Java 11 or later binary. When they are missing the runner stops and names the `mise install` command; installing them downloads from the network, so run it only where the user or the host's policy has already authorized that install, and otherwise get the user's approval immediately before running it.
+ 
+ ## Write the spec
+ 
+@@ -72,7 +72,7 @@ Aim for about 20 arrows or fewer, because a busier chart is hard to read. First
+ 
+ Show `chart.mmd` to the user as a `mermaid` code block. The chart has a budget of 500 states, counted by TLC on the config as written. Above that, the chart draws only the paths to the rules that break, and when no rule breaks, the command writes no `chart.mmd`. It still checks each rule, and the report gives the state count and each bug path. To see the whole graph, make the model smaller.
+ 
+-Render charts with Pele. When the user asks for an image, or a chart is too large to read as text, follow `references/render.md`. Do not use a different renderer unless the user asks for it.
++When the user asks for an image, or a chart is too large to read as text, follow `references/render.md`. It renders with Pele when Pele is already available or its install is authorized, and otherwise hands over the Mermaid text and says the chart was not rendered. Do not use a different renderer unless the user asks for it.
+ 
+ ## Hand off
+ 
+diff --git a/statechart/references/render.md b/statechart/references/render.md
+index 5ef0519d6f7ae97ef7befceaf174f94f52dd42f5..09e61a68f2e55cc78c95a1942ba5e0d9ca02f5f7 100644
+--- a/statechart/references/render.md
++++ b/statechart/references/render.md
+@@ -1,6 +1,6 @@
+ # Render a chart
+ 
+-Render each `.mmd` file that you show with the npm package `pele@1.9.0`, and give the user the SVG. Install Pele once, outside the repo. Write each SVG next to its `.mmd` file, with the same name. The API is at https://pele.run/api. Pass `{ limit: 1_000_000, outputLimit: 8_000_000, maxEdges: 10_000 }` as the options of `render`. Pele's defaults are smaller than a chart of 500 states can be. When Pele throws a `PeleError`, show the user the Mermaid text and the error.
++Render each `.mmd` file that you show with the npm package `pele@1.9.0`, and give the user the SVG. Use a Pele that is already installed or already in the project's dependencies. Installing it downloads from the network: install it only where the user or the host's policy has already authorized that install, and otherwise get the user's approval immediately before installing. Install it only where writes are allowed, such as the scratch folder of the run. When Pele is not available and the install is not authorized, give the user the Mermaid text of each chart and say that it was not rendered, and why. Write each SVG next to its `.mmd` file, with the same name. The API is at https://pele.run/api. Pass `{ limit: 1_000_000, outputLimit: 8_000_000, maxEdges: 10_000 }` as the options of `render`. Pele's defaults are smaller than a chart of 500 states can be. When Pele throws a `PeleError`, show the user the Mermaid text and the error.
+ 
+ ## Colors
+ 
+diff --git a/statechart/scripts/bun.lock b/statechart/scripts/bun.lock
+deleted file mode 100644
+index 7315e8694509f5940ab70bb0fc871d4a7f39248c..0000000000000000000000000000000000000000
+--- a/statechart/scripts/bun.lock
++++ /dev/null
+@@ -1,17 +0,0 @@
+-{
+-  "lockfileVersion": 2,
+-  "configVersion": 1,
+-  "workspaces": {
+-    "": {
+-      "name": "@cursor-skill/statechart",
+-      "devDependencies": {
+-        "fast-check": "4.5.3",
+-      },
+-    },
+-  },
+-  "packages": {
+-    "fast-check": ["fast-check@4.5.3", "", { "dependencies": { "pure-rand": "^7.0.0" } }, "sha512-IE9csY7lnhxBnA8g/WI5eg/hygA6MGWJMSNfFRrBlXUciADEhS1EDB0SIsMSvzubzIlOBbVITSsypCsW717poA=="],
+-
+-    "pure-rand": ["pure-rand@7.0.1", "", {}, "sha512-oTUZM/NAZS8p7ANR3SHh30kXB+zK2r2BPcEn/awJIbOvq82WoMN4p62AWWp3Hhw50G0xMsw1mhIBLqHw64EcNQ=="],
+-  }
+-}
+diff --git a/statechart/scripts/package.json b/statechart/scripts/package.json
+index 16bd68507bac879f00d9efb90f6a5df689dbbd3a..11e9d3fc0eb30aa66631de03e33ddeef0780d7cd 100644
+--- a/statechart/scripts/package.json
++++ b/statechart/scripts/package.json
+@@ -1,11 +1,5 @@
+ {
+   "name": "@cursor-skill/statechart",
+   "private": true,
+-  "type": "module",
+-  "scripts": {
+-    "test": "node --disable-warning=ExperimentalWarning --test test/*.test.ts"
+-  },
+-  "devDependencies": {
+-    "fast-check": "4.5.3"
+-  }
++  "type": "module"
+ }

@@ -76,11 +76,15 @@ jobs:
             done
           done
 
-      - name: Collection sync e2e (fixture repo, no network)
+      # Needs the reference validator installed above on PATH: the sync validates every skill with it.
+      - name: Collection sync e2e (fixture repos, no network)
         run: bash tools/scripts/sync-pstack.test
 
+      - name: Adapted statechart runner (fake mise and java, no install)
+        run: bash tools/scripts/statechart-runner.test
+
       - name: Shell syntax
-        run: bash -n skills/mneves-fable-orchestrator/tools/codex-lane skills/mneves-fable-orchestrator/tools/codex-lane.test .githooks/pre-commit .githooks/pre-commit.test tools/scripts/build-site.sh tools/scripts/build-site.test tools/scripts/check-site-copy.sh tools/scripts/check-defaults-block.sh tools/scripts/sync-pstack.sh tools/scripts/sync-pstack.test skills/mneves-ship-deploy/assets/release.sh skills/mneves-ship-deploy/assets/verify-live.sh skills/mneves-ship-deploy/assets/release-guards.test.sh skills/autoreview/scripts/test-review-harness
+        run: bash -n skills/mneves-fable-orchestrator/tools/codex-lane skills/mneves-fable-orchestrator/tools/codex-lane.test .githooks/pre-commit .githooks/pre-commit.test tools/scripts/build-site.sh tools/scripts/build-site.test tools/scripts/check-site-copy.sh tools/scripts/check-defaults-block.sh tools/scripts/sync-pstack.sh tools/scripts/sync-pstack.test tools/scripts/statechart-runner.test skills/mneves-ship-deploy/assets/release.sh skills/mneves-ship-deploy/assets/verify-live.sh skills/mneves-ship-deploy/assets/release-guards.test.sh skills/autoreview/scripts/test-review-harness
 
       - name: codex-lane e2e (fake codex, no provider calls)
         run: bash skills/mneves-fable-orchestrator/tools/codex-lane.test
@@ -107,7 +111,7 @@ jobs:
           bash tools/scripts/check-defaults-block.test
 
       - name: Python syntax
-        run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py skills/mneves-ship-deploy/scripts/release-contract-check.py skills/mneves-ship-deploy/scripts/run-tests.py skills/mneves-ship-deploy/tests/test_release_contract_check.py tools/scripts/check-readiness-catalog.py skills/autoreview/scripts/test-review-harness.py skills/babysit-pr/scripts/pr-wait skills/babysit-pr/tests/test_pr_wait.py skills/mneves-motion-film/scripts/*.py skills/mneves-motion-film/tests/test_pipeline.py
+        run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py skills/mneves-ship-deploy/scripts/release-contract-check.py skills/mneves-ship-deploy/scripts/run-tests.py skills/mneves-ship-deploy/tests/test_release_contract_check.py tools/scripts/check-readiness-catalog.py tools/scripts/sync-pstack.py skills/autoreview/scripts/test-review-harness.py skills/babysit-pr/scripts/pr-wait skills/babysit-pr/tests/test_pr_wait.py skills/mneves-motion-film/scripts/*.py skills/mneves-motion-film/tests/test_pipeline.py
 
       - name: Security audit validator suites and syntax
         run: |

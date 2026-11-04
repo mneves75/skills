@@ -10,6 +10,21 @@ compatibility: Needs an authenticated GitHub CLI (gh); the pr-wait watcher needs
 Many repos have AI review bots. They're helpful, even if they are not always
 right.
 
+This skill owns PR watching. Other skills that watch a PR, such as `full-stop` or
+the pstack `babysit` fallback, defer to it when it is installed.
+
+## Ownership and bounds
+
+- **One owner per PR.** Before you start, check whether a watcher already runs
+  on this PR in this session or another (a `pr-wait` pid, `watch_pull_request`,
+  a scheduled re-check). If one does, report its state and do not start a second.
+- **Finite repair.** Stop and report the PR as blocked, not ready, when the same
+  check or finding survives two fixes, or after three fix, push and recheck
+  rounds. A stricter limit in the user's or the repository's instructions wins.
+- **Authority.** Watching covers commits and pushes to the PR's own head branch.
+  Never force-push or rewrite pushed history without the user's clearance, and
+  never change the PR's auto-merge or merge-queue state on your own.
+
 ## Waiting
 
 Never write your own watcher, polling loop, or `sleep` loop. Use one watcher
@@ -137,7 +152,9 @@ narrows code.
 
 ## Base branch and merging
 
-Keep an eye on changes to `main` and rebase when needed. `pr-wait` reports when
+Keep an eye on changes to `main` and bring them in when needed: merge the base
+branch into the PR branch, or rebase only with the user's clearance to force-push
+(see Ownership and bounds). `pr-wait` reports when
 new base commits touch this PR's files, and when the PR becomes BEHIND or DIRTY.
 `watch_pull_request` reports conflicts only, so check for BEHIND yourself
 before you call the PR ready.
@@ -149,8 +166,8 @@ when `pr-wait` exits 0, or in T3 Code when the merge gate passes on the latest
 head. Merge only when the user explicitly requested it;
 otherwise report that the PR is ready. Right before a merge, run `git fetch` and
 check the PR again. Never merge when it is BEHIND or DIRTY, or when base commits
-that landed after the last green run touch this PR's files. Rebase, push, and
-wait for green again.
+that landed after the last green run touch this PR's files. Bring the base in,
+push, and wait for green again.
 
 ## Provenance
 
@@ -159,5 +176,6 @@ Copyright (c) 2026 Theo Browne; distributed under the [MIT License](LICENSE). Lo
 Agent Skills metadata; `pr-wait` reports billing-blocked checks instead of failing on them,
 counts a review bot only when GitHub types its author as a Bot and a bot check only when the
 bot's own app reports it, quotes and marks untrusted comment text in its events (with control
-characters dropped and markup stripped in linear time), times out each `gh` call, and states its Python floor; an end-to-end test against a fake `gh`; proof for each fix; and a
-fallback for the comment-format sibling.
+characters dropped and markup stripped in linear time), times out each `gh` call, and states its Python floor; an end-to-end test against a fake `gh`; proof for each fix; a
+fallback for the comment-format sibling; one watcher owner per PR, a finite repair
+bound that yields to stricter host limits, and no history rewrite without clearance.
