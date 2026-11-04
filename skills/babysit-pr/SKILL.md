@@ -72,6 +72,7 @@ its state in `~/.local/state/pr-wait/`.
   head, and no unresolved threads. Use this to babysit.
 - `green`: required checks only, never threads. Use it when the repo has no
   Greptile or Macroscope.
+- `any-change`: exit on the first event.
 
 It reads the required checks from the base branch's rulesets and classic branch
 protection before the first poll. A 404 from either means none set there; when
@@ -87,7 +88,6 @@ not clearly say none do, `ready` never passes: at the point it would, it stops w
 exit 1 ("could not read every review thread"), because an older unresolved thread
 may be hidden. A visible unresolved thread is reported first. The summary line
 then says "not every thread read".
-- `any-change`: exit on the first event.
 
 In Claude Code, run it with the Monitor tool (`timeout_ms: 3600000`), so each
 line wakes you. Without a monitor, run it as one long command. It ends on its

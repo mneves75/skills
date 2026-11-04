@@ -21,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - **`pr-wait`** (both defects inherited from tstack `1085050f` and still present there): a failed read of the base branch's required checks no longer counts as "none required". A 404 from rulesets or classic protection still means none set there; any other refusal stops with exit 1, an unreachable GitHub retries on the next poll, and nothing is cached until both sources were read. `ready` asks GitHub whether review threads exist before the last 100 and passes only on an explicit no; more threads, or missing or malformed page information, stop it with exit 1 ("could not read every review thread") instead of reporting ready past an unresolved thread it never saw. `green` stays about checks. The suite runs forty-four cases.
+- **Landing page**: inline code in new-skill (lime) cards had about 1:1 contrast in dark mode; a lime-owned code surface now gives 8.91:1 in both schemes, and `check-site-copy.sh` checks computed contrast in light and dark mode. Release notes and install commands stay at 13px or larger at every width. The hero, title and meta description drop the stale skill count and the old tagline.
 
 ## [1.44.0] - 2026-10-30
 
