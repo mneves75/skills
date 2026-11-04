@@ -150,11 +150,17 @@ when = datetime.datetime.fromisoformat(sys.argv[1].replace("Z", "+00:00"))
 sys.exit(0 if when.tzinfo and when > datetime.datetime.now(datetime.timezone.utc) else 1)' "$until" 2>/dev/null \
     || fail "record $record was valid until $until; run that assessment again on this tree before merging"
 done
-# The tag's Waivers line comes from whichever record carries one; a PASS with none prints no line.
-waiver_owner=""; waiver_expiry=""
-for record in "$security" "$readiness"; do
-  if [ -n "$(jget "$record" waivers)" ]; then waiver_owner=$(jget "$record" waivers.0.owner); waiver_expiry=$(jget "$record" waivers.0.expires); break; fi
-done
+# The tag's Waivers line names every waiver with its own owner and expiry, grouped; a PASS with none prints no line.
+waivers_line=$(python3 -I - "$security" "$readiness" <<'PY'
+import json, sys
+groups = {}
+for path in sys.argv[1:]:
+    for waiver in json.load(open(path, encoding="utf-8")).get("waivers") or []:
+        key = (str(waiver.get("owner")), str(waiver.get("expires")))
+        groups.setdefault(key, []).append(str(waiver.get("id") or waiver.get("control")))
+print("; ".join(f"{owner} to {expires} ({', '.join(ids)})" for (owner, expires), ids in groups.items()))
+PY
+)
 say "security gate: $sec_verdict (acceptance $sec_accept) record $security"
 say "readiness: $ready_verdict, $ready_open open blockers, record $readiness"
 
@@ -184,7 +190,7 @@ tag_message() {
   printf 'v%s\n\n%s\n\n' "$version" "$summary"
   printf 'Security gate: %s' "$(tr a-z A-Z <<<"$sec_verdict")"; [ -n "$sec_waivers" ] && printf ' (%s)' "${sec_waivers// /, }"; printf '\n'
   printf 'Readiness gate: %s' "$ready_verdict"; [ -n "$ready_waivers" ] && printf ' (waived: %s)' "${ready_waivers// /, }"; printf '\n'
-  [ -n "$waiver_owner" ] && printf 'Waivers: %s, expiry %s\n' "$waiver_owner" "$waiver_expiry"
+  [ -n "$waivers_line" ] && printf 'Waivers: %s\n' "$waivers_line"
   printf 'Independent acceptance: %s\n' "$(tr a-z A-Z <<<"$sec_accept")"
   printf 'Gated tree: %s\n' "$tree"
   printf 'Gated commit: %s (merged as %s, identical tree)\n' "$gated_commit" "$1"
@@ -240,7 +246,12 @@ while IFS= read -r path; do
   expected=$(git show "$merge:$path" | shasum -a 256 | cut -d' ' -f1)
   got=""
   for attempt in $(seq 1 "$serve_attempts"); do
-    got=$(curl -fsSL -H 'Cache-Control: no-cache' "$site_url/$rel?v=$merge" | shasum -a 256 | cut -d' ' -f1 || true)
+    # Only a successful download is hashed: a failed request must never equal an empty tracked file.
+    if curl -fsSL -H 'Cache-Control: no-cache' -o "$scratch/served" "$site_url/$rel?v=$merge"; then
+      got=$(shasum -a 256 "$scratch/served" | cut -d' ' -f1)
+    else
+      got=""
+    fi
     [ "$got" = "$expected" ] && break
     [ "$attempt" -lt "$serve_attempts" ] && sleep "$poll"
   done

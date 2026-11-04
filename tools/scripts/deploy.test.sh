@@ -35,6 +35,7 @@ case "$1 $2" in
     cat "$FAKE_STATE/pr.json" ;;
   "pr merge")
     [[ "$*" == *"--match-head-commit $(cat "$FAKE_STATE/head")"* ]] || { echo "head moved" >&2; exit 1; }
+    git -C "$FAKE_STATE/merger" fetch -q origin
     git -C "$FAKE_STATE/merger" checkout -q main
     git -C "$FAKE_STATE/merger" merge -q --no-ff -m "Merge pull request #7 from test/release/9.9.9" "origin/$(cat "$FAKE_STATE/head_ref")"
     git -C "$FAKE_STATE/merger" push -q origin main
@@ -48,11 +49,12 @@ FAKE
 # ---- Fake curl: serves $FAKE_WEB/<path> for .../<path>?v=... ----
 cat > "$tmp/bin/curl" <<'FAKE'
 #!/bin/bash
-url="${@: -1}"
+out=""; url=""
+while [ $# -gt 0 ]; do case "$1" in -o) out="$2"; shift 2 ;; -H) shift 2 ;; -*) shift ;; *) url="$1"; shift ;; esac; done
 path="${url#*://example.test/skills/}"
 path="${path%%\?*}"
 [ -f "$FAKE_WEB/$path" ] || { echo "fake curl: no $path" >&2; exit 22; }
-cat "$FAKE_WEB/$path"
+if [ -n "$out" ]; then cp "$FAKE_WEB/$path" "$out"; else cat "$FAKE_WEB/$path"; fi
 FAKE
 chmod +x "$tmp/bin/gh" "$tmp/bin/curl"
 export PATH="$tmp/bin:$PATH"
@@ -165,7 +167,7 @@ tagged=$(git -C "$tmp/bare" tag -l v9.9.9)
 msg=$(git -C "$tmp/work" fetch -q origin "+refs/tags/*:refs/tags/*" && git -C "$tmp/work" tag -l -n20 v9.9.9)
 if [ "$code" -eq 0 ] && [ -n "$merge" ] && [ "$tagged" = v9.9.9 ] \
    && [ "$(git -C "$tmp/work" rev-parse 'v9.9.9^{}')" = "$merge" ] \
-   && grep -q 'Security gate: WAIVED (SEC-15, CMP-06)' <<<"$msg" && grep -q 'Readiness gate: ready (waived: DEL-04)' <<<"$msg" \
+   && grep -q 'Security gate: WAIVED (SEC-15, CMP-06)' <<<"$msg" && grep -q 'Readiness gate: ready (waived: DEL-04)' <<<"$msg" && grep -q "Waivers: @owner to $future (SEC-15, CMP-06, DEL-04)" <<<"$msg" \
    && grep -q 'CI: run 1001 on main (success)' <<<"$msg" && grep -q 'GitHub Pages run 2002' <<<"$msg" && grep -q 'Ships the thing.' <<<"$msg" \
    && [ "$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["reused_from"])' "$tmp/work/.scratch/security-gate/$merge/production.json")" = "$(git -C "$tmp/work" rev-parse release/9.9.9)" ] \
    && [ -f "$tmp/work/.scratch/readiness/$merge/production.json" ]; then
@@ -260,6 +262,36 @@ done
 out=$(run_deploy 7 --dry-run) && code=0 || code=$?
 if [ "$code" -eq 1 ] && grep -q 'shaped like a tag verdict line' <<<"$out"; then ok "a changelog line shaped like a verdict line is refused"
 else bad "forged verdict line (exit $code): $(tail -2 <<<"$out")"; fi
+
+# 18. An empty tracked site file that the site fails to serve is a mismatch, not a match on the empty hash.
+make_repo
+(cd "$tmp/work" && git checkout -q release/9.9.9 && : > site/empty.txt && git add site/empty.txt && git commit -q -m "empty file" && git push -q origin release/9.9.9 && git checkout -q main)
+head=$(git -C "$tmp/work" rev-parse release/9.9.9); tree=$(git -C "$tmp/work" rev-parse "release/9.9.9^{tree}")
+echo "$head" > "$FAKE_STATE/head"; sed -i.bak "s/\"headRefOid\":\"[0-9a-f]*\"/\"headRefOid\":\"$head\"/" "$FAKE_STATE/pr.json"
+for kind in security-gate readiness; do
+  old=$(ls -d "$tmp/work/.scratch/$kind"/*/ | grep -v "$head" | head -1); mkdir -p "$tmp/work/.scratch/$kind/$head"
+  python3 -I - "$old/production.json" "$tmp/work/.scratch/$kind/$head/production.json" "$head" "$tree" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1])); d["commit"] = sys.argv[3]; d["tree"] = sys.argv[4]; json.dump(d, open(sys.argv[2], "w"))
+PY
+done
+# The fake site does not have empty.txt: curl fails, and the hash of nothing must not pass.
+out=$(run_deploy 7 --tag) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q 'empty.txt MISMATCH' <<<"$out" && [ -z "$(git -C "$tmp/bare" tag -l v9.9.9)" ]; then
+  ok "a file the site fails to serve never matches an empty tracked file"
+else bad "unserved empty file (exit $code): $(tail -3 <<<"$out")"; fi
+
+# 19. Waivers with different owners and expiries each keep their own in the tag message.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" "$future" <<'PY'
+import json, sys, datetime
+p = sys.argv[1]; d = json.load(open(p))
+d["waivers"] = [{"control": "DEL-04", "owner": "@owner", "expires": sys.argv[2]}, {"control": "OPS-04", "owner": "@second", "expires": "2099-01-01T00:00:00Z"}]
+json.dump(d, open(p, "w"))
+PY
+out=$(run_deploy 7 --dry-run) && code=0 || code=$?
+if [ "$code" -eq 0 ] && grep -q "Waivers: @owner to $future (SEC-15, CMP-06, DEL-04); @second to 2099-01-01T00:00:00Z (OPS-04)" <<<"$out"; then
+  ok "the tag names each waiver group with its own owner and expiry"
+else bad "waiver groups (exit $code): $(grep -i waivers <<<"$out" | head -2)"; fi
 
 # 12. A PASS record with no waivers releases, and the tag message carries no Waivers line.
 make_repo; python3 -I - "$tmp/work/.scratch/security-gate/$(cat "$FAKE_STATE/head")/production.json" "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" <<'PY'

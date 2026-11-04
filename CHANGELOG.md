@@ -25,11 +25,12 @@ regenerated collection, and its hand-edited collection conflicts with the regene
   waiver has expired or whose validity window has passed, waits for the CI and Pages runs, compares every served `site/` file with the
   tree, writes the reuse records for the merge commit and prints or (`--tag`) creates the annotated
   tag with the verdict lines; it reads the candidate's files whole before filtering them, so a long
-  CHANGELOG cannot abort it through a closed pipe. `deploy.test.sh` proves seventeen cases against a
+  CHANGELOG cannot abort it through a closed pipe. `deploy.test.sh` proves nineteen cases against a
   throwaway repository, a fake `gh` and a fake `curl`, with fixture dates taken from the clock; it reads
   readiness records in their house shape (no `tree`, waivers keyed `control`) as well as security ones,
   refuses a record whose waivers are not a list of objects, and refuses a CHANGELOG paragraph that
-  contains a line shaped like a tag verdict line instead of copying it into the tag.
+  contains a line shaped like a tag verdict line instead of copying it into the tag; it hashes only a
+  download that succeeded, and the tag names every waiver with its own owner and expiry.
 - The landing page's `full-stop` example invokes the skill by name (D-B16), and HOWTO's motion-film floor
   reads Python 3.11+ like the skill (D-B18).
 - **`plans/004-release-1-45-closeout.md`**: this closeout and the next step, a script that writes the
