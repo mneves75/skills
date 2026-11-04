@@ -29,6 +29,15 @@ sheets to the reviewer CLI's provider.
 A skill is loaded when the agent decides your request matches its `description`. You can
 also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 skill".
 
+### Choose by situation
+
+Describe your goal; the agent should choose the most specific available skill and say why once.
+Keep that selection for small follow-ups, then reassess when the goal or phase changes—for
+example, implementation to independent verification. Required release gates still apply.
+The [routing guide](docs/skill-routing.md) links to a copyable instruction for your project's
+`AGENTS.md` or `CLAUDE.md`, troubleshooting and an evaluation procedure. Installing this
+collection does not automatically change those instructions in other projects.
+
 | Skill | Use it when you want to… | Say something like |
 |---|---|---|
 | [`autoreview`](#autoreview) | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
@@ -210,7 +219,8 @@ never proves a tested restore, an on-call rotation or a live certificate. Organi
 record, a fresh verifier rechecks every blocker that newly passed. Only you waive a blocker,
 with an expiry; a comment in the code cannot.
 
-**Release contract.** The run writes `.scratch/readiness/<target>.json`. A release script that
+**Release contract.** The run writes `<unit>/.scratch/readiness/<commit>/<target>.json`, using
+the candidate's full commit id. Production records include `independent_acceptance: "pass"`. A release script that
 declares contract version 2 refuses to deploy without a valid record for that exact commit and
 target (see `mneves-ship-deploy`).
 

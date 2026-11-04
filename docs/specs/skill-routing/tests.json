@@ -1,0 +1,60 @@
+{
+  "scope": "situation-based skill routing",
+  "checks": [
+    {
+      "name": "origin reconciliation",
+      "status": "PASS",
+      "evidence": "fetch succeeded; HEAD...origin/main = 0 0"
+    },
+    {
+      "name": "site build and regression",
+      "status": "PASS",
+      "evidence": "bash tools/scripts/build-site.test; generated guide repeatable and planted violations rejected"
+    },
+    {
+      "name": "selection probes",
+      "status": "MIXED",
+      "evidence": "Original exact-match results retained. Final 17 controls: Codex 17/17; Claude 16/17, missing production-readiness in staging additional list. No reliability improvement claimed."
+    },
+    {
+      "name": "native procedure compliance",
+      "status": "PARTIAL",
+      "reason": "Claude and Codex both read repository eli5 skill files before answering. This does not prove host catalog discovery or full lifecycle compliance."
+    },
+    {
+      "name": "adversarial review",
+      "status": "COMPLETED_WITH_FINDINGS",
+      "evidence": "Two separate Opus axes, two rounds; policy and evidence fixes dispositioned in progress.md; classification limits retained."
+    },
+    {
+      "name": "independent verification",
+      "status": "PASS",
+      "evidence": "Fresh Opus evidence acceptance rechecked all five local implementation criteria; scoped Read traces close prior packet failure, which remains retained. Classification remains MIXED."
+    },
+    {
+      "name": "version and defaults",
+      "status": "PASS",
+      "evidence": "VERSION/README/CHANGELOG agree on 1.45.3; tools/scripts/check-defaults-block.sh passed"
+    },
+    {
+      "name": "local browser guide",
+      "status": "PASS",
+      "evidence": "Argent Chromium at 390px and 1440px: readable routing section, no page overflow, expected GitHub link"
+    },
+    {
+      "name": "installer discovery",
+      "status": "PASS",
+      "evidence": "npx --yes skills@latest add . --list: 23 root skills"
+    },
+    {
+      "name": "production publication",
+      "status": "NOT_RUN",
+      "reason": "No merge, tag or production deployment in this routing implementation."
+    },
+    {
+      "name": "native deployment-plan gate identification",
+      "status": "PASS",
+      "evidence": "Fresh read-only Claude task read shipped procedures and identified security plus production-readiness gates. No gate executed and no deployment authorized."
+    }
+  ]
+}

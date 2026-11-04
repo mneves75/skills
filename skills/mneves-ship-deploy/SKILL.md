@@ -118,7 +118,7 @@ Staging then deploys the same commit. Dev needs no separate confirmation, like s
 
 Order: deploy the pushed commit, prove it live, then tag. A tag names bytes that were served and checked.
 
-First bind readiness: run the readiness gate for `staging` on the exact pushed commit you will deploy (`mneves-production-readiness` when installed, otherwise the repository's documented readiness review; with neither, report the missing gate in the decision packet, where only the owner can approve `--waive readiness=<reason>`). It writes `.scratch/readiness/staging.json` in the deployable unit's directory, which `scripts/release.sh` requires (release contract guarantee 11). A `not-ready` staging verdict stops the deploy: fix, push and run the gate again.
+First bind readiness: run the readiness gate for `staging` on the exact pushed commit you will deploy (`mneves-production-readiness` when installed, otherwise the repository's documented readiness review; with neither, report the missing gate in the decision packet, where only the owner can approve `--waive readiness=<reason>`). It writes `.scratch/readiness/<commit>/staging.json` in the deployable unit's directory, which `scripts/release.sh` requires (release contract guarantee 11). A `not-ready` staging verdict stops the deploy: fix, push and run the gate again.
 
 1. **Deploy** a commit the remote already has. Use `scripts/release.sh staging` when the repository has it (it performs steps 2 and 3 itself, and may require the commit to be the tip of the default branch); otherwise the detected skill or documented command.
 2. **Prove it live.** Run `scripts/verify-live.sh staging` when it exists. Otherwise assert what that script would: the served commit or version equals the candidate; the health response body has its expected fields; one request that must succeed does, and one that must be refused is. Then exercise the flow that changed with an independent browser or device driver (agent-browser, Playwright, Argent or equivalent; without one, that flow is NOT TESTED), signed in when the change touches signed-in behavior, and read the logs for new errors. Desktop and mobile are separate targets. A green deploy command is not verification.
@@ -132,7 +132,7 @@ A waived gate records its IDs instead: `security gate: WAIVED SEC-19 gate:audit`
 
 Staging's configuration runs nothing on a schedule: every trigger is declared empty, never inherited, and a scheduled job is exercised on staging with a one-off manual trigger.
 
-For `ship-prod`, then run the readiness gate for `production` on the same commit, with the same fallback. A production record never reuses the staging one; its verdict and open blockers go into the candidate presented for approval.
+For `ship-prod`, then run the readiness gate for `production` on the same commit, with the same fallback. It writes `.scratch/readiness/<commit>/production.json` with `independent_acceptance: "pass"`; a production record never reuses the staging one. Its verdict and open blockers go into the candidate presented for approval.
 
 `<N>` starts at 1 and increments for each verified staging build of the same target version — `v2.4.0-beta1`, `-beta2`, … A staging attempt that fails its live proof gets no tag: fix, deploy again, prove again. The clean tag `vX.Y.Z` is reserved for production. Never promote an unverified build.
 

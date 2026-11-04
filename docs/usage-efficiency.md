@@ -4,6 +4,10 @@ Keep one coherent outcome per session. Start with the smallest relevant skill, a
 the references that its current branch needs. Skill descriptions are discovery pointers;
 entrypoints should carry shared constraints and conditional routes rather than entire catalogs.
 
+Use the [situation-routing policy](skill-routing.md) to choose by goal and current phase.
+Keep small follow-ups on the same route; reassess at review and release boundaries. Selection
+quality and instruction compliance need separate evidence, even when metadata becomes smaller.
+
 Use a compact task contract:
 
 ```text

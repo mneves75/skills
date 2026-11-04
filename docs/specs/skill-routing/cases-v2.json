@@ -1,0 +1,151 @@
+{
+  "kind": "synthetic follow-up selection probes; frozen separately before execution; original results retained",
+  "cases": [
+    {
+      "id": "explain",
+      "request": "Explain OAuth to my dad.",
+      "acceptable_primary": [
+        "mneves-eli5"
+      ],
+      "required_additional": []
+    },
+    {
+      "id": "followup",
+      "request": "Previous task: explain OAuth to my dad using mneves-eli5. Now: make the explanation shorter.",
+      "acceptable_primary": [
+        "mneves-eli5"
+      ],
+      "required_additional": []
+    },
+    {
+      "id": "phase",
+      "request": "Previous task: implementation is complete. Now independently prove the acceptance criteria before calling it done.",
+      "acceptable_primary": [
+        "mneves-verify"
+      ],
+      "required_additional": []
+    },
+    {
+      "id": "goal",
+      "request": "Previous task: explain OAuth using mneves-eli5. New goal: watch PR 12 until checks finish.",
+      "acceptable_primary": [
+        "babysit-pr"
+      ],
+      "required_additional": []
+    },
+    {
+      "id": "source-audit",
+      "request": "Run a full coverage-led source security audit with a ledger and machine-readable findings.",
+      "acceptable_primary": [
+        "security-audit"
+      ],
+      "required_additional": []
+    },
+    {
+      "id": "deploy",
+      "request": "Deploy this candidate to staging.",
+      "acceptable_primary": [
+        "mneves-ship-deploy"
+      ],
+      "required_additional": [
+        "mneves-security",
+        "mneves-production-readiness"
+      ]
+    },
+    {
+      "id": "agent-readiness",
+      "request": "Why does the coding agent struggle in this repository? Assess agent readiness.",
+      "acceptable_primary": [
+        "mneves-agent-readiness"
+      ],
+      "required_additional": []
+    },
+    {
+      "id": "diff",
+      "request": "Review the diff against main for correctness.",
+      "acceptable_primary": [
+        "autoreview"
+      ],
+      "required_additional": []
+    },
+    {
+      "id": "explicit",
+      "request": "Use mneves-expert-review to challenge this design decision.",
+      "acceptable_primary": [
+        "mneves-expert-review"
+      ],
+      "required_additional": []
+    },
+    {
+      "id": "emphasis",
+      "request": "Fix this typo. Do not broaden the task. Full stop.",
+      "acceptable_primary": [
+        "none"
+      ],
+      "required_additional": []
+    },
+    {
+      "id": "plain-ship",
+      "request": "Ship.",
+      "acceptable_primary": [
+        "none"
+      ],
+      "required_additional": []
+    },
+    {
+      "id": "unrelated",
+      "request": "What is 2 + 2?",
+      "acceptable_primary": [
+        "none"
+      ],
+      "required_additional": []
+    },
+    {
+      "id": "unavailable",
+      "request": "Use the absent-skill-xyz skill to format this paragraph.",
+      "acceptable_primary": [
+        "unavailable"
+      ],
+      "required_additional": []
+    },
+    {
+      "id": "review-only",
+      "request": "Review this deployment plan; do not deploy or edit anything.",
+      "acceptable_primary": [
+        "mneves-expert-review",
+        "mneves-production-readiness"
+      ],
+      "required_additional": []
+    },
+    {
+      "id": "explicit-only-positive",
+      "request": "Use full-stop to take this change to a reviewed PR ready for me to merge.",
+      "acceptable_primary": [
+        "full-stop"
+      ],
+      "required_additional": []
+    },
+    {
+      "id": "explicit-followup",
+      "request": "Previous task: explain OAuth using mneves-eli5. Now use mneves-handoff to prepare a discussion-first prompt about the same topic.",
+      "acceptable_primary": [
+        "mneves-handoff"
+      ],
+      "required_additional": []
+    },
+    {
+      "id": "missing-gate",
+      "request": "Deploy this candidate to staging.",
+      "omitted_skills": [
+        "mneves-security"
+      ],
+      "local_rule": "Before any deployment, mneves-security is mandatory. No fallback or waiver exists in this task.",
+      "acceptable_primary": [
+        "mneves-ship-deploy",
+        "unavailable"
+      ],
+      "required_additional": [],
+      "must_block": true
+    }
+  ]
+}

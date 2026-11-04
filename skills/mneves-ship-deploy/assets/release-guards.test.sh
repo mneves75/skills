@@ -152,33 +152,42 @@ new_repo() {
   : > "$FAKE_STATE/calls.log"; rm -f "$FAKE_STATE"/live-* "$FAKE_STATE/count"
   rm -rf "$FAKE_WEB"; mkdir -p "$FAKE_WEB"
   FAKE_SECRETS="API_TOKEN"; FAKE_NODE_VERSION="v22.11.0"; FAKE_FAIL_GATE=""; FAKE_SWAP_RECORD=""
-  FAKE_NOW=""; FAKE_AFTER_BUILD=""; rm -f "$FAKE_STATE/build-finished"
+  FAKE_NOW="2026-10-15T12:00:01Z"; FAKE_AFTER_BUILD=""; rm -f "$FAKE_STATE/build-finished"
   export FAKE_SECRETS FAKE_NODE_VERSION FAKE_FAIL_GATE
   write_readiness staging
   write_readiness production
 }
 head_sha() { git -C "$work" rev-parse HEAD; }
+readiness_record() { printf '%s/.scratch/readiness/%s/%s.json' "$work" "$(head_sha)" "$1"; }
 commit_push() {
   git -C "$work" add -A && git -C "$work" commit -q -m "$1" && git -C "$work" push -q origin main
   write_readiness staging
   write_readiness production
 }
 write_readiness() {
-  mkdir -p "$work/.scratch/readiness"
-  cat > "$work/.scratch/readiness/$1.json" << JSON
+  mkdir -p "$work/.scratch/readiness/$(head_sha)"
+  cat > "$(readiness_record "$1")" << JSON
 {
   "schema": 1,
   "unit": ".",
   "target": "$1",
-  "catalog": 1,
+  "catalog": 3,
   "commit": "$(head_sha)",
   "verdict": "ready",
   "open_blockers": 0,
-  "created_at": "2000-01-01T00:00:00Z",
-  "valid_until": "9999-01-01T00:00:00Z",
+  "created_at": "2026-10-15T12:00:00Z",
+  "valid_until": "2026-10-16T12:00:00Z",
+  "independent_acceptance": "pass",
   "waivers": []
 }
 JSON
+}
+set_readiness_times() {
+  python3 -I - "$1" "$2" "$3" <<'PYCASE'
+import json, pathlib, sys
+p = pathlib.Path(sys.argv[1]); record = json.loads(p.read_text())
+record.update(created_at=sys.argv[2], valid_until=sys.argv[3]); p.write_text(json.dumps(record, indent=2))
+PYCASE
 }
 
 # serve <base url> <commit> <env>: the health page and the two controls of a healthy deployment.
@@ -225,13 +234,31 @@ set_readiness_expiries() {
   mv "$1.waivers" "$1"
 }
 
+# ==== The canonical producer record is accepted without rewriting its path or optional fields ====
+new_repo canonical-record
+sha="$(head_sha)"
+python3 -I - "$(readiness_record staging)" "$(git -C "$work" rev-parse "$sha^{tree}")" <<'PYCASE'
+import json, pathlib, sys
+source = pathlib.Path(sys.argv[1]); record = json.loads(source.read_text())
+record.update(tree=sys.argv[2], independent_acceptance="pass", evidence={"assessment": "local.md"}, reused_from=record["commit"])
+source.write_text(json.dumps(record))
+PYCASE
+expect "canonical commit-scoped record and optional producer fields are accepted" 0 'readiness: ready' -- staging --check
+
 # ==== Calendar validation for every timestamp source ====
 for field in created_at valid_until expires; do
   for day in 2026-02-31 2026-04-31 2100-02-29 2028-02-29; do
     new_repo "calendar-$field-$day"
-    record="$work/.scratch/readiness/staging.json"
-    FAKE_NOW=2000-01-01T00:00:00Z
-    if [ "$field" = created_at ]; then FAKE_NOW=2130-01-01T00:00:00Z; fi
+    record="$(readiness_record staging)"
+    if [ "$day" = 2028-02-29 ]; then
+      if [ "$field" = created_at ]; then
+        set_readiness_times "$record" 2028-02-29T00:00:00Z 2028-03-01T00:00:00Z
+        FAKE_NOW=2028-02-29T12:00:00Z
+      else
+        set_readiness_times "$record" 2028-02-28T00:00:00Z 2028-02-29T00:00:00Z
+        FAKE_NOW=2028-02-28T12:00:00Z
+      fi
+    fi
     if [ "$field" = expires ]; then
       set_readiness_expiries "$record" "${day}T00:00:00Z" 9999-01-01T00:00:00Z
       problem='a readiness waiver has expired'
@@ -259,12 +286,13 @@ for target_case in staging production; do
       git -C "$work" tag -a v1.2.3-beta1 -m staged
       git -C "$work" push -q origin v1.2.3-beta1
     fi
-    record="$work/.scratch/readiness/$target_case.json"
+    record="$(readiness_record "$target_case")"
     FAKE_NOW=2026-10-15T12:00:01Z
     FAKE_AFTER_BUILD=2026-10-15T12:00:03Z
+    set_readiness_times "$record" 2026-10-15T12:00:00Z 2026-10-15T12:00:02Z
     case "$deadline_case" in
       record | boundary | waived)
-        sed -i.bak 's/9999-01-01T00:00:00Z/2026-10-15T12:00:02Z/' "$record" ;;
+        sed -i.bak 's/2026-10-16T12:00:00Z/2026-10-15T12:00:02Z/' "$record" ;;
       waiver-first) set_readiness_expiries "$record" 2026-10-15T12:00:02Z 9999-01-01T00:00:00Z ;;
       waiver-last) set_readiness_expiries "$record" 9999-01-01T00:00:00Z 2026-10-15T12:00:02Z ;;
     esac
@@ -282,9 +310,9 @@ for target_case in staging production; do
 done
 
 # ==== Readiness: refusal before installing, building, deploying or making a run directory ====
-for defect in missing symlink directory malformed missing-key schema unit target commit short-sha future expired verdict blockers timestamp duplicate waiver-scope invalid-created invalid-until expired-waiver malformed-waiver inline-waiver inline-escaped-waiver escaped-waiver nested-target packed-duplicate waiver-no-expiry waivers-null scratch-link readiness-link; do
+for defect in missing symlink directory malformed missing-key schema unit target catalog commit short-sha future expired verdict blockers timestamp duplicate waiver-scope invalid-created invalid-until expired-waiver malformed-waiver inline-waiver inline-escaped-waiver escaped-waiver nested-target packed-duplicate waiver-no-expiry waivers-null scratch-link readiness-link commit-link long-window null-until offset-created tree evidence reused-from early-waiver blank-owner flat-path; do
   new_repo "readiness-$defect"
-  record="$work/.scratch/readiness/staging.json"
+  record="$(readiness_record staging)"
   serve "$STAGING_URL" "$(head_sha)" staging
   problem="$defect"
   case "$defect" in
@@ -296,15 +324,16 @@ for defect in missing symlink directory malformed missing-key schema unit target
     schema) sed -i.bak 's/"schema": 1/"schema": 2/' "$record" ;;
     unit) sed -i.bak 's/"unit": "."/"unit": "app"/' "$record" ;;
     target) sed -i.bak 's/"target": "staging"/"target": "production"/' "$record" ;;
+    catalog) sed -i.bak 's/"catalog": 3/"catalog": 2/' "$record" ;;
     commit) sed -i.bak "s/$(head_sha)/$(printf '%040d' 0)/" "$record" ;;
     short-sha) sed -i.bak "s/$(head_sha)/$(head_sha | cut -c1-7)/" "$record"; problem=commit ;;
-    future) sed -i.bak 's/2000-01-01/9999-01-01/' "$record"; problem=created_at ;;
-    expired) sed -i.bak 's/9999-01-01/2000-01-01/' "$record"; problem=valid_until ;;
+    future) set_readiness_times "$record" 9999-01-01T00:00:00Z 9999-01-02T00:00:00Z; problem=created_at ;;
+    expired) set_readiness_times "$record" 2000-01-01T00:00:00Z 2000-01-02T00:00:00Z; problem=valid_until ;;
     verdict) sed -i.bak 's/"ready"/"not-ready"/' "$record" ;;
     blockers) sed -i.bak 's/"open_blockers": 0/"open_blockers": 1/' "$record"; problem=open_blockers ;;
-    timestamp) sed -i.bak 's/2000-01-01T00:00:00Z/yesterday/' "$record"; problem=created_at ;;
-    invalid-created) sed -i.bak 's/2000-01-01T00:00:00Z/2000-13-45T25:61:61Z/' "$record"; problem=created_at ;;
-    invalid-until) sed -i.bak 's/9999-01-01T00:00:00Z/9999-99-99T99:99:99Z/' "$record"; problem=valid_until ;;
+    timestamp) sed -i.bak 's/2026-10-15T12:00:00Z/yesterday/' "$record"; problem=created_at ;;
+    invalid-created) sed -i.bak 's/2026-10-15T12:00:00Z/2000-13-45T25:61:61Z/' "$record"; problem=created_at ;;
+    invalid-until) sed -i.bak 's/2026-10-16T12:00:00Z/9999-99-99T99:99:99Z/' "$record"; problem=valid_until ;;
     expired-waiver | malformed-waiver)
       expiry=2001-01-01T00:00:00Z
       [ "$defect" != malformed-waiver ] || expiry=9999-99-99T99:99:99Z
@@ -353,6 +382,21 @@ for defect in missing symlink directory malformed missing-key schema unit target
       problem='waivers must be a list of waiver objects' ;;
     scratch-link) mv "$work/.scratch" "$work/scratch-real"; ln -s "$work/scratch-real" "$work/.scratch"; problem=symlink ;;
     readiness-link) mv "$work/.scratch/readiness" "$work/.scratch/readiness-real"; ln -s "$work/.scratch/readiness-real" "$work/.scratch/readiness"; problem=symlink ;;
+    commit-link) mv "$work/.scratch/readiness/$(head_sha)" "$work/.scratch/readiness/record-real"; ln -s "$work/.scratch/readiness/record-real" "$work/.scratch/readiness/$(head_sha)"; problem=symlink ;;
+    long-window) sed -i.bak 's/2026-10-16T12:00:00Z/2026-10-17T12:00:00Z/' "$record"; problem='within 24 hours' ;;
+    null-until) sed -i.bak 's/"valid_until": "[^"]*"/"valid_until": null/' "$record"; problem=valid_until ;;
+    offset-created) sed -i.bak 's/2026-10-15T12:00:00Z/2026-10-15T12:00:00+00:00/' "$record"; problem=created_at ;;
+    tree | evidence | reused-from)
+      python3 -I - "$record" "$defect" <<'PYCASE'
+import json, pathlib, sys
+p = pathlib.Path(sys.argv[1]); value = json.loads(p.read_text())
+key = sys.argv[2].replace("-", "_"); value[key] = "0" * 40 if key == "tree" else []
+p.write_text(json.dumps(value))
+PYCASE
+      problem="${defect//-/_}" ;;
+    early-waiver) set_readiness_expiries "$record" 2026-10-15T13:00:00Z 9999-01-01T00:00:00Z; problem='valid_until exceeds' ;;
+    blank-owner) set_readiness_expiries "$record" 9999-01-01T00:00:00Z 9999-01-01T00:00:00Z; sed -i.bak 's/@o/  /g' "$record"; problem='every readiness waiver needs' ;;
+    flat-path) mv "$record" "$work/.scratch/readiness/staging.json"; problem='missing record' ;;
     duplicate) sed -i.bak 's/"schema": 1,/"schema": 1,\
   "schema": 1,/' "$record"; problem=schema ;;
   esac
@@ -365,8 +409,31 @@ for defect in missing symlink directory malformed missing-key schema unit target
   else fail "readiness refuses $defect before build with remediation (exit $code)" "$out"; fi
 done
 
+for acceptance in missing fail blocked; do
+  new_repo "production-acceptance-$acceptance"
+  serve "$STAGING_URL" "$(head_sha)" staging
+  git -C "$work" tag -a v1.2.3-beta1 -m staged
+  git -C "$work" push -q origin v1.2.3-beta1
+  python3 -I - "$(readiness_record production)" "$acceptance" <<'PYCASE'
+import json, pathlib, sys
+p = pathlib.Path(sys.argv[1]); value = json.loads(p.read_text())
+if sys.argv[2] == "missing": value.pop("independent_acceptance")
+else: value["independent_acceptance"] = sys.argv[2]
+p.write_text(json.dumps(value))
+PYCASE
+  run production --yes --dry-run
+  if [ "$code" = 1 ] && printf '%s' "$out" | grep -F 'production independent_acceptance must be pass' > /dev/null && no_build &&
+    [ -z "$(git -C "$work" tag -l v1.2.3)" ]; then
+    pass "production refuses $acceptance independent acceptance before build"
+  else fail "production refuses $acceptance acceptance (exit $code)" "$out"; fi
+done
+
+new_repo staging-no-independent-acceptance
+sed -i.bak '/"independent_acceptance"/d' "$(readiness_record staging)"
+expect "staging does not require independent production acceptance" 0 'readiness: ready' -- staging --check
+
 new_repo readiness-multiline-waiver
-record="$work/.scratch/readiness/staging.json"
+record="$(readiness_record staging)"
 awk '/"waivers":/ {
   print "  \"waivers\": ["
   print "    {"
@@ -389,7 +456,7 @@ expect "readiness is reserved even when waived" 2 'readiness is reserved' -- sta
 check "reserved readiness gate builds nothing" no_build
 
 new_repo readiness-line-format
-record="$work/.scratch/readiness/staging.json"
+record="$(readiness_record staging)"
 awk '{ printf "%s\r\n", $0 }' "$record" > "$record.lines"
 mv "$record.lines" "$record"
 expect "record reader accepts CRLF line endings" 0 'readiness: ready' -- staging --check
@@ -399,17 +466,17 @@ expect "record reader accepts one-line JSON" 0 'readiness: ready' -- staging --c
 
 new_repo readiness-valid
 serve "$STAGING_URL" "$(head_sha)" staging
-expect "--check reports ready" 0 'readiness: ready (valid until 9999-01-01T00:00:00Z)' -- staging --check
+expect "--check reports ready" 0 'readiness: ready (valid until 2026-10-16T12:00:00Z)' -- staging --check
 run staging
 json="$(release_json)"
 if [ "$code" = 0 ] && [ -f "$json" ] &&
-  grep -F '"readiness": {"status": "ready", "record": "readiness.json", "valid_until": "9999-01-01T00:00:00Z"}' "$json" > /dev/null &&
-  cmp "$work/.scratch/readiness/staging.json" "$(dirname "$json")/readiness.json"; then
+  grep -F '"readiness": {"status": "ready", "record": "readiness.json", "valid_until": "2026-10-16T12:00:00Z"}' "$json" > /dev/null &&
+  cmp "$(readiness_record staging)" "$(dirname "$json")/readiness.json"; then
   pass "valid readiness deploys and preserves the record and summary"
 else fail "valid readiness deploys and preserves the record and summary" "$out"; fi
 
 new_repo readiness-waived
-rm "$work/.scratch/readiness/staging.json"
+rm "$(readiness_record staging)"
 serve "$STAGING_URL" "$(head_sha)" staging
 expect "--check reports NOT READY without failing" 0 'readiness: NOT READY:' -- staging --check
 expect "--check reports WAIVED" 0 'readiness: WAIVED: incident' -- staging --check --waive readiness=incident
@@ -426,13 +493,13 @@ else fail "readiness waiver deploys without a record and records the reason" "$o
 for initial in ready expired; do
   new_repo "readiness-snapshot-$initial"
   serve "$STAGING_URL" "$(head_sha)" staging
-  record="$work/.scratch/readiness/staging.json"
+  record="$(readiness_record staging)"
   cp "$record" "$record.expected"
   cp "$record" "$record.replacement"
   if [ "$initial" = ready ]; then
-    sed -i.bak 's/9999-01-01/2000-01-01/' "$record.replacement"
+    set_readiness_times "$record.replacement" 2000-01-01T00:00:00Z 2000-01-02T00:00:00Z
   else
-    sed -i.bak 's/9999-01-01/2000-01-01/' "$record"
+    set_readiness_times "$record" 2000-01-01T00:00:00Z 2000-01-02T00:00:00Z
   fi
   FAKE_SWAP_RECORD="$record"
   run staging

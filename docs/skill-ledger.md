@@ -27,7 +27,7 @@ validator inside the sync.
 | `mneves-chatgpt-search` | retained | Distinct audience (ChatGPT Search discovery and attribution); no overlap. |
 | `mneves-eli5` | retained | Keeps the ELI5 name as the plain-language shortcut. pstack's `bro` restates the last message and `teach` explains a codebase through `how` and `why`; neither replaces an audience-calibrated re-explanation. |
 | `mneves-expert-review` | retained | Stress-tests drafts and decisions, explicitly not code diffs, so it does not compete with `autoreview`. |
-| `mneves-fable-orchestrator` | retained | Normative routing and the only model Defaults block; the pstack refresh leaves it alone, and a release only re-verifies the block's ids and date, so no model default moves. |
+| `mneves-fable-orchestrator` | retained | Normative routing and the only model Defaults block; the pstack refresh leaves it alone. 1.45.0 re-verified the block's ids and date and added one sentence on what crossing the reviewer columns discloses (`SKILL.md`, "Crossing means"); no model default moves. |
 | `mneves-handoff` | retained | Writes context for another agent; pstack's `recall` rebuilds your own. Different jobs. |
 | `mneves-motion-film` | retained | Distinct media pipeline with its own checks and tests; its scripts were hardened in 1.45.0 (H-M2 to H-M6), outside the pstack refresh. |
 | `mneves-production-readiness` | retained | Readiness gate; imports its security rows from `mneves-security` rather than re-auditing. |

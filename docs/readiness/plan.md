@@ -99,7 +99,7 @@ row is active. Advisory entries follow.
 - Closed 2026-10-26 for DEL-03: `static.yml` publishes only after CI succeeds for a push to
   `main`, and only the `main` tip (ledger row DEL-03). MNT-02 (advisory) stays open: read the
   `main` ruleset through the API and record whether it requires review and the CI checks.
-- 2026-11-04, 1.45.2 candidate (unbound): an owner's CI waiver dispatch may publish the exact
+- 2026-11-04, 1.45.2 (bound 2026-11-04T12:48:13Z at `7587b764` by that session; folded into the ledger in 1.45.3): an owner's CI waiver dispatch may publish the exact
   `main` tip without CI when it equals the resolved `vars.CI_WAIVER_APPROVED_SHA`; any other
   waiver request fails. The workflow cannot prove that value's environment-only provenance, so
   the operator gate in `CONTRIBUTING.md` proves it before dispatch. Proven locally only; the next
@@ -127,7 +127,7 @@ row is active. Advisory entries follow.
 - Rollout and recovery: step 3 is the recovery; a fresh `main` push whose CI passes also
   republishes the tip.
 - Mechanical gate: each release tag message prints the rollback command for the version before it.
-- 2026-11-04, 1.45.2 candidate (unbound): the rollback route is unchanged, but a release
+- 2026-11-04, 1.45.2 (bound 2026-11-04T12:48:13Z at `7587b764` by that session; folded into the ledger in 1.45.3): the rollback route is unchanged, but a release
   published under an owner's CI waiver has no successful CI run, so it cannot be a rollback
   target; roll back to a version whose CI passed.
 

@@ -1,0 +1,75 @@
+{
+  "kind": "synthetic selection regression cases; not native execution tests",
+  "cases": [
+    {
+      "id": "explain",
+      "request": "Explain OAuth to my dad.",
+      "expected_primary": "mneves-eli5"
+    },
+    {
+      "id": "followup",
+      "request": "Previous task: explain OAuth to my dad using mneves-eli5. Now: make the explanation shorter.",
+      "expected_primary": "mneves-eli5"
+    },
+    {
+      "id": "phase",
+      "request": "Previous task: implementation is complete. Now independently prove the acceptance criteria before calling it done.",
+      "expected_primary": "mneves-verify"
+    },
+    {
+      "id": "goal",
+      "request": "Previous task: explain OAuth using mneves-eli5. New goal: watch PR 12 until checks finish.",
+      "expected_primary": "babysit-pr"
+    },
+    {
+      "id": "source-audit",
+      "request": "Run a full coverage-led source security audit with a ledger and machine-readable findings.",
+      "expected_primary": "security-audit"
+    },
+    {
+      "id": "deploy",
+      "request": "Deploy this candidate to staging. Include all mandatory pre-deploy checks.",
+      "expected_primary": "mneves-ship-deploy"
+    },
+    {
+      "id": "agent-readiness",
+      "request": "Why does the coding agent struggle in this repository? Assess agent readiness.",
+      "expected_primary": "mneves-agent-readiness"
+    },
+    {
+      "id": "diff",
+      "request": "Review the diff against main for correctness.",
+      "expected_primary": "autoreview"
+    },
+    {
+      "id": "explicit",
+      "request": "Use mneves-expert-review to challenge this design decision.",
+      "expected_primary": "mneves-expert-review"
+    },
+    {
+      "id": "emphasis",
+      "request": "Fix this typo. Do not broaden the task. Full stop.",
+      "expected_primary": "none"
+    },
+    {
+      "id": "plain-ship",
+      "request": "Ship.",
+      "expected_primary": "none"
+    },
+    {
+      "id": "unrelated",
+      "request": "What is 2 + 2?",
+      "expected_primary": "none"
+    },
+    {
+      "id": "unavailable",
+      "request": "Use the absent-skill-xyz skill to format this paragraph.",
+      "expected_primary": "unavailable"
+    },
+    {
+      "id": "review-only",
+      "request": "Review this deployment plan; do not deploy or edit anything.",
+      "expected_primary": "mneves-expert-review"
+    }
+  ]
+}

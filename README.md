@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.45.2-blue)
+![Version](https://img.shields.io/badge/version-1.45.3-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -10,6 +10,10 @@ Skills for AI coding agents. Each installs into any tool that reads `SKILL.md` f
 **New here?** Read [HOWTO.md](HOWTO.md) ([web version](https://mneves75.github.io/skills/howto.html)); site: [mneves75.github.io/skills](https://mneves75.github.io/skills/): what each skill does, how to trigger it, and an example for every one (those recorded from real runs and those written as illustrations are each labelled as such).
 
 ## Available Skills
+
+Describe the task instead of memorizing skill names. The [situation-routing guide](docs/skill-routing.md)
+provides a small agent instruction, phase-change examples and checks for missed selections.
+Installing skills alone does not install that instruction into your other projects.
 
 For compact task prompts, bounded retries and model routing, see
 [Using skills with less repeated work](docs/usage-efficiency.md). Service level objectives and

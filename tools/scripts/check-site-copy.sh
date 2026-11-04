@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Real-browser regression for the public copy control and for text contrast in light and
-# dark mode. Requires agent-browser on PATH.
+# Real-browser regression for copy controls, mobile/desktop overflow and light/dark text contrast.
+# Requires agent-browser on PATH.
 # Run through the host's approved browser execution route; no owner profile is used.
 # Usage: tools/scripts/check-site-copy.sh http://127.0.0.1:PORT/
 set -euo pipefail
@@ -40,6 +40,20 @@ if (window.copyProbe.scenario === 'success') {
 }
 JS
   echo "PASS: copy $scenario"
+done
+
+for width in 390 1440; do
+  browser set viewport "$width" 1000
+  for page in "$copy_url" "${copy_url%/}/howto.html"; do
+    browser open "$page"
+    browser eval --stdin <<'JS'
+const width = Math.max(document.documentElement.scrollWidth, document.body.scrollWidth);
+if (width > innerWidth) {
+  throw new Error(`${location.pathname} overflows: ${width}px at ${innerWidth}px viewport`);
+}
+JS
+    echo "PASS: no horizontal overflow at ${width}px: $page"
+  done
 done
 
 # Computed contrast in both colour schemes: text in new-skill (lime) cards and all inline code,

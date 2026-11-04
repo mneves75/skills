@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.45.3] - 2026-11-04
+
+Closes what the 1.45.1 verifier and finder left: the readiness record contract and the release
+script agree, the script judges each record's contract and resumes after a merge, and the ledger
+carries the 1.45.1 and 1.45.2 binding runs. Correction to the 1.45.2 paragraph below: it was true
+when written (12:25Z); 1.45.1 was then published by the automatic route (Pages run 41830567961,
+12:35Z) and tagged `v1.45.1` at 12:36Z, before the 1.45.2 waiver dispatch (Pages run 41832914376, 12:51Z).
+
+### Added
+- **Situation-based skill routing**: select by goal and phase, retain small follow-ups, and
+  reassess at review and release boundaries while preserving explicit-only triggers and
+  mandatory gates. The adoption guide distinguishes selection probes from native procedure
+  compliance; independent skills remain separately installable.
+
+### Changed
+- **Readiness record contract** (`mneves-production-readiness`): the optional keys `tree`,
+  `independent_acceptance` (required for production), `evidence` and `reused_from` are defined, the
+  keys `deploy.sh` reads and writes; the record path reads `<unit>/.scratch/readiness/<commit>/production.json`,
+  the shape every record in this repository has had since 1.42.0.
+- **Readiness ledger**: the 1.45.1 binding run (candidate `63d95fe`, merged as `a53b03cf`) and the
+  1.45.2 run (another session's, candidate `64d2ac66`, pushed as `7587b764`) folded in; cursor
+  `7587b764`; the unbound-candidate note removed.
+- **`plans/005`** and **`docs/skill-ledger.md`**: the check-site-copy count (five cases) and the
+  orchestrator row's account of the 1.45.0 `SKILL.md` sentence (finder D's DOC-D2).
+
+### Fixed
+- **Release record integrity**: reject contradictory security verdicts, incomplete waivers,
+  mismatched commit/tree identities, future assessment timestamps and control characters in
+  tag metadata. Validate record scope and expiry bounds, including escaped JSON identifiers.
+  Resumed releases bind version metadata to the merge being verified.
+- **Readiness consumers**: align the shipped release starter, contract checker, fixtures and
+  usage guide with commit-scoped records and required production independent acceptance.
+- **Mobile guide**: wrap long inline code so full record paths remain readable without
+  widening the page on narrow screens.
+- **`deploy.sh`**: one rule decides which gate records count. A record is in scope when it sits in the
+  candidate's own folder or names the candidate's tree (or a commit with that tree) anywhere in its text;
+  every in-scope record must be well-formed (readable, no repeated key at any depth, exactly its contract's
+  keys, a readable `created_at`, bound to the candidate's tree) or the release refuses naming it, so a
+  malformed assessment is never skipped, demoted or ranked around for an older approval; the newest
+  well-formed record is the assessment; a record that cannot be opened is still named, as 1.45.2 named
+  it. The readiness-only waiver ids for the tag's Readiness line are
+  computed in Python, so an id is never word-split or glob-expanded by the shell (finder D's D-4); a MERGED
+  pull request resumes at the CI wait (no second merge, served bytes, reuse records, tag) only when its merge
+  commit is on `main`, which the 1.45.1 release needed after its first CI attempt was cancelled.
+  `deploy.test.sh` cases 26 to 38 fail on the 1.45.2 script; case 39 passes on it and guards that naming.
+
 ## [1.45.2] - 2026-11-04
 
 Publishes 1.45.1's content with the Pages CI waiver. 1.45.1 was merged to `main` as `a53b03c`
