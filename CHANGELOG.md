@@ -13,12 +13,13 @@ Closes what the 1.45.1 verifier and finder left: the readiness record contract a
 script agree, the script judges each record's contract and resumes after a merge, and the ledger
 carries the 1.45.1 and 1.45.2 binding runs. Correction to the 1.45.2 paragraph below: it was true
 when written (12:25Z); 1.45.1 was then published by the automatic route (Pages run 41830567961,
-12:35Z) and tagged `v1.45.1` at 12:42Z, before the 1.45.2 waiver dispatch at 12:51Z.
+12:35Z) and tagged `v1.45.1` at 12:36Z, before the 1.45.2 waiver dispatch (Pages run 41832914376, 12:51Z).
 
 ### Changed
 - **Readiness record contract** (`mneves-production-readiness`): the optional keys `tree`,
   `independent_acceptance` (required for production), `evidence` and `reused_from` are defined, the
-  keys `deploy.sh` reads and writes.
+  keys `deploy.sh` reads and writes; the record path reads `<unit>/.scratch/readiness/<commit>/production.json`,
+  the shape every record in this repository has had since 1.42.0.
 - **Readiness ledger**: the 1.45.1 binding run (candidate `63d95fe`, merged as `a53b03cf`) and the
   1.45.2 run (another session's, candidate `64d2ac66`, pushed as `7587b764`) folded in; cursor
   `7587b764`; the unbound-candidate note removed.
@@ -27,11 +28,14 @@ when written (12:25Z); 1.45.1 was then published by the automatic route (Pages r
 
 ### Fixed
 - **`deploy.sh`**: a record with a missing, unknown or repeated top-level key is refused before the
-  merge (the security and readiness contracts name the keys); the readiness-only waiver ids for the
+  merge (the security and readiness contracts name the keys), and a newest same-tree record that
+  blocks keeps blocking whatever its shape: a repeated key is a problem of that record, never a reason
+  to skip it for an older approval; skipped unreadable records are always reported; the readiness-only waiver ids for the
   tag's Readiness line are computed in Python, so an id is never word-split or glob-expanded by the
   shell (finder D's D-4); a MERGED pull request resumes at the CI wait (no second merge, served
-  bytes, reuse records, tag), which the 1.45.1 release needed after its first CI attempt was
-  cancelled. `deploy.test.sh` cases 26 to 30 fail on the 1.45.2 script.
+  bytes, reuse records, tag) only when its merge commit is on `main`, which the 1.45.1 release
+  needed after its first CI attempt was cancelled. `deploy.test.sh` cases 26 to 32 fail on the
+  1.45.2 script.
 
 ## [1.45.2] - 2026-11-04
 

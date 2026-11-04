@@ -28,13 +28,13 @@ measure whether a *target* codebase is ready for agents.
   ledger; `deploy.sh` refuses a readiness record without `independent_acceptance` and prints each
   waiver id once; `changelog-rows.py` keeps a wrapped bullet's whole sentence. Merged as `a53b03cf`
   (PR #42); main CI run 41828329349 (attempt 2) and Pages run 41830567961 succeeded at 12:35Z and
-  `v1.45.1` was tagged at 12:42Z; the tag was written by hand after the first CI attempt's
+  `v1.45.1` was tagged at 12:36Z; the tag was written by hand after the first CI attempt's
   cancellation stopped `deploy.sh`.
 - **1.45.2** (2026-11-04): the Pages CI waiver (`static.yml`, `check-pages.test.py`, CONTRIBUTING's
   manual release sequence), built by another session on 1.45.1 and pushed to `main` with
   `[skip ci]` as `7587b764`; published by the owner's waiver dispatch (Pages run 41832914376,
   12:51Z) and tagged `v1.45.2`. Its changelog paragraph that 1.45.1 was unpublished was true when
-  written (12:25Z) and superseded by 12:42Z.
+  written (12:25Z) and superseded by 12:36Z.
 - **1.45.3** (2026-11-04): the readiness record contract gains the keys the release script reads
   (`tree`, `independent_acceptance`, `evidence`, `reused_from`), `deploy.sh` enforces each record's
   contract (required, unknown and repeated keys), computes the Readiness line in Python (no glob)

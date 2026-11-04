@@ -73,9 +73,10 @@ The record lets a release script confirm that a binding gate run happened for th
 candidate. It is a precondition, not an authorization: production still needs the owner's
 approval. Write it only at the end of a binding run.
 
-Path: `<unit>/.scratch/readiness/<target>.json`, where `<unit>` is the deployable unit's
-directory (`.`, the repository root, for a single-unit repository); the repository ignores
-`.scratch/`. JSON with exactly these keys at the top level, including the waivers array, plus the
+Path: `<unit>/.scratch/readiness/<commit>/production.json` for the production target (the
+candidate's full commit id as the folder; `dev.json` or `staging.json` in that folder for the other
+targets), where `<unit>` is the deployable unit's directory (`.`, the repository root, for a
+single-unit repository); the repository ignores `.scratch/`. JSON with exactly these keys at the top level, including the waivers array, plus the
 optional keys listed after the example:
 
 ```json
