@@ -174,6 +174,6 @@ Single context: root `GLOSSARY.md` and relevant `docs/adr/` entries. See `docs/a
 
 For multi-session work, read and update the relevant spec's `progress.md` and `tests.json`
 before continuing. Record observed results, failed attempts, open decisions and evidence limits;
-keep private logs and gate records in ignored scratch. The tstack review (released in 1.45.1) uses
+keep private logs and gate records in ignored scratch. The tstack review (included in the 1.45.1 candidate) uses
 [progress.md](docs/specs/tstack-adoption/progress.md) and
 [tests.json](docs/specs/tstack-adoption/tests.json). `CLAUDE.md` imports these instructions.

@@ -1,6 +1,6 @@
 # Tstack review — run notes
 
-Updated: 2026-11-04. Status: released in 1.45.1 (the branch's head `c46c77c4` merged through `release/1.45.1-r2`; 1.45.0 had released the branch at `a322c9f3`).
+Updated: 2026-11-04. Status: included in the 1.45.1 candidate (the branch's head `c46c77c4` merged through `release/1.45.1-r2`; 1.45.0 had released the branch at `a322c9f3`). The binding result lives in the private gate records and the eventual `v1.45.1` tag; this file makes no release claim.
 Plan: [review and release acceptance](../../../plans/005-tstack-review-release.md).
 Machine-readable results: [tests.json](tests.json).
 
@@ -107,6 +107,23 @@ Historical specs and handoffs retain their dates and
 original observations. Repeated historical scratch-only setup runners support a small tracked
 initialization script; that implementation must be reconciled with the active release session.
 
+## DEL-01 CI waiver (2026-11-04)
+
+Implemented on `release/1.45.1-ci-waiver` from candidate `63d95fe`: `static.yml` accepts an owner's
+CI waiver only for a manual dispatch naming the exact `main` tip that the `github-pages`
+environment's `CI_WAIVER_APPROVED_SHA` approves, with a nonblank reason, and records `CI WAIVED,
+not passed`. `check-pages.test.py` runs the real guard on temporary Git with a fake `gh`: 32 cases
+(27 explicit, 5 CI conclusions) plus a structure test. Before the guard change the new test failed
+19 cases against the original workflow; after it, all pass, and all 10 planted mutations of the
+guard fail the test. `actionlint` and `git diff --check` are clean. CONTRIBUTING documents the
+manual sequence: gates on the candidate tree, `[skip ci]` merge, a fresh readiness binding run on
+the pushed merge commit, environment approval, dispatch, served-byte comparison, approval deletion
+even on failure, and the tag.
+
+Not established: the live route on GitHub (environment variable scope, `[skip ci]` suppressing
+the automatic run, the dispatch itself). Independent review, the binding run and publication are
+pending. Publisher ownership with the concurrent release session remains unresolved.
+
 ## Next acceptance steps
 
 - [x] Reproduce and fix the watcher failures; full suite and independent acceptance pass.
@@ -116,6 +133,8 @@ initialization script; that implementation must be reconciled with the active re
 - [ ] Reconcile the active release session's setup/deployment scripts rather than adding duplicates.
    Setup must be repository-local; deployment must preserve exact-commit security/readiness gates
    and must not invent a staging environment for this static Pages repository.
+- [x] Implement DEL-01's exact-commit CI waiver with failing-first and planted-mutation controls.
+- [ ] Independent review of DEL-01; resolve publisher ownership with the concurrent release session.
 - [ ] Qualify the final integrated tree before merge to main, publication, tag and attributable cleanup.
 
 ## Cleanup and handoff

@@ -85,6 +85,37 @@ own gate. Close a release without a second one:
    ([gates.md](skills/mneves-production-readiness/references/gates.md)).
    `tools/scripts/check-readiness-catalog.py` checks that the ledger stays consistent.
 
+#### Skipping GitHub CI for a release
+
+Only the owner can skip GitHub CI, explicitly and for one exact commit. GitHub CI is then waived, not
+passed, and the security and readiness gates still apply. `tools/scripts/deploy.sh` remains the
+release path whenever CI runs; it waits for a CI run that a skipped release never has. With the
+owner's skip, release by hand:
+
+1. Complete the security and readiness gates on the exact candidate tree.
+2. Merge with `[skip ci]` in the merge commit message and `--match-head-commit`, and check that the
+   merge commit's tree equals the gated tree. Without a CI run, Pages does not publish on its own.
+3. Before any Pages dispatch, run a fresh production-readiness binding run on the pushed merge
+   commit's full id. The security verdict may be reused only because the tree is identical.
+4. After acceptance, a repository administrator sets the merge commit's full id as the
+   `CI_WAIVER_APPROVED_SHA` variable of the `github-pages` environment:
+   `gh variable set CI_WAIVER_APPROVED_SHA --env github-pages --body <sha>`. It is not a secret,
+   and a dispatch cannot set it. Do not create a repository variable with that name: it would also
+   reach the deploy job.
+5. Dispatch Pages with the same id and the owner's reason:
+   `gh workflow run static.yml --ref main -f ref=<sha> -f ci_waiver_sha=<sha> -f ci_waiver_reason='<reason>'`.
+   The guard refuses, without querying CI, unless the id is a full lowercase commit id equal to the
+   checked-out commit, the current `main` tip and the approved value, and the reason is not blank.
+   If `main` has moved, approve and gate the new tip instead.
+6. The run summary reads `CI WAIVED, not passed`. Compare every served `site/` file with the tree,
+   as `deploy.sh` does.
+7. Delete the approval whether the dispatch and verification succeeded or failed:
+   `gh variable delete CI_WAIVER_APPROVED_SHA --env github-pages`. A retry sets it again.
+8. Create the annotated tag as above, with a `CI:` line that says the owner waived CI and why,
+   in place of a run.
+
+A waived commit has no successful CI run, so the ordinary rollback dispatch cannot republish it later.
+
 Waiver expiry is the owner's choice, up to the readiness skill's 90-day cap; never set one on the
 owner's behalf. Security acceptance needs a model other than the builder's, and finders and their
 verifier run in separate contexts. When no such model can run (for example, both Codex accounts

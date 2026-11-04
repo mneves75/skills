@@ -48,6 +48,8 @@ Alternative considered: implement full backward pagination, cursor validation an
 
 Alternative considered: permanently relax all manual deployment checks. Rejected because it would silently widen publication authority. The selected exception is explicit and commit-bound; its use still requires the user's authorization and private exact-candidate gates.
 
+Progress, 2026-11-04: implemented on `release/1.45.1-ci-waiver` from `63d95fe` and proven locally (the extended `check-pages.test.py` failed 19 cases against the original guard, then passed 32 guard cases plus the structure test; 10 of 10 planted mutations killed; `actionlint` clean). The manual release sequence is in `CONTRIBUTING.md`. Independent review, the binding readiness run on the merge commit and publication are pending; the live GitHub route is untested; publisher ownership with the concurrent release session is unresolved.
+
 ## Implementation ownership and order
 
 Use one isolated release worktree and an authorized implementation model. Other work may exist: preserve the main checkout's untracked `docs/handoffs/`, old gate evidence, and unrelated branches. A concurrent `release/1.45.0` worktree appeared after recon; this task uses a separate uniquely named branch and must resolve publisher ownership before versioning, integration or deployment. Independent watcher fixes can continue. Never force-push. Use small commits with `[skip ci]` for this task's new commits, including the eventual merge commit, so the owner's CI skip is honored.
