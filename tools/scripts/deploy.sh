@@ -94,6 +94,7 @@ if [ "$state" = MERGED ]; then
   [ -n "$merge" ] && [ "$merge" != null ] || fail "PR #$pr is MERGED but shows no merge commit"
   git fetch -q origin main || fail "cannot fetch origin/main"
   git cat-file -e "$merge^{commit}" 2>/dev/null || fail "merge commit $merge is not in this repository after fetching main"
+  git merge-base --is-ancestor "$merge" origin/main || fail "merge commit $merge is not on origin/main: nothing to resume"
   tree=$(git rev-parse "$merge^{tree}")
   say "candidate: PR #$pr ($head_ref) head $head, merged as $merge, tree $tree"
 else
@@ -143,6 +144,12 @@ CONTRACT = {
 def problems(record):
     out = []
     required, optional = CONTRACT[kind]
+    repeated = sorted(set(record.pop(REPEATED, [])))
+    for value in record.values():
+        if isinstance(value, dict) and value.pop(REPEATED, None):
+            repeated.append("(nested)")
+    if repeated:
+        out.append("repeated key " + ", ".join(repeated))
     missing = sorted(required - set(record))
     unknown = sorted(set(record) - required - optional)
     if missing:
@@ -196,17 +203,23 @@ def created(record):
 own = os.path.join(records, kind, head, "production.json")
 matching = []
 unreadable = []
-def no_repeats(pairs):
+REPEATED = "__repeated_keys__"
+
+def note_repeats(pairs):
+    """Last value wins, as json.load does, but the record remembers which keys were repeated."""
     seen = {}
+    repeated = []
     for key, value in pairs:
         if key in seen:
-            raise ValueError(f"repeated key {key}")
+            repeated.append(key)
         seen[key] = value
+    if repeated:
+        seen[REPEATED] = repeated
     return seen
 
 for path in glob.glob(os.path.join(records, kind, "*", "production.json")):
     try:
-        record = json.load(open(path, encoding="utf-8"), object_pairs_hook=no_repeats)
+        record = json.load(open(path, encoding="utf-8"), object_pairs_hook=note_repeats)
     except (OSError, ValueError) as error:
         unreadable.append(f"{path}: unreadable ({error})"); continue
     if tree_of(record) == tree:
@@ -214,6 +227,8 @@ for path in glob.glob(os.path.join(records, kind, "*", "production.json")):
 if not matching:
     print(f"no production {kind} record for tree {tree} under {records}/{kind}/" + (" (" + "; ".join(unreadable) + ")" if unreadable else ""))
     sys.exit(1)
+if unreadable:
+    print("unreadable record(s) skipped: " + "; ".join(unreadable), file=sys.stderr)
 matching.sort(key=lambda item: (item[0], item[1]), reverse=True)
 stamp, _, newest_path, newest = matching[0]
 found = problems(newest)

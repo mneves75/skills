@@ -449,5 +449,40 @@ if [ "$code" -eq 0 ] && ! grep -q 'pr merge' "$FAKE_STATE/calls" && grep -q "res
   ok "a merged pull request resumes at the CI wait without merging again and ends with the tag"
 else bad "resume (exit $code): $out"; fi
 
+# 31. A newest same-tree record that blocks AND has a repeated key still blocks: an older approval never substitutes.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness" "$(cat "$FAKE_STATE/head")" "$soon" <<'PY'
+import json, os, sys
+root, head, soon = sys.argv[1:4]
+older = json.load(open(os.path.join(root, head, "production.json")))
+os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
+older["commit"] = "older0000000000000000000000000000000000"; older["created_at"] = "2026-11-03T00:00:00Z"
+json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
+# The head's own record is newer, blocks (not-ready), and repeats a key.
+text = json.dumps({**older, "commit": head, "created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1})
+open(os.path.join(root, head, "production.json"), "w").write(text.rstrip("}") + ', "verdict": "not-ready"}')
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "repeated key verdict" <<<"$out" && grep -q "verdict is 'not-ready'" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a newest blocking record with a repeated key still blocks; the older approval does not substitute"
+else bad "repeated key on the newest record (exit $code): $out"; fi
+
+# 32. A MERGED pull request whose merge commit is not on main does not resume.
+make_repo
+"$tmp/bin/gh" pr merge 7 --repo test/skills --merge --match-head-commit "$(cat "$FAKE_STATE/head")" >/dev/null
+merged=$(cat "$FAKE_STATE/merge")
+# Rewind the remote main to before the merge and keep the merge commit on a stray branch: it exists in the
+# repository after a fetch, but it is not on main.
+git -C "$FAKE_STATE/merger" push -q origin "$merged:refs/heads/stray"
+git -C "$FAKE_STATE/merger" push -q --force origin "$merged~1:refs/heads/main"
+git -C "$tmp/work" fetch -q origin "+refs/heads/stray:refs/remotes/origin/stray"
+python3 -I - "$FAKE_STATE/pr.json" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d["state"] = "MERGED"; json.dump(d, open(p, "w"))
+PY
+out=$(run_deploy 7 --tag) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "is not on origin/main" <<<"$out" && [ -z "$(git -C "$tmp/bare" tag -l v9.9.9)" ]; then
+  ok "a merge commit that is not on main does not resume or tag"
+else bad "off-main resume (exit $code): $out"; fi
+
 echo "deploy.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]
