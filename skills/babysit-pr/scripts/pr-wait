@@ -21,8 +21,11 @@ Exit codes
   0  the --until condition is met, or the PR merged
   1  the condition cannot be met without action: a required check failed, the
      branch conflicts with its base, the PR closed, `ready` is blocked by
-     unresolved threads or a BEHIND branch, GitHub stayed unreachable, or
-     `ready` could not read every check for ten polls in a row
+     unresolved threads or a BEHIND branch, GitHub stayed unreachable, the
+     required checks could not be read (any answer but 404 from either source),
+     `ready` could not read every check for ten polls in a row, or `ready`
+     could not read every review thread (more than 100, or no clear answer on
+     whether older ones exist)
   2  bad arguments, unknown PR, or another pr-wait already watches this PR
 
 Events
@@ -124,6 +127,7 @@ query($owner: String!, $name: String!, $number: Int!) {
         nodes { id url state body commit { oid } author { login __typename } }
       }
       reviewThreads(last: 100) {
+        pageInfo { hasPreviousPage }
         nodes {
           isResolved path line
           comments(first: 100) { nodes { id url body author { login __typename } } }
@@ -326,7 +330,8 @@ def required_checks(repo: str, base: str) -> set[str]:
             names.update(gh_lines(["api", path, "--jq", jq]))
         except GhError as error:
             if "HTTP 404" not in str(error):  # 404 means no protection, which is normal
-                log(f"could not read required checks from {path}: {error}")
+                # An unread source may require more checks, so a partial answer is no answer.
+                raise GhError(f"could not read required checks from {path}: {error}", error.transient) from error
     return names
 
 
@@ -543,6 +548,9 @@ class Watcher:
         comments = pr["comments"]["nodes"]
         reviews = pr["reviews"]["nodes"]
         threads = pr["reviewThreads"]["nodes"]
+        # GitHub returns the last 100 threads; only an explicit false says none came before them.
+        thread_page = pr["reviewThreads"].get("pageInfo")
+        all_threads = isinstance(thread_page, dict) and thread_page.get("hasPreviousPage") is False
         self.events = 0
 
         read = self.rollup(head)
@@ -693,7 +701,7 @@ class Watcher:
             ", ".join(bot_status[b] for b in GATING_BOTS + ADVISORY_BOTS if b in bot_status)
             or "no Greptile or Macroscope yet",
             f"billing-blocked (prove locally): {', '.join(snippet(n, 200) for n in sorted(billing))}" if billing else "",
-            f"{len(unresolved)} unresolved threads",
+            f"{len(unresolved)} unresolved threads{'' if all_threads else ' (not every thread read)'}",
             f"merge state {merge_state}",
         ]
         summary = "; ".join(p for p in parts if p)
@@ -719,6 +727,12 @@ class Watcher:
             if green and reviewed:
                 if unresolved:
                     self.finish(1, [f"blocked by {len(unresolved)} unresolved threads on {short}: {' '.join(unresolved)}"])
+                if not all_threads:
+                    self.finish(1, [
+                        f"pr-wait stopped: could not read every review thread on {short} (more than 100, "
+                        "or GitHub did not say whether older ones exist), so an unresolved one may be hidden; "
+                        "check the threads by hand, do not restart pr-wait for this"
+                    ])
                 if merge_state == "BEHIND":
                     self.finish(1, [behind_line])
                 self.reported.add(checks_key)

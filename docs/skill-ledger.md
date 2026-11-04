@@ -18,7 +18,7 @@ validator inside the sync.
 | Skill | Disposition | Reason and kept controls |
 |---|---|---|
 | `autoreview` | retained | Owns the isolated review CLI, its security tests and the `cccc` complexity guidance; `full-stop` reviews through it and `mneves-superaudit` defers to its guidance. |
-| `babysit-pr` | changed | Canonical PR watcher. Adds one watcher owner per PR, a finite repair bound (same failure surviving two fixes, or three rounds) that yields to a stricter host or user limit, and no force-push or auto-merge change without the user. `pr-wait` and its fake-`gh` test are unchanged. |
+| `babysit-pr` | changed | Canonical PR watcher. Adds one watcher owner per PR, a finite repair bound (same failure surviving two fixes, or three rounds) that yields to a stricter host or user limit, and no force-push or auto-merge change without the user. `pr-wait` and its fake-`gh` test are unchanged by the pstack refresh; 1.45.0 hardened them (L-9, H-A7: a non-404 answer from a check-run read is an error, a status context without a name is rejected). Follow-up, 2026-11-04 (tstack review, released in 1.45.1): `pr-wait` no longer reads a failed required-checks read as "none required", and `ready` stops with exit 1 when it cannot read every review thread; eight fake-`gh` cases added. |
 | `council` | retained | Bounded, advisory multi-CLI deliberation; states it is not verification, so it does not duplicate `autoreview` or `mneves-verify`. |
 | `full-stop` | changed | Fixes from PR #38: runs only on an explicit invocation ("Full stop." as punctuation is not one), no force-push or rewrite of pushed history, the user's and project's rules on asking before a test method stay in force, and existing auto-merge or merge-queue state is reported, never changed. Never merges. |
 | `imagegen-frontend-mobile` | retained | Image-only path for mobile concepts; no overlap with a code skill. |
@@ -27,9 +27,9 @@ validator inside the sync.
 | `mneves-chatgpt-search` | retained | Distinct audience (ChatGPT Search discovery and attribution); no overlap. |
 | `mneves-eli5` | retained | Keeps the ELI5 name as the plain-language shortcut. pstack's `bro` restates the last message and `teach` explains a codebase through `how` and `why`; neither replaces an audience-calibrated re-explanation. |
 | `mneves-expert-review` | retained | Stress-tests drafts and decisions, explicitly not code diffs, so it does not compete with `autoreview`. |
-| `mneves-fable-orchestrator` | retained | Normative routing and the only model Defaults block; untouched so no model default moves. |
+| `mneves-fable-orchestrator` | retained | Normative routing and the only model Defaults block; the pstack refresh leaves it alone, and a release only re-verifies the block's ids and date, so no model default moves. |
 | `mneves-handoff` | retained | Writes context for another agent; pstack's `recall` rebuilds your own. Different jobs. |
-| `mneves-motion-film` | retained | Distinct media pipeline with its own checks and tests. |
+| `mneves-motion-film` | retained | Distinct media pipeline with its own checks and tests; its scripts were hardened in 1.45.0 (H-M2 to H-M6), outside the pstack refresh. |
 | `mneves-production-readiness` | retained | Readiness gate; imports its security rows from `mneves-security` rather than re-auditing. |
 | `mneves-render` | retained | Distinct Markdown export pipeline with Pandoc acceptance tests. |
 | `mneves-security` | retained | Owns remediation, privacy/OWASP launch readiness and the exact-candidate deploy verdict; routes a requested deep source audit to `security-audit` and treats its records as candidate evidence, never as a gate. |
