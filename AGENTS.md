@@ -162,6 +162,29 @@ collection skills or host-installed third-party skills to add this policy.
 
 ## Agent skills
 
+### Situation routing
+
+At each task start, identify the goal, constraints and phase. Honor explicitly requested
+skills, including requests in follow-ups; otherwise choose the most specific applicable skill
+from the available catalog. Never auto-select an explicit-only skill. Read a selected skill
+before applying it. Use one primary workflow skill, adding specialists when needed or required
+by applicable user, host or repository instructions.
+
+State the selection and reason once unless the requested output format excludes commentary;
+selection alone is not use. Retain the route only while the goal, phase and relevant constraints
+stay the same: an explicit new selection or phase change takes precedence over a small follow-up.
+Reassess at implementation, review and release boundaries. Load only relevant references.
+If none fits, proceed without announcing that. If a requested or required skill is unavailable,
+report it. If optional, continue the authorized task with ordinary capabilities unless the user
+required that skill exclusively. Continue independent work; a mandatory capability stays blocked
+until satisfied by an alternative its governing rule permits or explicitly waived by the
+authority that rule names.
+Selection grants no permissions: review-only requests stay read-only, and required gates remain.
+
+Keep independently useful skills discoverable; group related modes inside their existing
+skill, not behind a global umbrella. See [the routing guide](docs/skill-routing.md) for adoption
+and evaluation; a repository instruction does not configure other repositories or agents.
+
 ### Issue tracker
 
 Local Markdown specs and tickets in `docs/specs/`. See `docs/agents/issue-tracker.md`.
@@ -174,6 +197,7 @@ Single context: root `GLOSSARY.md` and relevant `docs/adr/` entries. See `docs/a
 
 For multi-session work, read and update the relevant spec's `progress.md` and `tests.json`
 before continuing. Record observed results, failed attempts, open decisions and evidence limits;
-keep private logs and gate records in ignored scratch. The tstack review (included in the 1.45.1 candidate) uses
+keep private logs and gate records in ignored scratch. The [routing work record](docs/specs/skill-routing/progress.md)
+tracks the situation-policy implementation and its evaluation limits. The tstack review (included in the 1.45.1 candidate) uses
 [progress.md](docs/specs/tstack-adoption/progress.md) and
 [tests.json](docs/specs/tstack-adoption/tests.json). `CLAUDE.md` imports these instructions.

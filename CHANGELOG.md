@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.45.3] - 2026-11-04
+
+### Added
+- **Situation-based skill routing**: select by goal and phase, retain small follow-ups, and
+  reassess at review and release boundaries while preserving explicit-only triggers and
+  mandatory gates. The adoption guide distinguishes selection probes from native procedure
+  compliance; independent skills remain separately installable.
+
 ## [1.45.2] - 2026-11-04
 
 Publishes 1.45.1's content with the Pages CI waiver. 1.45.1 was merged to `main` as `a53b03c`

@@ -29,6 +29,15 @@ sheets to the reviewer CLI's provider.
 A skill is loaded when the agent decides your request matches its `description`. You can
 also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 skill".
 
+### Choose by situation
+
+Describe your goal; the agent should choose the most specific available skill and say why once.
+Keep that selection for small follow-ups, then reassess when the goal or phase changes—for
+example, implementation to independent verification. Required release gates still apply.
+The [routing guide](docs/skill-routing.md) links to a copyable instruction for your project's
+`AGENTS.md` or `CLAUDE.md`, troubleshooting and an evaluation procedure. Installing this
+collection does not automatically change those instructions in other projects.
+
 | Skill | Use it when you want to… | Say something like |
 |---|---|---|
 | [`autoreview`](#autoreview) | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
