@@ -28,11 +28,27 @@ Machine-readable results: [tests.json](tests.json).
 
 ## What did not establish correctness
 
-- Static inspection is not reproduction. Until the new controls run against both versions,
-  the suspected defects and proposed corrections are not behaviorally verified.
+- Static inspection alone was not reproduction. Builder-run controls now reproduce false
+  green/ready results on the original helper and pass on the correction; main inspected both
+  logs. The full suite and fresh independent acceptance remain separate requirements.
 - Historical CI success on `a322c9f` does not validate subsequent changes. GitHub CI is explicitly
   skipped for this task; local and independent checks must retain their actual scope.
 - Skill-use counts in conversation logs do not prove that a skill causes better outcomes.
+
+## Rendered site review
+
+The requested taste inspector ran against the real local page at 1440, 768 and 390 pixels.
+It exited 1 with eight design-rule failures and seven warnings; retain that original result.
+Viewed desktop/mobile folds and the desktop contact sheet. Three useful corrections are selected:
+the stale 22-skill count, dark-mode inline-code contrast on highlighted cards (about 1:1), and
+the vague headline. Small readable copy also needs checking against the measured selectors.
+
+The inspector's demands for photography, video and decorative movement are marketing-style
+heuristics, not this product's acceptance criteria. A static procedure index has no supplied
+photographic evidence and needs none to help a visitor choose and install a skill. Preserve the
+documented wayfinding layout and category separators rather than manufacture media or erase
+structure to make that generic score green. Final browser acceptance still must prove contrast,
+responsive layout, links, focus and clipboard behavior after the actual fixes.
 
 ## Open coordination
 
@@ -44,6 +60,15 @@ finish independent regression evidence before asking for a final handoff decisio
 The other session's recorded plan still waits for main CI, whereas the current task explicitly
 skips GitHub CI and staging. Reconcile that discrepancy before publication. No deployment or
 release tag has been produced by this session.
+
+## Documentation coverage
+
+A separate read-only reviewer read all 37 current Markdown files under `docs/` and the new
+`tests.json`; the two historical screenshot assets were excluded from that textual review.
+Current corrections are the stale PR #30 status, deferred release-ledger bookkeeping and the
+public site's stale catalog counts. Historical specs and handoffs retain their dates and
+original observations. Repeated historical scratch-only setup runners support a small tracked
+initialization script; that implementation must be reconciled with the active release session.
 
 ## Next acceptance steps
 
