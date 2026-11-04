@@ -61,6 +61,9 @@ elif args[:1] == ["api"] and ("/rules/branches/" in args[1] or "/protection/" in
     sys.exit(1)
 elif args[:1] == ["api"] and "/actions/jobs/" in args[1]:
     run_id = int(args[1].rsplit("/", 1)[1])
+    if scenario.get("jobs_error"):
+        print(scenario["jobs_error"], file=sys.stderr)
+        sys.exit(1)
     if not any(n.get("databaseId") == run_id and n.get("isJob") for n in scenario.get("rollup", [])):
         print("gh: Not Found (HTTP 404)", file=sys.stderr)
         sys.exit(1)
@@ -391,6 +394,35 @@ class PrWaitTest(unittest.TestCase):
         proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
         self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
         self.assertIn('check failed: "tests"', proc.stdout)
+        # The Actions API's 404 is the answer "no such job", not a failed read.
+        self.assertNotIn("could not read", proc.stderr)
+
+    def test_jobs_api_failure_other_than_404_is_an_incomplete_read(self) -> None:
+        # Only a 404 says "not a job". Any other refusal leaves the job unknown: the read is
+        # incomplete, so nothing is excused and the log names the cause.
+        for error in ("gh: Resource not accessible by integration (HTTP 403)",
+                      "gh: Validation Failed (HTTP 422)",
+                      "error connecting to api.github.com"):
+            with self.subTest(error=error):
+                self.scenario.write_text(json.dumps({
+                    "pr": pull_request(), "checks": [check("build", "fail")], "checks_exit": 1,
+                    "rollup": [check_run("build", "FAILURE", LOCKED)], "jobs_error": error}))
+                proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+                self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+                self.assertIn('check failed: "build"', proc.stdout)
+                self.assertIn(f"could not read every check on {HEAD[:7]}", proc.stderr)
+                self.assertIn(error, proc.stderr)
+                for state in Path(self.env["HOME"]).glob(".local/state/pr-wait/*.json"):
+                    state.unlink()
+
+    def test_status_context_without_a_context_excuses_nothing(self) -> None:
+        # GitHub always names a status context; an entry without one is not well formed.
+        nameless = {"__typename": "StatusContext", "creator": None}
+        self.write([check("build", "fail")], [check_run("build", "FAILURE", LOCKED), nameless], 1)
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn('check failed: "build"', proc.stdout)
+        self.assertIn("status context is malformed", proc.stderr)
 
     def test_control_characters_in_comments_are_dropped(self) -> None:
         self.write([check("build", "pending")], checks_exit=8)

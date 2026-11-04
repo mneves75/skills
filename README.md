@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.44.0-blue)
+![Version](https://img.shields.io/badge/version-1.45.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -33,7 +33,7 @@ artifacts.
 | [mneves-expert-review](skills/mneves-expert-review/) | Scoped stress test: objective, first principles, relevant research, one combined challenge, distinct alternatives, improved deliverable |
 | [mneves-handoff](skills/mneves-handoff/) | Clipboard-ready, path-free prompt that hands a task to another agent for independent review and discussion first |
 | [mneves-render](skills/mneves-render/) | Build project-local Markdown renderers for HTML, editable DOCX and PDF, with shared design, tested starter templates and content/visual verification |
-| [mneves-motion-film](skills/mneves-motion-film/) | Make a short product film from a brief: text quoted from the product's pages, synthesized music on a beat grid, Remotion render, and scripted checks for facts, contrast, loudness, codecs and audio sync, reviewed until a fresh reviewer says ship |
+| [mneves-motion-film](skills/mneves-motion-film/) | Make a short product film from a brief: text quoted from the product's pages, synthesized music on a beat grid, Remotion render, and scripted checks for facts, contrast, loudness, codecs and audio sync, reviewed by a fresh reviewer for up to five rounds, then delivered with any open problem listed |
 | [mneves-security](skills/mneves-security/) | Evidence-backed security/privacy audit and vulnerability hunting (candidates must name a crossed boundary and survive a fresh disprover), ordered remediation, authorized safe fixes and the mandatory gate before every staging or production deploy, using current OWASP guidance, adversarial review and independent acceptance |
 | [security-audit](skills/security-audit/) | Six-phase, coverage-led source audit with independent candidate and final verification, three finding verdicts, a schema-checked ledger and machine-readable findings; ships its Node validators and tests, and is not a deploy gate |
 | [mneves-production-readiness](skills/mneves-production-readiness/) | Gate staging and production deploys on production readiness: a ledger of evidence-backed controls (data, recovery, money, operations, ownership), a verdict per target and a detailed fix plan; security rows delegate to `mneves-security` |
@@ -56,7 +56,7 @@ Third-party skill packs vendored with their upstream names and licenses. They si
 
 | Collection | Skills | Install |
 |---|---|---|
-| [pstack](collections/pstack/) | 36 engineering workflow skills from Lauren Tan's pstack, via the pstack-claude port: `poteto-mode`, `architect`, `interrogate`, `swarm`, `how`, `why` and more | `npx skills@latest add https://github.com/mneves75/skills/tree/main/collections/pstack/skills` |
+| [pstack](collections/pstack/) | 42 engineering workflow skills from Lauren Tan's pstack, via the pstack-claude port and pinned to the official upstream: `poteto-mode`, `architect`, `interrogate`, `swarm`, `how`, `why` and more | `npx skills@latest add https://github.com/mneves75/skills/tree/main/collections/pstack/skills` |
 
 Its README lists the deviations from upstream and the name collisions with Matt Pocock's
 skills (`tdd`, `teach`).
@@ -173,8 +173,11 @@ retain their upstream MIT licenses and copyrights; see the `LICENSE` file in eac
 The repository's readiness tooling runs locally. Image-generation workflows may send prompts and
 references to the configured image provider; autoreview sends scanned review inputs to the
 selected review provider; council sends the task, plan or diff you approve to each member CLI's
-provider; codex-lane sends each delegated brief, and whatever Codex reads to answer it, to Codex
-under your account. Authorize private-content disclosure before any of these workflows.
+provider, and its members can read the repository you point them at; codex-lane sends each
+delegated brief, and whatever Codex reads to answer it, to Codex under your account; the
+motion-film reviewer step sends the brief and contact sheets to the reviewer CLI's provider, and
+its capture step opens the URL you give in a local headless Chrome. Authorize private-content
+disclosure before any of these workflows.
 
 ## Acknowledgments
 

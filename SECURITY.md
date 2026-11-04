@@ -9,7 +9,7 @@ Supported runtimes for the shipped executables:
 | Runtime | Supported | Used by |
 |---|---|---|
 | Bun | 1.4.4 or later (CI pins 1.4.4) | the readiness tool in `tools/` |
-| Python | 3.11 or later | autoreview, `codex-lane`, `pr-wait`, the ship-deploy contract check, the SRS helper, render starters, site build helpers |
+| Python | 3.11 or later | autoreview, `codex-lane`, `pr-wait`, the ship-deploy contract check, the SRS helper, render starters, the motion-film scripts, site build and release helpers |
 | Node.js | a release line upstream still maintains | security-audit validators, site build |
 
 The maintainer (@mneves75) owns these floors: when a runtime line reaches upstream end of
@@ -37,8 +37,10 @@ the release contract checker, reference release scripts and their tests
 filter, starters and tests (`skills/mneves-render/scripts/check_ast.py`, `assets/`, `tests/`),
 the SRS helper and its test (`skills/mneves-teach-back-srs/scripts/srs_db.py`, `tests/`), the
 PR watcher and its test (`skills/babysit-pr/scripts/pr-wait`, `tests/test_pr_wait.py`), the
+motion-film scripts and their test (`skills/mneves-motion-film/scripts/*.py`, `tests/test_pipeline.py`), the
 Node validators and their tests (`skills/security-audit/validate-*.cjs`, `*.test.cjs`), the
-Bun/TypeScript tool (`tools/`), the autoreview CLI and its packaged tests
+Bun/TypeScript tool and the repository's own setup, release and check scripts with their tests
+(`tools/`, `tools/scripts/`), the autoreview CLI and its packaged tests
 (`skills/autoreview/`), the git hook (`.githooks/`), and the GitHub workflows.
 
 Skill files are instructions executed by an AI agent with your permissions. Treat a skill
@@ -105,7 +107,8 @@ operating-system updates.
   them. A lane owns `<lane>.json` and, per run, `<lane>.<UTC stamp>.<pid>.jsonl`, `.last.txt`
   and `.stderr.log`. To erase it, `drop` the lane, then delete exactly those names; never a
   `<lane>.*` glob, which also matches dotted lanes such as `job.extra`. Each brief, and what
-  Codex reads to answer it, leaves your machine to OpenAI under your Codex account's terms.
+  Codex reads to answer it, leaves your machine for the provider your `codex` CLI is configured
+  to use (OpenAI unless you changed it), under that account's terms.
 - `council` keeps each deliberation in a private session directory outside your project
   (conventional default `~/.council/`): the task, the plan, and every member's prompt, reply
   and log. It never prunes them, and it starts other authenticated CLIs (Claude, Codex or
@@ -122,6 +125,13 @@ operating-system updates.
   `~/security-audit-skill/<repo-name>/run-<N>/`): the coverage ledger, findings, evidence and
   reports. It never prunes them. Source inspection stays read-only, and it runs
   target-controlled builds, tests or browsers only inside the sandbox the skill requires.
+- `mneves-motion-film` keeps its work under the project's `film/` folder. Its review step sends
+  the brief and the contact sheets to the reviewer CLI's provider (Codex or a Claude subagent, under
+  your accounts); `capture.py` opens the URL you give in a local headless Chrome with a throwaway
+  profile; `facts.py` reads local page files. Nothing else leaves your machine.
+- Council members are authenticated CLIs started under a read-only or restricted configuration;
+  within it they can read the repository and files you point them at, so what they read can reach
+  their provider with the task.
 - The other skills are Markdown procedures. What your agent sends, and where, follows your
   agent's own configuration.
 

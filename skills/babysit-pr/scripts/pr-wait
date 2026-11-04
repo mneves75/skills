@@ -44,8 +44,9 @@ billing, failed payments or the spending limit. It must be a job GitHub's Action
 returns: a check run a workflow creates through the Checks API carries the same app and
 zero steps, and its text can come from the PR. It does not count as a failed check, so
 `green` and `ready` can pass without it; the summary line names it. pr-wait reads
-every check on the head. When it cannot read them all (more than 1,000, or a page
-fails), it excuses nothing and counts no gating bot done, so `ready` waits; after ten
+every check on the head. When it cannot read them all (more than 1,000, a page
+fails, or the Actions API answers a job lookup with anything but success or
+HTTP 404), it excuses nothing and counts no gating bot done, so `ready` waits; after ten
 such polls in a row `--until ready` exits 1 and says so.
 
 Review bots count only when GitHub types the author as a Bot, so a person whose
@@ -445,15 +446,19 @@ class Watcher:
 
     def classify(self, nodes: list[Json]) -> tuple[set[str], set[str], dict[str, set[str | None]], set[str]]:
         """The rollup's answer from a complete read. Raises on any entry that is not a
-        well-formed CheckRun or StatusContext, since skipping one could hide a failure."""
+        CheckRun with a name or a StatusContext with a context, since skipping one could
+        hide a failure; and with GhError when the Actions API cannot say whether a
+        billing-blocked run is a job (see is_job)."""
         blocked: set[str] = set()
         failed: set[str] = set()
         running: set[str] = set()
         owners: dict[str, set[str | None]] = {}
         for node in nodes:
             if node.get("__typename") == "StatusContext":
+                if not isinstance(node.get("context"), str):
+                    raise TypeError("a status context is malformed")
                 login, is_bot = who({"author": node.get("creator")})
-                owners.setdefault(node.get("context") or "", set()).add(bot_name(login) if is_bot else None)
+                owners.setdefault(node["context"], set()).add(bot_name(login) if is_bot else None)
                 continue
             if node.get("__typename") != "CheckRun" or not isinstance(node.get("name"), str):
                 raise TypeError("a check entry is malformed")
@@ -482,11 +487,20 @@ class Watcher:
 
     def is_job(self, run_id: object) -> bool:
         """A job's id is its check run's id. A check run created through the Checks API,
-        even with a workflow's token, has no job, so the Actions API does not find it."""
+        even with a workflow's token, has no job, so the Actions API does not find it.
+
+        `gh api` exits 1 on every HTTP error, so the status in its stderr decides: only
+        HTTP 404 answers "not a job". Any other failure (403, 422, a network error, or
+        5xx, 429 and time-outs once gh() has retried them) raises GhError, which makes
+        the whole read incomplete. It is not cached, so the next poll asks again."""
         if not isinstance(run_id, int):
             return False
         if run_id not in self.jobs:
-            self.jobs[run_id] = gh(["api", f"repos/{self.owner}/{self.name}/actions/jobs/{run_id}"], allow=(0, 1)).returncode == 0
+            proc = gh(["api", f"repos/{self.owner}/{self.name}/actions/jobs/{run_id}"], allow=(0, 1))
+            if proc.returncode != 0 and "HTTP 404" not in proc.stderr:
+                lines = proc.stderr.strip().splitlines()
+                raise GhError(f"Actions job {run_id}: {lines[-1] if lines else 'gh exited 1'}", False)
+            self.jobs[run_id] = proc.returncode == 0
         return self.jobs[run_id]
 
     def base_overlap(self, head: str, old: str, new: str) -> list[str]:

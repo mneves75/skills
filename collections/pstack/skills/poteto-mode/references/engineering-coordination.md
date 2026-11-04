@@ -6,7 +6,11 @@ Separate ownership before serializing access: independent files, directories,
 branches, or state keys avoid races more simply than a global lock. When actors
 must share state, define the owner, atomic transition, and recovery behavior.
 Use idempotent operations where retries or restarts are expected; do not assume
-an interrupted worker left its owned files untouched.
+an interrupted worker left its owned files untouched. Derive each step from the
+state that exists: read it, compare it to the goal, and apply only the difference.
+Anything a run leaves behind (a lock, a temporary file, a half-written record, a
+claimed job) must be recognizable as stale by the next run, wherever the previous
+run stopped; write to a temporary path and rename it into place.
 
 Delegate only concrete independent work with disjoint ownership and observable
 acceptance criteria when delegation is available and authorized. Give workers the

@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+# Behavior test for the collection's adapted statechart runner, which must find TLC and Java
+# but never install them. Runs the shipped collections/pstack/skills/statechart/scripts/statechart
+# with fake `mise` and `java` on PATH: no network, no Java, no TLC. Upstream's own runner tests
+# are excluded from the collection (sources.json) and do not cover this adaptation.
+#
+# Needs a runtime the runner accepts: Node 22.18+ (not 23.0-23.5), Bun 1.1.5+ or Deno 2+.
+#
+# SPDX-License-Identifier: Apache-2.0
+# SPDX-FileCopyrightText: 2026 Marcus Neves
+set -euo pipefail
+
+here=$(cd "$(dirname "$0")" && pwd)
+runner="$here/../../collections/pstack/skills/statechart/scripts/statechart"
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+fails=0
+check() { if eval "$2"; then echo "PASS: $1"; else echo "FAIL: $1"; fails=$((fails + 1)); fi; }
+
+mkdir -p "$work/tlc"
+printf -- '---- MODULE Spec ----\nVARIABLE x\nInit == x = 0\nNext == x'"'"' = 1 - x\n====\n' > "$work/Spec.tla"
+printf 'INIT Init\nNEXT Next\n' > "$work/Spec.cfg"
+
+# The runner passes its children only an allow-listed environment, so each case gets its own
+# fakes with its paths written in. mise logs each call and answers the two lookups only when the
+# case says the tools are installed; java logs its arguments, then fails the way SANY would on a
+# spec it cannot read.
+fakes() { # <case> <found: 1 or 0>
+  local dir="$work/$1" bin="$work/$1/bin"
+  mkdir -p "$bin"
+  printf '#!/bin/sh\necho "$*" >> "%s/mise.log"\nif [ %s = 1 ]; then\n  case "$1" in\n    where) echo "%s"; exit 0 ;;\n    which) echo "%s"; exit 0 ;;\n  esac\nfi\nexit 1\n' \
+    "$dir" "$2" "$work/tlc" "$bin/java" > "$bin/mise"
+  printf '#!/bin/sh\necho "$*" >> "%s/java.log"\nexit 3\n' "$dir" > "$bin/java"
+  chmod +x "$bin/mise" "$bin/java"
+}
+
+run() { # <case> <found: 1 or 0> [VAR=value...]: run the runner and record its exit code
+  local name=$1 found=$2
+  shift 2
+  fakes "$name" "$found"
+  set +e
+  env -u TLA2TOOLS -u JAVA PATH="$work/$name/bin:$PATH" "$@" \
+    "$runner" "$work/Spec.tla" --out "$work/$name/out" >"$work/$name/stdout" 2>"$work/$name/stderr"
+  echo $? > "$work/$name/exit"
+  set -e
+}
+
+# Negative: neither tool is installed. The runner must stop and name the install, not run it.
+run missing 0
+check "missing tools: the runner exits nonzero" '[ "$(cat "$work/missing/exit")" -ne 0 ]'
+check "missing tools: the error names the mise install command" 'grep -q "Cannot find TLC and Java through mise" "$work/missing/stderr" && grep -q "mise install" "$work/missing/stderr"'
+check "missing tools: mise was asked where the tools are" 'grep -q "^where " "$work/missing/mise.log" && grep -q "^which java" "$work/missing/mise.log"'
+check "missing tools: mise was never told to install" '! grep -q "^install" "$work/missing/mise.log"'
+check "missing tools: no Java ran" '[ ! -e "$work/missing/java.log" ]'
+
+# Positive: mise reports both tools. The runner must use exactly what mise found.
+run found 1
+check "found tools: mise was never told to install" '! grep -q "^install" "$work/found/mise.log"'
+check "found tools: Java from mise ran SANY with the jar from mise" 'grep -qF -- "-cp $work/tlc/tla2tools.jar tla2sany.xml.XMLExporter" "$work/found/java.log"'
+check "found tools: a SANY failure is reported, not hidden" '[ "$(cat "$work/found/exit")" -ne 0 ] && grep -q "SANY could not read" "$work/found/stderr"'
+
+# Positive: TLA2TOOLS and JAVA name the tools directly. mise is not consulted.
+run explicit 0 TLA2TOOLS="$work/tlc/explicit.jar" JAVA="$work/explicit/bin/java"
+check "explicit tools: mise is not called" '[ ! -e "$work/explicit/mise.log" ]'
+check "explicit tools: the named jar is used" 'grep -qF -- "-cp $work/tlc/explicit.jar tla2sany.xml.XMLExporter" "$work/explicit/java.log"'
+
+[ "$fails" -eq 0 ] && echo "PASS: statechart runner ($(grep -c '^check ' "$0") checks)" || { echo "FAIL: $fails check(s)"; exit 1; }

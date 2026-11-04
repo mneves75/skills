@@ -23,7 +23,7 @@ blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--line);c
 <nav aria-label="Site" style="font-size:.875rem"><a href="./">mneves75/skills</a> · How to use the skills</nav>
 <main>
 <h1>How to use these skills</h1>
-<p>Twenty-two skills, one install. This page shows what each one does, how to trigger it, and what a
+<p>Twenty-three skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the <a href="https://github.com/mneves75/skills/blob/main/README.md">README</a>; for the exact
 procedure an agent follows, open <code>skills/&lt;name&gt;/SKILL.md</code>. Service level objectives and
 incident reviews are not skills: use the <a href="https://github.com/mneves75/skills/blob/main/docs/sre-guides/README.md">SRE guides</a> and
@@ -39,7 +39,11 @@ lists what each agent directory is missing.</p>
 <p>The readiness tool runs locally and runs the assessed project&#39;s own build, lint and test tools,
 so point it only at repositories you trust. An image-generation skill may send prompts and authorized
 references to the image provider configured in your agent. Autoreview sends authorized review
-inputs to the selected review provider after scanning them for credentials.</p>
+inputs to the selected review provider after scanning them for credentials. Council sends the
+task, plan or diff you approve to each member CLI&#39;s provider, and its members can read the
+repository you point them at; codex-lane sends each delegated brief, and what Codex reads to
+answer it, to Codex under your account; the motion-film reviewer step sends the brief and contact
+sheets to the reviewer CLI&#39;s provider.</p>
 <p>A skill is loaded when the agent decides your request matches its <code>description</code>. You can
 also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use the mneves-eli5 skill&quot;.</p>
 <table tabindex="0">
@@ -307,7 +311,8 @@ Starter commands: <a href="https://github.com/mneves75/skills/blob/main/skills/m
 short product film and the evidence that it is right. Every line on screen is quoted verbatim
 from the product&#39;s own pages; the music is synthesized in code on a beat grid, so each cut and
 key press sounds on its frame; the film renders in a Remotion project and a reviewer that did
-not build it watches it until it says <code>ship</code>.</p>
+not build it watches it, for up to five rounds; after the fifth, the film is delivered with any
+open problem listed.</p>
 <p><strong>When to use it.</strong> You want a demo, launch or explainer video for a product with a website,
 and you want to be able to rebuild it after the site changes. Blank brief fields (length,
 format, music, voice) are decided by the agent and logged with their reasons.</p>
@@ -319,7 +324,7 @@ second: install it. Everything else is your call.</p>
 <p><strong>What you receive.</strong> The MP4 (H.264 yuv420p, AAC 48 kHz, faststart), the music alone, a
 thumbnail sheet, and the brief, facts, timing and ledger files: every decision, every number a
 check printed and every reviewer verdict, plus the seconds worth watching and hearing yourself.
-The scripts need Python 3.10+ and ffmpeg; rendering needs Node and Remotion 4; <code>capture.py</code>
+The scripts need Python 3.11+ and ffmpeg; rendering needs Node and Remotion 4; <code>capture.py</code>
 needs Chrome.</p>
 <p><strong>Maintaining it.</strong> Run <code>python3 skills/mneves-motion-film/tests/test_pipeline.py</code>: each check
 passes on a synthetic film and refuses its own planted violation (audio two frames late, a cut
@@ -550,13 +555,14 @@ the verifier checks the artifact.</li>
 to merge, while you are not watching: it finishes the change, proves it, has a reviewer that did
 not build it review the diff, files the PR, watches CI and review bots, fixes real findings, and
 stops at the merge gate. It never merges, enables auto-merge or enters a merge queue.</p>
-<p><strong>Triggers.</strong> &quot;full stop&quot;, including a closing &quot;Full stop.&quot; that reads like emphasis. Nothing
-else grants this autonomy.</p>
+<p><strong>Triggers.</strong> Only an explicit request for this workflow: <code>/full-stop</code>, &quot;run full-stop&quot; or
+&quot;use the full-stop skill&quot;. A message that merely ends with &quot;Full stop.&quot; is ordinary punctuation
+and grants nothing.</p>
 <p><strong>Prerequisites.</strong> Git, an authenticated GitHub CLI (<code>gh</code>), and the repository&#39;s own checks.
 The sibling skills <code>autoreview</code>, <code>babysit-pr</code> and <code>leaving-pr-comments</code> sharpen the review,
 watching and comment steps when installed; each has a written fallback.</p>
 <p><strong>Example</strong> (illustrative).</p>
-<pre tabindex="0"><code>fix the flaky date parsing in the invoice export. full stop.
+<pre tabindex="0"><code>/full-stop fix the flaky date parsing in the invoice export
 </code></pre>
 <ol>
 <li>It branches off the default branch, reproduces the failure, makes the smallest fix and watches
@@ -641,6 +647,10 @@ false positives with a written reason.</li>
 <li>A review bot counts only when GitHub types its author as a Bot, and a check counts as the
 bot&#39;s only when the bot&#39;s own GitHub App reports it, whatever the job is named.</li>
 <li>A check GitHub refused to start over billing is reported as billing-blocked, not failed.</li>
+<li>If another watcher already owns the PR, it reports that watcher&#39;s state instead of starting a
+second one. When the same failure survives two fixes, or after three repair rounds, it stops
+and reports the PR as blocked; a stricter limit in your instructions wins.</li>
+<li>It brings the base branch in by merging; it rebases or force-pushes only with your clearance.</li>
 </ul>
 <p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/babysit-pr/SKILL.md">SKILL.md</a>.</p>
 <hr>
@@ -984,7 +994,7 @@ documented ranking requirement. Valid schema does not guarantee citations. Live 
 writes and deployments retain the host&#39;s authorization rules.</p>
 <hr>
 <h2 id="pstack-collection">pstack collection</h2>
-<p><a href="https://github.com/mneves75/skills/blob/main/collections/pstack/"><code>collections/pstack</code></a> adds 36 skills from Lauren Tan&#39;s pstack. It is not
+<p><a href="https://github.com/mneves75/skills/blob/main/collections/pstack/"><code>collections/pstack</code></a> adds 42 skills from Lauren Tan&#39;s pstack. It is not
 part of the install above:</p>
 <pre tabindex="0"><code class="language-bash">npx skills@latest add https://github.com/mneves75/skills/tree/main/collections/pstack/skills
 </code></pre>
@@ -993,7 +1003,11 @@ other pstack workflows. <code>how</code> and <code>why</code> answer &quot;how d
 <code>interrogate</code> attacks a plan or diff with several reviewers, and <code>swarm</code> fans out parallel
 workers. Without the pstack-claude plugin, dispatches to <code>pstack:*</code> agents fall back to a
 general-purpose subagent; the collection README explains this and lists the overlaps with Matt
-Pocock&#39;s skills.</p>
+Pocock&#39;s skills. <code>statechart</code>, the two formal-verification skills, <code>ketchup-video</code> and the
+<code>thermos</code> reviews run only when you name them (&quot;/statechart for the checkout flow&quot;), and none
+installs a tool unless that install is already authorized or you approve it.
+<a href="https://github.com/mneves75/skills/blob/main/docs/skill-ledger.md"><code>docs/skill-ledger.md</code></a> records why each skill is kept, changed or
+left out.</p>
 <h2 id="combining-them">Combining them</h2>
 <p>A typical shipping flow: <code>mneves-fable-orchestrator</code> splits the work and dispatches it;
 <code>mneves-expert-review</code> challenges the plan before code is written; <code>mneves-verify</code> gives the

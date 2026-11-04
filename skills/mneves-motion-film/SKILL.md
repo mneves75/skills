@@ -1,8 +1,8 @@
 ---
 name: mneves-motion-film
-description: "Make a short product film (demo, launch or explainer video) from a brief, with on-screen text quoted from the product's own pages, music synthesized on a beat grid and a Remotion render, checked for facts, contrast, loudness, codecs and audio sync and reviewed until a fresh reviewer says ship. Use when asked to make, update or redo a product video."
+description: "Make a short product film (demo, launch or explainer video) from a brief, with on-screen text quoted from the product's own pages, music synthesized on a beat grid and a Remotion render, checked for facts, contrast, loudness, codecs and audio sync and reviewed by a fresh reviewer for up to five rounds, then delivered with any open problem listed. Use when asked to make, update or redo a product video."
 license: Apache-2.0
-compatibility: "Python 3.10+ (standard library only), ffmpeg and ffprobe, Node with a Remotion 4 project; capture.py needs Chrome."
+compatibility: "Python 3.11+ (standard library only), ffmpeg and ffprobe, Node with a Remotion 4 project; capture.py needs Chrome."
 ---
 
 # Motion film
@@ -38,8 +38,10 @@ start `film/`, and add [assets/eslint.film.mjs](assets/eslint.film.mjs) to the E
 1. **Capture.** `capture.py <url> film/capture` for brand and hierarchy references; copy the
    logo file path for path. Take colours from the product's own styles into `theme.json` (six
    at most). Done when `check_contrast.py film/theme.json` passes.
-2. **Facts.** `facts.py <site-url> <page.html>... > film/facts.json`, from the pages as
-   served. Ids are text digests, so editing one page line breaks only the copy that quotes it.
+2. **Facts.** `facts.py <site-url> <page.html>... > film/facts.json`. It reads the local page
+   files you pass and uses the URL only to build each fact's link, so fetch the served pages
+   fresh first; `--check` compares those local copies, not the live site. Ids are text digests,
+   so editing one page line breaks only the copy that quotes it.
    Done when every claim you intend to show is a fact.
 3. **Storyboard.** A planner in a fresh context drafts three directions
    ([references/storyboard.md](references/storyboard.md), which also holds the picture and

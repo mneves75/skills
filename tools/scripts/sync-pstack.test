@@ -1,189 +1,280 @@
 #!/usr/bin/env bash
-# End-to-end test for sync-pstack.sh against a throwaway fixture repository.
-# No network: the fixture stands in for pstack-claude.
+# End-to-end test for sync-pstack.sh through its public CLI, against throwaway
+# fixture repositories that stand in for cursor/plugins (official) and the
+# Claude Code port. No network. Needs the Agent Skills reference validator
+# (`agentskills`, from skills-ref; see AGENTS.md) on PATH, as the sync does.
 #
 # SPDX-License-Identifier: Apache-2.0
 # SPDX-FileCopyrightText: 2026 Marcus Neves
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")" && pwd)
+command -v agentskills >/dev/null || { echo "FAIL: agentskills is not on PATH; install skills-ref as AGENTS.md describes"; exit 1; }
 sync="$here/sync-pstack.sh"
 work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 fails=0
 check() { if eval "$2"; then echo "PASS: $1"; else echo "FAIL: $1"; fails=$((fails + 1)); fi; }
+commit_all() { git -C "$1" add -A && git -C "$1" -c user.email=t@t -c user.name=t commit -qm "$2" && git -C "$1" rev-parse HEAD; }
+snap() { (cd "$1" && find . -type f -print0 | sort -z | xargs -0 shasum) ; }
+skill() { # <dir> <name> <extra frontmatter lines> <body>
+  mkdir -p "$1/$2"
+  printf -- '---\nname: %s\ndescription: %s does a thing when asked.\n%s---\n%s\n' "$2" "$2" "$3" "$4" > "$1/$2/SKILL.md"
+}
 
-src="$work/src"
-mkdir -p "$src/plugins/pstack/skills/alpha" "$src/plugins/pstack/skills/beta/references" "$src/plugins/pstack/.claude-plugin"
-cat > "$src/plugins/pstack/skills/alpha/SKILL.md" <<'EOF'
----
-name: alpha
-description: "Alpha does the first thing when asked."
-menu-description: apply alpha
----
+# --- official: the upstream monorepo -------------------------------------------------------
+official="$work/official"
+mkdir -p "$official/pstack/skills" "$official/kit/skills"
+skill "$official/pstack/skills" alpha "" "upstream alpha"
+skill "$official/kit/skills" kitty "" "kit skill"
+skill "$official/kit/skills" dropped "" "a kit skill the port leaves out"
+echo "MIT" > "$official/LICENSE"
+git -C "$official" init -q
+off1=$(commit_all "$official" official)
 
-# Alpha
-
-Body line with: a colon.
+# --- port: the Claude Code port at one commit ------------------------------------------------
+port="$work/port"
+ps="$port/plugins/pstack/skills"
+skill "$ps" alpha 'menu-description: apply alpha
+' 'Body line with: a colon. Read principle-x, then [notes](../beta/references/notes.md) and [the section](../beta/SKILL.md#beta-section).'
+skill "$ps" beta 'paths: ["**/*.ts", "**/*.tsx"]
+' $'Beta body.\n\n## Beta section\n\nPlaceholder path /Users/you/project is fine.'
+mkdir -p "$ps/beta/references" "$ps/heavy/test"
+echo "ref" > "$ps/beta/references/notes.md"
+skill "$ps" principle-x "" "a principle the adaptation retires"
+skill "$ps" heavy "" "runtime part"
+echo "corpus" > "$ps/heavy/test/big.txt"
+skill "$ps" kitty "" "kit skill"
+mkdir -p "$port/plugins/pstack/.claude-plugin" "$port/tools"
+echo '{ "name": "pstack", "version": "9.9.9" }' > "$port/plugins/pstack/.claude-plugin/plugin.json"
+cat > "$port/tools/upstream.json" <<EOF
+{ "remote": "https://github.com/example/plugins.git",
+  "components": {
+    "pstack": { "upstreamPath": "pstack", "sha": "$off1", "exclude": ["skills/make-bot-ui/"] },
+    "kit": { "upstreamPath": "kit/skills", "sha": "$off1", "exclude": ["dropped/"] } } }
 EOF
-cat > "$src/plugins/pstack/skills/beta/SKILL.md" <<'EOF'
----
-name: beta
-description: Beta helps with TypeScript files when editing them.
-paths: ["**/*.ts", "**/*.tsx"]
----
+printf 'MIT License\n\nCopyright (c) 2026 Fixture Author\n' > "$port/LICENSE"
+echo "kit license" > "$port/LICENSE-kit"
+echo "notice" > "$port/NOTICE-skills.md"
+git -C "$port" init -q
+port1=$(commit_all "$port" port)
+mkdir -p "$ps/alpha/node_modules" && echo junk > "$ps/alpha/node_modules/junk.js"   # untracked: never ships
 
-Beta body.
+# --- the adaptation patch, made the way a maintainer makes one ----------------------------------
+pt="$work/patchtree"
+mkdir -p "$pt" && cp -R "$ps/." "$pt/" && rm -r "$pt/alpha/node_modules"
+git -C "$pt" init -q && commit_all "$pt" base >/dev/null
+rm -r "$pt/principle-x"
+sed -i.bak 's/Read principle-x, then/Read/' "$pt/alpha/SKILL.md" && rm "$pt/alpha/SKILL.md.bak"
+git -C "$pt" add -A
+patch_body=$(git -C "$pt" diff --cached --full-index)
+
+# --- dest: the collection with its hand-written inputs --------------------------------------
+sources() { # <port sha> <official sha>
+  cat <<EOF
+{
+  "port": { "url": "https://github.com/example/pstack-claude", "commit": "$1",
+            "skills": "plugins/pstack/skills", "manifest": "plugins/pstack/.claude-plugin/plugin.json",
+            "pins": "tools/upstream.json", "notices": ["LICENSE", "LICENSE-kit", "NOTICE-skills.md"] },
+  "official": { "url": "https://github.com/example/plugins", "commit": "$2" },
+  "exclude": { "heavy/test": "fixture corpus" },
+  "retired": { "principle-*": "consolidated", "gone": "never shipped" }
+}
 EOF
-echo "ref" > "$src/plugins/pstack/skills/beta/references/notes.md"
-echo '{ "name": "pstack", "version": "9.9.9" }' > "$src/plugins/pstack/.claude-plugin/plugin.json"
-printf 'MIT License\n\nCopyright (c) 2026 Fixture Author\n' > "$src/LICENSE"
-git -C "$src" init -q
-git -C "$src" add -A
-git -C "$src" -c user.email=t@t -c user.name=t commit -qm fixture
-sha=$(git -C "$src" rev-parse HEAD)
-# Untracked files in the source tree must never ship.
-mkdir -p "$src/plugins/pstack/skills/alpha/node_modules"
-echo junk > "$src/plugins/pstack/skills/alpha/node_modules/junk.js"
-
+}
 dest="$work/dest"
-mkdir -p "$dest/skills/stale"
+mkdir -p "$dest/adaptations" "$dest/skills/stale"
+sources "$port1" "$off1" > "$dest/sources.json"
+printf 'Adaptation 01-retire\n\nRetires principle-x.\n\n%s\n' "$patch_body" > "$dest/adaptations/01-retire.patch"
 echo "stale" > "$dest/skills/stale/SKILL.md"
+echo "legacy" > "$dest/local-overrides.patch"
+echo "old" > "$dest/LICENSE-stale"
 echo "hand-written" > "$dest/README.md"
+hand_before=$(cd "$dest" && shasum README.md sources.json adaptations/01-retire.patch)
 
-bash "$sync" "$src" "$sha" "$dest"
+bash "$sync" "$port" "$official" "$dest"
 
-check "tracked skills are copied" '[ -f "$dest/skills/alpha/SKILL.md" ] && [ -f "$dest/skills/beta/references/notes.md" ]'
+check "tracked skills are copied" '[ -f "$dest/skills/alpha/SKILL.md" ] && [ -f "$dest/skills/beta/references/notes.md" ] && [ -f "$dest/skills/heavy/SKILL.md" ]'
 check "untracked files are not copied" '[ ! -e "$dest/skills/alpha/node_modules" ]'
+check "an excluded path is left out" '[ ! -e "$dest/skills/heavy/test" ]'
 check "skills deleted upstream are removed" '[ ! -e "$dest/skills/stale" ]'
-check "hand-written collection files are preserved" '[ "$(cat "$dest/README.md")" = "hand-written" ]'
+check "stale generated files are removed" '[ ! -e "$dest/local-overrides.patch" ] && [ ! -e "$dest/LICENSE-stale" ]'
+check "hand-written inputs are preserved" '[ "$hand_before" = "$(cd "$dest" && shasum README.md sources.json adaptations/01-retire.patch)" ]'
+check "the adaptation patch is applied" '[ ! -e "$dest/skills/principle-x" ] && grep -q "^Body line with: a colon. Read \[notes\]" "$dest/skills/alpha/SKILL.md"'
 check "non-spec key moves under metadata" 'grep -qx "metadata:" "$dest/skills/alpha/SKILL.md" && grep -qx "  menu-description: \"apply alpha\"" "$dest/skills/alpha/SKILL.md" && ! grep -q "^menu-description:" "$dest/skills/alpha/SKILL.md"'
 expected_paths='  paths: "[\"**/*.ts\", \"**/*.tsx\"]"'
 check "flow-list value becomes a quoted string" 'grep -qxF "$expected_paths" "$dest/skills/beta/SKILL.md"'
-check "spec keys are untouched" 'grep -qx "name: alpha" "$dest/skills/alpha/SKILL.md" && grep -qx "description: \"Alpha does the first thing when asked.\"" "$dest/skills/alpha/SKILL.md"'
-check "body is byte-identical" '[ "$(sed "1,/^---$/d" "$src/plugins/pstack/skills/alpha/SKILL.md" | sed "1,/^---$/d")" = "$(sed "1,/^---$/d" "$dest/skills/alpha/SKILL.md" | sed "1,/^---$/d")" ]'
-check "UPSTREAM pins the full source commit" 'grep -q "$sha" "$dest/UPSTREAM"'
-check "UPSTREAM records the port version" 'grep -q "9.9.9" "$dest/UPSTREAM"'
-check "LICENSE comes from the source commit" 'grep -q "Fixture Author" "$dest/LICENSE"'
+check "an unadapted body is byte-identical" '[ "$(sed "1,/^---$/d" "$ps/beta/SKILL.md" | sed "1,/^---$/d")" = "$(sed "1,/^---$/d" "$dest/skills/beta/SKILL.md" | sed "1,/^---$/d")" ]'
+check "UPSTREAM pins both commits and the port version" 'grep -qx "port-commit: $port1" "$dest/UPSTREAM" && grep -qx "official-commit: $off1" "$dest/UPSTREAM" && grep -qx "port-version: 9.9.9" "$dest/UPSTREAM"'
+check "UPSTREAM records each component as identical to official" 'grep -qx "component: kit $off1 kit/skills (identical at official-commit)" "$dest/UPSTREAM" && grep -qx "component: pstack $off1 pstack (identical at official-commit)" "$dest/UPSTREAM"'
+patch_sha=$(shasum -a 256 "$dest/adaptations/01-retire.patch" | cut -d" " -f1)
+check "UPSTREAM records each adaptation by digest" 'grep -qx "adaptation: 01-retire.patch sha256:$patch_sha" "$dest/UPSTREAM"'
+check "UPSTREAM records exclusions, retirements and the count" 'grep -qx "excluded: heavy/test" "$dest/UPSTREAM" && grep -qx "retired: principle-\*" "$dest/UPSTREAM" && grep -qx "skills: 4" "$dest/UPSTREAM"'
+check "license and notice files come from the port commit" 'grep -q "Fixture Author" "$dest/LICENSE" && [ "$(cat "$dest/LICENSE-kit")" = "kit license" ] && [ "$(cat "$dest/NOTICE-skills.md")" = notice ]'
 
-snapshot() { (cd "$dest" && find . -type f -print0 | sort -z | xargs -0 shasum) ; }
-before=$(snapshot)
-bash "$sync" "$src" "$sha" "$dest"
-check "a second run changes nothing" '[ "$before" = "$(snapshot)" ]'
+before=$(snap "$dest")
+bash "$sync" "$port" "$official" "$dest" >/dev/null
+check "a second run changes nothing" '[ "$before" = "$(snap "$dest")" ]'
 
-if bash "$sync" "$src" "no-such-ref" "$dest" 2>/dev/null; then ok=0; else ok=1; fi
-check "an unknown ref fails" '[ $ok -eq 1 ]'
-check "a failed run leaves the collection untouched" '[ "$before" = "$(snapshot)" ]'
+# Pins, not branch tips, decide the output: new commits on either side change nothing.
+skill "$ps" alpha "" "moved on"
+commit_all "$port" "later port work" >/dev/null
+echo "later" >> "$official/LICENSE"
+commit_all "$official" "later official work" >/dev/null
+bash "$sync" "$port" "$official" "$dest" >/dev/null
+check "later commits on either repository do not move the output" '[ "$before" = "$(snap "$dest")" ]'
 
-# A local fork: one commit on top of the published branch. UPSTREAM must name the
-# published commit it is based on, since the local commit exists nowhere public.
-fork="$work/fork"
-git clone -q "$src" "$fork"
-echo "local note" > "$fork/plugins/pstack/skills/alpha/LOCAL.md"
-printf '%s\n' '{"codex":{"default":"gpt-6.1-sol"}}' > "$fork/plugins/pstack/models.json"
-mkdir -p "$fork/tools" "$fork/tests"
-printf '%s\n' 'export const effort = "xhigh";' > "$fork/tools/runtimes.mjs"
-printf '%s\n' 'test("routing", () => {});' > "$fork/tests/models.test.mjs"
-git -C "$fork" add -A
-git -C "$fork" -c user.email=t@t -c user.name=t commit -qm "local override"
-fork_dest="$work/fork-dest"
-bash "$sync" "$fork" HEAD "$fork_dest"
-check "a fork records the published commit it is based on" 'grep -qx "based-on: $sha" "$fork_dest/UPSTREAM"'
-check "a fork records how many local commits sit on top" 'grep -qx "local-commits: 1" "$fork_dest/UPSTREAM"'
-check "an unforked sync reports zero local commits" 'grep -qx "local-commits: 0" "$dest/UPSTREAM"'
-
-check "a fork ships the local skill changes as a patch" '[ -s "$fork_dest/local-overrides.patch" ]'
-replay="$work/replay"
-git clone -q "$src" "$replay"
-git -C "$replay" apply "$fork_dest/local-overrides.patch" 2>/dev/null || true
-check "the patch rebuilds the fork from the published commit" 'diff -r "$replay/plugins/pstack/skills" "$fork/plugins/pstack/skills" >/dev/null'
-check "the patch preserves the routing source and its test" 'cmp "$replay/plugins/pstack/models.json" "$fork/plugins/pstack/models.json" && cmp "$replay/tools/runtimes.mjs" "$fork/tools/runtimes.mjs" && cmp "$replay/tests/models.test.mjs" "$fork/tests/models.test.mjs"'
-check "an unforked sync ships no patch" '[ ! -e "$dest/local-overrides.patch" ]'
-
-# The origin URL is published in UPSTREAM: credentials and local paths must never ship.
-git -C "$fork" remote set-url origin "https://user:s3cret@example.com/owner/pstack-claude.git"
-bash "$sync" "$fork" HEAD "$fork_dest" >/dev/null
-check "credentials are stripped from the source URL" 'grep -qx "source: https://example.com/owner/pstack-claude.git" "$fork_dest/UPSTREAM"'
-git -C "$fork" remote set-url origin "$src"
-bash "$sync" "$fork" HEAD "$fork_dest" >/dev/null
-check "a local-path origin is not published" 'grep -qx "source: local" "$fork_dest/UPSTREAM"'
-
-# Without a dest argument the collection lands under the repository holding the script.
-repo="$work/repo"
-mkdir -p "$repo/tools/scripts"
-cp "$sync" "$repo/tools/scripts/"
-(cd "$work" && bash "$repo/tools/scripts/sync-pstack.sh" "$src" "$sha" >/dev/null)
-check "the default dest is the repository's collections/pstack" '[ -f "$repo/collections/pstack/skills/alpha/SKILL.md" ]'
-
-# Frontmatter shapes the script must handle or refuse. Each case is its own source repo.
-case_repo() {
-  local dir="$work/case-$1"
-  mkdir -p "$dir/plugins/pstack/skills/gamma" "$dir/plugins/pstack/.claude-plugin"
-  printf '%s' "$2" > "$dir/plugins/pstack/skills/gamma/SKILL.md"
-  [ "${3:-}" = "no-plugin-json" ] || echo '{ "version": "1.0.0" }' > "$dir/plugins/pstack/.claude-plugin/plugin.json"
-  echo "MIT" > "$dir/LICENSE"
-  git -C "$dir" init -q && git -C "$dir" add -A && git -C "$dir" -c user.email=t@t -c user.name=t commit -qm case
-  echo "$dir"
+# --- refusals: each runs against a copy of the good output and must leave it byte-identical ---
+case_dest() { rm -rf "$work/d-$1" && cp -R "$dest" "$work/d-$1" && echo "$work/d-$1"; }
+case_port() { rm -rf "$work/p-$1" && git clone -q "$port" "$work/p-$1" && git -C "$work/p-$1" checkout -q "$port1" && echo "$work/p-$1"; }
+refuses() { # <case> <port> <official> <dest> <expected stderr text>
+  local before
+  before=$(snap "$4")
+  if bash "$sync" "$2" "$3" "$4" 2>"$work/err-$1" >"$work/out-$1"; then return 1; fi
+  grep -qF -- "$5" "$work/err-$1" && [ "$before" = "$(snap "$4")" ]
 }
-refuses() {
-  local out="$work/out-$1"
-  mkdir -p "$out" && echo keep > "$out/README.md"
-  if bash "$sync" "$2" HEAD "$out" 2>/dev/null; then return 1; fi
-  [ ! -e "$out/skills" ] && [ "$(cat "$out/README.md")" = keep ]
+with_port() { # <case> <port repo>: commit it and point a dest copy at that commit
+  local sha d
+  sha=$(commit_all "$2" "$1")
+  d=$(case_dest "$1")
+  sources "$sha" "$off1" > "$d/sources.json"
+  echo "$d"
 }
-r=$(case_repo existing-meta $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmetadata:\n  author: someone\nicon: star\n---\nbody\n')
-bash "$sync" "$r" HEAD "$work/out-meta" >/dev/null
-check "a moved key joins an existing metadata block" '[ "$(sed -n "4,6p" "$work/out-meta/skills/gamma/SKILL.md")" = "$(printf "metadata:\n  author: someone\n  icon: \"star\"")" ]'
-r=$(case_repo single-quoted $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmode: \'fast\'\n---\nbody\n')
-bash "$sync" "$r" HEAD "$work/out-sq" >/dev/null
-check "a single-quoted value is unquoted before re-quoting" 'grep -qx "  mode: \"fast\"" "$work/out-sq/skills/gamma/SKILL.md"'
-r=$(case_repo four-space-meta $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmetadata:\n    author: someone\nicon: star\n---\nbody\n')
-bash "$sync" "$r" HEAD "$work/out-4sp" >/dev/null
-check "a moved key matches the existing metadata indentation" 'grep -qx "    icon: \"star\"" "$work/out-4sp/skills/gamma/SKILL.md"'
-r=$(case_repo commented-meta $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmetadata:\n    # provenance\n  author: someone\nicon: star\n---\nbody\n')
-bash "$sync" "$r" HEAD "$work/out-cmt" >/dev/null
-check "a leading comment does not set the metadata indentation" 'grep -qx "  icon: \"star\"" "$work/out-cmt/skills/gamma/SKILL.md"'
-r=$(case_repo yaml-escapes $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmode: \'don\'\'t stop\'\nhint: "say \\"hi\\""\n---\nbody\n')
-bash "$sync" "$r" HEAD "$work/out-esc" >/dev/null
-check "a doubled single quote decodes to one apostrophe" 'grep -qxF "  mode: \"don'"'"'t stop\"" "$work/out-esc/skills/gamma/SKILL.md"'
-check "a double-quoted escape survives unchanged" 'grep -qxF "  hint: \"say \\\"hi\\\"\"" "$work/out-esc/skills/gamma/SKILL.md"'
-r=$(case_repo flow-meta $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nmetadata: {author: someone}\nicon: star\n---\nbody\n')
-check "a flow-style metadata block is refused" 'refuses flow "$r"'
-r=$(case_repo multiline $'---\nname: gamma\ndescription: Gamma does a thing when asked.\nicons:\n  - star\n---\nbody\n')
-check "a multi-line non-spec key is refused" 'refuses multiline "$r"'
-r=$(case_repo no-frontmatter $'# gamma\n\nbody\n')
-check "a skill without frontmatter is refused" 'refuses nofm "$r"'
-r=$(case_repo no-plugin $'---\nname: gamma\ndescription: Gamma does a thing when asked.\n---\nbody\n' no-plugin-json)
-check "a source without plugin.json is refused" 'refuses noplugin "$r"'
 
-# A symlink in the upstream tree must not let the sync read or rewrite a file outside its staging
-# directory. Each target below has a non-spec key, so a sync that followed the link would rewrite it.
+d=$(case_dest missing-commit); sources "0123456789abcdef0123456789abcdef01234567" "$off1" > "$d/sources.json"
+check "a port commit absent from the clone is refused" 'refuses missing-commit "$port" "$official" "$d" "is not in"'
+d=$(case_dest short-sha); sources "${port1:0:12}" "$off1" > "$d/sources.json"
+check "an abbreviated commit is refused" 'refuses short-sha "$port" "$official" "$d" "full 40-character commit"'
+d=$(case_dest creds); sources "$port1" "$off1" | sed 's#https://github.com/example/plugins#https://user:s3cret@github.com/example/plugins#' > "$d/sources.json"
+check "a URL with credentials is refused" 'refuses creds "$port" "$official" "$d" "with no credentials"'
+check "the refusal does not print the credential" '! grep -q s3cret "$work/err-creds" "$work/out-creds"'
+d=$(case_dest no-sources); rm "$d/sources.json"
+check "a missing sources.json is refused" 'refuses no-sources "$port" "$official" "$d" "sources.json is missing"'
+d=$(case_dest bad-exclude); sources "$port1" "$off1" | sed 's#"heavy/test"#"heavy/none"#' > "$d/sources.json"
+check "an exclude that matches nothing is refused" 'refuses bad-exclude "$port" "$official" "$d" "matches nothing"'
+
+# Provenance: the official commit moved past the port's pin on a path the port takes.
+skill "$official/pstack/skills" alpha "" "upstream alpha changed"
+off2=$(commit_all "$official" "upstream change")
+d=$(case_dest drift); sources "$port1" "$off2" > "$d/sources.json"
+check "a port pin behind the official commit is refused" 'refuses drift "$port" "$official" "$d" "is behind official"'
+# ...but a change only inside a component's own exclusions is not drift.
+skill "$official/kit/skills" dropped "" "changed, and the port leaves it out"
+skill "$official/pstack/skills" alpha "" "upstream alpha"
+off3=$(commit_all "$official" "change only excluded paths")
+d=$(case_dest excluded-drift); sources "$port1" "$off3" > "$d/sources.json"
+bash "$sync" "$port" "$official" "$d" >/dev/null
+check "a change only in a component's exclusions is not drift" 'grep -qx "official-commit: $off3" "$d/UPSTREAM"'
+
+# A credential in the port's own pin file is not echoed either.
+p=$(case_port creds-pin); sed -i.bak 's#"https://github.com/example/plugins.git"#"https://user:s3cret@github.com/example/plugins.git"#' "$p/tools/upstream.json" && rm "$p/tools/upstream.json.bak"; d=$(with_port creds-pin "$p")
+check "a port pin remote with credentials is refused" 'refuses creds-pin "$p" "$official" "$d" "not a plain https URL"'
+check "that refusal does not print the credential" '! grep -q s3cret "$work/err-creds-pin" "$work/out-creds-pin"'
+
+# Adaptation patches.
+d=$(case_dest stale-patch); sed -i.bak 's/^-Body line with/-Body text with/' "$d/adaptations/01-retire.patch" && rm "$d/adaptations/01-retire.patch.bak"
+check "a patch that no longer applies is refused" 'refuses stale-patch "$port" "$official" "$d" "does not apply"'
+d=$(case_dest link-patch); printf 'diff --git a/alpha/evil b/alpha/evil\nnew file mode 120000\nindex 0000000..1111111\n--- /dev/null\n+++ b/alpha/evil\n@@ -0,0 +1 @@\n+/etc/passwd\n\\ No newline at end of file\n' > "$d/adaptations/02-link.patch"
+check "a patch that creates a symlink is refused before it is applied" 'refuses link-patch "$port" "$official" "$d" "creates or changes a symlink"'
+d=$(case_dest escape-patch); printf 'diff --git a/../escape.md b/../escape.md\nnew file mode 100644\n--- /dev/null\n+++ b/../escape.md\n@@ -0,0 +1 @@\n+escaped\n' > "$d/adaptations/02-escape.patch"
+check "a patch that writes outside the skills tree is refused" 'refuses escape-patch "$port" "$official" "$d" "does not apply"'
+check "the escaping patch wrote nothing beside the collection" '[ ! -e "$work/escape.md" ] && ! ls "$work"/.sync-pstack.* >/dev/null 2>&1'
+
+# Content checks on what the port and the patches produce.
+p=$(case_port broken-link); printf '\n[gone](../beta/missing.md)\n' >> "$p/plugins/pstack/skills/kitty/SKILL.md"; d=$(with_port broken-link "$p")
+check "a link to a missing file is refused" 'refuses broken-link "$p" "$official" "$d" "does not resolve"'
+p=$(case_port escape-link); printf '\n[out](../../../LICENSE)\n' >> "$p/plugins/pstack/skills/kitty/SKILL.md"; d=$(with_port escape-link "$p")
+check "a link that leaves the collection is refused" 'refuses escape-link "$p" "$official" "$d" "leaves the collection"'
+p=$(case_port bad-anchor); printf '\n[x](../beta/SKILL.md#no-such-section)\n' >> "$p/plugins/pstack/skills/kitty/SKILL.md"; d=$(with_port bad-anchor "$p")
+check "a link to a missing anchor is refused" 'refuses bad-anchor "$p" "$official" "$d" "missing anchor"'
+p=$(case_port excluded-link); printf '\n[corpus](../heavy/test/big.txt)\n' >> "$p/plugins/pstack/skills/kitty/SKILL.md"; d=$(with_port excluded-link "$p")
+check "a link into an excluded path is refused" 'refuses excluded-link "$p" "$official" "$d" "does not resolve"'
+p=$(case_port retired-name); printf '\nRun the gone skill first.\n' >> "$p/plugins/pstack/skills/kitty/SKILL.md"; d=$(with_port retired-name "$p")
+check "naming a retired skill is refused" 'refuses retired-name "$p" "$official" "$d" "names retired skill gone"'
+p=$(case_port retired-dir); skill "$p/plugins/pstack/skills" principle-y "" "another principle"; d=$(with_port retired-dir "$p")
+check "a retired skill the patches leave in place is refused" 'refuses retired-dir "$p" "$official" "$d" "principle-y: retired"'
+p=$(case_port home-path); printf '\nSee /Users/mneves/dev/thing.\n' >> "$p/plugins/pstack/skills/kitty/SKILL.md"; d=$(with_port home-path "$p")
+check "an absolute home path is refused" 'refuses home-path "$p" "$official" "$d" "absolute home path"'
+p=$(case_port code-anchor); printf '\n## No `as` casts\n\n[casts](#no-as-casts) and `[inline](../nowhere.md)`\n' >> "$p/plugins/pstack/skills/kitty/SKILL.md"; d=$(with_port code-anchor "$p")
+bash "$sync" "$p" "$official" "$d" >/dev/null
+check "a heading anchor keeps its inline-code text; a link inside inline code is not checked" 'grep -qF "[casts](#no-as-casts)" "$d/skills/kitty/SKILL.md"'
+p=$(case_port code-anchor-gone); printf '\n## No `as` casts\n\n[casts](#no-casts)\n' >> "$p/plugins/pstack/skills/kitty/SKILL.md"; d=$(with_port code-anchor-gone "$p")
+check "an anchor that drops the inline-code text is refused" 'refuses code-anchor-gone "$p" "$official" "$d" "missing anchor"'
+p=$(case_port code-link); printf '\n```\n[template](../nowhere.md)\n```\n' >> "$p/plugins/pstack/skills/kitty/SKILL.md"; d=$(with_port code-link "$p")
+bash "$sync" "$p" "$official" "$d" >/dev/null
+check "a link inside a code block is not checked" 'grep -qx "skills: 4" "$d/UPSTREAM"'
+
+# Frontmatter shapes the sync must handle or refuse.
+fm_case() { # <case> <SKILL.md text>: a port whose kitty skill has this text
+  local p
+  p=$(case_port "$1")
+  printf '%s' "$2" > "$p/plugins/pstack/skills/kitty/SKILL.md"
+  with_port "$1" "$p" >/dev/null
+  echo "$p"
+}
+fm_ok() { bash "$sync" "$1" "$official" "$work/d-$2" >/dev/null; }
+p=$(fm_case existing-meta $'---\nname: kitty\ndescription: Kitty does a thing when asked.\nmetadata:\n  author: someone\nicon: star\n---\nbody\n'); fm_ok "$p" existing-meta
+check "a moved key joins an existing metadata block" '[ "$(sed -n "4,6p" "$work/d-existing-meta/skills/kitty/SKILL.md")" = "$(printf "metadata:\n  author: someone\n  icon: \"star\"")" ]'
+p=$(fm_case single-quoted $'---\nname: kitty\ndescription: Kitty does a thing when asked.\nmode: \'fast\'\n---\nbody\n'); fm_ok "$p" single-quoted
+check "a single-quoted value is unquoted before re-quoting" 'grep -qx "  mode: \"fast\"" "$work/d-single-quoted/skills/kitty/SKILL.md"'
+p=$(fm_case four-space $'---\nname: kitty\ndescription: Kitty does a thing when asked.\nmetadata:\n    author: someone\nicon: star\n---\nbody\n'); fm_ok "$p" four-space
+check "a moved key matches the existing metadata indentation" 'grep -qx "    icon: \"star\"" "$work/d-four-space/skills/kitty/SKILL.md"'
+p=$(fm_case commented $'---\nname: kitty\ndescription: Kitty does a thing when asked.\nmetadata:\n    # provenance\n  author: someone\nicon: star\n---\nbody\n'); fm_ok "$p" commented
+check "a leading comment does not set the metadata indentation" 'grep -qx "  icon: \"star\"" "$work/d-commented/skills/kitty/SKILL.md"'
+p=$(fm_case escapes $'---\nname: kitty\ndescription: Kitty does a thing when asked.\nmode: \'don\'\'t stop\'\nhint: "say \\"hi\\""\n---\nbody\n'); fm_ok "$p" escapes
+check "a doubled single quote decodes to one apostrophe" 'grep -qxF "  mode: \"don'"'"'t stop\"" "$work/d-escapes/skills/kitty/SKILL.md"'
+check "a double-quoted escape survives unchanged" 'grep -qxF "  hint: \"say \\\"hi\\\"\"" "$work/d-escapes/skills/kitty/SKILL.md"'
+p=$(fm_case flow-meta $'---\nname: kitty\ndescription: Kitty does a thing when asked.\nmetadata: {author: someone}\nicon: star\n---\nbody\n')
+check "a flow-style metadata block is refused" 'refuses flow-meta "$p" "$official" "$work/d-flow-meta" "flow-style metadata"'
+p=$(fm_case multiline $'---\nname: kitty\ndescription: Kitty does a thing when asked.\nicons:\n  - star\n---\nbody\n')
+check "a multi-line non-spec key is refused" 'refuses multiline "$p" "$official" "$work/d-multiline" "spans several lines"'
+p=$(fm_case no-frontmatter $'# kitty\n\nbody\n')
+check "a skill without frontmatter is refused" 'refuses no-frontmatter "$p" "$official" "$work/d-no-frontmatter" "no frontmatter"'
+p=$(fm_case wrong-name $'---\nname: wrong\ndescription: Kitty does a thing when asked.\n---\nbody\n')
+check "a name/directory mismatch is refused" 'refuses wrong-name "$p" "$official" "$work/d-wrong-name" "must equal the directory name"'
+p=$(fm_case no-description $'---\nname: kitty\n---\nbody\n')
+check "a skill without a description is refused" 'refuses no-description "$p" "$official" "$work/d-no-description" "description must be"'
+# The reference validator, not the script's own frontmatter reader, decides spec validity.
+p=$(fm_case bad-yaml $'---\nname: kitty\ndescription: A malformed plain scalar: with another mapping separator\n---\nbody\n')
+check "malformed YAML frontmatter is refused and the output kept" 'refuses bad-yaml "$p" "$official" "$work/d-bad-yaml" "Invalid YAML"'
+p=$(fm_case folded $'---\nname: kitty\ndescription: >\n  Kitty does a thing\n  when asked.\n---\nbody\n'); fm_ok "$p" folded
+check "a valid multi-line description is accepted" 'grep -qx "  when asked." "$work/d-folded/skills/kitty/SKILL.md"'
+p=$(fm_case compat-type $'---\nname: kitty\ndescription: Kitty does a thing when asked.\ncompatibility:\n  tool: gh\n---\nbody\n')
+check "an optional field of the wrong type is refused" 'refuses compat-type "$p" "$official" "$work/d-compat-type" "must be a string"'
+p=$(case_port bad-name); skill "$p/plugins/pstack/skills" bad- "" "body"; d=$(with_port bad-name "$p")
+check "a spec-invalid name that matches its directory is refused" 'refuses bad-name "$p" "$official" "$d" "cannot start or end with a hyphen"'
+# Without the validator nothing is published: PATH keeps git, python3 and tar, not agentskills.
+bin="$work/bin"; mkdir -p "$bin"
+for t in git python3 tar; do ln -s "$(command -v "$t")" "$bin/$t"; done
+d=$(case_dest no-validator)
+check "the fixture PATH really lacks the validator" '! PATH="$bin:/usr/bin:/bin" command -v agentskills >/dev/null'
+check "a run without the reference validator is refused" 'PATH="$bin:/usr/bin:/bin" refuses no-validator "$port" "$official" "$d" "reference validator"'
+p=$(case_port no-manifest); rm "$p/plugins/pstack/.claude-plugin/plugin.json"; d=$(with_port no-manifest "$p")
+check "a port without its plugin manifest is refused" 'refuses no-manifest "$p" "$official" "$d" "plugin.json"'
+
+# A symlink in the port's skills must not let the sync read or rewrite a file outside its stage.
 outside="$work/outside"
 mkdir -p "$outside/dir"
 printf -- '---\nname: delta\ndescription: Delta does a thing when asked.\nicon: star\n---\nbody\n' > "$outside/SKILL.md"
 printf -- '---\nname: epsilon\ndescription: Epsilon does a thing when asked.\nicon: star\n---\nbody\n' > "$outside/dir/SKILL.md"
-outside_snapshot() { (cd "$outside" && find . -type f -print0 | sort -z | xargs -0 shasum); }
-outside_before=$(outside_snapshot)
-link_repo() { # <name> <link path under skills/> <link target>
-  local dir="$work/link-$1"
-  mkdir -p "$dir/plugins/pstack/skills/alpha" "$dir/plugins/pstack/.claude-plugin" "$(dirname "$dir/plugins/pstack/skills/$2")"
-  printf -- '---\nname: alpha\ndescription: Alpha does the first thing when asked.\n---\nbody\n' > "$dir/plugins/pstack/skills/alpha/SKILL.md"
-  ln -s "$3" "$dir/plugins/pstack/skills/$2"
-  echo '{ "version": "1.0.0" }' > "$dir/plugins/pstack/.claude-plugin/plugin.json"
-  echo "MIT" > "$dir/LICENSE"
-  git -C "$dir" init -q && git -C "$dir" add -A && git -C "$dir" -c user.email=t@t -c user.name=t commit -qm links
-  echo "$dir"
-}
-r=$(link_repo file delta/SKILL.md "$outside/SKILL.md")
-check "an upstream file symlink is refused" 'refuses linkfile "$r"'
-r=$(link_repo dir epsilon "$outside/dir")
-check "an upstream directory symlink is refused" 'refuses linkdir "$r"'
-check "the files the symlinks point at stay byte-identical" '[ "$outside_before" = "$(outside_snapshot)" ]'
+outside_before=$(snap "$outside")
+p=$(case_port link-file); mkdir -p "$p/plugins/pstack/skills/delta" && ln -s "$outside/SKILL.md" "$p/plugins/pstack/skills/delta/SKILL.md"; d=$(with_port link-file "$p")
+check "a symlinked file in the port is refused" 'refuses link-file "$p" "$official" "$d" "symlinks or submodules"'
+p=$(case_port link-dir); ln -s "$outside/dir" "$p/plugins/pstack/skills/epsilon"; d=$(with_port link-dir "$p")
+check "a symlinked directory in the port is refused" 'refuses link-dir "$p" "$official" "$d" "symlinks or submodules"'
+check "the files the symlinks point at stay byte-identical" '[ "$outside_before" = "$(snap "$outside")" ]'
 
-sed -i.bak 's/^name: beta$/name: wrong/' "$src/plugins/pstack/skills/beta/SKILL.md" && rm "$src/plugins/pstack/skills/beta/SKILL.md.bak"
-git -C "$src" -c user.email=t@t -c user.name=t commit -qam "break name"
-if bash "$sync" "$src" HEAD "$dest" 2>/dev/null; then ok=0; else ok=1; fi
-check "a name/directory mismatch fails" '[ $ok -eq 1 ]'
-check "a rejected sync leaves the collection untouched" '[ "$before" = "$(snapshot)" ]'
+# Without a dest argument the collection lands under the repository holding the script.
+repo="$work/repo"
+mkdir -p "$repo/tools/scripts" "$repo/collections"
+git -C "$repo" init -q   # the stage then sits inside a repository, as it does in real use
+cp "$here/sync-pstack.sh" "$here/sync-pstack.py" "$repo/tools/scripts/"
+cp -R "$dest" "$repo/collections/pstack"
+rm -r "$repo/collections/pstack/skills" "$repo/collections/pstack/UPSTREAM"   # only a successful run restores them
+(cd "$work" && bash "$repo/tools/scripts/sync-pstack.sh" "$port" "$official" >/dev/null 2>&1) || true
+check "the default dest is the repository's collections/pstack, patched inside a repository" '[ "$before" = "$(snap "$repo/collections/pstack")" ]'
+
+if bash "$sync" "$port" 2>/dev/null; then ok=0; else ok=$?; fi
+check "a missing argument prints usage and exits 2" '[ "$ok" -eq 2 ]'
 
 [ "$fails" -eq 0 ] && echo "PASS: sync-pstack ($(grep -c '^check ' "$0") checks)" || { echo "FAIL: $fails check(s)"; exit 1; }

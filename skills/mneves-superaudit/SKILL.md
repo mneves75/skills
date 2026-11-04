@@ -60,6 +60,12 @@ Green mocked tests do not prove user-visible behavior. For item 4, the sibling `
 when installed, rebases a stale PR and decides whether it should still exist; without it, judge
 whether the base already solved or reshaped the PR's goal before rebasing anything.
 
+Specialists own their procedures; this skill sequences them and does not restate them. When
+installed: `autoreview` reviews, `mneves-verify` gives the independent verdict, `mneves-security`
+audits and gates (`security-audit` for a requested deep source audit), and `mneves-ship-deploy`
+releases. Without one, do that step directly as [references/phases.md](references/phases.md)
+describes and name the absent specialist in the report.
+
 Docs — `README`, `AGENTS.md`, `CLAUDE.md`, changelog — are updated inside the item that changed the
 behavior. There is no separate documentation pass.
 

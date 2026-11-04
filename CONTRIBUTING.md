@@ -70,7 +70,12 @@ own gate. Close a release without a second one:
    lives in the private gate records and the `vX.Y.Z` tag message. Do not write claims that
    the merge makes false, such as "not deployed" or "BLOCK".
 2. After CI and Pages succeed and the served files match the gated tree, create an annotated
-   `vX.Y.Z` tag on the merge commit (owner approval required). Its message carries these
+   `vX.Y.Z` tag on the merge commit (owner approval required). `tools/scripts/deploy.sh <pr>`
+   does this sequence: it refuses without a production security-gate record and a readiness record
+   for the head's tree, merges with `--match-head-commit`, requires the merge tree to equal the gated
+   tree, waits for the CI and Pages runs, compares every served `site/` file with the tree, writes
+   the reuse records for the merge commit and prints (or with `--tag` creates and pushes) the tag;
+   `--dry-run` prints the plan. Its guards are proved by `tools/scripts/deploy.test.sh`. Its message carries these
    lines: `Security gate:` (with the waived IDs), `Readiness gate:`, `Waivers:` (owner and
    expiry), `Independent acceptance:` (when one ran), `Gated tree:`, `Gated commit:`, `CI:`
    and `Deployed:`. A rollback to a tag skips

@@ -1,6 +1,6 @@
 # How to use these skills
 
-Twenty-two skills, one install. This page shows what each one does, how to trigger it, and what a
+Twenty-three skills, one install. This page shows what each one does, how to trigger it, and what a
 session looks like. For the one-line summaries see the [README](README.md); for the exact
 procedure an agent follows, open `skills/<name>/SKILL.md`. Service level objectives and
 incident reviews are not skills: use the [SRE guides](docs/sre-guides/README.md) and
@@ -21,7 +21,11 @@ lists what each agent directory is missing.
 The readiness tool runs locally and runs the assessed project's own build, lint and test tools,
 so point it only at repositories you trust. An image-generation skill may send prompts and authorized
 references to the image provider configured in your agent. Autoreview sends authorized review
-inputs to the selected review provider after scanning them for credentials.
+inputs to the selected review provider after scanning them for credentials. Council sends the
+task, plan or diff you approve to each member CLI's provider, and its members can read the
+repository you point them at; codex-lane sends each delegated brief, and what Codex reads to
+answer it, to Codex under your account; the motion-film reviewer step sends the brief and contact
+sheets to the reviewer CLI's provider.
 
 A skill is loaded when the agent decides your request matches its `description`. You can
 also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 skill".
@@ -257,7 +261,8 @@ Starter commands: [Pandoc recipe](skills/mneves-render/references/pandoc.md).
 short product film and the evidence that it is right. Every line on screen is quoted verbatim
 from the product's own pages; the music is synthesized in code on a beat grid, so each cut and
 key press sounds on its frame; the film renders in a Remotion project and a reviewer that did
-not build it watches it until it says `ship`.
+not build it watches it, for up to five rounds; after the fifth, the film is delivered with any
+open problem listed.
 
 **When to use it.** You want a demo, launch or explainer video for a product with a website,
 and you want to be able to rebuild it after the site changes. Blank brief fields (length,
@@ -271,7 +276,7 @@ format, music, voice) are decided by the agent and logged with their reasons.
 **What you receive.** The MP4 (H.264 yuv420p, AAC 48 kHz, faststart), the music alone, a
 thumbnail sheet, and the brief, facts, timing and ledger files: every decision, every number a
 check printed and every reviewer verdict, plus the seconds worth watching and hearing yourself.
-The scripts need Python 3.10+ and ffmpeg; rendering needs Node and Remotion 4; `capture.py`
+The scripts need Python 3.11+ and ffmpeg; rendering needs Node and Remotion 4; `capture.py`
 needs Chrome.
 
 **Maintaining it.** Run `python3 skills/mneves-motion-film/tests/test_pipeline.py`: each check
@@ -558,8 +563,9 @@ to merge, while you are not watching: it finishes the change, proves it, has a r
 not build it review the diff, files the PR, watches CI and review bots, fixes real findings, and
 stops at the merge gate. It never merges, enables auto-merge or enters a merge queue.
 
-**Triggers.** "full stop", including a closing "Full stop." that reads like emphasis. Nothing
-else grants this autonomy.
+**Triggers.** Only an explicit request for this workflow: `/full-stop`, "run full-stop" or
+"use the full-stop skill". A message that merely ends with "Full stop." is ordinary punctuation
+and grants nothing.
 
 **Prerequisites.** Git, an authenticated GitHub CLI (`gh`), and the repository's own checks.
 The sibling skills `autoreview`, `babysit-pr` and `leaving-pr-comments` sharpen the review,
@@ -568,7 +574,7 @@ watching and comment steps when installed; each has a written fallback.
 **Example** (illustrative).
 
 ```
-fix the flaky date parsing in the invoice export. full stop.
+/full-stop fix the flaky date parsing in the invoice export
 ```
 
 1. It branches off the default branch, reproduces the failure, makes the smallest fix and watches
@@ -675,6 +681,10 @@ babysit PR 77
 - A review bot counts only when GitHub types its author as a Bot, and a check counts as the
   bot's only when the bot's own GitHub App reports it, whatever the job is named.
 - A check GitHub refused to start over billing is reported as billing-blocked, not failed.
+- If another watcher already owns the PR, it reports that watcher's state instead of starting a
+  second one. When the same failure survives two fixes, or after three repair rounds, it stops
+  and reports the PR as blocked; a stricter limit in your instructions wins.
+- It brings the base branch in by merging; it rebases or force-pushes only with your clearance.
 
 Procedure: [SKILL.md](skills/babysit-pr/SKILL.md).
 
@@ -1072,7 +1082,7 @@ writes and deployments retain the host's authorization rules.
 
 ## pstack collection
 
-[`collections/pstack`](collections/pstack/) adds 36 skills from Lauren Tan's pstack. It is not
+[`collections/pstack`](collections/pstack/) adds 42 skills from Lauren Tan's pstack. It is not
 part of the install above:
 
 ```bash
@@ -1084,7 +1094,11 @@ other pstack workflows. `how` and `why` answer "how does X work" and "why is X t
 `interrogate` attacks a plan or diff with several reviewers, and `swarm` fans out parallel
 workers. Without the pstack-claude plugin, dispatches to `pstack:*` agents fall back to a
 general-purpose subagent; the collection README explains this and lists the overlaps with Matt
-Pocock's skills.
+Pocock's skills. `statechart`, the two formal-verification skills, `ketchup-video` and the
+`thermos` reviews run only when you name them ("/statechart for the checkout flow"), and none
+installs a tool unless that install is already authorized or you approve it.
+[`docs/skill-ledger.md`](docs/skill-ledger.md) records why each skill is kept, changed or
+left out.
 
 ## Combining them
 

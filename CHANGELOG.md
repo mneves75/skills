@@ -7,8 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.45.0] - 2026-11-04
+
+Releases PR #40 and PR #39 together; PR #38 is closed as superseded by #40 (its `full-stop`
+text is byte-identical, its paginated review reads and read-only `why` spawns are in the
+regenerated collection, and its hand-edited collection conflicts with the regenerated one).
+
 ### Added
+- **`tools/scripts/init.sh`**: one idempotent command for the development setup (`tools/` locked
+  dev tools, the Agent Skills reference validator in `.scratch/skills-ref`), reporting the host
+  programs the gates need (`python3` itself at 3.11 or later, since that is the command the scripts
+  run); `--check` installs nothing. `init.test` proves the reports and refusals against a fake PATH.
+- **`tools/scripts/deploy.sh`**: the release procedure as a script. It refuses without a production
+  security-gate record and a readiness record for the pull request head's tree, merges with
+  `--match-head-commit` only after `git merge-tree` shows the merge would produce the gated tree (a
+  main that moved under the candidate is refused before anything publishes), refuses a record whose
+  waiver has expired or whose validity window has passed, waits for the CI and Pages runs, compares every served `site/` file with the
+  tree, writes the reuse records for the merge commit and prints or (`--tag`) creates the annotated
+  tag with the verdict lines; it reads the candidate's files whole before filtering them, so a long
+  CHANGELOG cannot abort it through a closed pipe. `deploy.test.sh` proves twenty-three cases against a
+  throwaway repository, a fake `gh` and a fake `curl`, with fixture dates taken from the clock; it reads
+  readiness records in their house shape (no `tree`, waivers keyed `control`) as well as security ones,
+  refuses a record whose waivers are not a list of objects, and refuses a CHANGELOG paragraph that
+  contains a line shaped like a tag verdict line instead of copying it into the tag; it hashes only a
+  download that succeeded, the tag names every waiver with its own owner and expiry, and the newest
+  record for the tree is the authoritative one, judged in full (target, verdict, acceptance, blockers,
+  waivers, validity); an older approval never stands in for a newer assessment that blocks or went stale.
+- The landing page's `full-stop` example invokes the skill by name (D-B16), and HOWTO's motion-film floor
+  reads Python 3.11+ like the skill (D-B18).
+- **`plans/004-release-1-45-closeout.md`**: this closeout and the next step, a script that writes the
+  ledger rows and the tag message from the gate records instead of hand-folding them.
 - **`mneves-motion-film`**: a short product film from a brief. `facts.py` quotes the product's pages into `facts.json` and `check_facts.py` requires every on-screen line to be a verbatim substring of its fact; `music.py` synthesizes music and effects from `timing.json` and `loudness.py` brings them to -14 LUFS with true peak at most -1 dBTP; `check_media.py`, `check_contrast.py` and `check_sync.py` (every cut, click, kick and final chord within one frame) check the render; `build.py` runs them all around a Remotion render; `capture.py` takes the site's reference stills. Review rounds use a fresh reviewer on another model and a muted retelling test. `tests/test_pipeline.py` proves each check refuses its planted violation. Distilled from the devtrim demo film.
+- **`docs/skill-ledger.md`**: the disposition (changed, retained, added, retired, excluded) and the kept controls of each of the 59 skills shipped before the pstack refresh and of the 32 upstream pstack names the collection does not carry as-is.
+- **`tools/scripts/statechart-runner.test`**: runs the collection's adapted statechart runner with fake `mise` and `java`. Missing tools stop it with the install command named and nothing installed; tools found through mise or `TLA2TOOLS`/`JAVA` are the ones it runs.
+
+### Changed
+- **Readiness ledger**: the 1.44.0 binding run (`be1a548` → `d98853b`) and the PR #37 run
+  (`5336080` → `c3dc2bb`) are folded in: cursor `c3dc2bb`, two gate-history rows, SEC-11/12/13
+  imported from those gates, the rows they reread; Totals unchanged.
+- **Documentation items the 1.44.0 and PR #37 gates left**: `codex-lane` briefs go to the provider the
+  `codex` CLI is configured for (E-1/D-B9); the landing page, README, HOWTO and `SECURITY.md` say that
+  council members can read the repository, what Codex reads leaves with each brief, and what the
+  motion-film reviewer and capture steps send and load (D-B1r, D-B12); crossed review in the
+  orchestrator discloses the other column's provider (D-B6); `MEMORY.md` counts six 1.43.0 gate
+  candidates (D-B8); `babysit-pr` names the non-transient `gh` errors that exit 1 (D-B2r); the skill
+  count reads twenty-three (D-B10); `mneves-motion-film` joins the executable inventory with a
+  Python 3.11 floor (D-B11), its review stops after five rounds (D-B13), `facts.py` reads local
+  pages (D-B14), and the ESLint rule is described as a guard, not proof of rendering (D-M1).
+- **Orchestrator Defaults block** re-verified against the vendor model lists on 2026-11-04 (ids
+  unchanged).
+- **Hardening items the same gates left**, each with a test that fails on the previous code: `pr-wait`
+  treats a jobs-API answer other than success or HTTP 404 (403, 422, a network error) as an
+  incomplete read that excuses nothing, instead of classifying the check as failed (L-9), and
+  rejects a status context without a `context` string (H-A7); `mneves-motion-film` runs `npx --no`
+  so a missing eslint or remotion fails instead of being downloaded (H-M2), accepts only http(s)
+  URLs and passes them to Chrome after `--` (H-M3), bounds the MP4 box walk by the file length and
+  the box header (H-M4), and limits cue kinds to the three `music.py` renders before building a file
+  name (H-M5); every `actions/checkout` step in CI sets `persist-credentials: false` (H-M6).
+- **`tools/`**: Biome 2.3.11 → 2.6.4 (PR #39, Dependabot); lint, typecheck and the 102 tests pass on
+  the merged tree.
+- **`full-stop`** runs only when invoked by name (`/full-stop`, "run full-stop", "use the full-stop skill"); a message that merely ends in "Full stop." is ordinary punctuation. The grant no longer covers force-push, rebasing pushed commits or other history rewrites: conflicts are resolved by merging the default branch in. Project and user rules that say to ask before a test method stay in force. Existing auto-merge or merge-queue state is reported and never changed without the user, and the skill does not push to a PR that could merge on that push.
+- **`babysit-pr`** is the canonical PR watcher: it starts no second watcher on a PR another one owns, stops and reports blocked when the same failure survives two fixes or after three repair rounds (a stricter host or user limit wins), and brings the base in by merging, rebasing or force-pushing only with the user's clearance.
+- **`mneves-superaudit`** names the specialists it sequences (`autoreview`, `mneves-verify`, `mneves-security` or `security-audit`, `mneves-ship-deploy`, `mneves-production-readiness`) with a direct fallback when one is absent; a source audit is never reported as a deploy gate.
+- **pstack collection** regenerated with 42 skills from `michael-denyer/pstack-claude` 0.9.128 (`79b36d9`), whose pstack, cursor-team-kit and thermos components are identical to official `cursor/plugins` `fd268b8` (pstack 0.15.36), plus six patches in `collections/pstack/adaptations/`. The local fork and `local-overrides.patch` are gone. New, opt-in: `statechart`, `create-formal-verification-skill`, `maintain-formal-verification-skill`, `ketchup-video`, `in-your-own-words`, `sharpen`. None installs a tool unless the install is already authorized or the user approves it; `statechart` without Pele hands over Mermaid text. `why` stays read-only, `babysit` defers to `babysit-pr` and, like the `poteto-mode` Babysit playbook, stops as blocked at a finite repair bound, `get-pr-comments` reads every page, and `recall`, `automate-me`, `correct`, `reflect` and the `thermos` reviews act only on request. `make-bot-ui` is excluded and the 24 `principle-*` skills and `unslop` stay retired.
+- **`tools/scripts/sync-pstack.sh`** takes `<port-clone> <official-clone> [dest]` and reads its pins from `collections/pstack/sources.json`. It refuses a port whose upstream pins lag the official commit, validates every generated skill with the Agent Skills reference validator (`agentskills`, required on PATH) before replacing the collection, never fetches (Git runs with `GIT_NO_LAZY_FETCH=1`), does not echo a rejected URL, which could carry credentials, and resolves heading anchors with their inline-code text.
 
 ## [1.44.0] - 2026-10-30
 

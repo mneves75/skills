@@ -1,0 +1,214 @@
+Port tooling policy (not applied by the sync)
+
+Apply to a pstack-claude checkout at the pinned port commit, then run its
+`bun tools/generate.mjs`, to restamp the Models and Reasoning effort sections that
+01-model-routing-and-autonomy.patch carries. Needed only when refreshing the adaptation layer.
+
+diff --git a/docs/reference.md b/docs/reference.md
+index 69d97cab149d3098866cdcfca738774029a840ed..1e37bfacaccc7230b2c97d332bcba962b8d5039d 100644
+--- a/docs/reference.md
++++ b/docs/reference.md
+@@ -36,7 +36,6 @@ Find each skill's instructions in the [skills tree](../plugins/pstack/skills/).
+ | `/ketchup-video` | get the `/ketchup` catch-up as a short silent video of slides, with the calls waiting on you as text under it |
+ | `/setup-pstack` | configure pstack per-role model choices |
+ | `/poteto-help` | answer a question about pstack with the prompt to send and the file the answer came from |
+-| `/unslop` | clean up writing by removing AI tells |
+ | `/no-comments` | strip comments before review, fix the accepted findings, encode claimed constraints |
+ | `/create-verification-skill` | generate a project-local verification skill and feature map |
+ | `/maintain-verification-skill` | re-sync a drifted verification skill and its feature map |
+diff --git a/plugins/pstack/models.json b/plugins/pstack/models.json
+index 7318e044016c8a43fa797ad96f2a874ed9286cb2..10e969a8eea19a4ed289eb74698368a968c2f42b 100644
+--- a/plugins/pstack/models.json
++++ b/plugins/pstack/models.json
+@@ -2,12 +2,12 @@
+   "tiers": {
+     "default": "opus",
+     "strongest": "fable",
+-    "worker": "sonnet",
+-    "panel": ["opus", "fable", "sonnet", "haiku"]
++    "worker": "opus",
++    "panel": ["opus", "fable"]
+   },
+   "efforts": ["low", "medium", "high", "xhigh", "max"],
+-  "defaultEffort": "session",
+-  "available": ["opus", "fable", "sonnet", "haiku"],
++  "defaultEffort": "xhigh",
++  "available": ["opus", "fable"],
+   "roles": [
+     { "role": "feature, refactoring", "models": "worker", "skill": "poteto-mode" },
+     { "role": "bug-fix", "models": "default", "skill": "poteto-mode" },
+@@ -31,30 +31,24 @@
+   ],
+   "codex": {
+     "default": "gpt-6.1-sol",
+-    "strongest": "gpt-6-astra",
++    "strongest": "gpt-6.1-sol",
+     "worker": "gpt-6.1-sol",
+-    "panel": ["gpt-6-astra", "gpt-6.1-sol", "gpt-6.1-terra", "gpt-6-luna"]
++    "panel": ["gpt-6.1-sol"]
+   },
+   "pi": {
+     "fallback": "anthropic",
+     "models": {
+       "anthropic": {
+         "opus": "anthropic/claude-opus-5-5",
+-        "fable": "anthropic/claude-fable-5-1",
+-        "sonnet": "anthropic/claude-sonnet-5-5",
+-        "haiku": "anthropic/claude-haiku-5-5"
++        "fable": "anthropic/claude-fable-5-1"
+       },
+       "openai": {
+         "opus": "openai/gpt-6.1-sol",
+-        "fable": "openai/gpt-6-astra",
+-        "sonnet": "openai/gpt-6.1-sol",
+-        "haiku": "openai/gpt-6-luna"
++        "fable": "openai/gpt-6.1-sol"
+       },
+       "openai-codex": {
+         "opus": "openai-codex/gpt-6.1-sol",
+-        "fable": "openai-codex/gpt-6-astra",
+-        "sonnet": "openai-codex/gpt-6.1-sol",
+-        "haiku": "openai-codex/gpt-6-luna"
++        "fable": "openai-codex/gpt-6.1-sol"
+       }
+     }
+   },
+diff --git a/tools/generate.mjs b/tools/generate.mjs
+index afda32e2cf4a69eda26c76d8c1ec4d2298bd0635..aefbaa2dfa9c9764be0479db33cfe621f418239b 100644
+--- a/tools/generate.mjs
++++ b/tools/generate.mjs
+@@ -422,7 +422,7 @@ export function regions(models) {
+ }
+ 
+ const PREAMBLE_RUNTIMES = RUNTIMES.filter((runtime) => runtime.preamble);
+-const DRIVER_LINE = "Resolve the driver skill through [poteto-mode's Non-negotiables](../SKILL.md#non-negotiables).";
++const DRIVER_LINE = "Resolve the driver skill through poteto-mode's [Task routing](../SKILL.md#task-routing).";
+ const DRIVER_PLAYBOOKS = ["autopilot-full", "multi-phase-plan", "orchestrate", "refactoring", "shipping"];
+ const LEAD_LINES = [...PREAMBLE_RUNTIMES.map((runtime) => runtime.preamble), DRIVER_LINE];
+ 
+@@ -712,7 +712,9 @@ export function overrideSheetBlock(models) {
+ // no model: a full claude-* ID is rejected by the Agent tool, and a backticked
+ // family name hard-codes a default that belongs in models.json.
+ export function strayModelSlugs(file, text, models) {
+-  const families = models.available.join("|");
++  // LOCAL-OVERRIDES §1 drops sonnet and haiku from `available`; keep them in the
++  // pattern so a banned family is still a stray rather than silently allowed.
++  const families = [...new Set([...models.available, "sonnet", "haiku"])].join("|");
+   // Version numbers may sit between claude- and the family (claude-3-opus,
+   // claude-3.7-sonnet). An unlisted family is not guessed at: claude-mythos-1
+   // has the shape of claude-wt-1.
+diff --git a/tools/runtimes.mjs b/tools/runtimes.mjs
+index 381f2bc44b31e3cdc5cabb4c0cf91c96af3e6d61..7ef89a69ca48531b5d21c6aaaaf384b7b89101a2 100644
+--- a/tools/runtimes.mjs
++++ b/tools/runtimes.mjs
+@@ -252,16 +252,27 @@ function tierModelNamesSection(models, { label, block, worker, panel, dispatch,
+   );
+ }
+ 
++// LOCAL-OVERRIDES §1: Codex execution and review run on the configured
++// execution model at the default effort; planning and advice take the host's
++// dedicated advisor route. Muse keeps upstream's tier wording.
+ export function codexModelNamesSection(models) {
+-  return tierModelNamesSection(models, {
+-    label: "Codex",
+-    block: models.codex,
+-    worker: "fast Codex code model",
+-    panel: (list) =>
+-      `on ChatGPT is ${list}. If only one model family is reachable, vary reasoning ` +
+-      "effort and note in the verdict that diversity was reduced.",
+-    ids: "Codex model slugs",
+-  });
++  const block = models.codex;
++  const at = `at ${code(models.defaultEffort)} reasoning`;
++  return (
++    "Skills name Claude defaults (a single-role default for code/prose/judgment, a worker model for " +
++    "feature and refactoring code, plus a panel; each model-consuming skill lists its own in a Models section). " +
++    "These slugs do not resolve on Codex. Substitute your configured Codex models:\n\n" +
++    `- Single-model execution roles: ${code(block.default)} ${at}.\n` +
++    `- Roles that default to the Claude worker model (${tierRoles(models, "worker")}): ${code(block.worker)} ${at}.\n` +
++    `- Roles that default to the strongest Claude model (${tierRoles(models, "strongest")}): ` +
++    `${code(block.strongest)} ${at}.\n` +
++    `- Execution and review panels (\`arena\`, \`interrogate\`, \`how\` critics, \`reflect\`): use ${codeList(block.panel)} ${at}. ` +
++    "Note reduced model diversity when every participant uses the same model; independent contexts do not " +
++    "provide cross-model independence.\n" +
++    "- Planning (`architect`) and read-only advice: select the host's dedicated planning/advisor route and its effort, " +
++    "rather than an execution alias. Never use that route for implementation or code review.\n\n" +
++    "`/setup-pstack` writes the configured model list. On Codex, set it to your Codex model slugs."
++  );
+ }
+ 
+ export function museModelNamesSection(models) {
+@@ -294,15 +305,19 @@ export function piModelNamesSection(models) {
+     table +
+     "\n\nPi warns that Anthropic bills Claude used through Pi per token, as extra usage, even on a Claude subscription. " +
+     "Pi shows that warning only in interactive mode, never for the `pi --mode rpc` children the `agent` tool runs.\n\n" +
+-    "A `pi models: opus=<provider/id>, sonnet=<provider/id>` line in the Pi override sheet points each alias " +
++    "A `pi models: opus=<provider/id>, fable=<provider/id>` line in the Pi override sheet points each alias " +
+     "it names at another Pi model, whatever the session's provider. Add one when the session's provider has no " +
+     `column above and Pi has no credentials for ${code(fallback)}, because each alias then resolves to an ${code(`${fallback}/*`)} ` +
+     `ID and the ${code("agent")} call fails with ${code(`No API key found for ${fallback}`)}. ` +
+     "The `agent` tool also takes a full " +
+     "`provider/id`, passed through unchanged, and `inherit-parent`, `auto`, or no `model` runs the child on the " +
+-    "parent's current model. Diverse-model panels (`arena`, `architect`, `interrogate`, `how` critics, `reflect`) " +
+-    "stay diverse only while their aliases resolve to distinct models. If one model family is all you can reach, " +
+-    "vary the reasoning effort and note in the verdict that diversity was reduced.\n\n" +
++    "parent's current model. Planning (`architect`) and read-only advice override the execution aliases: " +
++    "pass the full `provider/id` configured for the host's dedicated planning/advisor route and select " +
++    "`subagent_type: pstack:effort-<level>` for that route's effort. Keep advisory agents read-only; " +
++    "planners may write explicitly requested design or plan artifacts. Never use the planning route for " +
++    "product implementation or code review. Execution and review panels (`arena`, `interrogate`, `how` critics, `reflect`) " +
++    `use ${code(models.defaultEffort)} reasoning. When their aliases resolve to the same model, report ` +
++    "reduced model diversity without changing the configured effort.\n\n" +
+     "`/setup-pstack` writes the configured model list. On Pi, keep the aliases and remap them with `pi models:`."
+   );
+ }
+@@ -395,7 +410,7 @@ export function copilotModelNamesSection(models) {
+     "`setup-pstack` lists the models from the `model` enum of the `task` tool and writes only IDs it saw there. " +
+     "After it writes the sheet, it runs its `check-sheet.sh` script, which applies the hook's checks.\n\n" +
+     "Run `setup-pstack`, and the parent session that orchestrates a panel, on a model at least as strong as " +
+-    "gpt-5.4-mini or a Sonnet-class Claude model. On a Haiku-class model, setup picked models the user never " +
++    "gpt-5.4-mini or an Opus-class Claude model. On a weaker model, setup picked models the user never " +
+     "chose in about half of the smoke runs."
+   );
+ }
+diff --git a/tools/substitutions.json b/tools/substitutions.json
+index d837cb5d49af4d3bd284136c487a888e246962b3..07aa4ca9f722008665de516eeb61dbf175fc5b91 100644
+--- a/tools/substitutions.json
++++ b/tools/substitutions.json
+@@ -253,7 +253,7 @@
+     {
+       "pattern": "control skill",
+       "replacement": "driver skill",
+-      "rationale": "driver selection lives in poteto-mode/SKILL.md Non-negotiables; preserve the older generator trigger in its local description"
++      "rationale": "driver selection lives in poteto-mode/SKILL.md Task routing; preserve the older generator trigger in its local description"
+     },
+     {
+       "regex": "\\(default `(?:claude|gpt|grok|gemini|composer)-[^`]+`\\)",
+@@ -552,11 +552,11 @@
+     },
+     {
+       "token": "`verify` skill (UIs)",
+-      "hint": "use the driver policy in poteto-mode/SKILL.md Non-negotiables"
++      "hint": "use the driver policy in poteto-mode/SKILL.md Task routing"
+     },
+     {
+       "token": "`verify` for UIs",
+-      "hint": "use the driver policy in poteto-mode/SKILL.md Non-negotiables"
++      "hint": "use the driver policy in poteto-mode/SKILL.md Task routing"
+     },
+     {
+       "token": "/visualize",
+@@ -564,11 +564,11 @@
+     },
+     {
+       "token": "control-cli",
+-      "hint": "use the driver policy in poteto-mode/SKILL.md Non-negotiables; rewrite the sentence, don't token-swap"
++      "hint": "use the driver policy in poteto-mode/SKILL.md Task routing; rewrite the sentence, don't token-swap"
+     },
+     {
+       "token": "control-ui",
+-      "hint": "use the driver policy in poteto-mode/SKILL.md Non-negotiables; rewrite the sentence, don't token-swap"
++      "hint": "use the driver policy in poteto-mode/SKILL.md Task routing; rewrite the sentence, don't token-swap"
+     },
+     {
+       "token": "AskQuestion",

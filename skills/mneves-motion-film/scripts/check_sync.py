@@ -29,6 +29,8 @@ from pathlib import Path
 
 RATE = 48_000
 HOP = 48  # 1 ms
+# The cue kinds music.py renders, one sfx-<kind>.wav stem each.
+CUE_KINDS = ("swish", "click", "hit")
 WINDOW = 384  # 8 ms
 
 
@@ -80,6 +82,10 @@ def rms_dbfs(samples: array.array, start: float, end: float) -> float:
 
 def check_cues(timing: dict, sfx_dir: str, failures: list[str]) -> int:
     fps = timing["fps"]
+    # A kind becomes part of a file name, so only music.py's own kinds get that far.
+    unknown = [c["kind"] for c in timing["cues"] if c["kind"] not in CUE_KINDS]
+    if unknown:
+        raise SystemExit(f"check_sync.py: unknown cue kind {unknown[0]!r}; expected one of {', '.join(CUE_KINDS)}")
     stems = {}
     for kind in sorted({c["kind"] for c in timing["cues"]}):
         samples = decode(str(Path(sfx_dir) / f"sfx-{kind}.wav"))
