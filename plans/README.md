@@ -7,7 +7,7 @@
 | [003: Council and security-audit](003-council-security-audit.md) | P1 | Implementation and verification candidate; production approval pending |
 | [005: tstack correctness and release](005-tstack-review-release.md) | P1 | Planned at a322c9f for 1.45.0, which shipped from another branch first; its commits (15e0298..c46c77c4) released in 1.45.1 |
 | [Complexity integration](cccc-review-integration.md) | P1 | Released in 1.32.0 |
-| [004: Release 1.45.0 closeout and the closeout script](004-release-1-45-closeout.md) | P1 | 1.45.0 closeout executed; closeout script not built |
+| [004: Release 1.45.0 closeout and the closeout script](004-release-1-45-closeout.md) | P1 | 1.45.0 closeout executed; 1.45.1 folded its binding run and fixed `deploy.sh`'s record and tag-message defects; closeout script not built |
 
 The existing complexity-integration plan on main is preserved.
 Each plan records its own scope, acceptance criteria and release boundaries.

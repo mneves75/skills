@@ -1,6 +1,6 @@
 # Plan 004: release 1.45.0 closeout and the next closeout script
 
-Status: executing on `release/1.45.0` (2026-11-04). Owner's brief: review and merge what is open,
+Status: executed; 1.45.0 released 2026-11-04 (merge `ccd51b4b`, tag `v1.45.0`). 1.45.1 folded that binding run into the ledger and fixed `deploy.sh`'s record and tag-message defects; the closeout script below remains to build. Owner's brief: review and merge what is open,
 bump, update every document, gate, merge to main, tag, clean up; skip waiting on GitHub CI; no
 staging exists for this repository.
 

@@ -1,6 +1,6 @@
 # Tstack review — run notes
 
-Updated: 2026-11-04. Status: isolated fixes verified and integrated; release ownership unresolved.
+Updated: 2026-11-04. Status: released in 1.45.1 (the branch's head `c46c77c4` merged through `release/1.45.1-r2`; 1.45.0 had released the branch at `a322c9f3`).
 Plan: [review and release acceptance](../../../plans/005-tstack-review-release.md).
 Machine-readable results: [tests.json](tests.json).
 

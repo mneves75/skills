@@ -1,7 +1,7 @@
 {
   "updated": "2026-11-04",
   "scope": "tstack review and release follow-up",
-  "status": "local_fixes_verified_release_coordination_pending",
+  "status": "released_in_1.45.1",
   "checks": [
     {
       "name": "origin reconciliation before implementation",

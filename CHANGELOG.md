@@ -14,7 +14,24 @@ tstack review record, the `pr-wait` incomplete-read fixes and the landing-page c
 1.45.0 binding run folded into the readiness ledger, and the `deploy.sh` corrections the 1.45.0
 closeout owed.
 
+### Changed
+- **Readiness ledger**: the 1.45.0 binding run (candidate `edeb131`, merged as `ccd51b4b`, same tree)
+  is folded in: cursor, binding-run line, gate-history row and the run's paragraph, including the two
+  record defects 1.45.1 fixes.
+- **`plans/005-tstack-review-release.md`**: the tstack review's plan, renumbered from 004 (the 1.45.0
+  closeout plan already holds that number) with its references in the tstack spec.
+- **`docs/skill-ledger.md`**: the `babysit-pr`, orchestrator and motion-film rows say what changed
+  outside the pstack refresh (the 1.45.0 hardening, the Defaults re-verification), so the rows match
+  the bytes (finder B's D-B19).
+
 ### Fixed
+- **`deploy.sh`**: a readiness record without the verifier's step-5 result (`independent_acceptance`)
+  is refused before the merge, so a reuse record can no longer be written without it; the tag's
+  Readiness line names only the waivers the readiness gate adds and the Waivers line names each id
+  once per owner and expiry. `deploy.test.sh` cases 24 and 25 fail on the 1.45.0 script.
+- **`changelog-rows.py`**: a first bullet that wraps onto indented lines keeps its whole first
+  sentence in the landing page's changelog row (finder B's D-B21; the 1.45.0 row ended
+  mid-parenthesis). `build-site.test` proves it.
 - **`pr-wait`** (both defects inherited from tstack `1085050f` and still present there): a failed read of the base branch's required checks no longer counts as "none required". A 404 from rulesets or classic protection still means none set there; any other refusal stops with exit 1, an unreachable GitHub retries on the next poll, and nothing is cached until both sources were read. `ready` asks GitHub whether review threads exist before the last 100 and passes only on an explicit no; more threads, or missing or malformed page information, stop it with exit 1 ("could not read every review thread") instead of reporting ready past an unresolved thread it never saw. `green` stays about checks. The suite runs forty-four cases.
 - **Landing page**: inline code in new-skill (lime) cards had about 1:1 contrast in dark mode; a lime-owned code surface now gives 8.91:1 in both schemes, and `check-site-copy.sh` checks computed contrast in light and dark mode. Release notes and install commands stay at 13px or larger at every width. The hero, title and meta description drop the stale skill count and the old tagline.
 
