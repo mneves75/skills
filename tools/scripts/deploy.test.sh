@@ -123,7 +123,7 @@ import json, sys
 p = sys.argv[1]; d = json.load(open(p)); d["tree"] = "0" * 40; json.dump(d, open(p, "w"))
 PY
 out=$(run_deploy 7) && code=0 || code=$?
-if [ "$code" -eq 1 ] && grep -q 'no production security-gate record for tree' <<<"$out"; then ok "a record for another tree does not count"
+if [ "$code" -eq 1 ] && grep -q "does not bind the candidate's tree" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then ok "a record for another tree does not count"
 else bad "other-tree record (exit $code): $out"; fi
 
 # 4. Readiness not ready: refused.
@@ -388,6 +388,212 @@ if [ "$code" -eq 0 ] && grep -q 'Readiness gate: ready (waived: DEL-04)' <<<"$ou
    && grep -q "Waivers: @owner to $future (SEC-15, CMP-06, DEL-04)" <<<"$out"; then
   ok "imported security ids stay off the Readiness line and appear once on the Waivers line"
 else bad "waiver dedupe (exit $code): $(grep -E 'Readiness gate|Waivers' <<<"$out" | head -2)"; fi
+
+# 26. A readiness record with a key outside its contract is refused before the merge.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d["phase"] = "binding"; json.dump(d, open(p, "w"))
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "key(s) outside the record contract: phase" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a record with a key outside its contract refuses before the merge"
+else bad "unknown key (exit $code): $out"; fi
+
+# 27. A readiness record without a required key (valid_until) is refused before the merge.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d.pop("valid_until"); json.dump(d, open(p, "w"))
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "missing required key(s): valid_until" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a record without a required key refuses before the merge"
+else bad "missing key (exit $code): $out"; fi
+
+# 28. A duplicated key in a record is unreadable, not silently last-wins.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" <<'PY'
+import sys
+p = sys.argv[1]; t = open(p).read().rstrip().rstrip("}")
+open(p, "w").write(t + ', "verdict": "ready"}')
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "repeated key verdict" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a record with a repeated key is unreadable and refuses before the merge"
+else bad "repeated key (exit $code): $out"; fi
+
+# 29. A waiver id with a glob character reaches the Readiness line literally, never as file names.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" "$future" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p))
+d["waivers"] = [{"control": "DEL-*", "owner": "@owner", "expires": sys.argv[2]}]
+json.dump(d, open(p, "w"))
+PY
+touch "$tmp/work/DEL-x"
+out=$(run_deploy 7 --dry-run) && code=0 || code=$?
+if [ "$code" -eq 0 ] && grep -q 'Readiness gate: ready (waived: DEL-\*)' <<<"$out" && ! grep -q 'DEL-x' <<<"$out"; then
+  ok "a glob character in a waiver id stays literal on the Readiness line"
+else bad "glob id (exit $code): $(grep 'Readiness gate' <<<"$out" | head -1)"; fi
+
+# 30. A MERGED pull request resumes after the merge: no second merge, CI and Pages waited, served bytes, records, tag.
+make_repo
+"$tmp/bin/gh" pr merge 7 --repo test/skills --merge --match-head-commit "$(cat "$FAKE_STATE/head")" >/dev/null
+merged=$(cat "$FAKE_STATE/merge")
+python3 -I - "$FAKE_STATE/pr.json" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d["state"] = "MERGED"; json.dump(d, open(p, "w"))
+PY
+: > "$FAKE_STATE/calls"
+out=$(run_deploy 7 --tag) && code=0 || code=$?
+if [ "$code" -eq 0 ] && ! grep -q 'pr merge' "$FAKE_STATE/calls" && grep -q "resuming after the merge: $merged" <<<"$out" \
+   && [ "$(git -C "$tmp/bare" rev-parse 'v9.9.9^{}' 2>/dev/null)" = "$merged" ] \
+   && [ -f "$tmp/work/.scratch/readiness/$merged/production.json" ]; then
+  ok "a merged pull request resumes at the CI wait without merging again and ends with the tag"
+else bad "resume (exit $code): $out"; fi
+
+# 31. A newest same-tree record that blocks AND has a repeated key still blocks: an older approval never substitutes.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness" "$(cat "$FAKE_STATE/head")" "$soon" <<'PY'
+import json, os, sys
+root, head, soon = sys.argv[1:4]
+older = json.load(open(os.path.join(root, head, "production.json")))
+os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
+older["commit"] = "older0000000000000000000000000000000000"; older["created_at"] = "2026-11-03T00:00:00Z"
+json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
+# The head's own record is newer, blocks (not-ready), and repeats a key.
+text = json.dumps({**older, "commit": head, "created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1})
+open(os.path.join(root, head, "production.json"), "w").write(text.rstrip("}") + ', "verdict": "not-ready"}')
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "repeated key verdict" <<<"$out" && grep -q "no other record substitutes" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a newest blocking record with a repeated key still blocks; the older approval does not substitute"
+else bad "repeated key on the newest record (exit $code): $out"; fi
+
+# 32. A MERGED pull request whose merge commit is not on main does not resume.
+make_repo
+"$tmp/bin/gh" pr merge 7 --repo test/skills --merge --match-head-commit "$(cat "$FAKE_STATE/head")" >/dev/null
+merged=$(cat "$FAKE_STATE/merge")
+# Rewind the remote main to before the merge and keep the merge commit on a stray branch: it exists in the
+# repository after a fetch, but it is not on main.
+git -C "$FAKE_STATE/merger" push -q origin "$merged:refs/heads/stray"
+git -C "$FAKE_STATE/merger" push -q --force origin "$merged~1:refs/heads/main"
+git -C "$tmp/work" fetch -q origin "+refs/heads/stray:refs/remotes/origin/stray"
+python3 -I - "$FAKE_STATE/pr.json" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d["state"] = "MERGED"; json.dump(d, open(p, "w"))
+PY
+out=$(run_deploy 7 --tag) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "is not on origin/main" <<<"$out" && [ -z "$(git -C "$tmp/bare" tag -l v9.9.9)" ]; then
+  ok "a merge commit that is not on main does not resume or tag"
+else bad "off-main resume (exit $code): $out"; fi
+
+# 33. An unreadable record in the candidate's own folder refuses: it may be the assessment that blocks.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness" "$(cat "$FAKE_STATE/head")" <<'PY'
+import json, os, sys
+root, head = sys.argv[1:3]
+older = json.load(open(os.path.join(root, head, "production.json")))
+os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
+older["commit"] = "older0000000000000000000000000000000000"; older["created_at"] = "2026-11-03T00:00:00Z"
+json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
+open(os.path.join(root, head, "production.json"), "w").write('{"schema": 1, "verdict": "not-re')  # truncated write
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "in the candidate's own folder is unreadable" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "an unreadable record in the candidate's own folder refuses; the older approval does not substitute"
+else bad "unreadable own record (exit $code): $out"; fi
+
+# 34. A blocking record whose created_at is repeated (the last value old) still ranks newest: it is judged and refused.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness" "$(cat "$FAKE_STATE/head")" <<'PY'
+import json, os, sys
+root, head = sys.argv[1:3]
+older = json.load(open(os.path.join(root, head, "production.json")))
+os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
+older["commit"] = "older0000000000000000000000000000000000"; older["created_at"] = "2026-11-03T00:00:00Z"
+json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
+blocking = {**older, "commit": head, "created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1}
+text = json.dumps(blocking).rstrip("}") + ', "created_at": "2026-11-01T00:00:00Z"}'  # repeated, last value older than the approval
+open(os.path.join(root, head, "production.json"), "w").write(text)
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "repeated key created_at" <<<"$out" && grep -q "no other record substitutes" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a blocking record with a repeated created_at still ranks newest and refuses"
+else bad "repeated created_at (exit $code): $out"; fi
+
+# 35. A blocking record whose tree key is repeated (the last value another tree) still matches the candidate's tree.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness" "$(cat "$FAKE_STATE/head")" <<'PY'
+import json, os, sys
+root, head = sys.argv[1:3]
+older = json.load(open(os.path.join(root, head, "production.json")))
+os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
+older["commit"] = "older0000000000000000000000000000000000"; older["created_at"] = "2026-11-03T00:00:00Z"
+json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
+blocking = {**older, "commit": head, "created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1}
+text = json.dumps(blocking).rstrip("}") + ', "tree": "0000000000000000000000000000000000000000"}'  # repeated: last value another tree
+open(os.path.join(root, head, "production.json"), "w").write(text)
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "repeated key tree" <<<"$out" && grep -q "no other record substitutes" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a blocking record with a repeated tree still matches the candidate's tree and refuses"
+else bad "repeated tree (exit $code): $out"; fi
+
+# 36. A repeated key inside a waiver object (an expired expiry followed by a future one) refuses the record.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" "$past" "$future" <<'PY'
+import json, sys
+p, past, future = sys.argv[1:4]
+d = json.load(open(p))
+d["waivers"] = [{"control": "DEL-04", "owner": "@owner", "expires": past}]
+text = json.dumps(d)
+text = text.replace('"expires": "%s"}' % past, '"expires": "%s", "expires": "%s"}' % (past, future))
+assert text.count('"expires"') == 2
+open(p, "w").write(text)
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "repeated key waivers\[0\].expires" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a repeated key inside a waiver object refuses the record"
+else bad "nested repeated key (exit $code): $out"; fi
+
+# 37. The candidate's own record that binds no tree (commit and tree missing) is judged and refused, not skipped.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness" "$(cat "$FAKE_STATE/head")" <<'PY'
+import json, os, sys
+root, head = sys.argv[1:3]
+older = json.load(open(os.path.join(root, head, "production.json")))
+os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
+older["commit"] = "older0000000000000000000000000000000000"; older["created_at"] = "2026-11-03T00:00:00Z"
+json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
+blocking = {k: v for k, v in older.items() if k not in ("commit", "tree")}
+blocking.update({"created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1})
+json.dump(blocking, open(os.path.join(root, head, "production.json"), "w"))
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "missing required key(s): commit" <<<"$out" && grep -q "no other record substitutes" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "the candidate's own record is judged even when it binds no tree; the older approval does not substitute"
+else bad "own record without binding (exit $code): $out"; fi
+
+# 38. A record cannot forge the repeated-key marker: an older same-tree approval carrying "__repeated_keys__" is malformed and refuses.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness" "$(cat "$FAKE_STATE/head")" <<'PY'
+import json, os, sys
+root, head = sys.argv[1:3]
+older = json.load(open(os.path.join(root, head, "production.json")))
+os.makedirs(os.path.join(root, "older0000000000000000000000000000000000"), exist_ok=True)
+older["commit"] = "older0000000000000000000000000000000000"; older["created_at"] = "2026-11-03T00:00:00Z"
+blocking = {**older, "commit": head, "created_at": "2026-11-04T12:00:00Z", "verdict": "not-ready", "open_blockers": 1}
+older["__repeated_keys__"] = {}
+json.dump(older, open(os.path.join(root, "older0000000000000000000000000000000000", "production.json"), "w"))
+json.dump(blocking, open(os.path.join(root, head, "production.json"), "w"))
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "key(s) outside the record contract: __repeated_keys__" <<<"$out" && grep -q 'older0000' <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a forged repeated-key marker is a key outside the contract: the record is named and refused"
+else bad "forged marker (exit $code): $out"; fi
+
+# 39. A record that cannot be opened is named when no record for the tree is found, not skipped in silence.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness" "$(cat "$FAKE_STATE/head")" <<'PY'
+import os, sys
+root, head = sys.argv[1:3]
+os.remove(os.path.join(root, head, "production.json"))
+os.makedirs(os.path.join(root, "other00000000000000000000000000000000000", "production.json"))  # a folder: open() fails
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q "no production readiness record for tree" <<<"$out" && grep -q "other0000.*unreadable" <<<"$out" && [ ! -f "$FAKE_STATE/merge" ]; then
+  ok "a record that cannot be opened is named in the refusal"
+else bad "unopenable record (exit $code): $out"; fi
 
 echo "deploy.test.sh: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

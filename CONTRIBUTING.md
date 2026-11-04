@@ -89,7 +89,9 @@ own gate. Close a release without a second one:
 
 Only the owner can skip GitHub CI, explicitly and for one exact commit. GitHub CI is then waived, not
 passed, and the security and readiness gates still apply. `tools/scripts/deploy.sh` remains the
-release path whenever CI runs; it waits for a CI run that a skipped release never has. With the
+release path whenever CI runs; it waits for a CI run that a skipped release never has. If it stops after
+its merge (a cancelled CI run, a lost connection), run it again with the same pull request number: a
+MERGED pull request resumes at the CI wait, with no second merge, and ends with the records and the tag. With the
 owner's skip, release by hand:
 
 1. Complete the security and readiness gates on the exact candidate tree.

@@ -23,19 +23,23 @@ measure whether a *target* codebase is ready for agents.
   script as the next step. Needs-validation items C-A6, C-A2, L-6, B-03 and AI-1 still wait for the owner's
   authorization of a disposable public repository or live provider calls.
 - **1.45.1** (2026-11-04): the nine commits PR #40 gained after 1.45.0 branched from it
-  (15e0298..c46c77c4: the tstack review record in `docs/specs/tstack-adoption/`, `plans/005`, the
-  `pr-wait` incomplete-read fixes, the landing-page contrast fix and `check-site-copy.sh`); the
-  1.45.0 binding run folded into the ledger (cursor `ccd51b4b`); `deploy.sh` refuses a readiness
-  record without `independent_acceptance` and prints each waiver id once; `changelog-rows.py` keeps
-  a wrapped bullet's whole sentence; skill-ledger rows reworded (D-B19). The 1.45.0 readiness
-  records were given `independent_acceptance` by hand after the verifier found them without it.
-  Merged to `main` as `a53b03c` (PR #42) but not published; 1.45.2 carries it.
-- **1.45.2** (candidate, 2026-11-04, not published): 1.45.1's content plus the Pages CI waiver
-  (DEL-01; branch `release/1.45.1-ci-waiver`, PR #43). The workflow enforces only equality with the
-  resolved `vars.CI_WAIVER_APPROVED_SHA`; the publisher's operator gate in CONTRIBUTING proves that
-  value comes from the `github-pages` environment alone before dispatch. The main session
-  publishes; Spec re-verification, security gate, readiness binding run, publication and the
-  `v1.45.2` tag are pending. The ledger cursor stays at the deployed `ccd51b4b`.
+  (15e0298..c46c77c4: the tstack review record, `plans/005`, the `pr-wait` incomplete-read fixes,
+  the landing-page contrast fix and `check-site-copy.sh`); the 1.45.0 binding run folded into the
+  ledger; `deploy.sh` refuses a readiness record without `independent_acceptance` and prints each
+  waiver id once; `changelog-rows.py` keeps a wrapped bullet's whole sentence. Merged as `a53b03cf`
+  (PR #42); main CI run 41828329349 (attempt 2) and Pages run 41830567961 succeeded at 12:35Z and
+  `v1.45.1` was tagged at 12:36Z; the tag was written by hand after the first CI attempt's
+  cancellation stopped `deploy.sh`.
+- **1.45.2** (2026-11-04): the Pages CI waiver (`static.yml`, `check-pages.test.py`, CONTRIBUTING's
+  manual release sequence), built by another session on 1.45.1 and pushed to `main` with
+  `[skip ci]` as `7587b764`; published by the owner's waiver dispatch (Pages run 41832914376,
+  12:51Z) and tagged `v1.45.2`. Its changelog paragraph that 1.45.1 was unpublished was true when
+  written (12:25Z) and superseded by 12:36Z.
+- **1.45.3** (2026-11-04): the readiness record contract gains the keys the release script reads
+  (`tree`, `independent_acceptance`, `evidence`, `reused_from`), `deploy.sh` enforces each record's
+  contract (required, unknown and repeated keys), computes the Readiness line in Python (no glob)
+  and resumes a MERGED pull request at the CI wait; the 1.45.1 and 1.45.2 binding runs folded into
+  the ledger (cursor `7587b764`).
 - **1.44.0** (2026-10-30): pr-wait fails closed on malformed or untyped check entries and
   reports a failure seen on the tenth incomplete read; babysit-pr docs complete the exit list;
   the orchestrator's reviewer seat moves to the builder-class models, crossed (owner rule
