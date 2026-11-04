@@ -27,18 +27,17 @@ when written (12:25Z); 1.45.1 was then published by the automatic route (Pages r
   orchestrator row's account of the 1.45.0 `SKILL.md` sentence (finder D's DOC-D2).
 
 ### Fixed
-- **`deploy.sh`**: a record with a missing, unknown or repeated top-level key is refused before the
-  merge (the security and readiness contracts name the keys), and a newest same-tree record that
-  blocks keeps blocking whatever its shape: a repeated key is a problem of that record, never a reason
-  to skip it for an older approval, and such a record ranks first whatever its repeated timestamps say and matches the candidate's tree
-  through any tree or commit it names; a repeated key inside a waiver object (or any nested object)
-  counts too; a record in the candidate's own folder is always judged, and refuses when it is unreadable
-  or binds another tree or none (it may be the assessment that blocks) and other skipped unreadable records are always reported; the readiness-only waiver ids for the
-  tag's Readiness line are computed in Python, so an id is never word-split or glob-expanded by the
-  shell (finder D's D-4); a MERGED pull request resumes at the CI wait (no second merge, served
-  bytes, reuse records, tag) only when its merge commit is on `main`, which the 1.45.1 release
-  needed after its first CI attempt was cancelled. `deploy.test.sh` cases 26 to 37 fail on the
-  1.45.2 script.
+- **`deploy.sh`**: one rule decides which gate records count. A record is in scope when it sits in the
+  candidate's own folder or names the candidate's tree (or a commit with that tree) anywhere in its text;
+  every in-scope record must be well-formed (readable, no repeated key at any depth, exactly its contract's
+  keys, a readable `created_at`, bound to the candidate's tree) or the release refuses naming it, so a
+  malformed assessment is never skipped, demoted or ranked around for an older approval; the newest
+  well-formed record is the assessment; a record that cannot be opened is still named, as 1.45.2 named
+  it. The readiness-only waiver ids for the tag's Readiness line are
+  computed in Python, so an id is never word-split or glob-expanded by the shell (finder D's D-4); a MERGED
+  pull request resumes at the CI wait (no second merge, served bytes, reuse records, tag) only when its merge
+  commit is on `main`, which the 1.45.1 release needed after its first CI attempt was cancelled.
+  `deploy.test.sh` cases 26 to 38 fail on the 1.45.2 script; case 39 passes on it and guards that naming.
 
 ## [1.45.2] - 2026-11-04
 
