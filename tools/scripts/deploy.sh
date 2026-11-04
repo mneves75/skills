@@ -54,6 +54,8 @@ serve_attempts=${DEPLOY_SERVE_ATTEMPTS:-10}
 
 fail() { echo "deploy.sh: $*" >&2; exit 1; }
 say() { printf '%s\n' "$*"; }
+scratch=$(mktemp -d "${TMPDIR:-/tmp}/deploy-sh.XXXXXX")
+trap 'rm -rf "$scratch"' EXIT
 
 # JSON field of a record file: `jget FILE a.b.0`; a list prints its items' ids (or the items) space-separated.
 jget() {
@@ -65,7 +67,8 @@ for part in sys.argv[2].split("."):
     if value is None:
         break
 if isinstance(value, list):
-    print(" ".join(item["id"] if isinstance(item, dict) and "id" in item else str(item) for item in value))
+    # Security records key a waiver as `id`, readiness records as `control`.
+    print(" ".join(str(item.get("id") or item.get("control")) if isinstance(item, dict) else str(item) for item in value))
 elif value is None:
     print("")
 else:
@@ -84,15 +87,24 @@ git cat-file -e "$head^{commit}" 2>/dev/null || fail "head commit $head is not i
 tree=$(git rev-parse "$head^{tree}")
 say "candidate: PR #$pr ($head_ref) head $head tree $tree"
 
-# A record binds to a tree: the candidate's own folder first, then any production record with the same tree.
+# A record binds to a tree. Security records state `tree`; readiness records state only `commit`, so the
+# tree is the commit's tree when that commit is in this repository. The candidate's own folder is tried
+# first, then any production record whose tree is the candidate's.
+record_tree() {
+  local file=$1 stated commit
+  stated=$(jget "$file" tree)
+  if [ -n "$stated" ]; then printf '%s' "$stated"; return; fi
+  commit=$(jget "$file" commit)
+  [ -n "$commit" ] && git rev-parse --verify -q "$commit^{tree}" 2>/dev/null || true
+}
 find_record() {
   local kind=$1 file
   file="$records/$kind/$head/production.json"
-  if [ -f "$file" ] && [ "$(jget "$file" tree)" = "$tree" ]; then printf '%s' "$file"; return; fi
+  if [ -f "$file" ] && [ "$(record_tree "$file")" = "$tree" ]; then printf '%s' "$file"; return; fi
   for file in "$records"/"$kind"/*/production.json; do
     [ -f "$file" ] || continue
     [ "$(jget "$file" target)" = production ] || continue
-    [ "$(jget "$file" tree)" = "$tree" ] && { printf '%s' "$file"; return; }
+    [ "$(record_tree "$file")" = "$tree" ] && { printf '%s' "$file"; return; }
   done
   return 1
 }
@@ -112,16 +124,19 @@ import datetime, json, sys
 now = datetime.datetime.now(datetime.timezone.utc)
 bad = []
 for path in sys.argv[1:]:
-    for waiver in json.load(open(path, encoding="utf-8")).get("waivers") or []:
-        if not isinstance(waiver, dict):
-            continue
+    waivers = json.load(open(path, encoding="utf-8")).get("waivers")
+    if waivers is None:
+        waivers = []
+    if not isinstance(waivers, list) or any(not isinstance(w, dict) for w in waivers):
+        bad.append(f"{path}: waivers is not a list of objects"); continue
+    for waiver in waivers:
         expires = waiver.get("expires")
         try:
             when = datetime.datetime.fromisoformat(str(expires).replace("Z", "+00:00"))
         except ValueError:
-            bad.append(f"{waiver.get('id')} (unreadable expiry {expires!r})"); continue
+            bad.append(f"{waiver.get('id') or waiver.get('control')} (unreadable expiry {expires!r})"); continue
         if when.tzinfo is None or when <= now:
-            bad.append(f"{waiver.get('id')} (expired {expires})")
+            bad.append(f"{waiver.get('id') or waiver.get('control')} (expired {expires})")
 print(" ".join(bad))
 PY
 )
@@ -144,13 +159,24 @@ say "security gate: $sec_verdict (acceptance $sec_accept) record $security"
 say "readiness: $ready_verdict, $ready_open open blockers, record $readiness"
 
 # ---- 2. Version consistency at the candidate ---------------------------------------------------
-version=$(git show "$head:VERSION" | tr -d '[:space:]')
+# Each file is read whole into the scratch directory first: a filter that stops early (grep -m1, an awk
+# `exit`) on a pipe from `git show` would otherwise close it mid-write and, under pipefail, abort the release.
+for file in VERSION CHANGELOG.md README.md; do
+  git show "$head:$file" > "$scratch/$file" || fail "$file is not in commit $head"
+done
+version=$(tr -d '[:space:]' < "$scratch/VERSION")
 [[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "VERSION at $head is '$version'"
-top_entry=$(git show "$head:CHANGELOG.md" | grep -m1 -E '^## \[[0-9]+\.[0-9]+\.[0-9]+\]')
+top_entry=$(grep -m1 -E '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' "$scratch/CHANGELOG.md" || true)
 [[ $top_entry == "## [$version]"* ]] || fail "top CHANGELOG entry '$top_entry' is not $version"
-git show "$head:README.md" | grep -q "badge/version-$version-" || fail "README badge is not $version"
-git ls-remote --tags origin "refs/tags/v$version" | grep -q . && fail "tag v$version already exists on origin"
-summary=$(git show "$head:CHANGELOG.md" | awk -v h="$top_entry" '$0==h{f=1; next} f && /^## /{exit} f && NF{print} f && !NF && n{exit} f && NF{n=1}')
+grep -q "badge/version-$version-" "$scratch/README.md" || fail "README badge is not $version"
+tags=$(git ls-remote --tags origin "refs/tags/v$version")
+[ -z "$tags" ] || fail "tag v$version already exists on origin"
+summary=$(awk -v h="$top_entry" '$0==h{f=1; next} f && /^## /{exit} f && NF{print} f && !NF && n{exit} f && NF{n=1}' "$scratch/CHANGELOG.md")
+# The tag message's verdict lines are the only lines of their shape: a summary line that looks like one
+# would read as a verdict to a rollback reader, so it is refused rather than copied.
+if grep -q -E '^(Security gate|Readiness gate|Waivers|Independent acceptance|Gated tree|Gated commit|CI|Deployed):' <<<"$summary"; then
+  fail "the CHANGELOG entry's first paragraph contains a line shaped like a tag verdict line; reword it before releasing"
+fi
 say "version: $version ($top_entry)"
 
 tag_message() {
@@ -187,7 +213,7 @@ merge=$(gh pr view "$pr" --repo "$repo" --json mergeCommit --jq '.mergeCommit.oi
 git fetch -q origin main
 git cat-file -e "$merge^{commit}" 2>/dev/null || fail "merge commit $merge not found after fetching main"
 merge_tree=$(git rev-parse "$merge^{tree}")
-[ "$merge_tree" = "$tree" ] || fail "PUBLISHED AN UNGATED TREE: merge $merge has tree $merge_tree, not the gated tree $tree (main moved in the window between the check at $base_tip and the merge). No record, no tag. Roll back with: gh workflow run static.yml -f ref=$base_tip, then merge main into the branch and gate again"
+[ "$merge_tree" = "$tree" ] || fail "PUBLISHED AN UNGATED TREE: merge $merge has tree $merge_tree, not the gated tree $tree (main moved in the window between the check at $base_tip and the merge). No record, no tag. A Pages run for $merge may already be queued (gh run list --workflow static.yml --commit $merge); roll back with: gh workflow run static.yml -f ref=$base_tip after it, then merge main into the branch and gate again"
 say "merged: $merge (tree equal to the gated tree)"
 
 # ---- 4. CI, Pages, served bytes ---------------------------------------------------------------------
@@ -241,13 +267,14 @@ write_reuse "$security" "$records/security-gate/$merge"
 write_reuse "$readiness" "$records/readiness/$merge"
 say "records: $records/security-gate/$merge and $records/readiness/$merge"
 
-message_file=$(mktemp "${TMPDIR:-/tmp}/deploy-tag.XXXXXX")
+message_file="$scratch/tag-message.txt"
 tag_message "$merge" "$ci_run" "$pages_run" > "$message_file"
 if [ "$make_tag" -eq 1 ]; then
   git tag -a "v$version" "$merge" -F "$message_file"
   git push -q origin "refs/tags/v$version"
   say "tagged: v$version on $merge (pushed)"
 else
-  say "tag message (create with --tag, or: git tag -a v$version $merge -F $message_file && git push origin v$version):"
+  cp "$message_file" "$records/security-gate/$merge/tag-message.txt"
+  say "tag message (create with --tag, or: git tag -a v$version $merge -F $records/security-gate/$merge/tag-message.txt && git push origin v$version):"
   sed 's/^/    /' "$message_file"
 fi

@@ -276,7 +276,7 @@ format, music, voice) are decided by the agent and logged with their reasons.
 **What you receive.** The MP4 (H.264 yuv420p, AAC 48 kHz, faststart), the music alone, a
 thumbnail sheet, and the brief, facts, timing and ledger files: every decision, every number a
 check printed and every reviewer verdict, plus the seconds worth watching and hearing yourself.
-The scripts need Python 3.10+ and ffmpeg; rendering needs Node and Remotion 4; `capture.py`
+The scripts need Python 3.11+ and ffmpeg; rendering needs Node and Remotion 4; `capture.py`
 needs Chrome.
 
 **Maintaining it.** Run `python3 skills/mneves-motion-film/tests/test_pipeline.py`: each check

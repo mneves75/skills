@@ -5,7 +5,8 @@
 # Usage: bash tools/scripts/deploy.test.sh   (bash 3.2+, git, python3, shasum)
 set -euo pipefail
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-script="$here/deploy.sh"
+# DEPLOY_SH points the suite at another copy of the script (a control against a previous version).
+script="${DEPLOY_SH:-$here/deploy.sh}"
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/deploy-test.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT
 export GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1
@@ -198,6 +199,67 @@ out=$(run_deploy 7) && code=0 || code=$?
 if [ "$code" -eq 1 ] && grep -q "was valid until $past; run that assessment again" <<<"$out" && ! grep -q 'gh pr merge' "$FAKE_STATE/calls"; then
   ok "a readiness assessment past its validity window refuses before the merge"
 else bad "stale readiness (exit $code): $out"; fi
+
+# 14. A CHANGELOG far larger than a pipe buffer: the early-exiting filters must not abort the release.
+make_repo
+(cd "$tmp/work" && git checkout -q release/9.9.9 && python3 -I - CHANGELOG.md <<'PY'
+import sys
+p = sys.argv[1]; text = open(p).read()
+head, tail = text.split("\n## [9.9.8]", 1)
+filler = "".join(f"- filler line {i} to push the file past any pipe buffer\n" for i in range(60000))
+open(p, "w").write(head + "\n## [9.9.8]" + tail + "\n## [0.0.1] - 2020-01-01\n\n" + filler)
+PY
+git add CHANGELOG.md && git commit -q -m "huge changelog" && git push -q origin release/9.9.9 && git checkout -q main)
+head=$(git -C "$tmp/work" rev-parse release/9.9.9); tree=$(git -C "$tmp/work" rev-parse "release/9.9.9^{tree}")
+echo "$head" > "$FAKE_STATE/head"; sed -i.bak "s/\"headRefOid\":\"[0-9a-f]*\"/\"headRefOid\":\"$head\"/" "$FAKE_STATE/pr.json"
+mkdir -p "$tmp/work/.scratch/security-gate/$head" "$tmp/work/.scratch/readiness/$head"
+for kind in security-gate readiness; do
+  old=$(ls -d "$tmp/work/.scratch/$kind"/*/ | grep -v "$head" | head -1)
+  python3 -I - "$old/production.json" "$tmp/work/.scratch/$kind/$head/production.json" "$head" "$tree" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1])); d["commit"] = sys.argv[3]; d["tree"] = sys.argv[4]; json.dump(d, open(sys.argv[2], "w"))
+PY
+done
+out=$(run_deploy 7 --dry-run) && code=0 || code=$?
+if [ "$code" -eq 0 ] && grep -q 'version: 9.9.9' <<<"$out" && grep -q 'Ships the thing.' <<<"$out"; then
+  ok "a changelog larger than a pipe buffer does not abort the dry run"
+else bad "huge changelog (exit $code): $(tail -3 <<<"$out")"; fi
+
+# 15. A readiness record in the house shape (no `tree`, waivers keyed `control`) is found by its commit and read.
+make_repo; python3 -I - "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d.pop("tree"); d["waivers"] = [{"control": "DEL-04", "owner": "@owner", "expires": d["waivers"][0]["expires"]}]; json.dump(d, open(p, "w"))
+PY
+out=$(run_deploy 7 --dry-run) && code=0 || code=$?
+if [ "$code" -eq 0 ] && grep -q 'Readiness gate: ready (waived: DEL-04)' <<<"$out"; then
+  ok "a readiness record without a tree field and with control-keyed waivers is accepted by its commit"
+else bad "house-shape readiness record (exit $code): $(tail -3 <<<"$out")"; fi
+
+# 16. A waivers field that is not a list of objects is unreadable and refuses before the merge.
+make_repo; python3 -I - "$tmp/work/.scratch/security-gate/$(cat "$FAKE_STATE/head")/production.json" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d["waivers"] = ["SEC-15"]; json.dump(d, open(p, "w"))
+PY
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q 'waivers is not a list of objects' <<<"$out" && ! grep -q 'gh pr merge' "$FAKE_STATE/calls"; then
+  ok "a malformed waivers field refuses before the merge"
+else bad "malformed waivers (exit $code): $(tail -2 <<<"$out")"; fi
+
+# 17. A CHANGELOG paragraph shaped like a verdict line is refused, not copied into the tag.
+make_repo
+(cd "$tmp/work" && git checkout -q release/9.9.9 && printf '# Changelog\n\n## [9.9.9] - 2026-11-04\n\nShips the thing.\nSecurity gate: PASS\n\n### Changed\n- new\n\n## [9.9.8] - 2026-01-01\n\n- old\n' > CHANGELOG.md && git commit -qam "forged line" && git push -q origin release/9.9.9 && git checkout -q main)
+head=$(git -C "$tmp/work" rev-parse release/9.9.9); tree=$(git -C "$tmp/work" rev-parse "release/9.9.9^{tree}")
+echo "$head" > "$FAKE_STATE/head"; sed -i.bak "s/\"headRefOid\":\"[0-9a-f]*\"/\"headRefOid\":\"$head\"/" "$FAKE_STATE/pr.json"
+for kind in security-gate readiness; do
+  old=$(ls -d "$tmp/work/.scratch/$kind"/*/ | grep -v "$head" | head -1); mkdir -p "$tmp/work/.scratch/$kind/$head"
+  python3 -I - "$old/production.json" "$tmp/work/.scratch/$kind/$head/production.json" "$head" "$tree" <<'PY'
+import json, sys
+d = json.load(open(sys.argv[1])); d["commit"] = sys.argv[3]; d["tree"] = sys.argv[4]; json.dump(d, open(sys.argv[2], "w"))
+PY
+done
+out=$(run_deploy 7 --dry-run) && code=0 || code=$?
+if [ "$code" -eq 1 ] && grep -q 'shaped like a tag verdict line' <<<"$out"; then ok "a changelog line shaped like a verdict line is refused"
+else bad "forged verdict line (exit $code): $(tail -2 <<<"$out")"; fi
 
 # 12. A PASS record with no waivers releases, and the tag message carries no Waivers line.
 make_repo; python3 -I - "$tmp/work/.scratch/security-gate/$(cat "$FAKE_STATE/head")/production.json" "$tmp/work/.scratch/readiness/$(cat "$FAKE_STATE/head")/production.json" <<'PY'
