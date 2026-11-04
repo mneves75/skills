@@ -167,3 +167,11 @@ Local Markdown specs and tickets in `docs/specs/`. See `docs/agents/issue-tracke
 ### Domain docs
 
 Single context: root `GLOSSARY.md` and relevant `docs/adr/` entries. See `docs/agents/domain.md`.
+
+### Run notes
+
+For multi-session work, read and update the relevant spec's `progress.md` and `tests.json`
+before continuing. Record observed results, failed attempts, open decisions and evidence limits;
+keep private logs and gate records in ignored scratch. The current tstack review uses
+[progress.md](docs/specs/tstack-adoption/progress.md) and
+[tests.json](docs/specs/tstack-adoption/tests.json). `CLAUDE.md` imports these instructions.

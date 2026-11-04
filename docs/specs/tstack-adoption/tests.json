@@ -1,0 +1,28 @@
+{
+  "updated": "2026-11-04",
+  "scope": "tstack review and release follow-up",
+  "status": "in_progress",
+  "checks": [
+    {
+      "name": "origin reconciliation before implementation",
+      "command": "git merge --no-edit origin/main",
+      "result": "pass",
+      "observed": "Already up to date",
+      "base": "c3dc2bb529da530e07572af6046d4e7312863711"
+    },
+    {
+      "name": "independent adversarial plan review",
+      "artifact": "plans/004-tstack-review-release.md",
+      "result": "pass",
+      "evidence_scope": "plan only; not source or release acceptance"
+    },
+    {"name": "watcher regression fail-before proof", "result": "pending"},
+    {"name": "watcher full suite after fix", "result": "pending"},
+    {"name": "independent code review", "result": "pending"},
+    {"name": "mneves-verify behavior acceptance", "result": "pending"},
+    {"name": "final-tree security and readiness gates", "result": "pending"},
+    {"name": "production served-byte and browser acceptance", "result": "pending"},
+    {"name": "GitHub CI", "result": "skipped", "reason": "explicit user instruction"},
+    {"name": "staging", "result": "skipped", "reason": "explicit user instruction; no staging configured"}
+  ]
+}
