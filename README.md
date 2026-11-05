@@ -171,7 +171,7 @@ from CI and merge approval; their current tracked assessment is in [the readines
 
 Original work in this repository is Apache-2.0. The adapted skills (`autoreview`, `babysit-pr`,
 `council`, `full-stop`, `imagegen-frontend-mobile`, `leaving-pr-comments`, `mneves-handoff`,
-`modernize`, `security-audit` and `takeover`) and the [`pstack`](collections/pstack/) collection
+`modernize`, `security-audit`, `takeover` and `untangle-codebase`) and the [`pstack`](collections/pstack/) collection
 retain their upstream MIT licenses and copyrights; see the `LICENSE` file in each directory and
 [`NOTICE`](NOTICE).
 

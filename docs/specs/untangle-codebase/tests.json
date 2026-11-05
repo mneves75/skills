@@ -1,5 +1,5 @@
 {
-  "scope": "untangle-codebase adoption",
+  "scope": "untangle-codebase initial implementation checkpoint; final release binding is private and recorded in the annotated tag",
   "skill_sha256": "d6312e3a28c81228b473dfe6668aa176aa7dc1890f38b8d1827060cb7712b2bd",
   "checks": [
     {"name": "Agent Skills spec and installer discovery", "status": "PASS", "evidence": "24 root skills validated and discovered; license byte comparison passed"},

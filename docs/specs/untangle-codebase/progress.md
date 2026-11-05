@@ -76,7 +76,12 @@ landing HTML, generated guide and new skill entrypoint with default configuratio
 (no repository `cccc.toml`): zero recognized files/functions and zero parse errors.
 Markdown/HTML/text changes therefore have no supported complexity evidence or score.
 
-## Open gates and continuation
+## Initial implementation checkpoint: open gates
+
+The statuses below describe the implementation checkpoint before release authorization.
+The owner subsequently authorized the PR's merge and production publication. That authority
+does not imply a passing gate: final binding results belong to the private candidate records
+and annotated release tag, so a later deployment does not rewrite this historical checkpoint.
 
 - **BLOCKED — two-axis adversarial review:** the required crossed-model reviewer is unavailable.
 - **BLOCKED — mneves-verify independent acceptance:** no compliant different-model seat ran.
@@ -87,7 +92,7 @@ Markdown/HTML/text changes therefore have no supported complexity evidence or sc
 - Restore the configured reviewer, or obtain an explicit owner waiver of the named gates,
   before calling this feature independently accepted or its PR ready to merge. Then freeze
   the current candidate, run the two review axes and `mneves-verify`, and resolve findings.
-- No merge, tag, production release or global skill installation occurred in this task.
+- At this checkpoint, no merge, tag, production release or global skill installation had occurred.
 
 Existing `docs/handoffs/`, `tools/node_modules` and `.scratch/skills-ref` were preserved.
 Task-created browser/server processes are closed during closeout; small cited evidence stays.

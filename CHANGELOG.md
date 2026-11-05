@@ -21,6 +21,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and safety mechanisms are retained. Catalog, guide, routing and product counts include
   the new skill without a broad automatic cleanup trigger.
 
+### Changed
+- **Release bookkeeping**: fold the published 1.45.3 binding run into the readiness cursor,
+  gate history and project memory. Preserve the adoption's initial checkpoint separately
+  from the final release's private binding records and annotated tag.
+
 ## [1.45.3] - 2026-11-04
 
 Closes what the 1.45.1 verifier and finder left: the readiness record contract and the release
