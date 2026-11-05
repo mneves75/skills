@@ -41,6 +41,7 @@ collection does not automatically change those instructions in other projects.
 | Skill | Use it when you want to… | Say something like |
 |---|---|---|
 | [`autoreview`](#autoreview) | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
+| [`untangle-codebase`](#untangle-codebase) | diagnose structural coupling or implement an explicitly scoped refactor | "refactor duplicated tax logic in src/checkout/, preserving public entrypoints" |
 | [`council`](#council) | get independent members to argue with a plan before you commit to it | "convene the council on this migration plan, two rounds" |
 | [`mneves-handoff`](#mneves-handoff) | hand a task to another agent, review first | "handoff the flaky login test" |
 | [`mneves-render`](#mneves-render) | build repeatable HTML, Word and PDF exports from Markdown | "write a renderer for my Markdown reports" |
@@ -57,6 +58,59 @@ collection does not automatically change those instructions in other projects.
 | [`mneves-teach-back-srs`](#mneves-teach-back-srs) | learn a codebase with spaced repetition | "let me explain the auth flow" |
 | [`mneves-superaudit`](#mneves-superaudit) | run a bounded audit-and-cleanup pass over a repo | "superaudit this repo, slop and perf only" |
 | [`mneves-ship-deploy`](#mneves-ship-deploy) | prepare verified staging, then approve the exact candidate before production | "ship-staging" or "ship-prod" |
+
+---
+
+## untangle-codebase
+
+**What it does.** Examines whether pieces should change together: hidden links, needless
+links and surplus. Uses concrete callers and behavior, a dependency graph and available
+Git history to connect prioritized problems to minimal fixes in a decision log. Freezes
+scope, contracts and completion criteria, establishes an observed baseline, verifies each
+coherent unit and runs final regression, adversarial review and independent acceptance.
+
+**When to use it.** A specific code area has duplicated rules, implicit dependencies or
+coupling that makes changes spread. Naming the skill alone yields diagnosis and a plan,
+then waits for edit approval. An explicit refactoring request already authorizes its
+in-scope implementation; review-only requests remain read-only. A missing, ambiguous or
+invalid target never silently becomes the whole repository.
+
+**Prerequisites.** Repository read access and its existing verification tools; Git history
+helps when available. Markdown only: no helper executable, model pin, new dependency or
+sibling skill is required by the procedure. Independent review and acceptance use the host's permitted
+mechanism; when unavailable, the agent discloses that, performs a focused self-check and
+marks those required gates BLOCKED.
+
+**Example** (illustrative; not an observed run).
+
+```text
+Use untangle-codebase to refactor duplicated price/tax logic in src/checkout/.
+Preserve both public entrypoints, integer per-line rounding and the empty-order result.
+No comment or test cleanup.
+```
+
+1. It reads the target, callers and tests, runs the existing entrypoint checks and records
+   rounding boundaries and empty-order behavior before edits.
+2. It compares extracting the shared rule with retaining duplication or adding a pricing
+   framework, chooses the smallest justified design and records the evidence and costs.
+3. It updates in-scope callers together and verifies the same contracts, malformed inputs
+   and affected flows. A bounded transient retry or authorization wrapper stays unless
+   equivalent behavior is demonstrated; incidental bug fixes require their own scope.
+4. Fresh adversarial review challenges its assumptions; independent acceptance checks the
+   frozen criteria. The report lists actual PASS/FAIL/BLOCKED outcomes and evidence limits.
+
+**Cleanup boundary.** Comment cleanup and test cleanup need separate explicit opt-ins.
+Invariants, external constraints and legitimate wiring assertions stay protected. Before
+test deletion or rewriting, every assertion needs a preservation map and executed equivalent
+replacement proof that catches a controlled regression. Missing proof means keep; a failing
+test is investigated rather than weakened. No broad automatic cleanup trigger is added.
+
+Loading a supplied `SKILL.md` demonstrates procedure use, not native host discovery.
+Likewise, local flow checks are not deployed proof. Install discovery and behavioral trials
+must be checked separately when evaluating adoption.
+
+Procedure: [SKILL.md](skills/untangle-codebase/SKILL.md).
+Source and adaptations: [UPSTREAM.md](skills/untangle-codebase/UPSTREAM.md).
 
 ---
 

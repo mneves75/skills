@@ -66,6 +66,11 @@ collection does not automatically change those instructions in other projects.</
 <td>&quot;use autoreview on my local changes, including P3 findings&quot;</td>
 </tr>
 <tr>
+<td><a href="#untangle-codebase"><code>untangle-codebase</code></a></td>
+<td>diagnose structural coupling or implement an explicitly scoped refactor</td>
+<td>&quot;refactor duplicated tax logic in src/checkout/, preserving public entrypoints&quot;</td>
+</tr>
+<tr>
 <td><a href="#council"><code>council</code></a></td>
 <td>get independent members to argue with a plan before you commit to it</td>
 <td>&quot;convene the council on this migration plan, two rounds&quot;</td>
@@ -146,6 +151,49 @@ collection does not automatically change those instructions in other projects.</
 <td>&quot;ship-staging&quot; or &quot;ship-prod&quot;</td>
 </tr>
 </tbody></table>
+<hr>
+<h2 id="untangle-codebase">untangle-codebase</h2>
+<p><strong>What it does.</strong> Examines whether pieces should change together: hidden links, needless
+links and surplus. Uses concrete callers and behavior, a dependency graph and available
+Git history to connect prioritized problems to minimal fixes in a decision log. Freezes
+scope, contracts and completion criteria, establishes an observed baseline, verifies each
+coherent unit and runs final regression, adversarial review and independent acceptance.</p>
+<p><strong>When to use it.</strong> A specific code area has duplicated rules, implicit dependencies or
+coupling that makes changes spread. Naming the skill alone yields diagnosis and a plan,
+then waits for edit approval. An explicit refactoring request already authorizes its
+in-scope implementation; review-only requests remain read-only. A missing, ambiguous or
+invalid target never silently becomes the whole repository.</p>
+<p><strong>Prerequisites.</strong> Repository read access and its existing verification tools; Git history
+helps when available. Markdown only: no helper executable, model pin, new dependency or
+sibling skill is required by the procedure. Independent review and acceptance use the host&#39;s permitted
+mechanism; when unavailable, the agent discloses that, performs a focused self-check and
+marks those required gates BLOCKED.</p>
+<p><strong>Example</strong> (illustrative; not an observed run).</p>
+<pre tabindex="0"><code class="language-text">Use untangle-codebase to refactor duplicated price/tax logic in src/checkout/.
+Preserve both public entrypoints, integer per-line rounding and the empty-order result.
+No comment or test cleanup.
+</code></pre>
+<ol>
+<li>It reads the target, callers and tests, runs the existing entrypoint checks and records
+rounding boundaries and empty-order behavior before edits.</li>
+<li>It compares extracting the shared rule with retaining duplication or adding a pricing
+framework, chooses the smallest justified design and records the evidence and costs.</li>
+<li>It updates in-scope callers together and verifies the same contracts, malformed inputs
+and affected flows. A bounded transient retry or authorization wrapper stays unless
+equivalent behavior is demonstrated; incidental bug fixes require their own scope.</li>
+<li>Fresh adversarial review challenges its assumptions; independent acceptance checks the
+frozen criteria. The report lists actual PASS/FAIL/BLOCKED outcomes and evidence limits.</li>
+</ol>
+<p><strong>Cleanup boundary.</strong> Comment cleanup and test cleanup need separate explicit opt-ins.
+Invariants, external constraints and legitimate wiring assertions stay protected. Before
+test deletion or rewriting, every assertion needs a preservation map and executed equivalent
+replacement proof that catches a controlled regression. Missing proof means keep; a failing
+test is investigated rather than weakened. No broad automatic cleanup trigger is added.</p>
+<p>Loading a supplied <code>SKILL.md</code> demonstrates procedure use, not native host discovery.
+Likewise, local flow checks are not deployed proof. Install discovery and behavioral trials
+must be checked separately when evaluating adoption.</p>
+<p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/untangle-codebase/SKILL.md">SKILL.md</a>.
+Source and adaptations: <a href="https://github.com/mneves75/skills/blob/main/skills/untangle-codebase/UPSTREAM.md">UPSTREAM.md</a>.</p>
 <hr>
 <h2 id="mneves-security">mneves-security</h2>
 <p><strong>What it does.</strong> Inspects the actual source and trust boundaries, checks current official

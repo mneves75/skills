@@ -1,0 +1,18 @@
+{
+  "scope": "untangle-codebase adoption",
+  "skill_sha256": "d6312e3a28c81228b473dfe6668aa176aa7dc1890f38b8d1827060cb7712b2bd",
+  "checks": [
+    {"name": "Agent Skills spec and installer discovery", "status": "PASS", "evidence": "24 root skills validated and discovered; license byte comparison passed"},
+    {"name": "tools typecheck lint and tests", "status": "PASS", "evidence": "102 tests, 291 assertions; lint exit 0 with 24 infos in unchanged code"},
+    {"name": "site and model-default guards", "status": "PASS", "evidence": "real site generation, regression and planted violations; date check and its controls passed"},
+    {"name": "local browser", "status": "PASS", "evidence": "nine existing cases plus new card, focus and guide navigation at 390px and 1440px; no deployed proof"},
+    {"name": "bare skill invocation", "status": "PASS", "evidence": "diagnosis then approval boundary; main confirmed fixture byte-identical; incidental repository-memory read disclosed"},
+    {"name": "authorized refactoring", "status": "PASS", "evidence": "seven tests re-run by main, 7000 differential comparisons, original service and tests preserved"},
+    {"name": "invalid scope and actual long input", "status": "PASS", "evidence": "blank/nonexistent/ambiguous targets not widened; actual 8000-character payload checked in follow-up"},
+    {"name": "opted-in test cleanup", "status": "PASS", "evidence": "assertion mapping and controlled-regression proof before consolidating two entrypoint methods"},
+    {"name": "native host selection", "status": "NOT_RUN", "reason": "supplied-file trials do not prove catalog selection or global installation"},
+    {"name": "cross-model two-axis adversarial review", "status": "BLOCKED", "reason": "configured reviewer and alternate runtime unavailable; exact errors retained privately"},
+    {"name": "mneves-verify independent acceptance", "status": "BLOCKED", "reason": "no compliant different-model verifier available; no substitution claimed"},
+    {"name": "production publication", "status": "NOT_RUN", "reason": "merge, tag and production deployment not authorized"}
+  ]
+}

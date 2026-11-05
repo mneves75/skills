@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.45.3-blue)
+![Version](https://img.shields.io/badge/version-1.46.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -24,6 +24,7 @@ artifacts.
 | Skill | Description |
 |-------|-------------|
 | [autoreview](skills/autoreview/) | Structured, isolated code review of a fixed Git target; ships its helper, security tests, and its own engine defaults |
+| [untangle-codebase](skills/untangle-codebase/) | Diagnose structural coupling and plan a bounded refactor; implement when explicitly authorized, preserving contracts and safety mechanisms with observed baselines and independent acceptance |
 | [council](skills/council/) | Bounded independent deliberation over a plan, or a scored review of a change: each available member CLI (Claude, Codex, pi) answers without seeing the others; plan mode runs exactly the requested rounds, review mode stops when every member answers SHIP IT or the cap ends; advisory, never verification |
 | [full-stop](skills/full-stop/) | Take a change unattended to a proven, reviewed PR that is ready for you to merge: proof, a bounded review by a model that did not build it, a problem-first PR, CI and review bots watched to the merge gate; never merges |
 | [takeover](skills/takeover/) | Finish someone else's PR, branch or agent thread toward its original goal while keeping the original contributors' credit |

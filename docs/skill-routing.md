@@ -25,6 +25,7 @@ action described inside it.
 | Explain a concept to a different audience | `mneves-eli5` | A smaller wording follow-up keeps the route |
 | Stress-test a decision | `mneves-expert-review` | Code-diff review belongs to a code-review skill |
 | Review a fixed Git target | `autoreview` | Review is not independent outcome verification |
+| Diagnose structural coupling or refactor an explicitly scoped code area | `untangle-codebase` | Naming it alone yields diagnosis and a plan awaiting edit approval; explicit refactoring authorizes in-scope implementation. Missing or invalid scope never expands to the whole repo; comment/test cleanup needs separate opt-in |
 | Prove a completed change works | `mneves-verify` | Fresh evidence and its independence rules still apply |
 | Audit security or fix authorized vulnerabilities | `mneves-security` | A full coverage-led source audit can use `security-audit`; it does not replace the deploy gate |
 | Deploy to an explicitly authorized environment | `mneves-ship-deploy` | Security and readiness gates apply before deployment |
@@ -37,6 +38,14 @@ Examples are conditional on availability, not a second mandatory catalog. Use th
 description and procedure for the final decision. `full-stop` remains explicit-only; the
 words “full stop” used for emphasis do not invoke it. Plain “ship” is not a deployment request under
 [this collection's deployment skill](../skills/mneves-ship-deploy/SKILL.md).
+
+For example (**illustrative**), “diagnose coupling in `src/checkout/`” selects
+`untangle-codebase` for a read-only plan; “refactor duplicated tax logic in
+`src/checkout/`, preserving public entrypoints” authorizes its bounded implementation.
+A generic “clean up” request does not establish that target or authorize test deletion.
+The skill uses normal description-based discovery, without an umbrella or a broad
+automatic cleanup trigger. Its standalone procedure includes baseline, regression,
+adversarial review and independent acceptance steps; no sibling install is required.
 
 ## Keep discovery inexpensive
 

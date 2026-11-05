@@ -13,7 +13,11 @@ the skill; every collection skill is generated from the pinned sources in
 [`sources.json`](../collections/pstack/sources.json) and passes the Agent Skills reference
 validator inside the sync.
 
-## Root skills (23)
+The current root catalog has 24 skills: the 23 recorded in the refresh plus the
+`untangle-codebase` adoption in 1.46.0 below. The opening counts describe the historical
+refresh inventory.
+
+## Root skills (24)
 
 | Skill | Disposition | Reason and kept controls |
 |---|---|---|
@@ -40,6 +44,7 @@ validator inside the sync.
 | `modernize` | retained | Rebasing an aging PR is its explicit job; it already decides whether the PR should exist first. |
 | `security-audit` | retained | Owns the six-phase source methodology, the coverage and findings schemas and their Node validators; already says it never claims a deploy gate. Validators unchanged. |
 | `takeover` | retained | Finishing someone else's work with credit kept; no overlap. |
+| `untangle-codebase` | added | 1.46.0: adapted from caldoai/skills at `442c29918339cc8dbf09ae27aaf17b05745465a3`, MIT, Copyright (c) 2026 Maze. Owns bounded structural refactoring using change-together evidence, a dependency graph, Git history and a problem-to-fix log. Bare invocation diagnoses and plans; explicit refactoring requests authorize scoped edits. Protects contracts and safety mechanisms, requires observed baseline and regression proof, makes comment/test cleanup separate opt-ins with assertion preservation, and marks unavailable independent review/acceptance BLOCKED. Distinct from fixed-diff review and broad audit; no mandatory sibling or new executable. |
 
 ## pstack collection: the 36 existing skills
 
