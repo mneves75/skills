@@ -106,6 +106,107 @@ JSON
 }
 run_deploy() { (cd "$tmp/work" && DEPLOY_REPO=test/skills DEPLOY_SITE_URL=https://example.test/skills DEPLOY_POLL_SECONDS=0 DEPLOY_TIMEOUT_SECONDS=5 DEPLOY_SERVE_ATTEMPTS=2 bash "$script" "$@" 2>&1); }
 
+snapshot_records() {
+  mkdir -p "$tmp/before"
+  for kind in security-gate readiness; do
+    cp "$tmp/work/.scratch/$kind/$1/production.json" "$tmp/before/$kind.json"
+  done
+}
+check_records() {
+  # Compare the complete CLI output records, including waiver, evidence and validity fields.
+  python3 -I - "$tmp/before" "$tmp/work/.scratch" "$1" "$2" <<'PY'
+import datetime, json, pathlib, sys
+before, records, destination, origin = sys.argv[1:]
+problems = []
+for kind in ("security-gate", "readiness"):
+    expected = json.loads((pathlib.Path(before) / f"{kind}.json").read_text())
+    actual = json.loads((pathlib.Path(records) / kind / destination / "production.json").read_text())
+    created = datetime.datetime.strptime(actual["created_at"], "%Y-%m-%dT%H:%M:%SZ")
+    assert datetime.datetime.strptime(expected["created_at"], "%Y-%m-%dT%H:%M:%SZ") <= created <= datetime.datetime.now(datetime.timezone.utc).replace(tzinfo=None), kind + " invalid reuse time"
+    expected.update(commit=destination, created_at=actual["created_at"])
+    if origin != "preserve":
+        expected["reused_from"] = origin
+    differences = {key: {"expected": expected.get(key, "<absent>"), "actual": actual.get(key, "<absent>")}
+                   for key in expected.keys() | actual.keys() if expected.get(key) != actual.get(key)}
+    if actual != expected:
+        problems.append(f"{kind}: {differences}")
+assert not problems, "; ".join(problems)
+PY
+}
+
+# A publication followed by a tag resume keeps the original audit, including all protected fields.
+make_repo
+audit=$(cat "$FAKE_STATE/head")
+snapshot_records "$audit"
+out=$(run_deploy 7) && code=0 || code=$?
+merged=$(cat "$FAKE_STATE/merge" 2>/dev/null || true)
+if [ "$code" -eq 0 ] && check=$(check_records "$merged" "$audit" 2>&1); then
+  ok "first publication establishes both audit origins and preserves protected fields"
+else bad "first publication records (exit $code): $out ${check:-}"; fi
+python3 -I - "$FAKE_STATE/pr.json" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d["state"] = "MERGED"; json.dump(d, open(p, "w"))
+PY
+: > "$FAKE_STATE/calls"
+for attempt in 1 2; do
+  out=$(run_deploy 7) && code=0 || code=$?
+  if [ "$code" -eq 0 ] && ! grep -q 'pr merge' "$FAKE_STATE/calls" \
+     && check=$(check_records "$merged" "$audit" 2>&1); then
+    ok "resume $attempt preserves both original audit origins and protected fields"
+  else bad "repeated resume $attempt (exit $code): $out ${check:-}"; fi
+done
+out=$(run_deploy 7 --tag) && code=0 || code=$?
+if [ "$code" -eq 0 ] && ! grep -q 'pr merge' "$FAKE_STATE/calls" \
+   && [ "$(git -C "$tmp/bare" rev-parse 'v9.9.9^{}' 2>/dev/null)" = "$merged" ] \
+   && check=$(check_records "$merged" "$audit" 2>&1); then
+  ok "tag resume preserves both original audit origins without another merge"
+else bad "tag resume provenance (exit $code): $out ${check:-}"; fi
+
+# An already-reused assessment can transfer again without replacing its original audit root.
+make_repo
+audit=$(cat "$FAKE_STATE/head")
+intermediate=$(git -C "$tmp/work" commit-tree "$tree" -p "$audit" -m "identical-tree reuse")
+for kind in security-gate readiness; do
+  mv "$tmp/work/.scratch/$kind/$audit" "$tmp/work/.scratch/$kind/$intermediate"
+  python3 -I - "$tmp/work/.scratch/$kind/$intermediate/production.json" "$intermediate" "$audit" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d.update(commit=sys.argv[2], reused_from=sys.argv[3]); json.dump(d, open(p, "w"))
+PY
+done
+snapshot_records "$intermediate"
+out=$(run_deploy 7) && code=0 || code=$?
+merged=$(cat "$FAKE_STATE/merge" 2>/dev/null || true)
+if [ "$code" -eq 0 ] && [ "$merged" != "$intermediate" ] \
+   && check=$(check_records "$merged" "$audit" 2>&1); then
+  ok "a further identical-tree transfer preserves both original audit roots and protected fields"
+else bad "further transfer provenance (exit $code): $out ${check:-}"; fi
+
+# A fresh assessment on the merge itself is not a transfer: keep its optional field forms.
+make_repo
+audit=$(cat "$FAKE_STATE/head")
+"$tmp/bin/gh" pr merge 7 --repo test/skills --merge --match-head-commit "$audit" >/dev/null
+merged=$(cat "$FAKE_STATE/merge")
+python3 -I - "$FAKE_STATE/pr.json" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d["state"] = "MERGED"; json.dump(d, open(p, "w"))
+PY
+for kind in security-gate readiness; do
+  mv "$tmp/work/.scratch/$kind/$audit" "$tmp/work/.scratch/$kind/$merged"
+  python3 -I - "$tmp/work/.scratch/$kind/$merged/production.json" "$merged" "$kind" <<'PY'
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); d["commit"] = sys.argv[2]
+if sys.argv[3] == "readiness": d.pop("reused_from")
+json.dump(d, open(p, "w"))
+PY
+done
+snapshot_records "$merged"
+: > "$FAKE_STATE/calls"
+out=$(run_deploy 7) && code=0 || code=$?
+if [ "$code" -eq 0 ] && ! grep -q 'pr merge' "$FAKE_STATE/calls" \
+   && check=$(check_records "$merged" preserve 2>&1); then
+  ok "same-commit fresh records preserve empty security and absent readiness origins"
+else bad "same-commit fresh provenance (exit $code): $out ${check:-}"; fi
+
 # 1. Dry run: plan and tag message, no merge call.
 make_repo
 out=$(run_deploy 7 --dry-run) && code=0 || code=$?
