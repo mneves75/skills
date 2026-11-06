@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.46.1] - 2026-11-05
+
+### Fixed
+- **Release audit provenance**: repeated publication/tag resumes and further identical-tree
+  transfers retain the original audit commit. Same-commit rewrites preserve fresh records'
+  empty or absent origin fields, without changing waivers, evidence or validity windows.
+
 ## [1.46.0] - 2026-11-05
 
 ### Added

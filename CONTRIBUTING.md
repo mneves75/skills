@@ -80,6 +80,14 @@ own gate. Close a release without a second one:
    expiry), `Independent acceptance:` (when one ran), `Gated tree:`, `Gated commit:`, `CI:`
    and `Deployed:`. A rollback to a tag skips
    a new audit only when the tag message records the verdict.
+
+   Reuse records keep the original audit commit in `reused_from`: on a transfer to another
+   identical-tree commit, an existing nonempty origin survives; otherwise the source record's
+   commit establishes it. Repeated MERGED/tag resumes preserve that root, even when the selected
+   source is the destination file itself. Rewriting a fresh assessment on the same commit keeps
+   security's empty origin and readiness's absent optional field as they were. Only `commit`,
+   `created_at` and transfer provenance change; waivers, evidence and `valid_until` are preserved,
+   so a retry never extends the assessment's validity.
 3. Fold the binding run's ledger bookkeeping (cursor, gate-history row, WAIVED rows) and the
    `MEMORY.md` release state into the next release PR, never a standalone merge
    ([gates.md](skills/mneves-production-readiness/references/gates.md)).
