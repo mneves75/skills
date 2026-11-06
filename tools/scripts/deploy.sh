@@ -26,8 +26,10 @@
 #    release that stopped after the merge.
 # 4. Waits for the CI push run on main and the Pages run for the merge commit, then compares every tracked
 #    file under site/ with the bytes the site serves.
-# 5. Writes the reuse records for the merge commit (`reused_from` the gated candidate) and prints the
-#    annotated tag message in the house format. With --tag it creates and pushes `vX.Y.Z` on the merge commit.
+# 5. Writes the reuse records for the merge commit, preserving the original audit's `reused_from`
+#    (or source commit on first transfer). Same-commit rewrites keep the field's existing form.
+#    Prints the annotated tag message in the house format. With --tag it creates and pushes
+#    `vX.Y.Z` on the merge commit.
 # --dry-run stops after step 2 and prints the plan and the tag message it would write; it changes nothing.
 #
 # Exit 1 names the first failed check; nothing after it runs. Exit 2 is a usage error.
@@ -508,7 +510,8 @@ write_reuse() {
   python3 -I - "$1" "$2/production.json" "$merge" "$now" <<'PY'
 import json, sys
 record = json.load(open(sys.argv[1], encoding="utf-8"))
-record["reused_from"] = record.get("commit")
+if record["commit"] != sys.argv[3]:
+    record["reused_from"] = record.get("reused_from") or record["commit"]
 record["commit"] = sys.argv[3]
 record["created_at"] = sys.argv[4]
 json.dump(record, open(sys.argv[2], "w", encoding="utf-8"), indent=2, ensure_ascii=False)

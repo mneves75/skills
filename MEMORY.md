@@ -14,6 +14,29 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.46.1 provenance correction**: `deploy.sh` preserves the original audit origin through
+  repeated MERGED/tag resumes and further identical-tree transfers; same-commit fresh records
+  keep empty security and absent readiness provenance fields. The real-CLI/local-Git/fake-provider
+  suite passes 75 cases; the original script fails five provenance cases while its 69 existing
+  cases pass. This change folds the previous 1.46.0 binding result into the readiness ledger;
+  the 1.46.1 binding verdict and live proof belong in its private exact-candidate records and
+  annotated release tag, not a tracked prediction of the new gate's result.
+- **1.46.0** (2026-11-05 local / 2026-11-06 UTC closeout): published as
+  `0f3047be818069bcc1f2d91150f0e394505b55e3`, tagged `v1.46.0`; original full audit
+  `24f387652c70c3507af5fc310d3eae5cd9c49896`, identical tree
+  `23c0cf57ce4886512b72b792526ba98878923b8a`. The canonical production readiness record
+  was written 2026-11-06T00:48:02Z, valid until 2026-11-06T23:59:59Z: ready, zero open
+  blockers, independent acceptance pass. Final full-unit dispositions are 20 PASS,
+  66 NOT APPLICABLE, 26 WAIVED, 4 advisory FAIL and 20 advisory NOT TESTED; the unit includes
+  distributed SQLite/AI tools and conservatively treats unresolved stake as blocker scope.
+  Ten existing waivers expire 2027-01-25T23:59:59Z. AI-02 has that same expiry but was
+  approved only for 1.46.0; fifteen further candidate-only waivers expire
+  2026-11-06T23:59:59Z. Those sixteen exceptions are not renewed by the 1.46.1 bookkeeping.
+  Final evidence is `.scratch/readiness/24f387652c70c3507af5fc310d3eae5cd9c49896/binding-assessment.json`
+  and `.scratch/readiness/0f3047be818069bcc1f2d91150f0e394505b55e3/production.json`, alongside the
+  corresponding private security records and the annotated tag. The earlier baseline draft
+  is not the final binding verdict. Restricted reports stay private; the ledger preserves
+  exact IDs, effective tiers, underlying gaps, owners, expiries and approval-scope pointers.
 - **1.45.0** (2026-11-04): PR #40 (pstack 0.15.36 sync, `docs/skill-ledger.md`, bounded
   workflows) and PR #39 (Biome 2.6.4) in one gated tree; PR #38 closed as superseded by #40; the
   1.44.0 and PR #37 binding runs folded into the ledger (cursor `c3dc2bb`); the documentation and

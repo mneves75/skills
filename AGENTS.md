@@ -142,6 +142,8 @@ bash tools/scripts/statechart-runner.test   # adapted statechart runner with fak
 ## Code review evidence
 
 Release closeout follows [CONTRIBUTING.md#preparing-a-release](CONTRIBUTING.md#preparing-a-release).
+Release-record rewrites preserve the original audit origin and same-commit optional-field forms;
+the operator contract and CLI regression cases live in CONTRIBUTING and `tools/scripts/deploy.test.sh`.
 Merging to `main` triggers production publication after CI, so a green PR alone is not the
 security/readiness gate. Keep the exact-candidate records private and retain them during
 scratch cleanup; owner waivers require their named controls, owner, reason and expiry.
