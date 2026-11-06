@@ -8,7 +8,7 @@
 | [005: tstack correctness and release](005-tstack-review-release.md) | P1 | Planned at a322c9f for 1.45.0, which shipped from another branch first; its commits (15e0298..c46c77c4) merged to `main` with 1.45.1 (`a53b03cf`, published and tagged 2026-11-04) and its DEL-01 shipped as 1.45.2 (`7587b764`) |
 | [Complexity integration](cccc-review-integration.md) | P1 | Released in 1.32.0 |
 | [004: Release 1.45.0 closeout and the closeout script](004-release-1-45-closeout.md) | P1 | 1.45.0 closeout executed; 1.45.1 folded its binding run and fixed `deploy.sh`'s record and tag-message defects; closeout script not built |
-| [006: Preserve release audit origins](006-release-audit-provenance.md) | P1 | BLOCKED — implementation and deterministic gates pass; cross-model Standards/Spec review and independent verification await the owner's model exception |
+| [006: Preserve release audit origins](006-release-audit-provenance.md) | P1 | Release candidate — implementation and deterministic gates pass; owner authorized production closeout; exact-candidate acceptance and binding results remain in private release records |
 
 The existing complexity-integration plan on main is preserved.
 Each plan records its own scope, acceptance criteria and release boundaries.

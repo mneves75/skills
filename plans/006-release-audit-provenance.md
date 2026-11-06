@@ -8,7 +8,8 @@
 - Category: bug, recovery, tests
 - Depends on: none
 - Planned at: `0f3047be818069bcc1f2d91150f0e394505b55e3`, 2026-11-05
-- Delivery: verified commits pushed to `fix/release-provenance`; no main merge, production deploy or tag in this task
+- Initial delivery: verified commits pushed to `fix/release-provenance` at `9437bc8`.
+- Release extension, owner authorized 2026-11-05: after all required gates pass, merge PR #47, publish 1.46.1 to the established GitHub Pages production target, prove it live, create the annotated version tag, and remove task-owned branches/worktrees/unused scratch. This supersedes the initial branch-only boundary below.
 
 ## Why this matters
 
@@ -65,6 +66,7 @@ Only these paths may change:
 - `AGENTS.md` — one relevant release-provenance rule/pointer if useful
 - `VERSION`, `README.md`, `CHANGELOG.md`
 - `site/index.html`, `site/howto.html` — generator output only
+- `MEMORY.md`, `docs/readiness/ledger.md`, `docs/readiness/plan.md` — release-extension bookkeeping only: fold the actual 1.46.0 result, not a prediction of 1.46.1 acceptance
 - `skills/mneves-fable-orchestrator/SKILL.md` — verification-date line only if the new changelog date requires it, with fresh vendor checks
 - `plans/006-release-audit-provenance.md` and `plans/README.md`
 
@@ -116,7 +118,7 @@ Regenerate site using its existing locked tools. A fresh worktree needs its own 
 - Collect installed cccc evidence for supported changed source; explicitly report unsupported Bash/embedded-Python coverage, never a fake score. Skip crapper/dryer/mutator if not installed.
 - Fresh Standards and Spec axes plus adversarial challenge to provenance, same-file read/write, selector precedence and validity preservation. Review only this diff.
 - Fresh different-model `mneves-verify` checks the frozen done criteria. Keep unavailable review BLOCKED; do not self-certify or extend the previous release's routing/waivers.
-- Commit/push all task-owned verified changes. Verify origin branch equals local HEAD. No production invocation; a future merge needs its own exact-candidate gates/authorization.
+- Commit/push all task-owned verified changes. Verify origin branch equals local HEAD. Production follows the release extension below, after exact-candidate gates; it never runs from the synthetic harness.
 
 ## Done criteria
 
@@ -125,8 +127,8 @@ Regenerate site using its existing locked tools. A fresh worktree needs its own 
 3. Waivers, verdicts, tree, evidence, acceptance and validity are preserved; existing refusal controls still PASS.
 4. Version/badge/changelog/date/generated site agree; relevant operator docs explain the rule.
 5. Independent reviews and mneves-verify have no unresolved in-scope finding.
-6. Verified commits are pushed to the explicit feature branch; main/production/tag/history are unchanged.
-7. Remove only task-owned disposable worktrees, dependencies/processes and uncited scratch after evidence has been summarized; run the owner's leftovers/worktree/scratch scans. Preserve the delivered unmerged branch until the owner controls its merge; report its exact later cleanup commands rather than discard published work.
+6. Verified commits are pushed to the explicit feature branch; after required acceptance, merge PR #47, prove the exact deployed tree live and push annotated `v1.46.1` on that merge. Published history is never rewritten.
+7. Remove only task-owned disposable worktrees, dependencies/processes and unused scratch after evidence has been summarized; run the owner's leftovers/worktree/scratch scans. After the authorized merge, remove the merged task branches. Preserve unrelated files and protected release records.
 
 ## STOP conditions
 
@@ -136,11 +138,22 @@ Regenerate site using its existing locked tools. A fresh worktree needs its own 
 - Same bug survives two fixes or mandatory independent review is unavailable.
 - Any production/GitHub action is attempted from the synthetic harness: stop immediately.
 
+## Release extension — exact-candidate publication
+
+1. Re-fetch origin and confirm the branch contains main before further edits. Preserve unrelated handoffs. The first patch's CI has four successful jobs; its document-engine installation timed out before tests and is being retried unchanged.
+2. Fold the historical 1.46.0 binding result from private records into the tracked readiness ledger and project memory. Preserve the evidence's actual unit/profile, statuses, waivers, expiries and original audit commit. Never treat the previous release's candidate-scoped approval as approval for this candidate. Keep the current binding result private so recording it does not invalidate its own audited tree.
+3. Refresh the patch's plan/candidate documentation to reflect this owner-authorized release boundary. The strongest rejected alternative is writing the new binding result into tracked files after the audit: that changes the tree and invalidates the verdict.
+4. Freeze and push the final candidate after documentation/generator/catalog checks. Run fresh independent Standards and Spec axes, `mneves-verify`, the full security deploy gate and production-readiness binding assessment. Required cross-model acceptance is still unavailable until the owner selects an allowed reviewer; generic merge/deploy permission is not a model override or waiver of an open control. Keep doing independent work and prepare one exact-candidate decision packet for any residual launch controls.
+5. After valid exact-tree gates and CI, use the repository's release helper on PR #47 with the corrected writer. Production authorization is already granted for this release; do not ask for it again. Prove served bytes and the touched operator/user behavior, then create/push annotated `v1.46.1` on the deployed merge, recording security/readiness and any named waivers. Check audit-root preservation in both reuse records as a release-specific positive control.
+6. Confirm remote main, annotated tag object and peeled deployed commit. Preserve protected security/readiness evidence. Remove task-owned worktrees, merged branches and unused temporary files; inventory existing scratch before any cleanup, and delete only attributable/authorized entries. This repository is Bash/Python/Bun, so Rust package cleanup does not apply.
+
+Until this chain completes, branch delivery, CI, independent acceptance and production publication remain separate claims. Exact-candidate binding verdicts belong in private records and the final annotated tag, not a prewritten success claim here.
+
 ## Maintenance and execution record
 
 Keep the single writer responsible for both record kinds. Test semantic roots rather than freezing timestamps or private installation paths. Later schema work must preserve the distinction between content tree, deployed commit and original audit origin.
 
-### Observed execution, 2026-11-05
+### Historical implementation checkpoint, 2026-11-05 at `9437bc8`
 
 - Origin was fetched and the visible main checkout fast-forward checked at the planned base; no incoming changes. Unrelated untracked handoffs were preserved. Implementation is isolated on `fix/release-provenance`.
 - Before the production edit, the existing real-CLI harness passed 69/69 cases. The added no-tag publication/tag-resume regression then failed because both records replaced the original audit commit with the merge commit, despite CLI exit 0.
@@ -148,7 +161,7 @@ Keep the single writer responsible for both record kinds. Test semantic roots ra
 - Main-session inspection covered every current source/test/documentation hunk. Full-object assertions preserve waivers, evidence, verdicts, tree, independent acceptance and validity while allowing the documented timestamp/commit changes. This integration check is not the required independent review.
 - `cccc` 1.8.0 reported zero supported files and zero parse errors for the changed Bash/embedded-Python source; complexity coverage is unsupported, not a passing score. Optional crapper/dryer/mutator tools were absent.
 - Vendor IDs were rechecked against the official [OpenAI model list](https://developers.openai.com/api/docs/models), [Anthropic model list](https://platform.claude.com/docs/en/models/overview) and [OpenCode Go list](https://docs.opencode.ai/docs/go/). The existing verification date already matches this patch's date; model policy and IDs remain unchanged.
-- Independent review is currently **BLOCKED**: the required cross-model reviewer returned HTTP 403. A task-specific request to use the advice model for Standards, Spec and final verification remains unanswered. The prior release's exception does not extend to this changed candidate. No independent PASS is claimed.
+- Independent review was **BLOCKED** at this checkpoint: the required cross-model reviewer returned HTTP 403. The owner was asked to select a reviewer for Standards, Spec and final verification. The prior release's exception was not extended to this changed candidate; no independent PASS was claimed.
 
 ### Frozen regression and integration results
 
@@ -172,11 +185,19 @@ Both executor and main-session advisor separately ran the following commands aga
 
 Only disposable synthetic repositories were merged/tagged/pushed by the CLI tests; fake providers handled all network-facing behavior. No real release command or production mutation was used. These are deterministic CLI proofs, not a production publication or a substitute for cross-model acceptance.
 
-### Remaining acceptance and delivery boundary
+### Acceptance and delivery at the historical branch checkpoint
 
-- Standards axis: **BLOCKED**, required reviewer unavailable; no findings or PASS are invented.
-- Spec axis: **BLOCKED**, same model-routing dependency.
-- `mneves-verify`: **BLOCKED**, a fresh different-model verifier has not run. Done criterion 5 is not satisfied.
-- Git delivery targets only the working branch and a draft PR for CI. Main, production, existing tags and published history remain outside this correction's delivery scope.
-- Own task worktree, dependencies and temporary logs are removed after their evidence is summarized and the branch is pushed. Pre-existing handoffs, scratch and protected gate records are preserved. An unmerged remote PR branch remains the owner-controlled deliverable; delete it only after merge, with `git push origin --delete fix/release-provenance` if the merge did not already delete it.
+- Standards axis: **BLOCKED** at `9437bc8`, required reviewer unavailable; no findings or PASS were invented.
+- Spec axis: **BLOCKED** at that checkpoint, same model-routing dependency.
+- `mneves-verify`: **BLOCKED** at that checkpoint; a fresh different-model verifier had not run.
+- Git delivery initially targeted the working branch and draft PR only. The owner's later explicit authorization expanded it to the gated production closeout described above.
+- The initial task worktree, dependencies, logs and local branch were removed after branch delivery (approximately 313 MiB); the remote PR preserved the commits. A disposable worktree was recreated for the release extension. Pre-existing handoffs, scratch and protected gate records are preserved. After merge, remove the remote task branch with `git push origin --delete fix/release-provenance` if the merge did not already delete it.
 - The requested `codemap --importers` check for this plan returned **not indexed** because the worktree is under an excluded folder. Importer coverage is unknown, not zero. The repository leftovers scan ran read-only, but some system-wide categories were unavailable under the sandbox; worktree and scratch inventories were obtained separately. No cache, simulator or unrelated data cleanup was performed.
+
+### Release-extension preflight receipts
+
+- CI run `42143981011` on `9437bc8` completed with 5/5 successful jobs. The first document job timed out while downloading Ubuntu packages before tests; retrying that job on the identical commit passed. No CI waiver, dummy commit, timeout change or weakened test was used.
+- Origin/main was fetched and fast-forward checked before the release extension; no incoming source change. `codemap --diff` in the candidate worktree identified the two changed Bash source files; its graph does not include the Markdown release changes. Bash importer/dependency coverage is partial, so its zero resolved edges are not proof of an unused helper. The real-CLI harness and documented operator entry point remain the relevant callers.
+- The current exact-tree production verdict and independent acceptance belong in the private release records and eventual annotated tag. This historical plan is not the deploy admission record.
+- Release-document integration mechanically reconciled all 136 historical control statuses, effective tiers and evidence scopes with the final 1.46.0 binding assessment; all 26 waiver owners/expiries and the 16 candidate-only restrictions matched. Totals: 20 PASS, 66 NOT APPLICABLE, 26 WAIVED, 4 advisory FAIL and 20 advisory NOT TESTED. No new waiver or operating assumption was created.
+- The executor and main session separately reran `check-readiness-catalog.py` (136 controls / 160 preserved items) and `check-readiness-catalog.test` (29 planted violations / 3 valid variants): PASS. `git diff --check` passed. Runtime source/test hashes remained identical to the frozen regression checkpoint. A new minimal reviewer availability probe still returned HTTP 403, with no file/tool access or inference output; no substitute model was silently selected.
