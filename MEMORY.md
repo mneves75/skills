@@ -39,7 +39,12 @@ measure whether a *target* codebase is ready for agents.
   (`tree`, `independent_acceptance`, `evidence`, `reused_from`), `deploy.sh` enforces each record's
   contract (required, unknown and repeated keys), computes the Readiness line in Python (no glob)
   and resumes a MERGED pull request at the CI wait; the 1.45.1 and 1.45.2 binding runs folded into
-  the ledger (cursor `7587b764`).
+  the ledger (cursor `7587b764` at that checkpoint). Published as `f0abfa0`, tagged
+  `v1.45.3`; Pages run `41911195014`, seven served files and nine live browser criteria
+  passed. Security WAIVED six existing controls, readiness ready with ten existing waivers;
+  fresh acceptance passed under that release's owner-approved routing exception. Its binding
+  run is folded into the ledger by the 1.46.0 candidate; later binding results stay in the
+  private gate records and annotated release tag.
 - **1.44.0** (2026-10-30): pr-wait fails closed on malformed or untyped check entries and
   reports a failure seen on the tenth incomplete read; babysit-pr docs complete the exit list;
   the orchestrator's reviewer seat moves to the builder-class models, crossed (owner rule

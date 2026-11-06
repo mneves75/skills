@@ -21,6 +21,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── leaving-pr-comments/       # Attribution and style for agent-posted GitHub comments (MIT, adapted)
 │   ├── modernize/                 # Rebase an aging PR and decide whether it should exist (MIT, adapted)
 │   ├── takeover/                  # Finish someone else's PR with their credit kept (MIT, adapted)
+│   ├── untangle-codebase/          # Bounded structural refactoring, diagnosis first (MIT, adapted)
 │   ├── security-audit/            # Six-phase source audit + Node validators (MIT, adapted)
 │   ├── imagegen-frontend-mobile/   # Mobile screen/flow image generation (MIT)
 │   ├── mneves-agent-readiness/    # Codebase readiness assessment (pairs with tools/)

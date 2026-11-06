@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.46.0] - 2026-11-05
+
+### Added
+- **untangle-codebase**: diagnose structural coupling and plan or implement a bounded,
+  behavior-preserving refactor of an explicitly scoped code area. Adapted from caldoai/skills
+  at `442c29918339cc8dbf09ae27aaf17b05745465a3`, with the original MIT license and copyright.
+  Preserves the change-together lens, dependency graph, Git evidence and
+  problem-to-fix log; bounds the work with explicit scope, observed baselines, preserved
+  contracts, verification per unit and independent acceptance. Invocation alone diagnoses
+  and plans; an explicit refactoring request authorizes in-scope edits. Comment and test
+  cleanup remain separate opt-ins with preservation proof; legitimate retries, wrappers
+  and safety mechanisms are retained. Catalog, guide, routing and product counts include
+  the new skill without a broad automatic cleanup trigger.
+
+### Changed
+- **Release bookkeeping**: fold the published 1.45.3 binding run into the readiness cursor,
+  gate history and project memory. Preserve the adoption's initial checkpoint separately
+  from the final release's private binding records and annotated tag.
+
 ## [1.45.3] - 2026-11-04
 
 Closes what the 1.45.1 verifier and finder left: the readiness record contract and the release

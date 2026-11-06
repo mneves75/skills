@@ -61,6 +61,14 @@ and the High/Medium discriminator adapt its wording:
 https://github.com/cloudflare/security-audit-skill/tree/c1c8a8c/skills/security-audit
 Copyright (c) 2025-2026 Cloudflare, Inc. Distributed under the MIT License. No upstream file is included.
 
+The untangle-codebase skill is adapted from caldoai/skills:
+https://github.com/caldoai/skills/tree/442c29918339cc8dbf09ae27aaf17b05745465a3/skills/untangle-codebase
+Copyright (c) 2026 Maze. Distributed under the MIT License preserved in that skill's directory.
+Local modifications include portable metadata, bounded scope and authorization, observed
+baselines, caller/behavior evidence, contract and safety preservation, opt-in comment/test
+cleanup with assertion-level replacement proof, and independent review/acceptance gates.
+The upstream pin and adaptation details are recorded in skills/untangle-codebase/UPSTREAM.md.
+
 Original repository work is licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at
