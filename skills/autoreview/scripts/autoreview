@@ -4718,6 +4718,15 @@ def claude_model_min_version(model: str) -> tuple[int, int, int] | None:
     return None
 
 
+def claude_version_floor(models: list[str]) -> tuple[tuple[int, int, int], str]:
+    """Return the Claude Code floor for the selected models and the reason to report."""
+    floors = [(floor, model) for model in models if (floor := claude_model_min_version(model))]
+    if not floors:
+        return CLAUDE_SAFE_MODE_MIN_VERSION, "for --safe-mode"
+    floor, model = max(floors)
+    return floor, f"for {model}"
+
+
 def claude_cli_fallback_models(models: str) -> str:
     return ",".join(
         claude_cli_model_selector(model.strip())
@@ -4759,16 +4768,7 @@ def ensure_claude_isolation_supported(args: argparse.Namespace, repo: Path) -> N
         for model in [args.model or "", *(getattr(args, "fallback_model", "") or "").split(",")]
         if model.strip()
     ]
-    floors = [
-        (floor, model)
-        for model in selected_models
-        if (floor := claude_model_min_version(model)) is not None
-    ]
-    if floors:
-        minimum_version, floor_model = max(floors)
-        version_reason = f"for {floor_model}"
-    else:
-        minimum_version, version_reason = CLAUDE_SAFE_MODE_MIN_VERSION, "for --safe-mode"
+    minimum_version, version_reason = claude_version_floor(selected_models)
     if result.returncode != 0:
         raise SystemExit(f"claude engine requires Claude Code >= {format_version(minimum_version)}; --version failed")
     version = parse_cli_version(result.stdout or result.stderr)
