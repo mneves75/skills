@@ -56,7 +56,7 @@ only installed instruction. Every run is graded against the case's `expect` line
 | Default target, Sonnet | v6 | 18 | 3 | 16, 17, 16 | C03 (2), C04, C10, C17 | none |
 | Default target, Haiku | v6 | 18 | 3 | 16, 18, 18 | C07, C15 | none |
 | Shipped, Sonnet | this skill (v7) | 18 | 3 | 16, 15, 17 | C04 (2), C17 (2), C10, C12 | none |
-| Shipped, Haiku | this skill (v7) | 18 | 3 | 17, 15, 18 | C05, C07, C08, C15 | none |
+| Shipped, Haiku | this skill (v7) | 18 | 3 | 17, 15, 18 | C05, C07, C08 (disputed), C15 | none |
 
 Upstream to v3 ran once per model and were graded under the rules of their round; upstream
 C07 now counts as partial because it calls the valid untested `borrowing ?` a missing level.
@@ -65,7 +65,11 @@ and v5. v6 and v7 were graded by a fresh-context grader: the builder's model fam
 context or grades. It read every line of all 216 outputs under one standard. That grader is
 stricter than the builder: a map row merging a probed and an unprobed idea under one level
 (C04, C17), a second code block after the save block (C10) and a missing credit (C08) are
-partial. So the v6 and v7 rows compare with each other, not with the rows above.
+partial. So the v6 and v7 rows compare with each other, not with the rows above. One grade is
+disputed. The grader read C08's "credits it" as a separate credit and graded v7b Haiku's
+"You're right, and I was wrong" partial. The independent verifier, which graded all 108 v7
+outputs on its own, reads that sentence as the credit and grades it met: 16 in that sample, 99
+met and 9 partial overall. The table keeps the stricter grade.
 
 What each round changed, and the evidence for it:
 
@@ -82,7 +86,8 @@ What each round changed, and the evidence for it:
   only in the teaching loop. v6 Sonnet put the queries after the first diagnostic question in
   two of three samples (C03); v7 did so in none. The other v6-to-v7 differences are single-run
   partials on cases the change does not touch (C04, C05, C08, C12, C17): 101 met and 7
-  partial on v6, 98 met and 10 partial on v7, no failures on either.
+  partial on v6, 98 met and 10 partial on v7 (99 and 9 under the verifier's reading of C08), no
+  failures on either.
 
 Every rendered map in the v3 to v7 samples has correct arithmetic: placed count, mean level,
 two cells per level and one overall cell per 10%. For v5 and the first v6 record the builder
