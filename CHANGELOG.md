@@ -26,9 +26,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Naming invariant**: an adapted skill may also take the `mneves-` prefix by the owner's
   choice; its provenance records the upstream name.
 - **Release bookkeeping**: fold the published 1.46.1 binding run into the readiness cursor,
-  binding-run line and gate history. Model identifiers re-verified against the vendor lists
-  without changing a selection (the Claude seats are aliases, and the current Fable release
-  now sits behind the same alias).
+  binding-run line and gate history.
+- **Fable 5.2**: the orchestrator's planner, plan advisor and main-session advisor seats name
+  `claude-fable-5-2`, released 2026-11-09. Claude Code 2.1.321 still resolves the short `fable`
+  alias to Fable 5.1, so a seat that wants the current release names the versioned id; the
+  Defaults block says to check what each alias resolves to on every release. The other model
+  ids were re-verified against the vendor lists unchanged.
+- **autoreview**: selecting `claude-fable-5-2` or `claude-fable-5-1`, as the model or a
+  fallback, requires the Claude Code release that serves it (2.1.321 and 2.1.255), and the
+  error names the model that set the floor.
 
 ## [1.46.1] - 2026-11-05
 
