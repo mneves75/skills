@@ -155,6 +155,7 @@ h3{font-size:1.3rem;letter-spacing:-.015em;overflow-wrap:anywhere}
   <section class="catalog-group" id="learn" aria-labelledby="h-learn">
     <div class="group-title"><h2 id="h-learn">Explain &amp; learn</h2><p>Make understanding stick.</p></div>
     <div class="skill-list">
+      <article class="skill new"><h3>mneves-socratic-tutor</h3><p>Learn any topic to mastery by answering, not reading. A short diagnostic, a 0-5 skill map that marks what is still untested, one question at a time, spaced review and a final assessment.</p><p class="example">Try: “tutor me on SQL window functions until I really get them”</p><span class="release-note">Added in 1.47.0</span><a class="guide" href="howto.html#mneves-socratic-tutor" aria-label="Read the mneves-socratic-tutor guide">Read the guide</a></article>
       <article class="skill"><h3>mneves-eli5</h3><p>Explain an idea with the Feynman method, calibrated to a child, layperson, executive, junior or expert. Answers in the listener's language.</p><p class="example">Try: “explain OAuth to my dad”, “ELI5”, “explique de forma simples”</p><a class="guide" href="howto.html#mneves-eli5" aria-label="Read the mneves-eli5 guide">Read the guide</a></article>
       <article class="skill"><h3>mneves-teach-back-srs</h3><p>You explain the codebase; the agent reads the code, asks what you skipped and turns gaps into SM-2 flashcards in a per-project SQLite file.</p><p class="example">Try: “let me explain the auth flow”, “quiz me”, “what's due?”</p><a class="guide" href="howto.html#mneves-teach-back-srs" aria-label="Read the mneves-teach-back-srs guide">Read the guide</a></article>
     </div>
@@ -193,10 +194,10 @@ bun --bun /path/to/skills/tools/readiness-check.ts \
   <h2 id="h-log">What changed.</h2>
   <ul class="log">
     <!-- changelog:start -->
+        <li><span class="v">1.47.0<span class="d">2026-11-09</span></span><span>mneves-socratic-tutor: tutor any topic to mastery with Socratic questions, a diagnostic, a 0-5 skill map, spaced review and a final assessment.</span></li>
         <li><span class="v">1.46.1<span class="d">2026-11-05</span></span><span>Release audit provenance: repeated publication/tag resumes and further identical-tree transfers retain the original audit commit.</span></li>
         <li><span class="v">1.46.0<span class="d">2026-11-05</span></span><span>untangle-codebase: diagnose structural coupling and plan or implement a bounded, behavior-preserving refactor of an explicitly scoped code area.</span></li>
         <li><span class="v">1.45.3<span class="d">2026-11-04</span></span><span>Situation-based skill routing: select by goal and phase, retain small follow-ups, and reassess at review and release boundaries while preserving explicit-only triggers and mandatory gates.</span></li>
-        <li><span class="v">1.45.2<span class="d">2026-11-04</span></span><span>Pages CI waiver (<code>static.yml</code>): a manual dispatch may publish without GitHub CI only for the exact <code>main</code> tip that <code>vars.CI_WAIVER_APPROVED_SHA</code> resolves to, with a nonblank reason, after the publisher's operator gate proves that value comes from the <code>github-pages</code> environment alone; the run summary says CI was waived, not passed.</span></li>
         <!-- changelog:end -->
   </ul>
   <a href="https://github.com/mneves75/skills/blob/main/CHANGELOG.md">Read the full changelog</a>

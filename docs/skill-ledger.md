@@ -13,11 +13,11 @@ the skill; every collection skill is generated from the pinned sources in
 [`sources.json`](../collections/pstack/sources.json) and passes the Agent Skills reference
 validator inside the sync.
 
-The current root catalog has 24 skills: the 23 recorded in the refresh plus the
-`untangle-codebase` adoption in 1.46.0 below. The opening counts describe the historical
+The current root catalog has 25 skills: the 23 recorded in the refresh plus the
+`untangle-codebase` adoption in 1.46.0 and the `mneves-socratic-tutor` adoption in 1.47.0 below. The opening counts describe the historical
 refresh inventory.
 
-## Root skills (24)
+## Root skills (25)
 
 | Skill | Disposition | Reason and kept controls |
 |---|---|---|
@@ -39,6 +39,7 @@ refresh inventory.
 | `mneves-security` | retained | Owns remediation, privacy/OWASP launch readiness and the exact-candidate deploy verdict; routes a requested deep source audit to `security-audit` and treats its records as candidate evidence, never as a gate. |
 | `mneves-ship-deploy` | retained | Release sequence and contract checks; requires the security gate first. |
 | `mneves-superaudit` | changed | Names the specialists it sequences (`autoreview`, `mneves-verify`, `mneves-security` or `security-audit`, `mneves-ship-deploy`, `mneves-production-readiness`) instead of restating them, with a direct fallback when one is absent. A source audit is never reported as a deploy gate. |
+| `mneves-socratic-tutor` | added | 1.47.0: adapted from janestreet/agent_skills `socratic-tutor` at `7c6715c29548a3b39d4a9545c698ee4fd17a7213`, MIT, Copyright (c) 2026 Jane Street Group, LLC; the `mneves-` prefix is the owner's explicit choice. Owns any-topic tutoring to mastery: diagnostic first, a 0-5 map with untested subskills marked `?`, one question per turn, levels earned on two checks including unprompted recall, spaced review, final assessment and a paste-able save state. Distinct from `mneves-teach-back-srs` (codebase teach-back and stored cards, which keeps "quiz me"), `mneves-eli5` (one explanation) and pstack `teach` (explains a codebase, no quizzes). Markdown only; no executable or mandatory sibling. |
 | `mneves-teach-back-srs` | retained | Opt-in quiz and spaced repetition; its SRS helper is unchanged. |
 | `mneves-verify` | retained | Independent verdict required by the security and release paths. |
 | `modernize` | retained | Rebasing an aging PR is its explicit job; it already decides whether the PR should exist first. |

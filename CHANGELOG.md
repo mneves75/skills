@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.47.0] - 2026-11-09
+
+### Added
+- **mneves-socratic-tutor**: tutor any topic to mastery with Socratic questions, a diagnostic,
+  a 0-5 skill map, spaced review and a final assessment. Adapted from janestreet/agent_skills
+  `socratic-tutor` at `7c6715c29548a3b39d4a9545c698ee4fd17a7213`, with the original MIT license
+  and copyright; the `mneves-` prefix is the owner's choice. Untested subskills show `?`
+  instead of a guessed level, the map has one stated format and formula, grading checks facts
+  before marking an answer wrong, "just tell me" answers raise no level, exercises with side
+  effects run in the learner's scratch location, and the save block carries last-checked and
+  due-for-review data. "quiz me" stays with `mneves-teach-back-srs`. Fifteen next-turn trials,
+  written first, are in `docs/specs/mneves-socratic-tutor/`.
+
+### Changed
+- **Naming invariant**: an adapted skill may also take the `mneves-` prefix by the owner's
+  choice; its provenance records the upstream name.
+- **Release bookkeeping**: fold the published 1.46.1 binding run into the readiness cursor,
+  binding-run line and gate history. Model identifiers re-verified against the vendor lists
+  without changing a selection (the Claude seats are aliases, and the current Fable release
+  now sits behind the same alias).
+
 ## [1.46.1] - 2026-11-05
 
 ### Fixed

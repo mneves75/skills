@@ -69,6 +69,14 @@ baselines, caller/behavior evidence, contract and safety preservation, opt-in co
 cleanup with assertion-level replacement proof, and independent review/acceptance gates.
 The upstream pin and adaptation details are recorded in skills/untangle-codebase/UPSTREAM.md.
 
+The mneves-socratic-tutor skill is adapted from janestreet/agent_skills (upstream name socratic-tutor):
+https://github.com/janestreet/agent_skills/tree/7c6715c29548a3b39d4a9545c698ee4fd17a7213/socratic-tutor
+Copyright (c) 2026 Jane Street Group, LLC. Distributed under the MIT License preserved in that
+skill's directory. Local modifications include portable metadata and routing, untested-subskill
+marking, one stated map format, fact-checked grading, told-answer and exercise boundaries,
+and a save block that carries review scheduling.
+The upstream pin and adaptation details are recorded in skills/mneves-socratic-tutor/UPSTREAM.md.
+
 Original repository work is licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
 You may obtain a copy of the License at

@@ -23,6 +23,7 @@ action described inside it.
 | Situation | Route in this collection | Boundary |
 |---|---|---|
 | Explain a concept to a different audience | `mneves-eli5` | A smaller wording follow-up keeps the route |
+| Learn a topic to mastery through questioning | `mneves-socratic-tutor` | A one-off question gets a normal answer; explaining a codebase back or reviewing stored cards belongs to `mneves-teach-back-srs` |
 | Stress-test a decision | `mneves-expert-review` | Code-diff review belongs to a code-review skill |
 | Review a fixed Git target | `autoreview` | Review is not independent outcome verification |
 | Diagnose structural coupling or refactor an explicitly scoped code area | `untangle-codebase` | Naming it alone yields diagnosis and a plan awaiting edit approval; explicit refactoring authorizes in-scope implementation. Missing or invalid scope never expands to the whole repo; comment/test cleanup needs separate opt-in |
