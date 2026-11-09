@@ -411,10 +411,11 @@ THINKING_LEVELS_BY_ENGINE = {
 }
 CLAUDE_SAFE_MODE_MIN_VERSION = (2, 1, 169)
 CLAUDE_FABLE_MIN_VERSION = (2, 1, 170)
-# A versioned Fable id needs the Claude Code release that first serves it
-# (Anthropic Help Center, "Claude Fable models on your plan").
+# A versioned Fable id needs the Claude Code release that serves it (Claude Code
+# model configuration docs; where the Help Center names an earlier release, the
+# later one is kept).
 CLAUDE_FABLE_VERSIONED_MIN_VERSIONS = {
-    "claude-fable-5-1": (2, 1, 255),
+    "claude-fable-5-1": (2, 1, 257),
     "claude-fable-5-2": (2, 1, 321),
 }
 # Pi's reviewed-repo trust override first appears in the current
