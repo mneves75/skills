@@ -14,13 +14,20 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.47.0 candidate**: adds `mneves-socratic-tutor`, adapted from janestreet/agent_skills
+  `socratic-tutor` at `7c6715c` (MIT) under the owner's chosen prefix, with fifteen next-turn
+  trials written first (`docs/specs/mneves-socratic-tutor/`). It folds the 1.46.1 binding run into
+  the readiness ledger and plan (cursor `b6630d8`). Its own binding verdict and live proof belong
+  in its private exact-candidate records and annotated release tag.
 - **1.46.1 provenance correction**: `deploy.sh` preserves the original audit origin through
   repeated MERGED/tag resumes and further identical-tree transfers; same-commit fresh records
   keep empty security and absent readiness provenance fields. The real-CLI/local-Git/fake-provider
   suite passes 75 cases; the original script fails five provenance cases while its 69 existing
-  cases pass. This change folds the previous 1.46.0 binding result into the readiness ledger;
-  the 1.46.1 binding verdict and live proof belong in its private exact-candidate records and
-  annotated release tag, not a tracked prediction of the new gate's result.
+  cases pass. Published as `b6630d8` (PR #47, audit `44464be`, identical tree `a534fcdb`), tagged
+  `v1.46.1`; CI run 42157377755 and Pages run 42159253816 succeeded and the served files matched
+  the gated tree. Security WAIVED six standing controls; readiness ready with 26 waivers, sixteen
+  of them candidate-only conditional approvals that expired 2026-11-06T23:59:59Z; independent
+  acceptance passed under that release's owner-approved reviewer exception.
 - **1.46.0** (2026-11-05 local / 2026-11-06 UTC closeout): published as
   `0f3047be818069bcc1f2d91150f0e394505b55e3`, tagged `v1.46.0`; original full audit
   `24f387652c70c3507af5fc310d3eae5cd9c49896`, identical tree
