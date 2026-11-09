@@ -36,8 +36,8 @@ blank topic, a very long pasted input, stored-card routing and a destructive exe
 (progress map before any placement) came from review; C17 (two-level tree map) and C18 (third
 failed attempt) are the independent reviewer's failing cases. Each case runs in a fresh
 headless Claude session with no settings, no MCP servers and no tools, the skill text as the
-only installed instruction. The builder grades every run against the case's `expect` line and
-the `grading_rules` in the same file; independent acceptance is a separate step.
+only installed instruction. Every run is graded against the case's `expect` line and the
+`grading_rules` in the same file; independent acceptance is a separate step.
 
 | Run | Skill text | Cases | Samples | Met per sample | Partial | Failed |
 |---|---|---|---|---|---|---|
@@ -53,12 +53,19 @@ the `grading_rules` in the same file; independent acceptance is a separate step.
 | One-sentence question, Haiku | v4 | 18 | 3 | 17, 15, 16 | C05, C07 | C06 (3), C18 (1) |
 | Counted misses, Sonnet | v5 | 18 | 3 | 17, 16, 17 | C07 (3), C06 (1) | none |
 | Counted misses, Haiku | v5 | 18 | 3 | 18, 17, 18 | C07 (1) | none |
-| Shipped, Sonnet | this skill (v6) | 18 | 3 | 18, 18, 18 | none | none |
-| Shipped, Haiku | this skill (v6) | 18 | 3 | 17, 18, 18 | C07 (1) | none |
+| Default target, Sonnet | v6 | 18 | 3 | 16, 17, 16 | C03 (2), C04, C10, C17 | none |
+| Default target, Haiku | v6 | 18 | 3 | 16, 18, 18 | C07, C15 | none |
+| Shipped, Sonnet | this skill (v7) | 18 | 3 | 16, 15, 17 | C04 (2), C17 (2), C10, C12 | none |
+| Shipped, Haiku | this skill (v7) | 18 | 3 | 17, 15, 18 | C05, C07, C08, C15 | none |
 
 Upstream to v3 ran once per model and were graded under the rules of their round; upstream
 C07 now counts as partial because it calls the valid untested `borrowing ?` a missing level.
-v4 onward ran three samples per model and are graded under the final cases and rules.
+v4 onward ran three samples per model under the final cases and rules. The builder graded v4
+and v5. v6 and v7 were graded by a fresh-context grader: the builder's model family, without its
+context or grades. It read every line of all 216 outputs under one standard. That grader is
+stricter than the builder: a map row merging a probed and an unprobed idea under one level
+(C04, C17), a second code block after the save block (C10) and a missing credit (C08) are
+partial. So the v6 and v7 rows compare with each other, not with the rows above.
 
 What each round changed, and the evidence for it:
 
@@ -71,12 +78,25 @@ What each round changed, and the evidence for it:
   v5 C07 added a second question about the target in four of six samples; v6 in none. One
   v6 Haiku sample still asked about the out-of-range level inline (`4? 5? a typo?`) before its
   closing question, which the one-question rule counts as partial.
+- **v7**: diagnostic questions take the same form as every other question. The rule had sat
+  only in the teaching loop. v6 Sonnet put the queries after the first diagnostic question in
+  two of three samples (C03); v7 did so in none. The other v6-to-v7 differences are single-run
+  partials on cases the change does not touch (C04, C05, C08, C12, C17): 101 met and 7
+  partial on v6, 98 met and 10 partial on v7, no failures on either.
 
-Every rendered map in the v3 to v6 samples has correct arithmetic: placed count, mean level,
-two cells per level and one overall cell per 10%. For v5 and v6 the builder read C05, C06,
-C07, C16, C17 and C18 of every sample in full and the opening and closing lines of every other
-output; mechanical checks (question count, map arithmetic, safe-path and routing markers) only
-flag outputs for reading.
+Every rendered map in the v3 to v7 samples has correct arithmetic: placed count, mean level,
+two cells per level and one overall cell per 10%. For v5 and the first v6 record the builder
+read C05, C06, C07, C16, C17 and C18 of every sample in full and only the opening and closing
+lines of the rest; that skim missed the v6 C03 partials. Mechanical checks (question count, content
+after the closing question, map arithmetic, safe-path and routing markers) only flag outputs for
+reading.
+
+Residual partials on the shipped text, none a failure: Sonnet merges a probed and an unprobed
+idea into one placed row (four of its six C04 and C17 outputs); one Haiku run asks about an
+out-of-range level inline (C07); and single runs leak a planning line (C12), hint at the
+mechanism in the narrower question (C05), confirm without crediting (C08), move a destructive
+run to a scratch folder without a `-print` check (C15), or add the map after the save block
+(C10).
 
 **Corrections.** The first record of these trials (commit `a88fdc9`) reported upstream Sonnet
 13 of 15 and the adaptation 15 of 15 on both models; review showed upstream Sonnet C10 also
@@ -89,6 +109,10 @@ in `expect_original` and give the reason in `oracle_note`: C07 accepts `borrowin
 and treats calling it an error as partial; C08 and C06 mark the diagnostic as done in the
 transcript; C17 accepts re-asking a pending diagnostic question instead of proposing a start,
 as steps 3-4 order. The v4 failures above are graded against the unmarked C06 transcript.
+The v6 record (commit `dadb016`) then claimed Sonnet 18 of 18 in every sample. The independent
+verifier found the C03 partials in two Sonnet samples, and found that `tests.json` gave the
+upstream baseline as 10 of 15 where this table says 9. The full regrade above replaces those
+v6 counts.
 
 **Independent review** (fresh context, 14 cases, 27 runs, three single-clause mutants as
 controls): PASS, with findings the adaptation had inherited from upstream. A learner who failed

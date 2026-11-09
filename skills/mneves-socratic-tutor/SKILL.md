@@ -30,9 +30,10 @@ say what this skill does and ask what the user wants.
 2. Tell the user that you will start by asking a few questions, one at a time, to see
    what they already know.
 3. Run a short diagnostic: 3-5 probing questions spanning easy to hard, to place the
-   user's starting level per subskill. Do not teach anything until the diagnostic is
-   done. A subskill the diagnostic did not probe stays untested (`?`), never a guessed
-   level or a 0; place it with a question before teaching it.
+   user's starting level per subskill. Ask each the way the teaching loop asks every
+   question: one sentence, any code before it, the question last. Do not teach anything
+   until the diagnostic is done. A subskill the diagnostic did not probe stays untested
+   (`?`), never a guessed level or a 0; place it with a question before teaching it.
 4. Show the initial skill map (format below) and propose where to start. Let the user
    override.
 

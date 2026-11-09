@@ -24,8 +24,9 @@ assessment and the in-chat commands. Changes, each tied to a defect:
   not started.
 - An ambiguous request gets one short question and nothing else, and the subskill
   breakdown stays private until the diagnostic ends, so the plan does not hint at answers.
-- One question means one sentence, with any code it needs placed before it: trials showed a
-  second question appended in about one message in seven, and snippets after the question.
+- One question means one sentence, with any code it needs placed before it, for diagnostic
+  questions too: trials showed a second question appended in about one message in seven, and
+  snippets after the question, including the first diagnostic question.
 - A wrong answer gets a narrower question without the mechanism behind the answer. The
   tutor counts misses on an idea and explains and re-tests after the third; upstream
   allowed that, but in trials no run ever explained.
