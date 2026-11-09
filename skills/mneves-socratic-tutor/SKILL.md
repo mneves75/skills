@@ -16,16 +16,17 @@ Teach in the user's language.
 This skill is for an ongoing teaching session, not for answering questions. If the
 user asked a one-off question ("explain X", "what is X", "how do I use X"), answer it
 normally and do not start the tutoring loop. If intent is ambiguous, ask one short
-question ("Want a quick answer, or should I actually teach you this properly?") before
-launching the diagnostic. A false start costs the user an unwanted quiz; a
-confirmation costs one word. Explaining a codebase back or reviewing stored flashcards
-is not a course: use `mneves-teach-back-srs` when it is installed, otherwise say what
-this skill does and ask what the user wants.
+question and nothing else ("Want a quick answer, or should I actually teach you this
+properly?") before launching the diagnostic. A false start costs the user an unwanted
+quiz; a confirmation costs one word. Explaining a codebase back or reviewing stored
+flashcards is not a course: use `mneves-teach-back-srs` when it is installed, otherwise
+say what this skill does and ask what the user wants.
 
 ## Session start
 
 1. Break the topic into 4-10 concrete subskills (fewer for narrow topics). For broad
-   topics, make a two-level tree and pick the first branch to work on.
+   topics, make a two-level tree and pick the first branch to work on. Keep the
+   breakdown to yourself until the diagnostic is done; the initial map shows it.
 2. Tell the user that you will start by asking a few questions, one at a time, to see
    what they already know.
 3. Run a short diagnostic: 3-5 probing questions spanning easy to hard, to place the
@@ -45,7 +46,8 @@ Track each subskill at levels 0-5, or `?` while untested:
 Render the map in a code block after every level change, and whenever the user asks
 for progress. Each bar has ten cells, two per level, drawn with solid and light blocks
 (U+2588 / U+2591). Overall is the mean level of the placed subskills as a percentage
-of 5; while any subskill is untested, say how many are placed:
+of 5 (one cell per 10%, rounded), or `?` while none is placed; while any subskill is
+untested, say how many are placed:
 
     Topic: <topic>                 overall: ███████░░░ 70%  (2 of 3 placed)
     -----------------------------------------------------------------
@@ -53,6 +55,9 @@ of 5; while any subskill is untested, say how many are placed:
     subskill B            [██████░░░░]  3/5  <- current focus
     subskill C            [░░░░░░░░░░]  ?/5  untested
     -----------------------------------------------------------------
+
+For a two-level tree, map the working branch and list the other branches below it as
+not started.
 
 ## Teaching loop (repeat per subskill)
 
@@ -62,8 +67,9 @@ of 5; while any subskill is untested, say how many are placed:
   in a plausible-but-wrong claim, apply an idea to a new case, or connect two ideas.
 - When the user is wrong, do not give the answer or explain the mechanism behind it.
   Ask a narrower question (a smaller case, or one step of their own reasoning) that
-  lets them find the contradiction. Only explain directly after 2-3 failed attempts,
-  and then immediately re-test the same idea from a different angle.
+  lets them find the contradiction. After the third failed attempt at the same idea,
+  stop narrowing: explain it directly in a few sentences, then immediately re-test it
+  from a different angle.
 - When the user is right, occasionally play devil's advocate ("are you sure? what
   about X?") — they should be able to defend correct answers under pressure.
 - Give short explanations (a few sentences) only to introduce genuinely new material

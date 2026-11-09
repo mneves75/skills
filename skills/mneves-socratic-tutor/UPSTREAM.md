@@ -19,8 +19,14 @@ assessment and the in-chat commands. Changes, each tied to a defect:
 - Untested subskills render as `?`, never a guessed level or 0 (upstream's 3-5 question
   diagnostic cannot place up to 10 subskills, and trials scored the rest 0/5).
 - One map format: the example now uses the block characters the text asks for, inside a
-  code block, and the overall percentage has a stated formula over placed subskills.
-- A wrong answer gets a narrower question without the mechanism behind the answer.
+  code block, and the overall percentage has a stated formula over placed subskills (`?`
+  while none is placed). A two-level tree maps the working branch and lists the others as
+  not started.
+- An ambiguous request gets one short question and nothing else, and the subskill
+  breakdown stays private until the diagnostic ends, so the plan does not hint at answers.
+- A wrong answer gets a narrower question without the mechanism behind the answer. After
+  the third failed attempt the tutor explains and re-tests; upstream allowed that, but in
+  trials no run ever explained.
 - Grading checks the facts before marking a defensible answer wrong, and admits the
   tutor's own errors.
 - "just tell me" answers count as told and raise no level until an unprompted re-test.

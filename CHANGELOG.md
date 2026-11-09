@@ -14,11 +14,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a 0-5 skill map, spaced review and a final assessment. Adapted from janestreet/agent_skills
   `socratic-tutor` at `7c6715c29548a3b39d4a9545c698ee4fd17a7213`, with the original MIT license
   and copyright; the `mneves-` prefix is the owner's choice. Untested subskills show `?`
-  instead of a guessed level, the map has one stated format and formula, grading checks facts
-  before marking an answer wrong, "just tell me" answers raise no level, exercises with side
-  effects run in the learner's scratch location, and the save block carries last-checked and
-  due-for-review data. "quiz me" stays with `mneves-teach-back-srs`. Fifteen next-turn trials,
-  written first, are in `docs/specs/mneves-socratic-tutor/`.
+  instead of a guessed level, the map has one stated format and formula, the subskill breakdown
+  stays private until the diagnostic ends, a learner stuck after three attempts gets the
+  explanation, grading checks facts before marking an answer wrong, "just tell me" answers
+  raise no level, exercises with side effects run in the learner's scratch location, and the
+  save block carries last-checked and due-for-review data. "quiz me" stays with
+  `mneves-teach-back-srs`. Eighteen next-turn trials (fifteen written first, three added from
+  review) are in `docs/specs/mneves-socratic-tutor/`.
 
 ### Changed
 - **Naming invariant**: an adapted skill may also take the `mneves-` prefix by the owner's
