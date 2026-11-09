@@ -2,8 +2,9 @@
   "scope": "mneves-socratic-tutor candidate checks; review, acceptance and release results bind through the private gate records and the annotated v1.47.0 tag",
   "upstream": "janestreet/agent_skills socratic-tutor at 7c6715c29548a3b39d4a9545c698ee4fd17a7213",
   "checks": [
-    {"name": "trials written first, upstream baseline", "status": "PASS", "evidence": "15 cases; upstream failed C04/C10 (untested scored 0/5) and leaked the mechanism in C05 on Sonnet and Haiku"},
-    {"name": "trials on the adapted skill", "status": "PASS", "evidence": "15/15 on Sonnet and 15/15 on Haiku, graded by the builder against each expect line"},
+    {"name": "trials written first, upstream baseline", "status": "PASS", "evidence": "15 cases; upstream met 10 on Sonnet and 10 on Haiku, failing C04/C10 (untested scored 0/5) and C05 (mechanism explained) on both"},
+    {"name": "trials on the adapted skill", "status": "PASS", "evidence": "shipped text on 18 cases: Sonnet 17 met, 1 partial (C17); Haiku 16 met, 2 partial (C07, C17); no failures; builder-graded under trials.json grading_rules; corrects the 15/15 first reported in a88fdc9"},
+    {"name": "independent review", "status": "PASS", "evidence": "fresh-context reviewer, 14 cases and 27 runs with mutant controls; its three text findings (third failure never explained, two-level map, bar rounding) are fixed and pass as C17/C18"},
     {"name": "Agent Skills spec and installer discovery", "status": "PASS", "evidence": "25 root skills validated; npx skills add . --list found 25 including the new skill; MIT license byte-identical to upstream"},
     {"name": "tools typecheck lint and tests", "status": "PASS", "evidence": "102 tests pass, lint clean"},
     {"name": "site, model-default and readiness guards", "status": "PASS", "evidence": "build-site.test, check-defaults-block (1.47.0, 2026-11-09) and its controls, readiness catalog and its controls"},

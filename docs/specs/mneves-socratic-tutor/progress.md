@@ -27,27 +27,57 @@ This is a single-session feature with no separate tickets.
   re-verified model ids; then the security and readiness gates, merge, publication and the
   annotated `v1.47.0` tag, as the owner authorized.
 
-## Trials, written before the adaptation
+## Trials
 
-[`trials.json`](trials.json) holds fifteen next-turn cases: one-off question, ambiguous
-request, course start, untested subskills, wrong answer, told answer, malformed resume,
-tutor error, stopping midway, save state, Portuguese, blank topic, a very long pasted input,
-stored-card routing and a destructive exercise. Each case ran in a fresh headless Claude
-session with no settings, no MCP servers and no tools, the skill text as the only installed
-instruction. Grading was by the builder against each case's `expect` line; independent
-acceptance is a separate step.
+[`trials.json`](trials.json) holds eighteen next-turn cases. C01-C15 were written before the
+adaptation: one-off question, ambiguous request, course start, untested subskills, wrong
+answer, told answer, malformed resume, tutor error, stopping midway, save state, Portuguese,
+blank topic, a very long pasted input, stored-card routing and a destructive exercise. C16
+(progress map before any placement) came from review; C17 (two-level tree map) and C18 (third
+failed attempt) are the independent reviewer's failing cases. Each case ran once per model in
+a fresh headless Claude session with no settings, no MCP servers and no tools, the skill text
+as the only installed instruction. The builder graded every run against the case's `expect`
+line and the `grading_rules` in the same file; independent acceptance is a separate step.
 
-| Run | Skill | Result |
-|---|---|---|
-| Upstream, Sonnet | `socratic-tutor` at `7c6715c` | 13 of 15 met. C04 scored untested subskills `0/5` and folded them into the overall; C05 explained the mechanism after a wrong answer |
-| Upstream, Haiku | same | C04 and C10 scored untested subskills `0/5` (C10 counted them in a 6/20 overall); C05 explained the mechanism; the rest met |
-| Adapted, Sonnet | this skill | 15 of 15 met |
-| Adapted, Haiku | this skill | 15 of 15 met; C05 asks a leading question rather than a smaller case, which still withholds the answer |
+| Run | Skill text | Cases | Met | Partial | Failed |
+|---|---|---|---|---|---|
+| Upstream, Sonnet | `socratic-tutor` at `7c6715c` | 15 | 10 | C03, C11 | C04, C05, C10 |
+| Upstream, Haiku | same | 15 | 10 | C03, C11 | C04, C05, C10 |
+| First adaptation, Sonnet | v1 | 15 | 12 | C02, C03, C11 | none |
+| First adaptation, Haiku | v1 | 15 | 12 | C03, C11 | C08 |
+| Review fixes, Sonnet | v2 | 16 | 14 | C08, C11 | none |
+| Review fixes, Haiku | v2 | 16 | 15 | C15 | none |
+| Shipped, Sonnet | this skill | 18 | 17 | C17 | none |
+| Shipped, Haiku | this skill | 18 | 16 | C07, C17 | none |
 
-Both models already handled routing, destructive commands, malformed resume blocks, tutor
-errors and Portuguese with the upstream text, so those adaptations are one clause each.
+Upstream failures: untested subskills scored `0/5` and counted in the overall (C04, C10) and
+the mechanism explained after a wrong answer (C05). Partials are a subskill list shown before
+the diagnostic (C03, C11), a course description after the clarifying question (C02), two
+questions in one message (v2 C08 and C11, shipped Haiku C07) and no safe way to test a
+deleting command (v2 Haiku C15). v1 Haiku C08 restarted the diagnostic because the transcript
+did not say it was done; v2 marks it. In C17 both models drew the correct map and listed the
+other branches, then re-asked the pending diagnostic question instead of proposing a start; the
+skill's step order supports that, so the oracle may be stricter than the skill.
+
+**Correction.** The first record of these trials (commit `a88fdc9`) reported upstream Sonnet 13
+of 15 and the adaptation 15 of 15 on both models. Review showed that was overstated: upstream
+Sonnet C10 also counted the untested subskill as 0, the original C07 expectation contradicted
+the skill (it called `borrowing ?` a missing level; the original wording is kept in
+`expect_original`), and the builder had applied no consistent rule for one question or for a
+breakdown shown early. The table regrades every run under the rules now in `trials.json`.
+
+**Independent review** (fresh context, 14 cases, 27 runs, three single-clause mutants as
+controls): PASS, with findings the adaptation had inherited from upstream. A learner who failed
+three times was never given the explanation (0 of 4 runs), a two-level tree's map dropped the
+other branches, and the overall bar's rounding was unstated; the shipped text fixes all three
+(C17, C18). One of two Haiku runs did not lower a level after a failed spaced review, with the
+text unchanged and Sonnet passing, so Haiku is a noisier check than one run per case suggests.
+`mneves-teach-back-srs` still mentions quizzes in its description, so a host could route
+"quiz me on <topic>" there; that skill is outside this change and host selection was not tested.
+
 The trials exercise a supplied skill file, not native catalog selection, and cover single
-next turns, not a whole course.
+next turns, not a whole course. With the breakdown kept private, C13's "derives subskills" is
+visible only through the diagnostic question, not as a list.
 
 ## Evidence limits
 

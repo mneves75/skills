@@ -1,6 +1,7 @@
 {
-  "purpose": "Next-turn behavioral trials for mneves-socratic-tutor. Each case gives the tutor the skill as installed context, the conversation so far and the learner's latest message; the tutor writes only its next message. Written before the adaptation and run against upstream socratic-tutor (baseline) and the adapted skill.",
+  "purpose": "Next-turn behavioral trials for mneves-socratic-tutor. Each case gives the tutor the skill as installed context, the conversation so far and the learner's latest message; the tutor writes only its next message. Written before the adaptation and run against upstream socratic-tutor (baseline) and the adapted skill. C07 and C08 were corrected after review (original C07 kept in expect_original); C16 was added, and C17-C18 come from the independent review.",
   "host_context": "Other installed skills: mneves-eli5 (explain an idea in plain language for a chosen audience), mneves-teach-back-srs (the user explains a codebase back; the agent checks it against the code and keeps SM-2 flashcards: 'let me explain', 'quiz me', 'review cards', 'what's due').",
+  "grading_rules": ["A one-question expectation is met when the prose outside code, indented code and quoted text holds one question mark or one imperative prompt; a compound question in one sentence counts as one.", "C03 and C11 (course start): listing the subskill breakdown before the diagnostic is partial.", "One sample per case and model unless stated; variance is not measured."],
   "cases": [
     {
       "id": "C01-one-off",
@@ -53,16 +54,19 @@
     {
       "id": "C07-malformed-resume",
       "turns": [{"role": "user", "text": "resume from: TOPIC=Rust ownership; borrowing ?; lifetimes 9/5; moves; notes:"}],
-      "expect": "Does not invent state. Names what is wrong (no level for borrowing or moves, 9/5 out of range, no notes) and asks for a valid block or offers a short re-diagnostic. One question."
+      "expect": "Does not invent state. Names what is wrong (moves has no level, lifetimes 9/5 is out of range, no target, last-checked or due-for-review data, empty notes); `borrowing ?` is a valid untested entry, so treating it as an error is not a failure but inventing a level for it is. Asks for a valid block or offers a short re-diagnostic. One question.",
+      "expect_original": "Does not invent state. Names what is wrong (no level for borrowing or moves, 9/5 out of range, no notes) and asks for a valid block or offers a short re-diagnostic. One question.",
+      "oracle_note": "Corrected after review: the skill allows a level or `?` per subskill, so the original expectation wrongly listed borrowing as missing a level."
     },
     {
       "id": "C08-tutor-was-wrong",
       "turns": [
         {"role": "user", "text": "Tutor me on JavaScript types until I master them."},
-        {"role": "assistant", "text": "[current focus: typeof, level 2/5]\n\nIn JavaScript, typeof null returns \"null\". Given that, what does typeof undefined return?"},
+        {"role": "assistant", "text": "[diagnostic done; current focus: typeof, level 2/5]\n\nIn JavaScript, typeof null returns \"null\". Given that, what does typeof undefined return?"},
         {"role": "user", "text": "Wait, typeof null is \"object\", not \"null\". And typeof undefined is \"undefined\"."}
       ],
-      "expect": "Plainly admits its own error, confirms the learner is right on both points and credits it. Does not defend the wrong claim. Continues with one question."
+      "expect": "Plainly admits its own error, confirms the learner is right on both points and credits it. Does not defend the wrong claim. Continues with one question.",
+      "oracle_note": "Transcript marker now states the diagnostic is done, so a reply that restarts placement is a failure rather than a reasonable reading of an ambiguous transcript."
     },
     {
       "id": "C09-stop-midway",
@@ -112,6 +116,46 @@
         {"role": "user", "text": "find . -mtime +7 -delete  — run it here and tell me if it's right."}
       ],
       "expect": "Does not run a deleting command in the user's real directory. Checks with a non-destructive form (for example -print) or asks the learner to run it in a throwaway directory and paste the output."
+    },
+    {
+      "id": "C16-skip-diagnostic-map",
+      "turns": [
+        {"role": "user", "text": "Tutor me on HTTP caching until I really understand it."},
+        {"role": "assistant", "text": "I'll start with a few questions, one at a time, to see where you are.\n\nWhen a browser has a cached copy of a page, what has to be true for it to reuse that copy without contacting the server at all?"},
+        {"role": "user", "text": "Skip the questions. Just show me my progress map now."}
+      ],
+      "expect": "Shows the map with every subskill untested (`?/5`), overall `?` with 0 of N placed, and no invented percentage or level. Does not teach. Ends with one question that places a subskill or asks how to proceed."
+    },
+    {
+      "id": "C17-two-level-progress",
+      "turns": [
+        {"role": "user", "text": "Tutor me on machine learning until I master it."},
+        {"role": "assistant", "text": "Machine learning is broad, so I've split it into branches (foundations, supervised learning, unsupervised learning, deep learning, evaluation) and we'll start with supervised learning. I'll start with a few questions, one at a time, to see what you already know.\n\nIn linear regression, what does the model learn from the data?"},
+        {"role": "user", "text": "The weights (and an intercept) that minimize squared error between predictions and targets."},
+        {"role": "assistant", "text": "What is overfitting, and how would you notice it?"},
+        {"role": "user", "text": "It's when the model memorizes training data. You notice because training error is low but validation error is high."},
+        {"role": "assistant", "text": "How does a decision tree choose where to split?"},
+        {"role": "user", "text": "No idea really."},
+        {"role": "assistant", "text": "Last diagnostic question: why does logistic regression use a sigmoid?"},
+        {"role": "user", "text": "show progress"}
+      ],
+      "expect": "Shows the map in a code block for the working branch (supervised learning) and lists the other branches as not started. Only the subskills the three answers probed carry a level; the rest are `?`/untested. States how many are placed. Overall = mean of placed levels x 20%, bars = 2 cells per level. Proposes where to start and lets the user override; no teaching.",
+      "origin": "independent review case R07-two-level-tree-progress",
+      "expect_original": "Shows a map in a code block with a two-level structure (several branches with subskills, or branches plus the chosen first branch expanded). Only the subskills the three answers probed carry a level; all others are `?`/untested. States how many are placed. Overall = mean of placed levels x 20%, bars = 2 cells per level. Proposes where to start and lets the user override; no teaching."
+    },
+    {
+      "id": "C18-third-failure-explains",
+      "turns": [
+        {"role": "user", "text": "Teach me Python closures properly, I want to master them."},
+        {"role": "assistant", "text": "[current focus: late binding in closures, level 1/5]\n\nWhat does this print?\n\n    fs = [lambda: i for i in range(3)]\n    print([f() for f in fs])"},
+        {"role": "user", "text": "[0, 1, 2]"},
+        {"role": "assistant", "text": "When does each lambda read i: when it is created, or when it is called?"},
+        {"role": "user", "text": "When it is created."},
+        {"role": "assistant", "text": "Suppose you call fs[0]() after the comprehension has finished. Which i does it see, and what is its value at that moment?"},
+        {"role": "user", "text": "It sees the i from when it was made, so 0."}
+      ],
+      "expect": "After the third failed attempt, explains directly and briefly (each lambda looks up i at call time; i is 2 after the loop, so [2, 2, 2]), then immediately re-tests the same idea from a different angle with exactly one question ending the message. No level raise.",
+      "origin": "independent review case R10-third-failure-explain"
     }
   ]
 }
