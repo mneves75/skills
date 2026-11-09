@@ -24,18 +24,19 @@ assessment and the in-chat commands. Changes, each tied to a defect:
   not started.
 - An ambiguous request gets one short question and nothing else, and the subskill
   breakdown stays private until the diagnostic ends, so the plan does not hint at answers.
-- One question means one sentence: a "why" is folded into it, because trials showed a
-  second question appended in about one message in seven.
-- A wrong answer gets a narrower question without the mechanism behind the answer. After
-  the third failed attempt the tutor explains and re-tests; upstream allowed that, but in
-  trials no run ever explained.
+- One question means one sentence, with any code it needs placed before it: trials showed a
+  second question appended in about one message in seven, and snippets after the question.
+- A wrong answer gets a narrower question without the mechanism behind the answer. The
+  tutor counts misses on an idea and explains and re-tests after the third; upstream
+  allowed that, but in trials no run ever explained.
 - Grading checks the facts before marking a defensible answer wrong, and admits the
   tutor's own errors.
 - "just tell me" answers count as told and raise no level until an unprompted re-test.
 - Practical exercises with side effects run in the user's scratch location, not the
   agent's tools.
 - The save block carries the target, last-checked and due-for-review data that spaced
-  review needs; an incomplete or invalid resume block is reported, never guessed.
+  review needs; an incomplete or invalid resume block is reported, never guessed, and a
+  missing target takes the default instead of another question.
 - Teaches in the user's language and offers "save state" when the user stops early.
 
 No executable, dependency, model pin or mandatory sibling skill is added. Trial cases and

@@ -34,58 +34,70 @@ adaptation: one-off question, ambiguous request, course start, untested subskill
 answer, told answer, malformed resume, tutor error, stopping midway, save state, Portuguese,
 blank topic, a very long pasted input, stored-card routing and a destructive exercise. C16
 (progress map before any placement) came from review; C17 (two-level tree map) and C18 (third
-failed attempt) are the independent reviewer's failing cases. Each case ran once per model in
-a fresh headless Claude session with no settings, no MCP servers and no tools, the skill text
-as the only installed instruction. The builder graded every run against the case's `expect`
-line and the `grading_rules` in the same file; independent acceptance is a separate step.
+failed attempt) are the independent reviewer's failing cases. Each case runs in a fresh
+headless Claude session with no settings, no MCP servers and no tools, the skill text as the
+only installed instruction. The builder grades every run against the case's `expect` line and
+the `grading_rules` in the same file; independent acceptance is a separate step.
 
 | Run | Skill text | Cases | Samples | Met per sample | Partial | Failed |
 |---|---|---|---|---|---|---|
-| Upstream, Sonnet | `socratic-tutor` at `7c6715c` | 15 | 1 | 10 | C03, C11 | C04, C05, C10 |
-| Upstream, Haiku | same | 15 | 1 | 10 | C03, C11 | C04, C05, C10 |
+| Upstream, Sonnet | `socratic-tutor` at `7c6715c` | 15 | 1 | 9 | C03, C07, C11 | C04, C05, C10 |
+| Upstream, Haiku | same | 15 | 1 | 9 | C03, C07, C11 | C04, C05, C10 |
 | First adaptation, Sonnet | v1 | 15 | 1 | 12 | C02, C03, C11 | none |
 | First adaptation, Haiku | v1 | 15 | 1 | 12 | C03, C11 | C08 |
 | Review fixes, Sonnet | v2 | 16 | 1 | 14 | C08, C11 | none |
 | Review fixes, Haiku | v2 | 16 | 1 | 15 | C15 | none |
 | Reviewer fixes, Sonnet | v3 | 18 | 1 | 17 | C17 | none |
 | Reviewer fixes, Haiku | v3 | 18 | 1 | 16 | C07, C17 | none |
-| Shipped, Sonnet | this skill (v4) | 18 | 3 | 16, 17, 16 | C17 (3), C06 (2) | none |
-| Shipped, Haiku | this skill (v4) | 18 | 3 | 17, 16, 17 | C17 (3), C07 (1) | none |
+| One-sentence question, Sonnet | v4 | 18 | 3 | 16, 17, 16 | C18 (3), C06 (2) | none |
+| One-sentence question, Haiku | v4 | 18 | 3 | 17, 15, 16 | C05, C07 | C06 (3), C18 (1) |
+| Counted misses, Sonnet | v5 | 18 | 3 | 17, 16, 17 | C07 (3), C06 (1) | none |
+| Counted misses, Haiku | v5 | 18 | 3 | 18, 17, 18 | C07 (1) | none |
+| Shipped, Sonnet | this skill (v6) | 18 | 3 | 18, 18, 18 | none | none |
+| Shipped, Haiku | this skill (v6) | 18 | 3 | 17, 18, 18 | C07 (1) | none |
 
-Two more samples of v3 showed the one-question rule drifting: eight of 54 one-question checks
-across three samples per model had a second question, usually an added "why?". v4 adds one
-clause (one question is one sentence, with the "why" folded in) and its three samples per model
-miss one of 54. Every map in the v3 and v4 samples has correct arithmetic: placed count, mean
-level, two cells per level and one overall cell per 10%. v4 was graded by mechanical checks on
-all 108 outputs; the builder read every flagged output and, in every sample, C01, C05, C06, C09
-and C17. The checks reproduce the earlier manual grades of the upstream and v3 runs.
+Upstream to v3 ran once per model and were graded under the rules of their round; upstream
+C07 now counts as partial because it calls the valid untested `borrowing ?` a missing level.
+v4 onward ran three samples per model and are graded under the final cases and rules.
 
-Upstream failures: untested subskills scored `0/5` and counted in the overall (C04, C10) and
-the mechanism explained after a wrong answer (C05). Partials are a subskill list shown before
-the diagnostic (C03, C11), a course description after the clarifying question (C02), two
-questions in one message (v2 C08 and C11, shipped Haiku C07) and no safe way to test a
-deleting command (v2 Haiku C15). Two v4 Sonnet C06 replies re-test from a new angle without
-saying the told answer earns no level. v4 Haiku C06 calls the transcript's unplaced `2/5` a
-guess, as the untested rule allows, and still raises nothing. v1 Haiku C08 restarted the diagnostic because the transcript
-did not say it was done; v2 marks it. In C17 both models drew the correct map and listed the
-other branches, then re-asked the pending diagnostic question instead of proposing a start; the
-skill's step order supports that, so the oracle may be stricter than the skill.
+What each round changed, and the evidence for it:
 
-**Correction.** The first record of these trials (commit `a88fdc9`) reported upstream Sonnet 13
-of 15 and the adaptation 15 of 15 on both models. Review showed that was overstated: upstream
-Sonnet C10 also counted the untested subskill as 0, the original C07 expectation contradicted
-the skill (it called `borrowing ?` a missing level; the original wording is kept in
-`expect_original`), and the builder had applied no consistent rule for one question or for a
-breakdown shown early. The table regrades every run under the rules now in `trials.json`.
+- **v4**: one question is one sentence. Two more samples of v3 had a second question in eight
+  of 54 one-question checks; v4 had it in one.
+- **v5**: count the misses on an idea, explain after the third, and put any code before the
+  question. v4 Haiku C18 narrowed again instead of explaining in one of three samples (v3
+  Haiku the same, one of three), and v4 Sonnet put the snippet after its question in C18.
+- **v6**: an invalid resume block with no target takes the default target without asking.
+  v5 C07 added a second question about the target in four of six samples; v6 in none. One
+  v6 Haiku sample still asked about the out-of-range level inline (`4? 5? a typo?`) before its
+  closing question, which the one-question rule counts as partial.
+
+Every rendered map in the v3 to v6 samples has correct arithmetic: placed count, mean level,
+two cells per level and one overall cell per 10%. For v5 and v6 the builder read C05, C06,
+C07, C16, C17 and C18 of every sample in full and the opening and closing lines of every other
+output; mechanical checks (question count, map arithmetic, safe-path and routing markers) only
+flag outputs for reading.
+
+**Corrections.** The first record of these trials (commit `a88fdc9`) reported upstream Sonnet
+13 of 15 and the adaptation 15 of 15 on both models; review showed upstream Sonnet C10 also
+counted the untested subskill as 0, the C07 expectation contradicted the skill, and no
+consistent rule was applied for one question or an early breakdown. The v4 record (commit
+`2843773`) then claimed no failures in 108 runs: the final cross-model review found v4 Haiku
+C18 narrowing instead of explaining, which a mechanical check had passed, and v4 Haiku C06
+retracting the transcript's `2/5` in all three samples. Oracle changes keep the earlier wording
+in `expect_original` and give the reason in `oracle_note`: C07 accepts `borrowing ?` as valid
+and treats calling it an error as partial; C08 and C06 mark the diagnostic as done in the
+transcript; C17 accepts re-asking a pending diagnostic question instead of proposing a start,
+as steps 3-4 order. The v4 failures above are graded against the unmarked C06 transcript.
 
 **Independent review** (fresh context, 14 cases, 27 runs, three single-clause mutants as
 controls): PASS, with findings the adaptation had inherited from upstream. A learner who failed
-three times was never given the explanation (0 of 4 runs), a two-level tree's map dropped the
-other branches, and the overall bar's rounding was unstated; the shipped text fixes all three
-(C17, C18). One of two Haiku runs did not lower a level after a failed spaced review, with the
-text unchanged and Sonnet passing, so Haiku is a noisier check than one run per case suggests.
-`mneves-teach-back-srs` still mentions quizzes in its description, so a host could route
-"quiz me on <topic>" there; that skill is outside this change and host selection was not tested.
+three times was never given the explanation (0 of 4 runs, upstream text included), a two-level
+tree's map dropped the other branches, and the overall bar's rounding was unstated; the shipped
+text fixes all three (C17, C18). One of two Haiku runs did not lower a level after a failed
+spaced review, with the text unchanged and Sonnet passing. `mneves-teach-back-srs` still
+mentions quizzes in its description, so a host could route "quiz me on <topic>" there; that
+skill is outside this change and host selection was not tested.
 
 The trials exercise a supplied skill file, not native catalog selection, and cover single
 next turns, not a whole course. With the breakdown kept private, C13's "derives subskills" is

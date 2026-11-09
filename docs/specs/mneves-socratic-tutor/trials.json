@@ -1,7 +1,7 @@
 {
-  "purpose": "Next-turn behavioral trials for mneves-socratic-tutor. Each case gives the tutor the skill as installed context, the conversation so far and the learner's latest message; the tutor writes only its next message. Written before the adaptation and run against upstream socratic-tutor (baseline) and the adapted skill. C07 and C08 were corrected after review (original C07 kept in expect_original); C16 was added, and C17-C18 come from the independent review.",
+  "purpose": "Next-turn behavioral trials for mneves-socratic-tutor. Each case gives the tutor the skill as installed context, the conversation so far and the learner's latest message; the tutor writes only its next message. Written before the adaptation and run against upstream socratic-tutor (baseline) and the adapted skill. C07 and C08 were corrected after review (original C07 kept in expect_original); C16 was added, and C17-C18 come from the independent review; C06, C07 and C17 were corrected after the final review.",
   "host_context": "Other installed skills: mneves-eli5 (explain an idea in plain language for a chosen audience), mneves-teach-back-srs (the user explains a codebase back; the agent checks it against the code and keeps SM-2 flashcards: 'let me explain', 'quiz me', 'review cards', 'what's due').",
-  "grading_rules": ["A one-question expectation is met when the prose outside code, indented code and quoted text holds one question mark or one imperative prompt; a compound question in one sentence counts as one.", "C03 and C11 (course start): listing the subskill breakdown before the diagnostic is partial.", "One sample per case and model unless stated; variance is not measured."],
+  "grading_rules": ["A one-question expectation is met when the prose outside code, indented code and quoted text holds one question mark or one imperative prompt; a compound question in one sentence counts as one.", "C03 and C11 (course start): listing the subskill breakdown before the diagnostic is partial.", "Code placed after the question it belongs to is partial wherever a case asks the message to end with the question.", "Every output is read by a person or an independent model; mechanical checks only flag outputs."],
   "cases": [
     {
       "id": "C01-one-off",
@@ -44,19 +44,20 @@
       "id": "C06-told-answer-not-counted",
       "turns": [
         {"role": "user", "text": "Teach me Python closures properly, I want to master them."},
-        {"role": "assistant", "text": "[current focus: late binding in closures, level 2/5]\n\nWhat does this print?\n\n    fs = [lambda: i for i in range(3)]\n    print([f() for f in fs])"},
+        {"role": "assistant", "text": "[diagnostic done; current focus: late binding in closures, level 2/5]\n\nWhat does this print?\n\n    fs = [lambda: i for i in range(3)]\n    print([f() for f in fs])"},
         {"role": "user", "text": "just tell me"},
         {"role": "assistant", "text": "It prints [2, 2, 2]. Each lambda looks up i when it is called, not when it is created, and by then the loop has finished with i = 2.\n\nSo what would it print with range(5)?"},
         {"role": "user", "text": "[4, 4, 4, 4, 4]"}
       ],
-      "expect": "Confirms the answer is right but does not raise the late-binding level, because it came straight after being told; plans to re-test it later. If a map is shown, late binding stays at 2/5."
+      "expect": "Confirms the answer is right but does not raise the late-binding level, because it came straight after being told; plans to re-test it later. If a map is shown, late binding stays at 2/5.",
+      "oracle_note": "Transcript marked after the final review: without it, Haiku read the 2/5 as a guessed level and retracted it to `?` in all three v4 samples, which fails \"stays at 2/5\". Those failures stay recorded."
     },
     {
       "id": "C07-malformed-resume",
       "turns": [{"role": "user", "text": "resume from: TOPIC=Rust ownership; borrowing ?; lifetimes 9/5; moves; notes:"}],
-      "expect": "Does not invent state. Names what is wrong (moves has no level, lifetimes 9/5 is out of range, no target, last-checked or due-for-review data, empty notes); `borrowing ?` is a valid untested entry, so treating it as an error is not a failure but inventing a level for it is. Asks for a valid block or offers a short re-diagnostic. One question.",
+      "expect": "Does not invent state. Names what is wrong (moves has no level, lifetimes 9/5 is out of range, no target, last-checked or due-for-review data, empty notes) and treats `borrowing ?` as a valid untested entry: calling it an error is partial, inventing a level for it fails. Asks for a valid block or offers a short re-diagnostic. One question.",
       "expect_original": "Does not invent state. Names what is wrong (no level for borrowing or moves, 9/5 out of range, no notes) and asks for a valid block or offers a short re-diagnostic. One question.",
-      "oracle_note": "Corrected after review: the skill allows a level or `?` per subskill, so the original expectation wrongly listed borrowing as missing a level."
+      "oracle_note": "Corrected after review: the skill allows a level or `?` per subskill, so the original expectation wrongly listed borrowing as missing a level; the final review tightened the correction so that calling `?` an error no longer passes."
     },
     {
       "id": "C08-tutor-was-wrong",
@@ -139,9 +140,10 @@
         {"role": "assistant", "text": "Last diagnostic question: why does logistic regression use a sigmoid?"},
         {"role": "user", "text": "show progress"}
       ],
-      "expect": "Shows the map in a code block for the working branch (supervised learning) and lists the other branches as not started. Only the subskills the three answers probed carry a level; the rest are `?`/untested. States how many are placed. Overall = mean of placed levels x 20%, bars = 2 cells per level. Proposes where to start and lets the user override; no teaching.",
+      "expect": "Shows the map in a code block for the working branch (supervised learning) and lists the other branches as not started. Only the subskills the three answers probed carry a level; the rest are `?`/untested. States how many are placed. Overall = mean of placed levels x 20%, bars = 2 cells per level. While a diagnostic question is still unanswered, asks it again instead of proposing a start (steps 3-4); otherwise proposes where to start. No teaching.",
       "origin": "independent review case R07-two-level-tree-progress",
-      "expect_original": "Shows a map in a code block with a two-level structure (several branches with subskills, or branches plus the chosen first branch expanded). Only the subskills the three answers probed carry a level; all others are `?`/untested. States how many are placed. Overall = mean of placed levels x 20%, bars = 2 cells per level. Proposes where to start and lets the user override; no teaching."
+      "expect_original": "Shows a map in a code block with a two-level structure (several branches with subskills, or branches plus the chosen first branch expanded). Only the subskills the three answers probed carry a level; all others are `?`/untested. States how many are placed. Overall = mean of placed levels x 20%, bars = 2 cells per level. Proposes where to start and lets the user override; no teaching.",
+      "oracle_note": "The final review found the stricter \"proposes where to start\" unfair while the diagnostic is still open (steps 3-4 order the diagnostic first); expect_original keeps the reviewer's wording."
     },
     {
       "id": "C18-third-failure-explains",
