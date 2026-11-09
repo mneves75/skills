@@ -30,8 +30,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Fable 5.2**: the orchestrator's planner, plan advisor and main-session advisor seats name
   `claude-fable-5-2`, released 2026-11-09. Claude Code 2.1.321 still resolves the short `fable`
   alias to Fable 5.1, so a seat that wants the current release names the versioned id; the
-  Defaults block says to check what each alias resolves to on every release. The other model
-  ids were re-verified against the vendor lists unchanged.
+  Defaults block says to check what each alias resolves to on every release and to set a
+  versioned id in an agent definition where a dispatch tool takes only short aliases. The
+  pstack collection's Pi row moves to `anthropic/claude-fable-5-2`; its Claude-side runners
+  keep the `fable` alias, because Claude Code's Agent tool accepts only short aliases. The
+  other model ids were re-verified against the vendor lists unchanged.
 - **autoreview**: selecting `claude-fable-5-2` or `claude-fable-5-1`, as the model or a
   fallback, requires the Claude Code release that serves it (2.1.321 and 2.1.255), and the
   error names the model that set the floor.

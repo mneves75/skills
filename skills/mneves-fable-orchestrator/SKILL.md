@@ -58,7 +58,8 @@ Verified against the vendor model lists on 2026-11-09; a release re-verifies eve
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file). A seat names the vendor's versioned alias while the host's
 short alias still resolves to an older release; check what each alias resolves to on every
-release.
+release. A dispatch tool that accepts only short aliases cannot take a versioned id: set it
+in the agent definition's model field instead.
 
 ### When no primary seat can run
 
