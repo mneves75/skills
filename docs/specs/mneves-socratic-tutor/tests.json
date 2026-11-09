@@ -1,0 +1,15 @@
+{
+  "scope": "mneves-socratic-tutor candidate checks; review, acceptance and release results bind through the private gate records and the annotated v1.47.0 tag",
+  "upstream": "janestreet/agent_skills socratic-tutor at 7c6715c29548a3b39d4a9545c698ee4fd17a7213",
+  "checks": [
+    {"name": "trials written first, upstream baseline", "status": "PASS", "evidence": "15 cases; upstream failed C04/C10 (untested scored 0/5) and leaked the mechanism in C05 on Sonnet and Haiku"},
+    {"name": "trials on the adapted skill", "status": "PASS", "evidence": "15/15 on Sonnet and 15/15 on Haiku, graded by the builder against each expect line"},
+    {"name": "Agent Skills spec and installer discovery", "status": "PASS", "evidence": "25 root skills validated; npx skills add . --list found 25 including the new skill; MIT license byte-identical to upstream"},
+    {"name": "tools typecheck lint and tests", "status": "PASS", "evidence": "102 tests pass, lint clean"},
+    {"name": "site, model-default and readiness guards", "status": "PASS", "evidence": "build-site.test, check-defaults-block (1.47.0, 2026-11-09) and its controls, readiness catalog and its controls"},
+    {"name": "repository suites", "status": "PASS", "evidence": "pre-commit hook, SRS, pr-wait, Pages guard, ship-deploy contract, codex-lane, ast-grep, diff check"},
+    {"name": "local browser", "status": "PASS", "evidence": "copy cases, overflow at 390px and 1440px, light/dark contrast; new card, release note, guide navigation and keyboard focus at both widths"},
+    {"name": "complexity", "status": "NOT_APPLICABLE", "reason": "cccc 1.8.0 recognized no supported file in the Markdown/HTML/JSON change"},
+    {"name": "native host selection", "status": "NOT_RUN", "reason": "trials supply the skill file; catalog selection on a host is not exercised"}
+  ]
+}
