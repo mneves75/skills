@@ -39,22 +39,34 @@ a fresh headless Claude session with no settings, no MCP servers and no tools, t
 as the only installed instruction. The builder graded every run against the case's `expect`
 line and the `grading_rules` in the same file; independent acceptance is a separate step.
 
-| Run | Skill text | Cases | Met | Partial | Failed |
-|---|---|---|---|---|---|
-| Upstream, Sonnet | `socratic-tutor` at `7c6715c` | 15 | 10 | C03, C11 | C04, C05, C10 |
-| Upstream, Haiku | same | 15 | 10 | C03, C11 | C04, C05, C10 |
-| First adaptation, Sonnet | v1 | 15 | 12 | C02, C03, C11 | none |
-| First adaptation, Haiku | v1 | 15 | 12 | C03, C11 | C08 |
-| Review fixes, Sonnet | v2 | 16 | 14 | C08, C11 | none |
-| Review fixes, Haiku | v2 | 16 | 15 | C15 | none |
-| Shipped, Sonnet | this skill | 18 | 17 | C17 | none |
-| Shipped, Haiku | this skill | 18 | 16 | C07, C17 | none |
+| Run | Skill text | Cases | Samples | Met per sample | Partial | Failed |
+|---|---|---|---|---|---|---|
+| Upstream, Sonnet | `socratic-tutor` at `7c6715c` | 15 | 1 | 10 | C03, C11 | C04, C05, C10 |
+| Upstream, Haiku | same | 15 | 1 | 10 | C03, C11 | C04, C05, C10 |
+| First adaptation, Sonnet | v1 | 15 | 1 | 12 | C02, C03, C11 | none |
+| First adaptation, Haiku | v1 | 15 | 1 | 12 | C03, C11 | C08 |
+| Review fixes, Sonnet | v2 | 16 | 1 | 14 | C08, C11 | none |
+| Review fixes, Haiku | v2 | 16 | 1 | 15 | C15 | none |
+| Reviewer fixes, Sonnet | v3 | 18 | 1 | 17 | C17 | none |
+| Reviewer fixes, Haiku | v3 | 18 | 1 | 16 | C07, C17 | none |
+| Shipped, Sonnet | this skill (v4) | 18 | 3 | 16, 17, 16 | C17 (3), C06 (2) | none |
+| Shipped, Haiku | this skill (v4) | 18 | 3 | 17, 16, 17 | C17 (3), C07 (1) | none |
+
+Two more samples of v3 showed the one-question rule drifting: eight of 54 one-question checks
+across three samples per model had a second question, usually an added "why?". v4 adds one
+clause (one question is one sentence, with the "why" folded in) and its three samples per model
+miss one of 54. Every map in the v3 and v4 samples has correct arithmetic: placed count, mean
+level, two cells per level and one overall cell per 10%. v4 was graded by mechanical checks on
+all 108 outputs; the builder read every flagged output and, in every sample, C01, C05, C06, C09
+and C17. The checks reproduce the earlier manual grades of the upstream and v3 runs.
 
 Upstream failures: untested subskills scored `0/5` and counted in the overall (C04, C10) and
 the mechanism explained after a wrong answer (C05). Partials are a subskill list shown before
 the diagnostic (C03, C11), a course description after the clarifying question (C02), two
 questions in one message (v2 C08 and C11, shipped Haiku C07) and no safe way to test a
-deleting command (v2 Haiku C15). v1 Haiku C08 restarted the diagnostic because the transcript
+deleting command (v2 Haiku C15). Two v4 Sonnet C06 replies re-test from a new angle without
+saying the told answer earns no level. v4 Haiku C06 calls the transcript's unplaced `2/5` a
+guess, as the untested rule allows, and still raises nothing. v1 Haiku C08 restarted the diagnostic because the transcript
 did not say it was done; v2 marks it. In C17 both models drew the correct map and listed the
 other branches, then re-asked the pending diagnostic question instead of proposing a start; the
 skill's step order supports that, so the oracle may be stricter than the skill.

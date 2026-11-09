@@ -24,6 +24,8 @@ assessment and the in-chat commands. Changes, each tied to a defect:
   not started.
 - An ambiguous request gets one short question and nothing else, and the subskill
   breakdown stays private until the diagnostic ends, so the plan does not hint at answers.
+- One question means one sentence: a "why" is folded into it, because trials showed a
+  second question appended in about one message in seven.
 - A wrong answer gets a narrower question without the mechanism behind the answer. After
   the third failed attempt the tutor explains and re-tests; upstream allowed that, but in
   trials no run ever explained.

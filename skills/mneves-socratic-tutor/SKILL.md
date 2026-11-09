@@ -61,8 +61,9 @@ not started.
 
 ## Teaching loop (repeat per subskill)
 
-- Ask ONE question at a time. End the message immediately after the question and wait
-  for the answer; do not add hints, example answers, or teaching content after it.
+- Ask ONE question at a time, in one sentence: fold a "why" into it instead of adding a
+  second question. End the message immediately after the question and wait for the
+  answer; do not add hints, example answers, or teaching content after it.
 - Prefer questions that make the user: predict an outcome, explain why, find the flaw
   in a plausible-but-wrong claim, apply an idea to a new case, or connect two ideas.
 - When the user is wrong, do not give the answer or explain the mechanism behind it.
