@@ -48,8 +48,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `AUTOREVIEW_CLAUDE_THINKING` still wins, and a chain of other Claude models keeps the CLI's
   default. One effort covers the whole Claude invocation, so a chain that mixes Opus with other
   models stops and asks for `--thinking claude=<level>`. The pstack collection gains adaptation
-  `07-opus-medium-effort`: an `opus` role value without an `@` suffix runs at `medium` whenever
-  it resolves to an Opus model.
+  `07-opus-medium-effort`: a role value without an `@` suffix that resolves to an Opus model
+  runs at `medium`, and neither the sheet's `default effort` line, Pi's panel line nor
+  `poteto-mode`'s per-job raise and lower moves it. A routing eval with expected outcomes found
+  the last two holding Opus at `xhigh`, `high` or `low` before this fix.
 - **autoreview Opus 5.5 floor**: selecting `claude-opus-5-5` (the Claude engine's default), as the
   model or a fallback, requires Claude Code 2.1.280, the release Claude Code's model
   configuration page names for Opus 5.5; it was accepted from 2.1.169 before. A `[1m]` context
