@@ -41,6 +41,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   └── mneves-verify/             # Independent verification before done/fixed/shipped
 ├── collections/pstack/       # 42 vendored pstack skills (MIT); sources.json + adaptations/ -> tools/scripts/sync-pstack.sh
 ├── tools/                    # Readiness assessor (Bun + TypeScript): readiness-check.ts + lib/
+│   ├── routing-eval/         # cases.json: frozen routing-eval cases and the anchors that decide them
 │   └── scripts/              # init.sh (setup), deploy.sh (gated merge -> CI/Pages -> served bytes -> tag), site build, sync, checks; each with its test
 ├── HOWTO.md                  # Per-skill usage guide with examples (rendered to site/howto.html)
 ├── PRODUCT.md · DESIGN.md     # Landing audience/constraints and extracted visual tokens
@@ -71,6 +72,8 @@ python3 tools/scripts/check-readiness-catalog.py  # readiness catalogs, preserva
 bash tools/scripts/check-readiness-catalog.test   # planted-violation controls for the readiness catalog guard
 python3 skills/mneves-teach-back-srs/tests/test_srs_db.py    # SRS helper: concurrent reviews on a temporary database
 python3 skills/babysit-pr/tests/test_pr_wait.py              # pr-wait watcher against a fake gh (no network)
+python3 tools/scripts/routing-eval.py check   # routing-eval cases well formed, anchors still in the text: no model call
+python3 tools/scripts/routing-eval.test.py    # routing-eval checks, grader and `run` against fake claude/codex (no quota)
 tools/scripts/check-defaults-block.sh   # model ids only inside the orchestrator's Defaults block, with its verified-on date
 bash tools/scripts/check-defaults-block.test   # planted-violation controls for that guard
 bun --bun tools/readiness-check.ts --format=html --output=report.html   # assess cwd
