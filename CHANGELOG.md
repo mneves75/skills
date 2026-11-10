@@ -26,7 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `check` is deterministic and runs in CI: the cases are well formed and every case's deciding
   passage still exists in the skill text it reads. It catches a removed or reworded passage,
   not a contradicting sentence added elsewhere. `run` asks the models live and applies the
-  pass threshold; it is a release step, never run by CI.
+  pass threshold; it is a release step, never run by CI. Only a full run, every case on both
+  consumers, can pass. The Codex consumer runs with its shell tool disabled and any tool event
+  fails the sample: the 1.47.0 runner left that tool on, so only its Claude consumer was
+  tool-free.
 - `.claude/settings.json` denies edits to the vendored `collections/pstack` skills, `UPSTREAM`, `LICENSE*` and `NOTICE*`; asks before `gh pr merge`, a push to `origin main` and `tools/scripts/deploy.sh`; a Stop hook runs the tools typecheck, lint and tests when the tree changed since the last green run.
 
 ### Changed
