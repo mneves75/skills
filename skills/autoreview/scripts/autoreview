@@ -414,12 +414,13 @@ THINKING_LEVELS_BY_ENGINE = {
 }
 CLAUDE_SAFE_MODE_MIN_VERSION = (2, 1, 169)
 CLAUDE_FABLE_MIN_VERSION = (2, 1, 170)
-# A versioned Fable id needs the Claude Code release that serves it (Claude Code
+# A versioned model id needs the Claude Code release that serves it (Claude Code
 # model configuration docs; where the Help Center names an earlier release, the
 # later one is kept).
-CLAUDE_FABLE_VERSIONED_MIN_VERSIONS = {
+CLAUDE_VERSIONED_MIN_VERSIONS = {
     "claude-fable-5-1": (2, 1, 257),
     "claude-fable-5-2": (2, 1, 321),
+    "claude-opus-5-5": (2, 1, 280),
 }
 # Pi's reviewed-repo trust override first appears in the current
 # @earendil-works/pi-coding-agent 0.79.0 CLI line. Older legacy binaries can
@@ -4713,11 +4714,17 @@ def claude_cli_model_selector(model: str) -> str:
     return "fable" if model == "claude-fable-5" else model
 
 
+def claude_model_base(model: str) -> str:
+    """The model a selection names, without a context suffix such as `[1m]`."""
+    return re.sub(r"\[[^\]]*\]$", "", model.strip().lower())
+
+
 def claude_model_min_version(model: str) -> tuple[int, int, int] | None:
-    """Return the Claude Code floor a Fable selection needs, or None for other models."""
-    if model in CLAUDE_FABLE_VERSIONED_MIN_VERSIONS:
-        return CLAUDE_FABLE_VERSIONED_MIN_VERSIONS[model]
-    if model in {"claude-fable-5", "fable"}:
+    """Return the Claude Code floor a model selection needs, or None when only safe mode sets it."""
+    base = claude_model_base(model)
+    if base in CLAUDE_VERSIONED_MIN_VERSIONS:
+        return CLAUDE_VERSIONED_MIN_VERSIONS[base]
+    if base in {"claude-fable-5", "fable"}:
         return CLAUDE_FABLE_MIN_VERSION
     return None
 
@@ -6804,7 +6811,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--fallback-model",
         action="append",
-        help="Claude fallback model chain or claude=a,b. Repeatable.",
+        help="Claude fallback model chain or claude=a,b. Repeatable. A chain that mixes Opus with other models needs --thinking claude=<level>.",
     )
     parser.add_argument(
         "--engine-timeout-seconds",
@@ -6937,8 +6944,23 @@ def parse_keyed_options(values: list[str] | None, option: str) -> tuple[str | No
 
 
 def claude_model_is_opus(model: str | None) -> bool:
-    name = (model or "").strip().lower()
+    name = claude_model_base(model or "")
     return name == "opus" or name.startswith("claude-opus-")
+
+
+def claude_chain_default_thinking(models: list[str]) -> str | None:
+    """The effort for a Claude chain with no explicit one: medium for Opus, the CLI's own otherwise.
+
+    One --effort covers the whole invocation, so a chain that mixes Opus with another model
+    has no default that keeps both, and needs the caller to choose.
+    """
+    opus = {claude_model_is_opus(model) for model in models if model.strip()}
+    if opus == {True, False}:
+        raise SystemExit(
+            "claude model chain mixes Opus with other models; one effort covers the chain, "
+            "so choose it with --thinking claude=<level>"
+        )
+    return CLAUDE_OPUS_DEFAULT_THINKING if opus == {True} else None
 
 
 def reviewer_args(args: argparse.Namespace) -> list[argparse.Namespace]:
@@ -6978,8 +7000,6 @@ def reviewer_args(args: argparse.Namespace) -> list[argparse.Namespace]:
         or env_global_thinking
         or DEFAULT_THINKING_BY_ENGINE.get(engine)
     )
-    if engine == "claude" and not thinking and claude_model_is_opus(model):
-        thinking = CLAUDE_OPUS_DEFAULT_THINKING
     if engine == "claude":
         fallback_model = (
             fallback_by_engine.get(engine)
@@ -6987,6 +7007,8 @@ def reviewer_args(args: argparse.Namespace) -> list[argparse.Namespace]:
             or env_fallback_by_engine.get(engine)
             or env_global_fallback
         )
+        if not thinking:
+            thinking = claude_chain_default_thinking([model or "", *(fallback_model or "").split(",")])
     elif engine == "codex" and model == DEFAULT_MODEL_BY_ENGINE["codex"]:
         fallback_model = DEFAULT_CODEX_ACCESS_FALLBACK_MODEL
     else:

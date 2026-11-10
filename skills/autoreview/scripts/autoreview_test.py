@@ -1284,6 +1284,9 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
         cases = (
             ([], {}, "claude-opus-5-5", "medium"),
             (["--model", "opus"], {}, "opus", "medium"),
+            (["--model", "opus[1m]"], {}, "opus[1m]", "medium"),
+            (["--model", "claude-opus-5-5[1m]"], {}, "claude-opus-5-5[1m]", "medium"),
+            (["--fallback-model", "claude-opus-5"], {}, "claude-opus-5-5", "medium"),
             (["--model", "claude-opus-5-5", "--thinking", "high"], {}, "claude-opus-5-5", "high"),
             ([], {"AUTOREVIEW_CLAUDE_THINKING": "xhigh"}, "claude-opus-5-5", "xhigh"),
             (["--model", "claude-fable-5-2"], {}, "claude-fable-5-2", None),
@@ -1295,6 +1298,27 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 reviewer = AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())[0]
                 self.assertEqual(reviewer.model, model)
                 self.assertEqual(reviewer.thinking, effort)
+
+    def test_claude_mixed_opus_fallback_chain_needs_an_explicit_effort(self) -> None:
+        # One --effort covers the whole Claude invocation, so a chain that mixes Opus with
+        # another model has no default that keeps Opus at medium and the other at its own.
+        for overrides in (
+            ["--fallback-model", "claude-fable-5-2"],
+            ["--model", "claude-fable-5-2", "--fallback-model", "opus"],
+            ["--model", "fable", "--fallback-model", "claude-fable-5-1, claude-opus-5-5"],
+        ):
+            with self.subTest(overrides=overrides), mock.patch.dict(os.environ, {}, clear=True), \
+                    mock.patch.object(sys, "argv", ["autoreview", "--engine", "claude", *overrides]):
+                with self.assertRaisesRegex(SystemExit, r"mixes Opus with other models.*--thinking claude=<level>"):
+                    AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())
+        for overrides, env, effort in (
+            (["--fallback-model", "claude-fable-5-2", "--thinking", "high"], {}, "high"),
+            (["--fallback-model", "claude-fable-5-2"], {"AUTOREVIEW_CLAUDE_THINKING": "low"}, "low"),
+            (["--model", "fable", "--fallback-model", "claude-fable-5-1"], {}, None),
+        ):
+            with self.subTest(overrides=overrides, env=env), mock.patch.dict(os.environ, env, clear=True), \
+                    mock.patch.object(sys, "argv", ["autoreview", "--engine", "claude", *overrides]):
+                self.assertEqual(AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())[0].thinking, effort)
 
     def test_astra_effort_restrictions_do_not_change_other_codex_models(self) -> None:
         for effort in ("none", "minimal"):

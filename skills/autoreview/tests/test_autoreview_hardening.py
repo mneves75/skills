@@ -102,7 +102,8 @@ import sys
 
 args = sys.argv[1:]
 if "--version" in args or "-v" in args:
-    print(os.environ.get("AUTOREVIEW_FAKE_CLAUDE_VERSION", "2.1.170 (Claude Code)"))
+    # The default model's floor (Opus 5.5 needs Claude Code 2.1.280).
+    print(os.environ.get("AUTOREVIEW_FAKE_CLAUDE_VERSION", "2.1.280 (Claude Code)"))
     raise SystemExit(0)
 if "--help" in args or "-h" in args:
     print("--safe-mode\n--setting-sources\n--strict-mcp-config\n--disallowedTools\n--tools\n--print\n--json-schema")
@@ -5099,6 +5100,12 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
                 older_result,
                 r"2\.1\.257 for claude-fable-5-1 \(found 2\.1\.256\)",
             ),
+            # The default model: Opus 5.5 requires v2.1.280.
+            (
+                argparse.Namespace(claude_bin="claude", fallback_model=None, model="claude-opus-5-5"),
+                subprocess.CompletedProcess(["claude", "--version"], 0, "2.1.279 (Claude Code)", ""),
+                r"2\.1\.280 for claude-opus-5-5 \(found 2\.1\.279\)",
+            ),
         )
         with tempfile.TemporaryDirectory() as tempdir:
             repo = init_repo(Path(tempdir))
@@ -5120,8 +5127,12 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
         self.assertEqual(floor("claude-fable-5-1"), (2, 1, 257))
         self.assertEqual(floor("claude-fable-5"), (2, 1, 170))
         self.assertEqual(floor("fable"), (2, 1, 170))
-        self.assertIsNone(floor("claude-opus-5-5"))
+        # Claude Code's model configuration page: Opus 5.5 requires v2.1.280.
+        self.assertEqual(floor("claude-opus-5-5"), (2, 1, 280))
+        self.assertEqual(floor("claude-opus-5-5[1m]"), (2, 1, 280))
+        self.assertEqual(floor("claude-fable-5-2[1m]"), (2, 1, 321))
         self.assertIsNone(floor("opus"))
+        self.assertIsNone(floor("claude-opus-5"))
 
     @unittest.skipIf(os.name == "nt", "POSIX executable fixture")
     def test_claude_probe_captures_help_from_pipe_sensitive_cli(self) -> None:
