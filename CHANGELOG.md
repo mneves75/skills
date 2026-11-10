@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Agent instructions, from the owner's instruction audit (2026-11-09):
+  - `skills/autoreview/CLAUDE.md` imports `AGENTS.md` with `@AGENTS.md` on its own line, so Claude Code loads it.
+
+### Added
+- `.claude/settings.json` denies edits to the vendored `collections/pstack` skills, `UPSTREAM`, `LICENSE*` and `NOTICE*`; asks before `gh pr merge`, a push to `origin main` and `tools/scripts/deploy.sh`; a Stop hook runs the tools typecheck, lint and tests when the tree changed since the last green run.
+
 ## [1.47.0] - 2026-11-09
 
 ### Added
