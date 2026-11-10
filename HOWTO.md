@@ -55,6 +55,7 @@ collection does not automatically change those instructions in other projects.
 | [`mneves-verify`](#mneves-verify) | get an independent PASS/FAIL before "done" | "verify it", "prove it" |
 | [`mneves-fable-orchestrator`](#mneves-fable-orchestrator) | route independent work by capability | "delegate the backend to codex" |
 | [`mneves-agent-readiness`](#mneves-agent-readiness) | measure how agent-friendly a repo is | "why does the agent struggle here?" |
+| [`mneves-socratic-tutor`](#mneves-socratic-tutor) | be tutored on any topic until you master it | "tutor me on SQL window functions until I really get them" |
 | [`mneves-teach-back-srs`](#mneves-teach-back-srs) | learn a codebase with spaced repetition | "let me explain the auth flow" |
 | [`mneves-superaudit`](#mneves-superaudit) | run a bounded audit-and-cleanup pass over a repo | "superaudit this repo, slop and perf only" |
 | [`mneves-ship-deploy`](#mneves-ship-deploy) | prepare verified staging, then approve the exact candidate before production | "ship-staging" or "ship-prod" |
@@ -985,6 +986,58 @@ superaudit /path/to/myapp — items 1,2 only
   and it is the deliverable for item 3.
 - Amend the skill only from failures you actually saw. Instructions added "just in case" cost
   context on every future run.
+
+---
+
+## mneves-socratic-tutor
+
+**What it does.** Teaches a topic of your choice by asking, not lecturing. It splits the topic
+into subskills, runs a short diagnostic before teaching anything, and tracks each subskill on
+a 0-5 map; a subskill the diagnostic did not reach shows `?` until it is tested. One question
+per turn. A wrong answer gets a narrower question, not the answer; after a third miss on the
+same idea it explains briefly and tests it again another way. A level rises only after
+two independent checks, one of them unprompted recall, and earlier subskills come back
+without warning. The course ends with a mixed final assessment at your target level (4/5 by
+default, 5/5 when you ask for full mastery).
+
+**When to use it.** You want to master a topic, not get one answer: "tutor me", "drill me",
+"teach me X properly". A one-off "what is X" gets a normal answer, and an ambiguous request
+gets one short question first. To explain a codebase back or review stored flashcards, use
+[`mneves-teach-back-srs`](#mneves-teach-back-srs); for one explanation at a chosen level, use
+[`mneves-eli5`](#mneves-eli5).
+
+**Prerequisites.** None. Markdown only, no helper or sibling skill. It also works pasted into
+a plain chatbot.
+
+**Commands at any time.** "show progress", "harder", "easier", "just tell me" (that answer
+then counts as told and raises no level until an unprompted re-test), "save state" and
+"resume from:". The save block holds the topic, target, each subskill's level or `?`, when
+it was last checked, what is due for review and the misconceptions noted; paste it into a
+new session to continue. An incomplete or invalid block is reported, never guessed.
+
+**Example** (illustrative; not an observed run).
+
+```text
+You: Tutor me on SQL window functions until I really get them.
+Agent: I'll start with a few questions, one at a time, to see what you already know.
+       What does ROW_NUMBER() OVER (ORDER BY created_at) return for each row?
+You: A running number 1, 2, 3 in created_at order.
+...
+Agent:
+  Topic: SQL window functions    overall: ██░░░░░░░░ 20%  (3 of 7 placed)
+  numbering             [████░░░░░░]  2/5
+  PARTITION BY          [██░░░░░░░░]  1/5  <- current focus
+  frames                [░░░░░░░░░░]  0/5
+  LAG / LEAD            [░░░░░░░░░░]  ?/5  untested
+  ... three more subskills, untested
+```
+
+**Exercises.** When the agent has tools, it checks your actual output, not your description of
+it. Anything that writes, deletes or reaches real systems you run in a scratch location and
+paste back; the agent does not run it in your project.
+
+Procedure: [SKILL.md](skills/mneves-socratic-tutor/SKILL.md).
+Source and adaptations: [UPSTREAM.md](skills/mneves-socratic-tutor/UPSTREAM.md).
 
 ---
 

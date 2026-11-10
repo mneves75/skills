@@ -7,12 +7,13 @@ official-commit: fd268b808c786469e6dd8c8d9db864d0de4d669e
 component: cursor-team-kit e46364b8be46000b7df0f260550cd712afbb8d36 cursor-team-kit/skills (identical at official-commit)
 component: pstack c742dd61706fbacc1b95f1a20b7b988cf096ce6c pstack (identical at official-commit)
 component: thermos 118e73b0e196e4d49d5aade7ce6dd8985a621f68 thermos (identical at official-commit)
-adaptation: 01-model-routing-and-autonomy.patch sha256:f757e2114b41158c1540124ebb452d41035b3e26a2613156a015e0646e64be77
+adaptation: 01-model-routing-and-autonomy.patch sha256:6ac978c6edf5066ea9400b668bd904b3080b72dd53b91f11703812214c493ce7
 adaptation: 02-principle-consolidation.patch sha256:ddc95df42cab1ac3546aaaef5394052b56263316b8c6e6a0a693855d544eecf4
 adaptation: 03-tdd-test-first.patch sha256:435db1bd3ce809ccdd7fcd4ee6790ed6111cfe3c65ee27a3012edea2d777a461
 adaptation: 04-readonly-why-bounded-babysit.patch sha256:fa9cfa0db67201282194371a6a30e72dfc5e728d5fb435a7523e023e57500130
 adaptation: 05-explicit-opt-in.patch sha256:57eade0a7f88fbd8571ca599a2ea315238c8e95e81320d8b8c0b624a8ee4067d
 adaptation: 06-render-and-install-consent.patch sha256:0deb312d5f06049ca9075218de1642786e8262a5f962ac77a2d96626303468c5
+adaptation: 07-opus-medium-effort.patch sha256:af514dfe78d5b6d3fd5131c9561d93f91b3ff9784bd9b926d3ebb386bb555716
 excluded: statechart/scripts/test
 retired: make-bot-ui
 retired: principle-*

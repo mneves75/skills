@@ -7,6 +7,56 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.47.0] - 2026-11-09
+
+### Added
+- **mneves-socratic-tutor**: tutor any topic to mastery with Socratic questions, a diagnostic,
+  a 0-5 skill map, spaced review and a final assessment. Adapted from janestreet/agent_skills
+  `socratic-tutor` at `7c6715c29548a3b39d4a9545c698ee4fd17a7213`, with the original MIT license
+  and copyright; the `mneves-` prefix is the owner's choice. Untested subskills show `?`
+  instead of a guessed level, the map has one stated format and formula, the subskill breakdown
+  stays private until the diagnostic ends, a learner stuck after three attempts gets the
+  explanation, grading checks facts before marking an answer wrong, "just tell me" answers
+  raise no level, exercises with side effects run in the learner's scratch location, and the
+  save block carries last-checked and due-for-review data. "quiz me" stays with
+  `mneves-teach-back-srs`. Eighteen next-turn trials (fifteen written first, three added from
+  review) are in `docs/specs/mneves-socratic-tutor/`.
+
+### Changed
+- **Naming invariant**: an adapted skill may also take the `mneves-` prefix by the owner's
+  choice; its provenance records the upstream name.
+- **Release bookkeeping**: fold the published 1.46.1 binding run into the readiness cursor,
+  binding-run line and gate history.
+- **Fable 5.2**: the orchestrator's planner, plan advisor and main-session advisor seats name
+  `claude-fable-5-2`, released 2026-11-09. On Claude Code 2.1.321 the short `fable` alias also
+  resolves to Fable 5.2 (to Fable 5 in Claude apps gateway sessions); the pinned id keeps the
+  seats on 5.2 when the alias moves. The Defaults block says to check what each short alias
+  resolves to on every release and to set a versioned id in an agent definition where a
+  dispatch tool takes only short aliases. The pstack collection's Pi row moves to
+  `anthropic/claude-fable-5-2`; its Claude-side runners keep the `fable` alias, because Claude
+  Code's Agent tool accepts only short aliases. The other model ids were re-verified against
+  the vendor lists unchanged.
+- **autoreview**: selecting `claude-fable-5-2` or `claude-fable-5-1`, as the model or a
+  fallback, requires the Claude Code release that serves it (2.1.321 and 2.1.257), and the
+  error names the model that set the floor. For Fable 5.1 the Help Center names 2.1.255 and
+  Claude Code's model configuration page 2.1.257; the later release is kept.
+- **Opus at medium reasoning** (owner rule): every Opus seat in the orchestrator's Defaults
+  block (main session, frontend subagent, workers, heavy executor, reviewer) names
+  `reasoning medium`. autoreview's Claude engine runs an Opus chain (`opus`, `opus[1m]` or
+  `claude-opus-*`, including its `claude-opus-5-5` default, as the model and every fallback) at
+  `--effort medium` when no effort is given; an explicit `--thinking` or
+  `AUTOREVIEW_CLAUDE_THINKING` still wins, and a chain of other Claude models keeps the CLI's
+  default. One effort covers the whole Claude invocation, so a chain that mixes Opus with other
+  models stops and asks for `--thinking claude=<level>`. The pstack collection gains adaptation
+  `07-opus-medium-effort`: a role value without an `@` suffix that resolves to an Opus model
+  runs at `medium`, and neither the sheet's `default effort` line, Pi's panel line nor
+  `poteto-mode`'s per-job raise and lower moves it. A routing eval with expected outcomes found
+  the last two holding Opus at `xhigh`, `high` or `low` before this fix.
+- **autoreview Opus 5.5 floor**: selecting `claude-opus-5-5` (the Claude engine's default), as the
+  model or a fallback, requires Claude Code 2.1.280, the release Claude Code's model
+  configuration page names for Opus 5.5; it was accepted from 2.1.169 before. A `[1m]` context
+  suffix takes the floor of the model it names.
+
 ## [1.46.1] - 2026-11-05
 
 ### Fixed

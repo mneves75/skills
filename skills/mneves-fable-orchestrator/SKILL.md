@@ -37,14 +37,14 @@ before it can perform ordinary implementation.
 The only place this skill names models. Edit this block on a model release; nothing else.
 
 ```
-main session      = Opus, latest release (Claude alias `opus`), reasoning xhigh, with a Fable advisor (Claude `advisorModel` alias `fable`) | gpt-6.1-sol, reasoning high (Codex orchestrator)
-frontend subagent = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning high (Codex worker)
-ordinary worker   = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning high (Codex worker)
-bounded worker    = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning high (bounded Codex task)
-heavy executor    = Opus, latest release (Claude subagent alias `opus`) | gpt-6.1-sol, reasoning high (Codex worker)
-reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning high | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol`; no model fallback)
-planner           = Fable, latest release (Claude subagent alias `fable`) | gpt-6-astra, reasoning xhigh (planning)
-plan advisor      = Fable, latest release (Claude `advisorModel` alias `fable`) | gpt-6-astra, reasoning xhigh (advice and plan review)
+main session      = Opus, latest release (Claude alias `opus`), reasoning medium, with a Fable advisor (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6.1-sol, reasoning high (Codex orchestrator)
+frontend subagent = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (Codex worker)
+ordinary worker   = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (Codex worker)
+bounded worker    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (bounded Codex task)
+heavy executor    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (Codex worker)
+reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol`; no model fallback)
+planner           = Fable, latest release (Claude subagent alias `claude-fable-5-2`) | gpt-6-astra, reasoning xhigh (planning)
+plan advisor      = Fable, latest release (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6-astra, reasoning xhigh (advice and plan review)
 specialist        = gpt-6.1-sol, reasoning high (specialist execution; a specialist review takes the reviewer seat)
 local fallback    = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the only substitute when no Claude or Codex seat for that role can run)
 ```
@@ -54,9 +54,12 @@ reviewed by the reviewer value in the other column from the seat that built it, 
 plan advice run only on their own seats. Crossing means the change leaves for the other column's
 provider: authorize that disclosure as you would for any review provider before dispatching it.
 
-Verified against the vendor model lists on 2026-11-05; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-11-09; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
-appear nowhere else in this file).
+appear nowhere else in this file). A seat that names a versioned alias stays on that release
+when the host's short alias moves; check what each short alias resolves to on every release.
+A dispatch tool that accepts only short aliases cannot take a versioned id: set it in the
+agent definition's model field instead.
 
 ### When no primary seat can run
 

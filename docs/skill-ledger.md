@@ -13,11 +13,11 @@ the skill; every collection skill is generated from the pinned sources in
 [`sources.json`](../collections/pstack/sources.json) and passes the Agent Skills reference
 validator inside the sync.
 
-The current root catalog has 24 skills: the 23 recorded in the refresh plus the
-`untangle-codebase` adoption in 1.46.0 below. The opening counts describe the historical
+The current root catalog has 25 skills: the 23 recorded in the refresh plus the
+`untangle-codebase` adoption in 1.46.0 and the `mneves-socratic-tutor` adoption in 1.47.0 below. The opening counts describe the historical
 refresh inventory.
 
-## Root skills (24)
+## Root skills (25)
 
 | Skill | Disposition | Reason and kept controls |
 |---|---|---|
@@ -39,6 +39,7 @@ refresh inventory.
 | `mneves-security` | retained | Owns remediation, privacy/OWASP launch readiness and the exact-candidate deploy verdict; routes a requested deep source audit to `security-audit` and treats its records as candidate evidence, never as a gate. |
 | `mneves-ship-deploy` | retained | Release sequence and contract checks; requires the security gate first. |
 | `mneves-superaudit` | changed | Names the specialists it sequences (`autoreview`, `mneves-verify`, `mneves-security` or `security-audit`, `mneves-ship-deploy`, `mneves-production-readiness`) instead of restating them, with a direct fallback when one is absent. A source audit is never reported as a deploy gate. |
+| `mneves-socratic-tutor` | added | 1.47.0: adapted from janestreet/agent_skills `socratic-tutor` at `7c6715c29548a3b39d4a9545c698ee4fd17a7213`, MIT, Copyright (c) 2026 Jane Street Group, LLC; the `mneves-` prefix is the owner's explicit choice. Owns any-topic tutoring to mastery: diagnostic first, a 0-5 map with untested subskills marked `?`, one question per turn, levels earned on two checks including unprompted recall, spaced review, final assessment and a paste-able save state. Distinct from `mneves-teach-back-srs` (codebase teach-back and stored cards, which keeps "quiz me"), `mneves-eli5` (one explanation) and pstack `teach` (explains a codebase, no quizzes). Markdown only; no executable or mandatory sibling. |
 | `mneves-teach-back-srs` | retained | Opt-in quiz and spaced repetition; its SRS helper is unchanged. |
 | `mneves-verify` | retained | Independent verdict required by the security and release paths. |
 | `modernize` | retained | Rebasing an aging PR is its explicit job; it already decides whether the PR should exist first. |
@@ -50,8 +51,8 @@ refresh inventory.
 
 | Skill | Disposition | Patches | Reason and kept controls |
 |---|---|---|---|
-| `architect` | retained | 01, 02 | Planning panel; model routing and engineering-reference links. |
-| `arena` | retained | 01, 02 | Parallel attempts; same adaptations. |
+| `architect` | retained | 01, 02, 07 | Planning panel; model routing and engineering-reference links. |
+| `arena` | retained | 01, 02, 07 | Parallel attempts; same adaptations. |
 | `automate-me` | changed | 02, 05 | Asks before mining transcripts; writes or opens a PR only after approval. |
 | `babysit` | changed | 04, 06 | Thin route: defers to `babysit-pr` when installed, with a complete `gh` fallback; one owner per PR, head-branch writes only, paginated comments, round cap reported as blocked and yielding to stricter limits. |
 | `benchmark-checklist` | retained | 02 | Links repaired to the engineering references. |
@@ -64,28 +65,28 @@ refresh inventory.
 | `fix-ci` | retained | none | Unchanged. |
 | `fix-merge-conflicts` | retained | none | Unchanged. |
 | `get-pr-comments` | changed | 05 | Reads every page of review comments. |
-| `how` | retained | 01 | Model routing. |
-| `interrogate` | changed | 01 | Model routing; upstream and the port now ship it as one file, so its four former references are gone. |
+| `how` | retained | 01, 07 | Model routing. |
+| `interrogate` | changed | 01, 07 | Model routing; upstream and the port now ship it as one file, so its four former references are gone. |
 | `ketchup` | retained | none | Upstream update only; read-only catch-up. |
 | `maintain-verification-skill` | retained | none | Upstream update only. |
 | `make-pr-easy-to-review` | retained | none | Unchanged. |
-| `no-comments` | retained | 01, 02 | Uses the shipped `comment-sicko` brief. |
+| `no-comments` | retained | 01, 02, 07 | Uses the shipped `comment-sicko` brief. |
 | `poteto-help` | retained | 02 | Recipes point at the engineering references. |
-| `poteto-mode` | changed | 01, 02, 05, 06 | Local-only autonomy with stops before external writes; its Babysit playbook stops as blocked at a finite repair bound that yields to stricter limits; routes to the four engineering references instead of mandatory principle panels. `scripts/orch/` is no longer in upstream or the port, so it is not shipped. |
+| `poteto-mode` | changed | 01, 02, 05, 06, 07 | Local-only autonomy with stops before external writes; its Babysit playbook stops as blocked at a finite repair bound that yields to stricter limits; routes to the four engineering references instead of mandatory principle panels. `scripts/orch/` is no longer in upstream or the port, so it is not shipped. |
 | `recall` | changed | 02, 05 | Reads chat history only on request. |
-| `reflect` | changed | 01, 02, 05 | Files backlog only with authorization. |
-| `setup-pstack` | retained | 01, 02 | Model sheet setup. |
+| `reflect` | changed | 01, 02, 05, 07 | Files backlog only with authorization. |
+| `setup-pstack` | retained | 01, 02, 07 | Model sheet setup. |
 | `show-me-your-work` | retained | 02 | Links repaired. |
-| `swarm` | retained | 01 | Model routing. |
+| `swarm` | retained | 01, 07 | Model routing. |
 | `tdd` | retained | 03 | Failing test first for every bug fix or feature; name kept by the owner's choice. |
 | `teach` | retained | 02 | Explains through `how` and `why`; name kept by the owner's choice. |
 | `technical-writing` | retained | 02 | Links repaired. |
 | `thermo-nuclear-code-quality-review` | changed | 05 | Runs only by name, so routine reviews do not stack it on `autoreview`. |
 | `thermo-nuclear-review` | changed | 05 | Same. |
-| `thermos` | changed | 01, 05 | Same, plus model routing. |
+| `thermos` | changed | 01, 05, 07 | Same, plus model routing. |
 | `typescript-best-practices` | retained | 02 | `paths` moves under `metadata:`; description still names `.ts` and `.tsx`. |
 | `what-did-i-get-done` | retained | none | Unchanged. |
-| `why` | changed | 01, 04 | Investigators and synthesizer stay read-only; a denied read is never retried with broader access. |
+| `why` | changed | 01, 04, 07 | Investigators and synthesizer stay read-only; a denied read is never retried with broader access. |
 
 ## Upstream pstack names not carried as-is (32)
 

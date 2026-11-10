@@ -102,7 +102,8 @@ import sys
 
 args = sys.argv[1:]
 if "--version" in args or "-v" in args:
-    print(os.environ.get("AUTOREVIEW_FAKE_CLAUDE_VERSION", "2.1.170 (Claude Code)"))
+    # The default model's floor (Opus 5.5 needs Claude Code 2.1.280).
+    print(os.environ.get("AUTOREVIEW_FAKE_CLAUDE_VERSION", "2.1.280 (Claude Code)"))
     raise SystemExit(0)
 if "--help" in args or "-h" in args:
     print("--safe-mode\n--setting-sources\n--strict-mcp-config\n--disallowedTools\n--tools\n--print\n--json-schema")
@@ -5068,6 +5069,70 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
                 "2.1.170",
             ):
                 self.helper["ensure_claude_isolation_supported"](args, repo)
+
+    @unittest.skipIf(os.name == "nt", "POSIX Testbox temp-root behavior")
+    def test_claude_versioned_fable_requires_the_release_that_serves_it(self) -> None:
+        version_result = subprocess.CompletedProcess(
+            ["claude", "--version"],
+            0,
+            "2.1.320 (Claude Code)",
+            "",
+        )
+        older_result = subprocess.CompletedProcess(["claude", "--version"], 0, "2.1.256 (Claude Code)", "")
+        cases = (
+            (
+                argparse.Namespace(claude_bin="claude", fallback_model=None, model="claude-fable-5-2"),
+                version_result,
+                r"2\.1\.321 for claude-fable-5-2 \(found 2\.1\.320\)",
+            ),
+            (
+                argparse.Namespace(
+                    claude_bin="claude",
+                    fallback_model="claude-opus-5-5, claude-fable-5-2",
+                    model="claude-opus-5-5",
+                ),
+                version_result,
+                r"2\.1\.321 for claude-fable-5-2 \(found 2\.1\.320\)",
+            ),
+            # Claude Code's model configuration page names 2.1.257 for Fable 5.1.
+            (
+                argparse.Namespace(claude_bin="claude", fallback_model=None, model="claude-fable-5-1"),
+                older_result,
+                r"2\.1\.257 for claude-fable-5-1 \(found 2\.1\.256\)",
+            ),
+            # The default model: Opus 5.5 requires v2.1.280.
+            (
+                argparse.Namespace(claude_bin="claude", fallback_model=None, model="claude-opus-5-5"),
+                subprocess.CompletedProcess(["claude", "--version"], 0, "2.1.279 (Claude Code)", ""),
+                r"2\.1\.280 for claude-opus-5-5 \(found 2\.1\.279\)",
+            ),
+        )
+        with tempfile.TemporaryDirectory() as tempdir:
+            repo = init_repo(Path(tempdir))
+            for args, result, message in cases:
+                with self.subTest(model=args.model, fallback=args.fallback_model), mock.patch.dict(
+                    self.helper["ensure_claude_isolation_supported"].__globals__,
+                    {
+                        "resolve_command": lambda *_args: "/usr/bin/claude",
+                        "safe_engine_env": lambda *_args, **_kwargs: {},
+                        "safe_temp_root": lambda _repo: Path(tempdir),
+                        "run": lambda *_args, _result=result, **_kwargs: _result,
+                    },
+                ), self.assertRaisesRegex(SystemExit, message):
+                    self.helper["ensure_claude_isolation_supported"](args, repo)
+
+    def test_claude_model_floor_covers_each_fable_selection(self) -> None:
+        floor = self.helper["claude_model_min_version"]
+        self.assertEqual(floor("claude-fable-5-2"), (2, 1, 321))
+        self.assertEqual(floor("claude-fable-5-1"), (2, 1, 257))
+        self.assertEqual(floor("claude-fable-5"), (2, 1, 170))
+        self.assertEqual(floor("fable"), (2, 1, 170))
+        # Claude Code's model configuration page: Opus 5.5 requires v2.1.280.
+        self.assertEqual(floor("claude-opus-5-5"), (2, 1, 280))
+        self.assertEqual(floor("claude-opus-5-5[1m]"), (2, 1, 280))
+        self.assertEqual(floor("claude-fable-5-2[1m]"), (2, 1, 321))
+        self.assertIsNone(floor("opus"))
+        self.assertIsNone(floor("claude-opus-5"))
 
     @unittest.skipIf(os.name == "nt", "POSIX executable fixture")
     def test_claude_probe_captures_help_from_pipe_sensitive_cli(self) -> None:

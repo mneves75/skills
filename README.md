@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.46.1-blue)
+![Version](https://img.shields.io/badge/version-1.47.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -45,6 +45,7 @@ artifacts.
 | [mneves-fable-orchestrator](skills/mneves-fable-orchestrator/) | Route ordinary, bounded and difficult work by capability; models live in one Defaults block, including one announced fallback lane; ships [`codex-lane`](skills/mneves-fable-orchestrator/tools/codex-lane) |
 | [mneves-superaudit](skills/mneves-superaudit/) | Bounded audit-and-ship pass: slop, performance, agent DX, PR triage — falsifiable completion criteria, existing authority and requested stops |
 | [mneves-ship-deploy](skills/mneves-ship-deploy/) | Deploy the pushed commit, prove it live, then tag, through dev (when present) and staging without redundant confirmation; explicit approval of the exact candidate before production; ships a release-contract check |
+| [mneves-socratic-tutor](skills/mneves-socratic-tutor/) | Socratic tutoring to mastery on any topic: diagnostic first, a 0-5 skill map that marks untested subskills, one question per turn, levels earned on repeated checks that include unprompted recall, spaced review, a final assessment and a paste-able save state; adapted from Jane Street (MIT) |
 | [mneves-teach-back-srs](skills/mneves-teach-back-srs/) | Spaced-repetition learning through codebase teach-back sessions (SM-2 + SQLite) |
 | [mneves-verify](skills/mneves-verify/) | Independent verification before done/fixed/shipped: fresh context checks the artifact against criteria, PASS/FAIL/BLOCKED |
 
@@ -171,7 +172,7 @@ from CI and merge approval; their current tracked assessment is in [the readines
 
 Original work in this repository is Apache-2.0. The adapted skills (`autoreview`, `babysit-pr`,
 `council`, `full-stop`, `imagegen-frontend-mobile`, `leaving-pr-comments`, `mneves-handoff`,
-`modernize`, `security-audit`, `takeover` and `untangle-codebase`) and the [`pstack`](collections/pstack/) collection
+`mneves-socratic-tutor`, `modernize`, `security-audit`, `takeover` and `untangle-codebase`) and the [`pstack`](collections/pstack/) collection
 retain their upstream MIT licenses and copyrights; see the `LICENSE` file in each directory and
 [`NOTICE`](NOTICE).
 

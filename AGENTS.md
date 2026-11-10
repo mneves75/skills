@@ -36,6 +36,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── mneves-fable-orchestrator/ # Model routing; Codex reference + tools/codex-lane (+ its test)
 │   ├── mneves-superaudit/         # Bounded audit-and-ship pass (+ references/)
 │   ├── mneves-ship-deploy/         # Deploy, prove live, then tag (+ references/, contract check, reference release scripts)
+│   ├── mneves-socratic-tutor/     # Socratic tutoring to mastery on any topic (MIT, adapted)
 │   ├── mneves-teach-back-srs/     # Spaced-repetition teach-back (+ scripts/srs_db.py)
 │   └── mneves-verify/             # Independent verification before done/fixed/shipped
 ├── collections/pstack/       # 42 vendored pstack skills (MIT); sources.json + adaptations/ -> tools/scripts/sync-pstack.sh
@@ -93,8 +94,9 @@ bash tools/scripts/statechart-runner.test   # adapted statechart runner with fak
 
 - Directory name == frontmatter `name:`. Original skills carry the `mneves-` prefix;
   adapted third-party skills retain their upstream name, copyright, license, and provenance,
-  except that an upstream name colliding with another widely installed skill takes the `mneves-`
-  prefix, and the provenance records the upstream name.
+  except that an upstream name colliding with another widely installed skill, or one the owner
+  chooses to prefix (`mneves-socratic-tutor`), takes the `mneves-` prefix, and the provenance
+  records the upstream name.
   `description:` is one short capability-and-trigger line; keyword inventories and
   procedures belong in the body or a routed reference.
 - Frontmatter is Agent Skills spec only: `name`, `description`, `license`, and, for a skill that

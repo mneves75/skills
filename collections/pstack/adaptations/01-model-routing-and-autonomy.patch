@@ -229,7 +229,7 @@ index 8f36324d4414126946402a0df6d10cce674be0c6..f67e8082370ff7ee8ead3d3efeea6259
 -| `fable` | `anthropic/claude-fable-5-1` | `openai/gpt-6-astra` | `openai-codex/gpt-6-astra` |
 -| `sonnet` | `anthropic/claude-sonnet-5-5` | `openai/gpt-6.1-sol` | `openai-codex/gpt-6.1-sol` |
 -| `haiku` | `anthropic/claude-haiku-5-5` | `openai/gpt-6-luna` | `openai-codex/gpt-6-luna` |
-+| `fable` | `anthropic/claude-fable-5-1` | `openai/gpt-6.1-sol` | `openai-codex/gpt-6.1-sol` |
++| `fable` | `anthropic/claude-fable-5-2` | `openai/gpt-6.1-sol` | `openai-codex/gpt-6.1-sol` |
  
  Pi warns that Anthropic bills Claude used through Pi per token, as extra usage, even on a Claude subscription. Pi shows that warning only in interactive mode, never for the `pi --mode rpc` children the `agent` tool runs.
  

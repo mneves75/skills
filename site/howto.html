@@ -136,6 +136,11 @@ collection does not automatically change those instructions in other projects.</
 <td>&quot;why does the agent struggle here?&quot;</td>
 </tr>
 <tr>
+<td><a href="#mneves-socratic-tutor"><code>mneves-socratic-tutor</code></a></td>
+<td>be tutored on any topic until you master it</td>
+<td>&quot;tutor me on SQL window functions until I really get them&quot;</td>
+</tr>
+<tr>
 <td><a href="#mneves-teach-back-srs"><code>mneves-teach-back-srs</code></a></td>
 <td>learn a codebase with spaced repetition</td>
 <td>&quot;let me explain the auth flow&quot;</td>
@@ -902,6 +907,47 @@ and it is the deliverable for item 3.</li>
 <li>Amend the skill only from failures you actually saw. Instructions added &quot;just in case&quot; cost
 context on every future run.</li>
 </ul>
+<hr>
+<h2 id="mneves-socratic-tutor">mneves-socratic-tutor</h2>
+<p><strong>What it does.</strong> Teaches a topic of your choice by asking, not lecturing. It splits the topic
+into subskills, runs a short diagnostic before teaching anything, and tracks each subskill on
+a 0-5 map; a subskill the diagnostic did not reach shows <code>?</code> until it is tested. One question
+per turn. A wrong answer gets a narrower question, not the answer; after a third miss on the
+same idea it explains briefly and tests it again another way. A level rises only after
+two independent checks, one of them unprompted recall, and earlier subskills come back
+without warning. The course ends with a mixed final assessment at your target level (4/5 by
+default, 5/5 when you ask for full mastery).</p>
+<p><strong>When to use it.</strong> You want to master a topic, not get one answer: &quot;tutor me&quot;, &quot;drill me&quot;,
+&quot;teach me X properly&quot;. A one-off &quot;what is X&quot; gets a normal answer, and an ambiguous request
+gets one short question first. To explain a codebase back or review stored flashcards, use
+<a href="#mneves-teach-back-srs"><code>mneves-teach-back-srs</code></a>; for one explanation at a chosen level, use
+<a href="#mneves-eli5"><code>mneves-eli5</code></a>.</p>
+<p><strong>Prerequisites.</strong> None. Markdown only, no helper or sibling skill. It also works pasted into
+a plain chatbot.</p>
+<p><strong>Commands at any time.</strong> &quot;show progress&quot;, &quot;harder&quot;, &quot;easier&quot;, &quot;just tell me&quot; (that answer
+then counts as told and raises no level until an unprompted re-test), &quot;save state&quot; and
+&quot;resume from:&quot;. The save block holds the topic, target, each subskill&#39;s level or <code>?</code>, when
+it was last checked, what is due for review and the misconceptions noted; paste it into a
+new session to continue. An incomplete or invalid block is reported, never guessed.</p>
+<p><strong>Example</strong> (illustrative; not an observed run).</p>
+<pre tabindex="0"><code class="language-text">You: Tutor me on SQL window functions until I really get them.
+Agent: I&#39;ll start with a few questions, one at a time, to see what you already know.
+       What does ROW_NUMBER() OVER (ORDER BY created_at) return for each row?
+You: A running number 1, 2, 3 in created_at order.
+...
+Agent:
+  Topic: SQL window functions    overall: ██░░░░░░░░ 20%  (3 of 7 placed)
+  numbering             [████░░░░░░]  2/5
+  PARTITION BY          [██░░░░░░░░]  1/5  &lt;- current focus
+  frames                [░░░░░░░░░░]  0/5
+  LAG / LEAD            [░░░░░░░░░░]  ?/5  untested
+  ... three more subskills, untested
+</code></pre>
+<p><strong>Exercises.</strong> When the agent has tools, it checks your actual output, not your description of
+it. Anything that writes, deletes or reaches real systems you run in a scratch location and
+paste back; the agent does not run it in your project.</p>
+<p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-socratic-tutor/SKILL.md">SKILL.md</a>.
+Source and adaptations: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-socratic-tutor/UPSTREAM.md">UPSTREAM.md</a>.</p>
 <hr>
 <h2 id="mneves-teach-back-srs">mneves-teach-back-srs</h2>
 <p><strong>What it does.</strong> You explain part of a codebase; the agent reads the actual code while you

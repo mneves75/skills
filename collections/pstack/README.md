@@ -17,7 +17,7 @@ the agent (see [Support by agent](#support-by-agent)).
 The sync refuses a port whose upstream pins have fallen behind the official commit:
 [`UPSTREAM`](UPSTREAM) records each port component (`pstack` at `c742dd6`, `cursor-team-kit`,
 `thermos`) as identical, on the paths the port takes, to that official commit. On top of the
-port, the sync applies the six patches in [`adaptations/`](adaptations/), in name order; each
+port, the sync applies the seven patches in [`adaptations/`](adaptations/), in name order; each
 patch opens with what it changes and where it came from. `UPSTREAM` records each patch's
 SHA-256.
 
@@ -113,6 +113,10 @@ the adaptation.
    `poteto-mode` Babysit playbook stops as blocked when the same failure survives two fixes or
    after three push waves. `ketchup-video` and `create-formal-verification-skill` carry a
    fallback for a missing `ketchup` or `statechart`.
+7. **Opus at medium effort** (`07`). A role value without an `@` suffix that resolves to an Opus
+   model runs at `medium`, whatever the sheet's `default effort` line, a platform mapping, Pi's
+   panel line or `poteto-mode`'s per-job raise and lower would give it; an explicit suffix still
+   wins, and a runtime that maps `opus` to another vendor's model keeps the default effort.
 
 Frontmatter keys outside the Agent Skills spec move under `metadata:` (`poteto-mode`'s
 `menu-description`, `typescript-best-practices`' `paths`), so strict loaders accept every

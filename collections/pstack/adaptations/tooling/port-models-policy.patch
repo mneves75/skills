@@ -55,7 +55,7 @@ index 7318e044016c8a43fa797ad96f2a874ed9286cb2..10e969a8eea19a4ed289eb74698368a9
 -        "fable": "anthropic/claude-fable-5-1",
 -        "sonnet": "anthropic/claude-sonnet-5-5",
 -        "haiku": "anthropic/claude-haiku-5-5"
-+        "fable": "anthropic/claude-fable-5-1"
++        "fable": "anthropic/claude-fable-5-2"
        },
        "openai": {
          "opus": "openai/gpt-6.1-sol",
