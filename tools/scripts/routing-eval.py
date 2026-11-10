@@ -14,7 +14,17 @@ contradicting sentence added elsewhere in a source: only a live `run` catches th
 `run` spends paid model calls. It builds each case's prompt from `git show COMMIT:<path>` for the
 case's sources, asks each consumer without tools and with schema-bound output, grades every answer
 deterministically against the frozen expectations, and writes the raw answers, one JSON record per
-sample and summary.json under DIR. Exit 0 when the threshold is met, 1 otherwise.
+sample and summary.json under DIR. Claude runs with `--tools ""`. Codex runs with its shell tool
+disabled and its `--json` event stream inspected: any item other than a message or reasoning is a
+tool use, and that sample is an error (recorded in `tool_use`), never retried into a pass.
+
+Threshold (exit 0 when met, 1 otherwise). Only a full run can meet it: every case in the cases
+file on both claude and codex. `--cases-only` and single-provider runs still run and grade, for
+diagnosis, but always report a partial-run problem. Candidate: at least 3 samples, every sample of
+every case passes, nothing errored. `--baseline` (an older text as a control): every unchanged case
+passes every sample, every changed case fails every sample, nothing errored. A changed case that
+passes any sample on the baseline does not discriminate: it is listed in `control_limits` and the
+control fails until the case is replaced or no longer marked changed.
 """
 from __future__ import annotations
 
@@ -182,9 +192,13 @@ def per_case_counts(cases: list[dict], providers: list[str], records: list[dict]
     return counts
 
 
-def threshold(per_case: dict[str, dict], samples: int, baseline: bool) -> tuple[bool, list[str], list[str]]:
-    """Return (met, problems, control_limits) for one run."""
+def threshold(per_case: dict[str, dict], samples: int, baseline: bool,
+              coverage: dict) -> tuple[bool, list[str], list[str]]:
+    """Return (met, problems, control_limits) for one run. Any control limit also fails the run."""
     problems, limits = [], []
+    if not coverage["full"]:
+        problems.append(f"partial run: {coverage['cases']} of {coverage['of']} cases on "
+                        f"{', '.join(coverage['providers'])}; a threshold needs every case on claude and codex")
     if not baseline and samples < MIN_SAMPLES:
         problems.append(f"{samples} samples per case and provider; a candidate run needs at least {MIN_SAMPLES}")
     for key, c in per_case.items():
@@ -195,10 +209,26 @@ def threshold(per_case: dict[str, dict], samples: int, baseline: bool) -> tuple[
                 limits.append(f"{key}: changed case passed {c['pass']} of {c['samples']} samples on the baseline")
         elif c["fail"]:
             problems.append(f"{key}: {c['fail']} of {c['samples']} samples failed")
-    return not problems, problems, limits
+    return not problems and not limits, problems, limits
 
 
-def ask_claude(cmd: list[str], prompt: str, work: Path) -> tuple[int, str, dict | None]:
+def tool_use(events: str) -> list[str]:
+    """Item types in a Codex --json event stream other than a message or reasoning, in order seen."""
+    seen: list[str] = []
+    for line in events.splitlines():
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        item = event.get("item") if isinstance(event, dict) else None
+        if isinstance(item, dict):
+            kind = str(item.get("type", "unknown"))
+            if kind not in ("agent_message", "reasoning") and kind not in seen:
+                seen.append(kind)
+    return seen
+
+
+def ask_claude(cmd: list[str], prompt: str, work: Path) -> tuple[int, str, dict | None, list[str]]:
     argv = [*cmd, "--safe-mode", "--setting-sources", "user", "--strict-mcp-config",
             "--disallowedTools", "mcp__*", "--print", "--no-session-persistence",
             "--output-format", "json", "--json-schema", json.dumps(SCHEMA), "--tools", "",
@@ -210,21 +240,23 @@ def ask_claude(cmd: list[str], prompt: str, work: Path) -> tuple[int, str, dict 
         if isinstance(parsed, dict) and parsed.get("is_error") is False \
                 and isinstance(parsed.get("structured_output"), dict):
             answer = parsed["structured_output"]
-    return p.returncode, p.stdout + p.stderr[-2000:], answer
+    return p.returncode, p.stdout + p.stderr[-2000:], answer, []
 
 
-def ask_codex(cmd: list[str], prompt: str, work: Path) -> tuple[int, str, dict | None]:
+def ask_codex(cmd: list[str], prompt: str, work: Path) -> tuple[int, str, dict | None, list[str]]:
     schema, out = work / "schema.json", work / "answer.json"
     schema.write_text(json.dumps(SCHEMA))
     out.unlink(missing_ok=True)
     argv = [*cmd, "exec", "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check",
-            "--ephemeral", "-s", "read-only", "-m", CODEX_MODEL, "-c", f"model_reasoning_effort={CODEX_EFFORT}",
+            "--ephemeral", "-s", "read-only", "--disable", "shell_tool", "--json",
+            "-m", CODEX_MODEL, "-c", f"model_reasoning_effort={CODEX_EFFORT}",
             "-C", str(work), "--output-schema", str(schema), "-o", str(out), "-"]
     p = subprocess.run(argv, cwd=work, input=prompt, capture_output=True, text=True, timeout=900)
-    raw = out.read_text() if out.exists() else ""
-    parsed = json.loads(raw) if p.returncode == 0 and out.exists() else None
+    final = out.read_text() if out.exists() else ""
+    parsed = json.loads(final) if p.returncode == 0 and out.exists() else None
     answer = parsed if isinstance(parsed, dict) else None
-    return p.returncode, raw + "\n--- stderr tail ---\n" + p.stderr[-2000:], answer
+    raw = (p.stdout + "\n--- answer (-o) ---\n" + final + "\n--- stderr tail ---\n" + p.stderr[-2000:])
+    return p.returncode, raw, answer, tool_use(p.stdout)
 
 
 def run_one(job: tuple, out_dir: Path, commands: dict[str, list[str]]) -> dict:
@@ -233,21 +265,25 @@ def run_one(job: tuple, out_dir: Path, commands: dict[str, list[str]]) -> dict:
     work.mkdir(parents=True, exist_ok=True)
     ask = ask_claude if provider == "claude" else ask_codex
     started = time.time()
-    tries, answer = [], None
+    tries, answer, used = [], None, []
     for attempt in range(ATTEMPTS):
         try:
-            code, raw, answer = ask(commands[provider], prompt, work)
+            code, raw, answer, used = ask(commands[provider], prompt, work)
         except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
-            code, raw, answer = -1, repr(exc), None
+            code, raw, answer, used = -1, repr(exc), None, []
         tries.append(code)
         (out_dir / f"{case['id']}-{provider}-{n}.raw.txt").write_text(raw)
+        if used:
+            # A consumer that used a tool is not the consumer under test: error, never retried into a pass.
+            answer = None
+            break
         if answer is not None:
             break
         if attempt + 1 < ATTEMPTS:
             time.sleep(RETRY_SLEEP)
     fields = grade(case, answer) if answer is not None else {}
     rec = {"case": case["id"], "provider": provider, "sample": n, "exits": tries,
-           "seconds": round(time.time() - started, 1), "answer": answer, "fields": fields,
+           "seconds": round(time.time() - started, 1), "answer": answer, "fields": fields, "tool_use": used,
            "pass": answer is not None and all(fields.values()), "error": answer is None}
     (out_dir / f"{case['id']}-{provider}-{n}.json").write_text(json.dumps(rec, indent=1) + "\n")
     print(case["id"], provider, n, "PASS" if rec["pass"] else ("ERROR" if rec["error"] else "FAIL"),
@@ -330,7 +366,10 @@ def command_run(args: argparse.Namespace) -> int:
                    for j in jobs]
         records = [f.result() for f in futures]
     per_case = per_case_counts(cases, providers, records)
-    met, problems, limits = threshold(per_case, args.samples, args.baseline)
+    total = len(spec["cases"])
+    coverage = {"cases": len(cases), "of": total, "providers": providers,
+                "full": len(cases) == total and sorted(providers) == ["claude", "codex"]}
+    met, problems, limits = threshold(per_case, args.samples, args.baseline, coverage)
     consumers = {"claude": {"model": CLAUDE_MODEL, "effort": CLAUDE_EFFORT},
                  "codex": {"model": CODEX_MODEL, "effort": CODEX_EFFORT}}
     summary = {
@@ -340,7 +379,7 @@ def command_run(args: argparse.Namespace) -> int:
         "baseline": args.baseline, "sources_sha256": sources,
         "consumers": {p: dict(consumers[p], version=version(commands[p])) for p in providers},
         "providers": providers, "samples_per_case": args.samples, "selected": [c["id"] for c in cases],
-        "started_at": started, "finished_at": utc_now(),
+        "coverage": coverage, "started_at": started, "finished_at": utc_now(),
         "totals": {"pass": sum(r["pass"] for r in records),
                    "fail": sum(not r["pass"] and not r["error"] for r in records),
                    "error": sum(r["error"] for r in records), "samples": len(records)},

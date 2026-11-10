@@ -22,8 +22,13 @@ dispatch the model and reasoning effort each seat is meant to run at? Cases live
 - The check does not catch a contradicting sentence added elsewhere in a file. Only a live run
   does.
 - A release that changes routing text runs `routing-eval.py run` on its candidate, and with
-  `--baseline` on the previous release when cases are marked `changed`. Output stays with the
-  release's private gate records. Live runs call paid models and are never run by CI.
+  `--baseline` on the previous release when cases are marked `changed`. Only a full run, every
+  case on both claude and codex, can meet a threshold; `--cases-only` and single-provider runs
+  are for diagnosis. The baseline control passes only when every unchanged case passes and every
+  changed case fails every sample: a changed case that passes on the baseline does not
+  discriminate, and the control fails until the case is replaced or no longer marked changed.
+  Output stays with the release's private gate records. Live runs call paid models and are
+  never run by CI.
 
 ## History
 
@@ -45,6 +50,15 @@ dispatch the model and reasoning effort each seat is meant to run at? Cases live
   beside the cases, outside each case's identity, and CI runs the check. The release-specific
   combiner (cross-run reuse, the 1.46.1 baseline and the red-run record) was not carried over;
   the runner applies one threshold to one run.
+  - A cross-model review of the tracked runner found three defects, fixed before release. The
+    Codex consumer could run commands: `-s read-only` limits what a command may do, it does not
+    remove the shell tool (a probe ran `id -u` and answered with the user id; with
+    `--disable shell_tool` it answered that it had no tool). The 1.47.0 runs therefore had a
+    Codex consumer that could have used a tool; their answers were schema-bound and graded the
+    same way, but "without tools" was true only of the Claude consumer. The runner now disables
+    the shell tool and fails any sample whose event stream shows a tool.
+  - The other two: a subset run could report the threshold met, and a baseline on which a
+    changed case passed still exited 0. Both now fail.
 
 ## Open
 

@@ -175,13 +175,21 @@ FAKE_CODEX = """\
 import json, os, sys, uuid
 if sys.argv[1:] == ["--version"]:
     print("fake-codex 1.0"); sys.exit(0)
-assert sys.argv[1] == "exec" and sys.argv[-1] == "-"
+argv = sys.argv[1:]
+if argv[0] != "exec" or argv[-1] != "-" or "--json" not in argv \\
+        or not any(argv[i:i + 2] == ["--disable", "shell_tool"] for i in range(len(argv))):
+    print("fake codex: expected exec --json --disable shell_tool ... -", file=sys.stderr); sys.exit(3)
 prompt = sys.stdin.read()
 open(os.path.join(os.environ["FAKE_LOG"], "codex-" + uuid.uuid4().hex), "w").write(prompt)
 answers = json.loads(os.environ["FAKE_ANSWERS"])
 if answers.get("codex") == "error":
     print("boom", file=sys.stderr); sys.exit(1)
 answer = next(a for marker, a in answers["cases"].items() if marker in prompt)
+print(json.dumps({"type": "thread.started", "thread_id": "t"}))
+for n, kind in enumerate(answers.get("codex_items", ["reasoning", "agent_message"])):
+    for event in ("item.started", "item.completed"):
+        print(json.dumps({"type": event, "item": {"id": f"item_{n}", "type": kind}}))
+print(json.dumps({"type": "turn.completed", "usage": {}}))
 out = sys.argv[sys.argv.index("-o") + 1]
 open(out, "w").write(json.dumps(answer))
 """
@@ -285,23 +293,72 @@ class RunTests(unittest.TestCase):
         self.assertTrue(summary["threshold_met"])
         self.assertEqual(summary["control_limits"], [])
 
-    def test_baseline_changed_case_that_passes_is_a_control_limit(self):
+    def test_baseline_changed_case_that_passes_fails_the_control(self):
         self.write_cases(changed_two=True)
         result = self.run_tool({"cases": RIGHT}, "--baseline")
-        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         summary = self.summary()
-        self.assertTrue(summary["threshold_met"])
+        self.assertFalse(summary["threshold_met"])
         self.assertTrue(summary["control_limits"])
         self.assertTrue(all("C2" in limit for limit in summary["control_limits"]))
 
     def test_erroring_consumer_fails_with_errors_counted(self):
-        result = self.run_tool({"cases": RIGHT, "codex": "error"}, "--providers", "codex", "--cases-only", "C1")
+        result = self.run_tool({"cases": RIGHT, "codex": "error"})
         self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         summary = self.summary()
-        self.assertEqual(summary["totals"]["error"], 3)
-        self.assertEqual(summary["selected"], ["C1"])
-        self.assertEqual(summary["providers"], ["codex"])
+        self.assertEqual(summary["totals"]["error"], 6)
+        self.assertEqual(summary["per_case"]["C1/codex"]["error"], 3)
+        self.assertEqual(summary["per_case"]["C1/claude"]["pass"], 3)
         self.assertFalse(summary["threshold_met"])
+
+    def test_codex_tool_use_is_an_error_not_a_pass(self):
+        result = self.run_tool({"cases": RIGHT, "codex_items": ["reasoning", "command_execution", "agent_message"]})
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        summary = self.summary()
+        self.assertFalse(summary["threshold_met"])
+        self.assertEqual(summary["per_case"]["C1/codex"]["error"], 3)
+        self.assertEqual(summary["per_case"]["C1/codex"]["pass"], 0)
+        self.assertTrue(any(p.startswith("C1/codex") for p in summary["problems"]))
+        self.assertTrue(any(p.startswith("C2/codex") for p in summary["problems"]))
+        record = json.loads((self.out / "C1-codex-1.json").read_text())
+        self.assertEqual(record["tool_use"], ["command_execution"])
+        self.assertTrue(record["error"])
+        self.assertFalse(record["pass"])
+        self.assertEqual(len(record["exits"]), 1, "a tool use must not be retried")
+        self.assertIn("command_execution", (self.out / "C1-codex-1.raw.txt").read_text())
+        self.assertEqual(json.loads((self.out / "C1-claude-1.json").read_text())["tool_use"], [])
+
+    def test_codex_with_only_message_and_reasoning_items_passes(self):
+        result = self.run_tool({"cases": RIGHT, "codex_items": ["reasoning", "agent_message", "reasoning"]})
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.summary()["per_case"]["C2/codex"]["pass"], 3)
+
+    def test_case_subset_is_a_partial_run(self):
+        result = self.run_tool({"cases": RIGHT}, "--cases-only", "C1")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        summary = self.summary()
+        self.assertFalse(summary["threshold_met"])
+        self.assertEqual(summary["problems"], ["partial run: 1 of 2 cases on claude, codex; "
+                                               "a threshold needs every case on claude and codex"])
+        self.assertEqual(summary["coverage"], {"cases": 1, "of": 2, "providers": ["claude", "codex"], "full": False})
+        self.assertEqual(summary["selected"], ["C1"])
+        self.assertEqual(summary["per_case"]["C1/claude"]["pass"], 3)
+        self.assertEqual(summary["per_case"]["C1/codex"]["pass"], 3)
+
+    def test_single_provider_is_a_partial_run(self):
+        result = self.run_tool({"cases": RIGHT}, "--providers", "claude")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        summary = self.summary()
+        self.assertFalse(summary["threshold_met"])
+        self.assertEqual(summary["problems"], ["partial run: 2 of 2 cases on claude; "
+                                               "a threshold needs every case on claude and codex"])
+        self.assertEqual(summary["coverage"], {"cases": 2, "of": 2, "providers": ["claude"], "full": False})
+        self.assertEqual(summary["per_case"]["C2/claude"]["pass"], 3)
+
+    def test_full_run_records_full_coverage(self):
+        result = self.run_tool({"cases": RIGHT})
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.summary()["coverage"], {"cases": 2, "of": 2, "providers": ["claude", "codex"], "full": True})
 
     def test_output_inside_the_repository_is_refused(self):
         result = self.run_tool({"cases": RIGHT}, out=self.repo / "results")
