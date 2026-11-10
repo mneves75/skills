@@ -51,8 +51,8 @@ refresh inventory.
 
 | Skill | Disposition | Patches | Reason and kept controls |
 |---|---|---|---|
-| `architect` | retained | 01, 02 | Planning panel; model routing and engineering-reference links. |
-| `arena` | retained | 01, 02 | Parallel attempts; same adaptations. |
+| `architect` | retained | 01, 02, 07 | Planning panel; model routing and engineering-reference links. |
+| `arena` | retained | 01, 02, 07 | Parallel attempts; same adaptations. |
 | `automate-me` | changed | 02, 05 | Asks before mining transcripts; writes or opens a PR only after approval. |
 | `babysit` | changed | 04, 06 | Thin route: defers to `babysit-pr` when installed, with a complete `gh` fallback; one owner per PR, head-branch writes only, paginated comments, round cap reported as blocked and yielding to stricter limits. |
 | `benchmark-checklist` | retained | 02 | Links repaired to the engineering references. |
@@ -65,28 +65,28 @@ refresh inventory.
 | `fix-ci` | retained | none | Unchanged. |
 | `fix-merge-conflicts` | retained | none | Unchanged. |
 | `get-pr-comments` | changed | 05 | Reads every page of review comments. |
-| `how` | retained | 01 | Model routing. |
-| `interrogate` | changed | 01 | Model routing; upstream and the port now ship it as one file, so its four former references are gone. |
+| `how` | retained | 01, 07 | Model routing. |
+| `interrogate` | changed | 01, 07 | Model routing; upstream and the port now ship it as one file, so its four former references are gone. |
 | `ketchup` | retained | none | Upstream update only; read-only catch-up. |
 | `maintain-verification-skill` | retained | none | Upstream update only. |
 | `make-pr-easy-to-review` | retained | none | Unchanged. |
-| `no-comments` | retained | 01, 02 | Uses the shipped `comment-sicko` brief. |
+| `no-comments` | retained | 01, 02, 07 | Uses the shipped `comment-sicko` brief. |
 | `poteto-help` | retained | 02 | Recipes point at the engineering references. |
-| `poteto-mode` | changed | 01, 02, 05, 06 | Local-only autonomy with stops before external writes; its Babysit playbook stops as blocked at a finite repair bound that yields to stricter limits; routes to the four engineering references instead of mandatory principle panels. `scripts/orch/` is no longer in upstream or the port, so it is not shipped. |
+| `poteto-mode` | changed | 01, 02, 05, 06, 07 | Local-only autonomy with stops before external writes; its Babysit playbook stops as blocked at a finite repair bound that yields to stricter limits; routes to the four engineering references instead of mandatory principle panels. `scripts/orch/` is no longer in upstream or the port, so it is not shipped. |
 | `recall` | changed | 02, 05 | Reads chat history only on request. |
-| `reflect` | changed | 01, 02, 05 | Files backlog only with authorization. |
-| `setup-pstack` | retained | 01, 02 | Model sheet setup. |
+| `reflect` | changed | 01, 02, 05, 07 | Files backlog only with authorization. |
+| `setup-pstack` | retained | 01, 02, 07 | Model sheet setup. |
 | `show-me-your-work` | retained | 02 | Links repaired. |
-| `swarm` | retained | 01 | Model routing. |
+| `swarm` | retained | 01, 07 | Model routing. |
 | `tdd` | retained | 03 | Failing test first for every bug fix or feature; name kept by the owner's choice. |
 | `teach` | retained | 02 | Explains through `how` and `why`; name kept by the owner's choice. |
 | `technical-writing` | retained | 02 | Links repaired. |
 | `thermo-nuclear-code-quality-review` | changed | 05 | Runs only by name, so routine reviews do not stack it on `autoreview`. |
 | `thermo-nuclear-review` | changed | 05 | Same. |
-| `thermos` | changed | 01, 05 | Same, plus model routing. |
+| `thermos` | changed | 01, 05, 07 | Same, plus model routing. |
 | `typescript-best-practices` | retained | 02 | `paths` moves under `metadata:`; description still names `.ts` and `.tsx`. |
 | `what-did-i-get-done` | retained | none | Unchanged. |
-| `why` | changed | 01, 04 | Investigators and synthesizer stay read-only; a denied read is never retried with broader access. |
+| `why` | changed | 01, 04, 07 | Investigators and synthesizer stay read-only; a denied read is never retried with broader access. |
 
 ## Upstream pstack names not carried as-is (32)
 
