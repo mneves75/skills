@@ -1,3 +1,5 @@
 # Autoreview Skill
 
-Read `AGENTS.md` in this directory for local maintenance and validation instructions.
+Local maintenance and validation instructions for this directory:
+
+@AGENTS.md
