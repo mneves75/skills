@@ -189,9 +189,13 @@ print(json.dumps({"type": "thread.started", "thread_id": "t"}))
 for n, kind in enumerate(answers.get("codex_items", ["reasoning", "agent_message"])):
     for event in ("item.started", "item.completed"):
         print(json.dumps({"type": event, "item": {"id": f"item_{n}", "type": kind}}))
-print(json.dumps({"type": "turn.completed", "usage": {}}))
 out = sys.argv[sys.argv.index("-o") + 1]
-open(out, "w").write(json.dumps(answer))
+if answers.get("codex_hang"):
+    sys.stdout.flush()
+    import time
+    time.sleep(60)
+print(json.dumps({"type": "turn.completed", "usage": {}}))
+open(out, "w").write("{not json" if answers.get("codex_bad_json") else json.dumps(answer))
 """
 
 RIGHT = {"CASE-ONE": {"model": "opus", "effort": "medium", "how": "not-applicable", "reason": "r"},
@@ -243,9 +247,9 @@ class RunTests(unittest.TestCase):
                         "C2": [{"path": "skill.md", "text": "planner on fable"}]},
         }))
 
-    def run_tool(self, answers, *extra, out=None):
+    def run_tool(self, answers, *extra, out=None, env=None):
         env = dict(os.environ, PATH=f"{self.bin}{os.pathsep}{os.environ['PATH']}", FAKE_LOG=str(self.log),
-                   FAKE_ANSWERS=json.dumps(answers), ROUTING_EVAL_RETRY_SLEEP="0")
+                   FAKE_ANSWERS=json.dumps(answers), ROUTING_EVAL_RETRY_SLEEP="0", **(env or {}))
         return tool("run", "HEAD", "--out", str(out or self.out), "--cases", str(self.cases), "--root", str(self.repo),
                     "--claude-cmd", str(self.bin / "claude"), "--codex-cmd", str(self.bin / "codex"), *extra, env=env)
 
@@ -327,6 +331,27 @@ class RunTests(unittest.TestCase):
         self.assertEqual(len(record["exits"]), 1, "a tool use must not be retried")
         self.assertIn("command_execution", (self.out / "C1-codex-1.raw.txt").read_text())
         self.assertEqual(json.loads((self.out / "C1-claude-1.json").read_text())["tool_use"], [])
+
+    def assert_tool_use_is_terminal(self):
+        summary = self.summary()
+        self.assertFalse(summary["threshold_met"])
+        self.assertEqual(summary["per_case"]["C1/codex"]["error"], 3)
+        record = json.loads((self.out / "C1-codex-1.json").read_text())
+        self.assertEqual(record["tool_use"], ["command_execution"])
+        self.assertTrue(record["error"])
+        self.assertEqual(len(record["exits"]), 1, "a tool use must not be retried")
+
+    def test_codex_tool_use_survives_a_timeout(self):
+        # The events arrive, then the call hangs past its deadline: the tool use still ends the sample.
+        result = self.run_tool({"cases": RIGHT, "codex_items": ["command_execution"], "codex_hang": True},
+                               env={"ROUTING_EVAL_CALL_TIMEOUT": "2"})
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assert_tool_use_is_terminal()
+
+    def test_codex_tool_use_survives_an_unparseable_answer(self):
+        result = self.run_tool({"cases": RIGHT, "codex_items": ["command_execution"], "codex_bad_json": True})
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assert_tool_use_is_terminal()
 
     def test_codex_with_only_message_and_reasoning_items_passes(self):
         result = self.run_tool({"cases": RIGHT, "codex_items": ["reasoning", "agent_message", "reasoning"]})

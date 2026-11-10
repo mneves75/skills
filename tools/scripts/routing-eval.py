@@ -73,6 +73,8 @@ ATTEMPTS = 3
 MIN_SAMPLES = 3
 # Seconds between attempts of one sample; tests set the variable to 0.
 RETRY_SLEEP = float(os.environ.get("ROUTING_EVAL_RETRY_SLEEP", "30"))
+# Seconds one model call may take; tests set the variable to cut a hanging fake short.
+CALL_TIMEOUT = float(os.environ.get("ROUTING_EVAL_CALL_TIMEOUT", "900"))
 
 
 def is_strings(value: object) -> bool:
@@ -233,7 +235,7 @@ def ask_claude(cmd: list[str], prompt: str, work: Path) -> tuple[int, str, dict 
             "--disallowedTools", "mcp__*", "--print", "--no-session-persistence",
             "--output-format", "json", "--json-schema", json.dumps(SCHEMA), "--tools", "",
             "--model", CLAUDE_MODEL, "--effort", CLAUDE_EFFORT]
-    p = subprocess.run(argv, cwd=work, input=prompt, capture_output=True, text=True, timeout=600)
+    p = subprocess.run(argv, cwd=work, input=prompt, capture_output=True, text=True, timeout=CALL_TIMEOUT)
     answer = None
     if p.returncode == 0:
         parsed = json.loads(p.stdout)
@@ -251,12 +253,25 @@ def ask_codex(cmd: list[str], prompt: str, work: Path) -> tuple[int, str, dict |
             "--ephemeral", "-s", "read-only", "--disable", "shell_tool", "--json",
             "-m", CODEX_MODEL, "-c", f"model_reasoning_effort={CODEX_EFFORT}",
             "-C", str(work), "--output-schema", str(schema), "-o", str(out), "-"]
-    p = subprocess.run(argv, cwd=work, input=prompt, capture_output=True, text=True, timeout=900)
+    # Every way this call can end keeps the event stream, so a tool use is never lost to a retry.
+    try:
+        p = subprocess.run(argv, cwd=work, input=prompt, capture_output=True, text=True, timeout=CALL_TIMEOUT)
+        code, events, stderr = p.returncode, p.stdout, p.stderr
+    except subprocess.TimeoutExpired as exc:
+        partial = exc.stdout or ""
+        events = partial.decode(errors="replace") if isinstance(partial, bytes) else partial
+        code, stderr = -1, f"timed out after {exc.timeout} seconds"
+    used = tool_use(events)
     final = out.read_text() if out.exists() else ""
-    parsed = json.loads(final) if p.returncode == 0 and out.exists() else None
-    answer = parsed if isinstance(parsed, dict) else None
-    raw = (p.stdout + "\n--- answer (-o) ---\n" + final + "\n--- stderr tail ---\n" + p.stderr[-2000:])
-    return p.returncode, raw, answer, tool_use(p.stdout)
+    answer = None
+    if code == 0 and not used:
+        try:
+            parsed = json.loads(final)
+        except json.JSONDecodeError:
+            parsed = None
+        answer = parsed if isinstance(parsed, dict) else None
+    raw = events + "\n--- answer (-o) ---\n" + final + "\n--- stderr tail ---\n" + stderr[-2000:]
+    return code, raw, answer, used
 
 
 def run_one(job: tuple, out_dir: Path, commands: dict[str, list[str]]) -> dict:
