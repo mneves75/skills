@@ -113,10 +113,10 @@ the adaptation.
    `poteto-mode` Babysit playbook stops as blocked when the same failure survives two fixes or
    after three push waves. `ketchup-video` and `create-formal-verification-skill` carry a
    fallback for a missing `ketchup` or `statechart`.
-7. **Opus at medium effort** (`07`). An `opus` role value without an `@` suffix runs at `medium`
-   whenever it resolves to an Opus model, whatever the sheet's `default effort` line says; an
-   explicit suffix still wins, and a runtime that maps `opus` to another vendor's model keeps the
-   default effort.
+7. **Opus at medium effort** (`07`). A role value without an `@` suffix that resolves to an Opus
+   model runs at `medium`, whatever the sheet's `default effort` line, a platform mapping, Pi's
+   panel line or `poteto-mode`'s per-job raise and lower would give it; an explicit suffix still
+   wins, and a runtime that maps `opus` to another vendor's model keeps the default effort.
 
 Frontmatter keys outside the Agent Skills spec move under `metadata:` (`poteto-mode`'s
 `menu-description`, `typescript-best-practices`' `paths`), so strict loaders accept every

@@ -41,7 +41,7 @@ The default role-to-model mapping is the rule shape shown in the Write the overr
 
 Show every role with its current model, marking any real slug not in the detected set as needing a choice. Also list each line step 2 dropped or rewrote. Ask whether to accept as-is or change specific roles, offering the detected models plus `inherit-parent` and `auto` as the options. Prefer `AskUserQuestion` over free text. For panel roles (arena runners, architect runners, interrogate reviewers) the value is a list, and one subagent runs per entry, alias entries included, so the list length sets the count. `arena cross-judge pool` is also a list, but Arena runs one judge. It tries only values from a family other than the parent's, in list order, so order it by preference. An `inherit-parent` or `auto` value never judges. `swarm workers` is the default model for every worker unless a race or comparison assigns another model per arm.
 
-Then ask for the default reasoning effort, the `default effort` line. It is `session`, which keeps the parent session's effort, or one of the levels in [Models](#models). Start from the default listed there. Every role value without a suffix runs at it, except an `opus` value that resolves to an Opus model, which runs at `medium`. Then ask whether any role should run at another level. On Claude Code a role value may carry one after its slug, as in `<slug> @xhigh`; panel entries take their own, as in `<slug> @xhigh, <slug> @max`. Each level is passed as the dispatch's effort, so the choice holds without changing the session. Leave the suffix off for the default effort.
+Then ask for the default reasoning effort, the `default effort` line. It is `session`, which keeps the parent session's effort, or one of the levels in [Models](#models). Start from the default listed there. Every role value without a suffix runs at it, except a value that resolves to an Opus model, which runs at `medium`. Then ask whether any role should run at another level. On Claude Code a role value may carry one after its slug, as in `<slug> @xhigh`; panel entries take their own, as in `<slug> @xhigh, <slug> @max`. Each level is passed as the dispatch's effort, so the choice holds without changing the session. Leave the suffix off for the default effort.
 
 On Codex, explain that `session` requires the current thread's active-turn metadata, which some hosts do not expose. The platform mapping's helper reads it; when it is unavailable, an explicit effort choice is required before dispatching. Offer a fixed default level for those hosts instead of promising automatic inheritance.
 
@@ -129,5 +129,5 @@ Stamped from `plugins/pstack/models.json` (edit there, rerun `tools/generate.mjs
 - Available Claude models: `opus`, `fable`
 - Default panel: `opus`, `fable`
 - Reasoning effort levels: `low`, `medium`, `high`, `xhigh`, `max`
-- Default reasoning effort: `xhigh`; `medium` for an `opus` value that resolves to an Opus model
+- Default reasoning effort: `xhigh`; `medium` for a value that resolves to an Opus model
 - Single-role default: `opus`
