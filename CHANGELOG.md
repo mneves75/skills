@@ -42,11 +42,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Claude Code's model configuration page 2.1.257; the later release is kept.
 - **Opus at medium reasoning** (owner rule): every Opus seat in the orchestrator's Defaults
   block (main session, frontend subagent, workers, heavy executor, reviewer) names
-  `reasoning medium`. autoreview's Claude engine runs an Opus model (`opus` or `claude-opus-*`,
-  including its `claude-opus-5-5` default) at `--effort medium` when no effort is given; an
-  explicit `--thinking` or `AUTOREVIEW_CLAUDE_THINKING` still wins, and other Claude models keep
-  the CLI's default. The pstack collection gains adaptation `07-opus-medium-effort`: an `opus`
-  role value without an `@` suffix runs at `medium` whenever it resolves to an Opus model.
+  `reasoning medium`. autoreview's Claude engine runs an Opus chain (`opus`, `opus[1m]` or
+  `claude-opus-*`, including its `claude-opus-5-5` default, as the model and every fallback) at
+  `--effort medium` when no effort is given; an explicit `--thinking` or
+  `AUTOREVIEW_CLAUDE_THINKING` still wins, and a chain of other Claude models keeps the CLI's
+  default. One effort covers the whole Claude invocation, so a chain that mixes Opus with other
+  models stops and asks for `--thinking claude=<level>`. The pstack collection gains adaptation
+  `07-opus-medium-effort`: an `opus` role value without an `@` suffix runs at `medium` whenever
+  it resolves to an Opus model.
+- **autoreview Opus 5.5 floor**: selecting `claude-opus-5-5` (the Claude engine's default), as the
+  model or a fallback, requires Claude Code 2.1.280, the release Claude Code's model
+  configuration page names for Opus 5.5; it was accepted from 2.1.169 before. A `[1m]` context
+  suffix takes the floor of the model it names.
 
 ## [1.46.1] - 2026-11-05
 
