@@ -40,6 +40,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   fallback, requires the Claude Code release that serves it (2.1.321 and 2.1.257), and the
   error names the model that set the floor. For Fable 5.1 the Help Center names 2.1.255 and
   Claude Code's model configuration page 2.1.257; the later release is kept.
+- **Opus at medium reasoning** (owner rule): every Opus seat in the orchestrator's Defaults
+  block (main session, frontend subagent, workers, heavy executor, reviewer) names
+  `reasoning medium`. autoreview's Claude engine runs an Opus model (`opus` or `claude-opus-*`,
+  including its `claude-opus-5-5` default) at `--effort medium` when no effort is given; an
+  explicit `--thinking` or `AUTOREVIEW_CLAUDE_THINKING` still wins, and other Claude models keep
+  the CLI's default. The pstack collection gains adaptation `07-opus-medium-effort`: an `opus`
+  role value without an `@` suffix runs at `medium` whenever it resolves to an Opus model.
 
 ## [1.46.1] - 2026-11-05
 

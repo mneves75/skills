@@ -17,8 +17,11 @@ measure whether a *target* codebase is ready for agents.
 - **1.47.0 candidate**: adds `mneves-socratic-tutor`, adapted from janestreet/agent_skills
   `socratic-tutor` at `7c6715c` (MIT) under the owner's chosen prefix, with fifteen next-turn
   trials written first (`docs/specs/mneves-socratic-tutor/`). It folds the 1.46.1 binding run into
-  the readiness ledger and plan (cursor `b6630d8`). Its own binding verdict and live proof belong
-  in its private exact-candidate records and annotated release tag.
+  the readiness ledger and plan (cursor `b6630d8`). It also moves the Fable seats to
+  `claude-fable-5-2` and, by owner rule, runs every Opus selection at medium reasoning: the
+  orchestrator's Opus seats, autoreview's Claude engine on an Opus model, and pstack's `opus`
+  roles (adaptation 07). Its own binding verdict and live proof belong in its private
+  exact-candidate records and annotated release tag.
 - **1.46.1 provenance correction**: `deploy.sh` preserves the original audit origin through
   repeated MERGED/tag resumes and further identical-tree transfers; same-commit fresh records
   keep empty security and absent readiness provenance fields. The real-CLI/local-Git/fake-provider
