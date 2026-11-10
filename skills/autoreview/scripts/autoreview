@@ -402,6 +402,9 @@ DEFAULT_THINKING_BY_ENGINE = {
     "amp": "xhigh",
     "codex": "xhigh",
 }
+# An Opus reviewer runs at medium effort unless an effort is given; other Claude models keep
+# the CLI's own default.
+CLAUDE_OPUS_DEFAULT_THINKING = "medium"
 THINKING_LEVELS_BY_ENGINE = {
     "amp": set(AMP_THINKING_VALUES),
     "codex": {"none", "minimal", "low", "medium", "high", "xhigh", "max"},
@@ -6795,7 +6798,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--model",
         action="append",
-        help="Model override or engine=model. Repeatable. Defaults: codex=gpt-6.1-sol (xhigh reasoning; no model fallback), claude=claude-opus-5-5, amp=openai/gpt-6.1-sol (xhigh reasoning).",
+        help="Model override or engine=model. Repeatable. Defaults: codex=gpt-6.1-sol (xhigh reasoning; no model fallback), claude=claude-opus-5-5 (medium effort), amp=openai/gpt-6.1-sol (xhigh reasoning).",
     )
     parser.add_argument("--thinking", action="append", help="Thinking/effort override or engine=level. Repeatable. Codex: none, minimal, low, medium, high, xhigh, max; gpt-6-astra requires low through max. Claude: low, medium, high, xhigh, max. Amp: none, low, medium, high, xhigh, max. Pi: off, minimal, low, medium, high, xhigh. Kimi: off, on.")
     parser.add_argument(
@@ -6933,6 +6936,11 @@ def parse_keyed_options(values: list[str] | None, option: str) -> tuple[str | No
     return global_value, per_engine
 
 
+def claude_model_is_opus(model: str | None) -> bool:
+    name = (model or "").strip().lower()
+    return name == "opus" or name.startswith("claude-opus-")
+
+
 def reviewer_args(args: argparse.Namespace) -> list[argparse.Namespace]:
     global_model, model_by_engine = parse_keyed_options(args.model, "model")
     global_thinking, thinking_by_engine = parse_keyed_options(args.thinking, "thinking")
@@ -6970,6 +6978,8 @@ def reviewer_args(args: argparse.Namespace) -> list[argparse.Namespace]:
         or env_global_thinking
         or DEFAULT_THINKING_BY_ENGINE.get(engine)
     )
+    if engine == "claude" and not thinking and claude_model_is_opus(model):
+        thinking = CLAUDE_OPUS_DEFAULT_THINKING
     if engine == "claude":
         fallback_model = (
             fallback_by_engine.get(engine)

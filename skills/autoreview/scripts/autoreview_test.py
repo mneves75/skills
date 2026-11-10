@@ -1280,6 +1280,22 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 with self.assertRaisesRegex(SystemExit, f"invalid thinking level for codex model gpt-6-astra: {effort}"):
                     AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())
 
+    def test_claude_opus_reviews_default_to_medium_effort(self) -> None:
+        cases = (
+            ([], {}, "claude-opus-5-5", "medium"),
+            (["--model", "opus"], {}, "opus", "medium"),
+            (["--model", "claude-opus-5-5", "--thinking", "high"], {}, "claude-opus-5-5", "high"),
+            ([], {"AUTOREVIEW_CLAUDE_THINKING": "xhigh"}, "claude-opus-5-5", "xhigh"),
+            (["--model", "claude-fable-5-2"], {}, "claude-fable-5-2", None),
+            (["--model", "fable"], {}, "fable", None),
+        )
+        for overrides, env, model, effort in cases:
+            with self.subTest(overrides=overrides, env=env), mock.patch.dict(os.environ, env, clear=True), \
+                    mock.patch.object(sys, "argv", ["autoreview", "--engine", "claude", *overrides]):
+                reviewer = AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())[0]
+                self.assertEqual(reviewer.model, model)
+                self.assertEqual(reviewer.thinking, effort)
+
     def test_astra_effort_restrictions_do_not_change_other_codex_models(self) -> None:
         for effort in ("none", "minimal"):
             with self.subTest(effort=effort), mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
