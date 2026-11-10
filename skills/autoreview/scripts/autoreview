@@ -149,6 +149,14 @@ MAX_REVIEW_PROMPT_BYTES = 512_000
 # argument at MAX_ARG_STRLEN (131,072 bytes) and Windows caps the whole
 # command line at ~32,767 characters.
 KIMI_MAX_PROMPT_BYTES = 30_000 if os.name == "nt" else 120_000
+# Process arguments are readable by other local accounts (`ps` on macOS,
+# /proc/<pid>/cmdline on Linux), so a Kimi review shows the whole pack to
+# them while it runs. The caller must accept that per run.
+KIMI_ARGV_PROMPT_REFUSAL = (
+    "kimi engine refused: Kimi Code takes the review prompt only as a `--prompt` "
+    "command-line argument, which other local accounts can read in the process list "
+    "while it runs; pass --allow-kimi-argv-prompt to accept that, or choose another engine"
+)
 MAX_REVIEW_CHUNK_CONTEXT_BYTES = 64_000
 # Per-run paid-work budget, checked before the first provider call. The byte
 # default is that many full-size passes, so it binds once passes are raised.
@@ -6846,6 +6854,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--amp-bin", default=os.environ.get("AMP_BIN", "amp"))
     parser.add_argument("--pi-bin", default=os.environ.get("PI_BIN", "pi"))
     parser.add_argument("--kimi-bin", default=os.environ.get("KIMI_BIN", "kimi"))
+    parser.add_argument(
+        "--allow-kimi-argv-prompt",
+        action="store_true",
+        help="Required for --engine kimi: accept that Kimi receives the review prompt as a "
+        "command-line argument, which other local accounts can read in the process list while it runs.",
+    )
     parser.add_argument("--no-tools", dest="tools", action="store_false", default=True, help="Disable tools for engines that support it. Amp, Pi, and Kimi always run without tools; Codex rejects no-tools review.")
     parser.add_argument("--no-web-search", dest="web_search", action="store_false", default=True)
     parser.add_argument(
@@ -6986,6 +7000,11 @@ def reviewer_args(args: argparse.Namespace) -> list[argparse.Namespace]:
         raise SystemExit("--codex-config is only supported for codex; no codex reviewer selected")
     if getattr(args, "codex_speed", None) and engine != "codex":
         raise SystemExit("--codex-speed is only supported for codex; no codex reviewer selected")
+    allow_kimi_argv = getattr(args, "allow_kimi_argv_prompt", False)
+    if allow_kimi_argv and engine != "kimi":
+        raise SystemExit("--allow-kimi-argv-prompt is only supported for kimi; no kimi reviewer selected")
+    if engine == "kimi" and not allow_kimi_argv:
+        raise SystemExit(KIMI_ARGV_PROMPT_REFUSAL)
     model = (
         model_by_engine.get(engine)
         or global_model

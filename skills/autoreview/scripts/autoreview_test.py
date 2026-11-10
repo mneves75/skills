@@ -1370,6 +1370,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             codex_config=None,
             codex_speed=None,
             tools=True,
+            allow_kimi_argv_prompt=True,
         )
 
         reviewer = AUTOREVIEW.reviewer_args(args)[0]
