@@ -13,7 +13,7 @@
 set -euo pipefail
 
 # The usage is the file's leading comment block, which ends where the code starts, so it cannot drift.
-usage() { sed -n -e '1d' -e '/^[^#]/q' -e 'p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2; exit 2; }
+usage() { sed -n -e '1d' -e '/^[^#]/q' -e 'p' < "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2; exit 2; }
 check=0
 case $# in
   0) ;;

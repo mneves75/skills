@@ -61,6 +61,13 @@ if [ "$code" -eq 2 ] && grep -q -- '--check' <<<"$out" && ! grep -q 'set -euo' <
   ok "unknown argument exits 2 with the usage and no line of code"
 else bad "unknown argument (exit $code): $out"; fi
 
+# 4b. The usage reads the script as a file even when its name looks like a sed option.
+mkdir -p "$tmp/odd"; cp "$root/tools/scripts/init.sh" "$tmp/odd/-e2p"
+out=$(cd "$tmp/odd" && PATH="$tmp/full" bash -- -e2p --install-everything 2>&1 </dev/null) && code=0 || code=$?
+if [ "$code" -eq 2 ] && grep -q -- '--check' <<<"$out" && ! grep -q 'set -euo' <<<"$out"; then
+  ok "usage is the header even when the script is named like an option"
+else bad "option-shaped script name (exit $code): $out"; fi
+
 # 5. Outside the repository it refuses (exit 2) instead of installing somewhere else.
 mkdir -p "$tmp/elsewhere/tools/scripts"
 cp "$root/tools/scripts/init.sh" "$tmp/elsewhere/tools/scripts/init.sh"
