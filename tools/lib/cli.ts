@@ -41,7 +41,7 @@ export interface ParsedArgs {
 	options: Map<string, string>;
 	/** Positional arguments in order */
 	positional: string[];
-	/** Any unknown arguments */
+	/** Unknown options and options given without a value */
 	unknown: string[];
 }
 
@@ -132,6 +132,8 @@ export function parseArgs(argv: string[], config: ArgConfig = {}): ParsedArgs {
 				if (nextArg !== undefined && !nextArg.startsWith("-")) {
 					result.options.set(name, nextArg);
 					i++;
+				} else {
+					result.unknown.push(arg);
 				}
 			} else {
 				result.unknown.push(arg);
@@ -161,6 +163,8 @@ export function parseArgs(argv: string[], config: ArgConfig = {}): ParsedArgs {
 				if (nextArg !== undefined && !nextArg.startsWith("-")) {
 					result.options.set(name, nextArg);
 					i++;
+				} else {
+					result.unknown.push(arg);
 				}
 			} else {
 				// Could be combined short flags like -vf

@@ -172,14 +172,7 @@ export interface LanguageAdapter {
 	displayName: string;
 	/** Get a check runner for a given check ID */
 	getRunner(checkId: string): CheckRunner | undefined;
-	/** List all check IDs this adapter can handle */
-	supportedChecks(): string[];
 }
-
-/**
- * Factory function to create a language adapter
- */
-export type LanguageAdapterFactory = () => LanguageAdapter;
 
 // ============================================================================
 // Check Registry Implementation
@@ -191,7 +184,6 @@ export type LanguageAdapterFactory = () => LanguageAdapter;
 export class CheckRegistry {
 	private checks: Map<string, RegisteredCheck> = new Map();
 	private adapters: Map<Language, LanguageAdapter> = new Map();
-	private defaultAdapters: Map<string, CheckRunner> = new Map();
 
 	/**
 	 * Register a check definition (overwrites if already exists)
@@ -218,38 +210,10 @@ export class CheckRegistry {
 	}
 
 	/**
-	 * Register a default adapter for a check (used when no language-specific one exists)
-	 */
-	registerDefaultRunner(checkId: string, runner: CheckRunner): void {
-		this.defaultAdapters.set(checkId, runner);
-	}
-
-	/**
-	 * Get a check by ID
-	 */
-	getCheck(id: string): RegisteredCheck | undefined {
-		return this.checks.get(id);
-	}
-
-	/**
 	 * Get all registered checks
 	 */
 	getAllChecks(): RegisteredCheck[] {
 		return Array.from(this.checks.values());
-	}
-
-	/**
-	 * Get checks for a specific pillar
-	 */
-	getChecksByPillar(pillar: Pillar): RegisteredCheck[] {
-		return this.getAllChecks().filter((c) => c.pillar === pillar);
-	}
-
-	/**
-	 * Get checks for a specific level
-	 */
-	getChecksByLevel(level: Level): RegisteredCheck[] {
-		return this.getAllChecks().filter((c) => c.level === level);
 	}
 
 	/**
@@ -272,11 +236,7 @@ export class CheckRegistry {
 			if (runner) return runner;
 		}
 
-		// Fall back to default adapter
-		const defaultRunner = this.defaultAdapters.get(checkId);
-		if (defaultRunner) return defaultRunner;
-
-		// Finally use the check's built-in runner
+		// Fall back to the check's built-in runner
 		const check = this.checks.get(checkId);
 		return check?.run;
 	}
@@ -342,22 +302,6 @@ export class CheckRegistry {
 
 		return results;
 	}
-
-	/**
-	 * Get adapter for a language
-	 */
-	getAdapter(language: Language): LanguageAdapter | undefined {
-		return this.adapters.get(language);
-	}
-
-	/**
-	 * Clear all registrations (useful for testing)
-	 */
-	clear(): void {
-		this.checks.clear();
-		this.adapters.clear();
-		this.defaultAdapters.clear();
-	}
 }
 
 // ============================================================================
@@ -391,26 +335,6 @@ export function defineCheck(
 		name,
 		run,
 		...options,
-	};
-}
-
-/**
- * Create a language adapter helper
- */
-export function createAdapter(
-	language: Language,
-	displayName: string,
-	runners: Record<string, CheckRunner>,
-): LanguageAdapter {
-	return {
-		language,
-		displayName,
-		getRunner(checkId: string): CheckRunner | undefined {
-			return runners[checkId];
-		},
-		supportedChecks(): string[] {
-			return Object.keys(runners);
-		},
 	};
 }
 

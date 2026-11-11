@@ -6,20 +6,9 @@
  * Registers all standard check definitions with the check registry.
  * These are language-agnostic definitions - the actual implementation
  * comes from language-specific adapters.
- *
- * Also re-exports shared check implementations for use by adapters.
  */
 
 import { checkRegistry, defineCheck } from "../check-registry.js";
-
-// Re-export shared checks for adapter use
-export {
-	createDirCheck,
-	createPathCheck,
-	getSharedCheck,
-	listSharedChecks,
-	sharedChecks,
-} from "./shared.js";
 
 // ============================================================================
 // Check Definitions
@@ -29,9 +18,6 @@ export {
  * Register all standard checks
  */
 export function registerStandardChecks(): void {
-	// Clear any existing checks (for re-registration)
-	// Note: Registry doesn't have clear for checks, only for all
-
 	const checks = [
 		// =========================================================================
 		// PILLAR 1: STYLE & VALIDATION

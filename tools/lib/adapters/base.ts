@@ -12,7 +12,7 @@ import { readdir } from "node:fs/promises";
 import path from "node:path";
 import type { CheckResult, CheckRunner, LanguageAdapter } from "../check-registry.js";
 import { fileExists, readText } from "../check-registry.js";
-import { listSharedChecks, sharedChecks } from "../checks/shared.js";
+import { sharedChecks } from "../checks/shared.js";
 import type { Language } from "../language-detection.js";
 
 // ============================================================================
@@ -29,11 +29,6 @@ export interface AdapterConfig {
 	displayName: string;
 	/** Language-specific check runners */
 	runners: Record<string, CheckRunner>;
-	/**
-	 * Optional list of shared checks to exclude for this language
-	 * (e.g., TypeScript-only checks excluded from Go adapter)
-	 */
-	excludeSharedChecks?: string[];
 }
 
 // ============================================================================
@@ -60,10 +55,7 @@ export interface AdapterConfig {
  * ```
  */
 export function createLanguageAdapter(config: AdapterConfig): LanguageAdapter {
-	const { language, displayName, runners, excludeSharedChecks = [] } = config;
-
-	// Build the set of excluded checks for fast lookup
-	const excludedSet = new Set(excludeSharedChecks);
+	const { language, displayName, runners } = config;
 
 	return {
 		language,
@@ -75,22 +67,12 @@ export function createLanguageAdapter(config: AdapterConfig): LanguageAdapter {
 				return runners[checkId];
 			}
 
-			// Fall back to shared checks unless excluded
-			if (!excludedSet.has(checkId) && sharedChecks[checkId]) {
+			// Fall back to shared checks
+			if (sharedChecks[checkId]) {
 				return sharedChecks[checkId];
 			}
 
 			return undefined;
-		},
-
-		supportedChecks(): string[] {
-			// Combine language-specific and shared checks
-			const languageChecks = Object.keys(runners);
-			const sharedCheckIds = listSharedChecks().filter(
-				(id) => !excludedSet.has(id) && !runners[id]
-			);
-
-			return [...languageChecks, ...sharedCheckIds];
 		},
 	};
 }

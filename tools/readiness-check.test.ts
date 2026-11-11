@@ -91,6 +91,31 @@ test("checker rejects invalid option values instead of passing a CI gate vacuous
 	}
 }, 60000);
 
+test("checker rejects unknown options, options without a value and stray arguments before assessing", async () => {
+	const directory = await mkdtemp(join(tmpdir(), "readiness-arguments-"));
+	await Bun.write(join(directory, "package.json"), '{"name":"arguments-fixture"}');
+	const run = async (...extra: string[]) => {
+		const checker = Bun.spawn([
+			process.execPath, new URL("./readiness-check.ts", import.meta.url).pathname,
+			"--language=typescript", "--skip-tests", "--skip-build", ...extra,
+		], { cwd: directory, stdout: "pipe", stderr: "pipe" });
+		const [stdout, stderr] = await Promise.all([new Response(checker.stdout).text(), new Response(checker.stderr).text()]);
+		return { code: await checker.exited, stdout, stderr };
+	};
+	try {
+		// Positive control: the space-separated value form still reaches the gate.
+		expect((await run("--min-level", "5")).code).toBe(1);
+		for (const extra of [["--min-levle=5"], ["--min-level"], ["-o"], ["--min-level", "--verbose"], ["stray"], ["--bogus", "stray"]]) {
+			const { code, stdout, stderr } = await run(...extra);
+			expect({ extra, code }).toEqual({ extra, code: 2 });
+			expect(stdout).not.toContain("Agent Readiness Check");
+			for (const argument of extra.filter((arg) => arg !== "--verbose")) expect(stderr).toContain(argument);
+		}
+	} finally {
+		await rm(directory, { recursive: true, force: true });
+	}
+}, 60000);
+
 for (const [config, linter] of [["biome.json", "biome"], ["eslint.config.js", "eslint"]] as const) {
 	test(`the ${linter} check never asks bunx to download a missing package`, async () => {
 		const directory = await mkdtemp(join(tmpdir(), "readiness-bunx-"));

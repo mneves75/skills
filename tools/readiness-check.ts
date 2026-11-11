@@ -87,7 +87,7 @@ interface ReadinessReport {
 	repoName: string;
 	date: string;
 	timestamp: string;
-	structure: "monorepo" | "single" | "polyglot";
+	structure: "monorepo" | "single";
 	language: Language;
 	scoringMode: ScoringMode;
 	maturityLevel: Level;
@@ -1341,6 +1341,15 @@ async function main(): Promise<number> {
 	if (hasHelpFlag(args)) {
 		showHelp();
 		return EXIT_CODES.SUCCESS;
+	}
+
+	// A mistyped name or a missing value must fail too, or a CI gate passes vacuously.
+	const rejected = [...args.unknown, ...args.positional];
+	if (rejected.length > 0) {
+		for (const argument of rejected) {
+			console.error(`readiness-check: unknown option, option without a value, or unexpected argument: ${argument} (see --help)`);
+		}
+		return EXIT_CODES.FATAL_ERROR;
 	}
 
 	const format = getOption(args, "format") ?? getOption(args, "f") ?? "md";

@@ -13,4 +13,6 @@ export const EXIT_CODES = {
 	FATAL_ERROR: 2,
 	/** Interrupted by signal (128 + SIGINT=2) */
 	SIGNAL_INTERRUPT: 130,
+	/** Terminated by signal (128 + SIGTERM=15) */
+	SIGNAL_TERMINATE: 143,
 } as const;

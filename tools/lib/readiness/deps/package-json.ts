@@ -12,7 +12,6 @@ import type {
 	Dependency,
 	DependencyManifest,
 	ManifestType,
-	ParseOptions,
 } from "./types.js";
 
 // ============================================================================
@@ -40,11 +39,8 @@ interface PackageJson {
  * Parse a package.json file
  */
 export async function parsePackageJson(
-	filepath: string,
-	options: ParseOptions = {}
+	filepath: string
 ): Promise<DependencyManifest | null> {
-	const { includeDev = true } = options;
-
 	try {
 		const file = Bun.file(filepath);
 		if (!(await file.exists())) {
@@ -92,7 +88,7 @@ export async function parsePackageJson(
 		}
 
 		// Parse dev dependencies
-		if (includeDev && pkg.devDependencies) {
+		if (pkg.devDependencies) {
 			for (const [name, version] of Object.entries(pkg.devDependencies)) {
 				devDependencies.push({
 					name,
@@ -156,21 +152,4 @@ function detectPackageManager(
 	}
 
 	return "npm";
-}
-
-/**
- * Check if a package has a specific script
- */
-export function hasScript(
-	manifest: DependencyManifest,
-	scriptName: string
-): boolean {
-	return Boolean(manifest.scripts?.[scriptName]);
-}
-
-/**
- * Get all script names from a manifest
- */
-export function getScriptNames(manifest: DependencyManifest): string[] {
-	return Object.keys(manifest.scripts ?? {});
 }

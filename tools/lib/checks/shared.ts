@@ -89,41 +89,6 @@ export function createPathCheck(
 	};
 }
 
-/**
- * Creates a check that looks for directories in specified paths
- */
-export function createDirCheck(
-	dirs: string[],
-	options: PathCheckOptions = {}
-): CheckRunner {
-	const {
-		checkBothPaths = false,
-		resultKey = "configPath",
-		successDetails = "Found",
-		failureDetails = "Missing",
-	} = options;
-
-	return async (ctx: CheckContext): Promise<CheckResult> => {
-		const pathsToCheck = checkBothPaths
-			? [ctx.app.path, ctx.repoRoot]
-			: [ctx.app.path];
-
-		for (const basePath of pathsToCheck) {
-			for (const dir of dirs) {
-				if (dirExists(path.join(basePath, dir))) {
-					const result: CheckResult = { pass: true, details: successDetails };
-					if (resultKey === "configPath") {
-						result.configPath = dir;
-					}
-					return result;
-				}
-			}
-		}
-
-		return { pass: false, details: failureDetails };
-	};
-}
-
 // ============================================================================
 // Shared Check Implementations
 // ============================================================================
@@ -1576,21 +1541,3 @@ export const sharedChecks: Record<string, CheckRunner> = {
 		return { pass: false, details: "No task documentation" };
 	},
 };
-
-// ============================================================================
-// Exports
-// ============================================================================
-
-/**
- * Get a shared check runner by ID
- */
-export function getSharedCheck(checkId: string): CheckRunner | undefined {
-	return sharedChecks[checkId];
-}
-
-/**
- * List all shared check IDs
- */
-export function listSharedChecks(): string[] {
-	return Object.keys(sharedChecks);
-}

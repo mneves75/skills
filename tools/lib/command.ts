@@ -1,5 +1,6 @@
 import { spawn } from "node:child_process";
 import { runWithTimeout } from "./check-registry.js";
+import { EXIT_CODES } from "./constants.js";
 
 const activeCommands = new Set<() => Promise<void>>();
 let terminating = false;
@@ -17,8 +18,8 @@ export function installCommandSignalHandlers(): void {
 			},
 		);
 	};
-	process.on("SIGINT", () => terminate(130));
-	process.on("SIGTERM", () => terminate(143));
+	process.on("SIGINT", () => terminate(EXIT_CODES.SIGNAL_INTERRUPT));
+	process.on("SIGTERM", () => terminate(EXIT_CODES.SIGNAL_TERMINATE));
 }
 
 /** Run a quiet POSIX shell command with a deadline, escaping interpolated arguments. */

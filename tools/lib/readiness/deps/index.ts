@@ -10,25 +10,16 @@
 
 import path from "node:path";
 import type { Language } from "../../language-detection.js";
+import { parseCargoToml } from "./cargo-toml.js";
+import { parseGoMod } from "./go-mod.js";
+import { parsePackageJson } from "./package-json.js";
+import { parsePyProject, parseRequirementsTxt } from "./pyproject.js";
 import type {
 	DependencyManifest,
 	LibraryCategory,
 	LibraryMappings,
 	LibraryMatch,
-	ParseOptions,
 } from "./types.js";
-
-// Re-export types
-export * from "./types.js";
-
-import { parseCargoToml } from "./cargo-toml.js";
-import { moduleMatches, parseGoMod } from "./go-mod.js";
-// Import parsers
-import { getScriptNames, hasScript, parsePackageJson } from "./package-json.js";
-import { parsePyProject, parseRequirementsTxt } from "./pyproject.js";
-
-// Re-export helpers
-export { getScriptNames, hasScript, moduleMatches };
 
 // ============================================================================
 // Library Mappings
@@ -220,34 +211,31 @@ export const LIBRARY_MAPPINGS: LibraryMappings = {
  */
 export async function parseDependencies(
 	appPath: string,
-	language: Language,
-	options: ParseOptions = {}
+	language: Language
 ): Promise<DependencyManifest | null> {
 	switch (language) {
 		case "typescript":
 		case "javascript":
-			return parsePackageJson(path.join(appPath, "package.json"), options);
+			return parsePackageJson(path.join(appPath, "package.json"));
 
 		case "go":
-			return parseGoMod(path.join(appPath, "go.mod"), options);
+			return parseGoMod(path.join(appPath, "go.mod"));
 
 		case "python": {
 			// Try pyproject.toml first
 			const pyproject = await parsePyProject(
-				path.join(appPath, "pyproject.toml"),
-				options
+				path.join(appPath, "pyproject.toml")
 			);
 			if (pyproject) return pyproject;
 
 			// Fall back to requirements.txt
 			return parseRequirementsTxt(
-				path.join(appPath, "requirements.txt"),
-				options
+				path.join(appPath, "requirements.txt")
 			);
 		}
 
 		case "rust":
-			return parseCargoToml(path.join(appPath, "Cargo.toml"), options);
+			return parseCargoToml(path.join(appPath, "Cargo.toml"));
 
 		case "java": {
 			// Check for pom.xml or build.gradle
@@ -310,12 +298,3 @@ export function hasLibraryCategory(
 	}
 	return hasLibrary(manifest, libraries);
 }
-
-// ============================================================================
-// Re-exports
-// ============================================================================
-
-export { parseCargoToml } from "./cargo-toml.js";
-export { parseGoMod } from "./go-mod.js";
-export { parsePackageJson } from "./package-json.js";
-export { parsePyProject, parseRequirementsTxt } from "./pyproject.js";
