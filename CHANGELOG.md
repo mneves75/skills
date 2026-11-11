@@ -5,14 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.48.0] - 2026-11-10
 
-### Changed
-- Agent instructions, from the owner's instruction audit (2026-11-09):
-  - `skills/autoreview/CLAUDE.md` imports `AGENTS.md` with `@AGENTS.md` on its own line, so Claude Code loads it.
+### Security
+- **autoreview**: `--engine kimi` refuses to start unless the run passes
+  `--allow-kimi-argv-prompt`. Kimi Code takes a one-shot prompt only as a command-line
+  argument, and other local accounts can read a process's arguments while it runs, so a Kimi
+  review showed the review pack to them. The refusal comes before any Kimi process starts, in
+  a real run and in `--dry-run`; the flag is rejected for other engines. This closes the
+  1.47.0 gate's needs-validation item RS-H01. Existing Kimi callers must add the flag.
+- **babysit-pr**: `pr-wait` knows each review and deploy bot by its own GitHub App
+  (`greptile-apps`, `greptile`, `macroscopeapp`, `coderabbitai`; `github-actions`, `vercel`,
+  `netlify`, `railway-app`, `cloudflare-workers-and-pages`) instead of a name fragment. Any
+  installed app whose name contained a bot's name could mark the gating review done or have
+  its comments skipped (the 1.47.0 gate's item ROOT-H01).
 
 ### Added
+- **Routing eval, tracked**: `tools/routing-eval/cases.json` holds the 33 expected-outcome
+  cases that 1.47.0 ran from private scratch, and `tools/scripts/routing-eval.py` runs them.
+  `check` is deterministic and runs in CI: the cases are well formed and every case's deciding
+  passage still exists in the skill text it reads. It catches a removed or reworded passage,
+  not a contradicting sentence added elsewhere. `run` asks the models live and applies the
+  pass threshold; it is a release step, never run by CI. Only a full run, every case on both
+  consumers, can pass. The Codex consumer runs with its shell tool disabled and any tool event
+  fails the sample: the 1.47.0 runner left that tool on, so only its Claude consumer was
+  tool-free. Each sample is asked once; a failed call is an error, never retried.
 - `.claude/settings.json` denies edits to the vendored `collections/pstack` skills, `UPSTREAM`, `LICENSE*` and `NOTICE*`; asks before `gh pr merge`, a push to `origin main` and `tools/scripts/deploy.sh`; a Stop hook runs the tools typecheck, lint and tests when the tree changed since the last green run.
+
+### Changed
+- **Release bookkeeping**: fold the published 1.47.0 binding run into the readiness cursor,
+  binding-run line, recorded controls and gate history.
+- Agent instructions, from the owner's instruction audit (2026-11-09):
+  - `skills/autoreview/CLAUDE.md` imports `AGENTS.md` with `@AGENTS.md` on its own line, so Claude Code loads it.
+- The orchestrator's Defaults block was re-verified against the vendor model lists on
+  2026-11-10; no seat changed.
 
 ## [1.47.0] - 2026-11-09
 

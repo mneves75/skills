@@ -63,6 +63,14 @@ the [security deploy gate](skills/mneves-security/SKILL.md#deploy-gate) and
 candidate. Keep detailed reports and owner waivers private. Merge approval alone does
 not waive an open control.
 
+A release that changes routing text (the orchestrator's Defaults block or routing prose,
+autoreview's engine defaults, or pstack's model and effort text) updates
+`tools/routing-eval/cases.json` and its anchors first. Then run
+`tools/scripts/routing-eval.py run` live on the candidate, and with `--baseline` on the previous
+release's commit when cases are marked changed. Only a full run, every case on both consumers,
+can pass, and a changed case that passes on the baseline fails the control. Keep the output with
+the release's private gate records. CI only runs `check`, which calls no model.
+
 `main` is also what `npx skills add` installs, so every merge is a release that needs its
 own gate. Close a release without a second one:
 

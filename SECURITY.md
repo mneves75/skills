@@ -98,7 +98,11 @@ operating-system updates.
   environment where those side effects are acceptable.
 - Autoreview sends the selected review inputs, after a credential scan, to the provider you
   configure; that provider's retention terms apply. Reports go only to output paths outside
-  the reviewed repository, and temporary files are removed after the run.
+  the reviewed repository, and temporary files are removed after the run. Codex, Claude and Pi
+  receive the prompt on standard input and Amp from an owner-only temporary file. Kimi Code
+  accepts it only as a command-line argument, which other local accounts can read in the
+  process list while the review runs, so `--engine kimi` refuses to start without
+  `--allow-kimi-argv-prompt`.
 - `mneves-teach-back-srs` keeps sessions and cards in `.ai-learn/srs.db` inside your project;
   delete that file to erase them. Its CSV export keeps text as written, for Anki; check
   formulas before opening an export of untrusted text in a spreadsheet.

@@ -14,14 +14,26 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
-- **1.47.0 candidate**: adds `mneves-socratic-tutor`, adapted from janestreet/agent_skills
-  `socratic-tutor` at `7c6715c` (MIT) under the owner's chosen prefix, with fifteen next-turn
-  trials written first (`docs/specs/mneves-socratic-tutor/`). It folds the 1.46.1 binding run into
-  the readiness ledger and plan (cursor `b6630d8`). It also moves the Fable seats to
-  `claude-fable-5-2` and, by owner rule, runs every Opus selection at medium reasoning: the
-  orchestrator's Opus seats, autoreview's Claude engine on an Opus model, and pstack's `opus`
-  roles (adaptation 07). Its own binding verdict and live proof belong in its private
+- **1.48.0 candidate**: closes the two needs-validation items the 1.47.0 gate carried.
+  Autoreview refuses the Kimi engine without `--allow-kimi-argv-prompt`, because Kimi Code takes
+  the prompt only as a process argument other local accounts can read (RS-H01). `pr-wait` knows
+  review and deploy bots by their own GitHub App, not a name fragment (ROOT-H01). The routing
+  eval moves from private scratch into `tools/routing-eval/` with a deterministic CI freshness
+  check; live runs stay a release step. It folds the 1.47.0 binding run into the readiness
+  ledger and plan (cursor `ae1e809`) and carries PR #49's instruction changes, which reached
+  `main` without a release. Its own binding verdict and live proof belong in its private
   exact-candidate records and annotated release tag.
+- **1.47.0** (2026-11-10 UTC closeout): adds `mneves-socratic-tutor`, adapted from
+  janestreet/agent_skills `socratic-tutor` at `7c6715c` (MIT) under the owner's chosen prefix,
+  with next-turn trials written first (`docs/specs/mneves-socratic-tutor/`). It moved the Fable
+  seats to `claude-fable-5-2` and, by owner rule, runs every Opus selection at medium reasoning:
+  the orchestrator's Opus seats, autoreview's Claude engine on an Opus model, and pstack's `opus`
+  roles (adaptation 07). Published as `ae1e809` (PR #48, audit `366bd67`, identical tree
+  `be7ca9bf`), tagged `v1.47.0`; CI run 42778058783 and Pages run 42780310301 succeeded and the
+  served files matched the gated tree. Security WAIVED six standing controls; readiness ready
+  with 26 waivers, sixteen of them candidate-only conditional approvals to
+  2026-11-10T23:59:59Z; independent acceptance passed on a different model after a routing eval
+  with expected outcomes was added (two earlier acceptance rounds failed without one).
 - **1.46.1 provenance correction**: `deploy.sh` preserves the original audit origin through
   repeated MERGED/tag resumes and further identical-tree transfers; same-commit fresh records
   keep empty security and absent readiness provenance fields. The real-CLI/local-Git/fake-provider

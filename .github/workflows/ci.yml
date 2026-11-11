@@ -116,8 +116,13 @@ jobs:
           bash tools/scripts/check-defaults-block.sh
           bash tools/scripts/check-defaults-block.test
 
+      - name: Routing eval cases and anchors (no model call)
+        run: |
+          python3 tools/scripts/routing-eval.py check
+          python3 tools/scripts/routing-eval.test.py
+
       - name: Python syntax
-        run: python3 -m py_compile skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py skills/mneves-ship-deploy/scripts/release-contract-check.py skills/mneves-ship-deploy/scripts/run-tests.py skills/mneves-ship-deploy/tests/test_release_contract_check.py tools/scripts/check-readiness-catalog.py tools/scripts/sync-pstack.py skills/autoreview/scripts/test-review-harness.py skills/babysit-pr/scripts/pr-wait skills/babysit-pr/tests/test_pr_wait.py skills/mneves-motion-film/scripts/*.py skills/mneves-motion-film/tests/test_pipeline.py
+        run: python3 -m py_compile tools/scripts/routing-eval.py tools/scripts/routing-eval.test.py skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py skills/mneves-ship-deploy/scripts/release-contract-check.py skills/mneves-ship-deploy/scripts/run-tests.py skills/mneves-ship-deploy/tests/test_release_contract_check.py tools/scripts/check-readiness-catalog.py tools/scripts/sync-pstack.py skills/autoreview/scripts/test-review-harness.py skills/babysit-pr/scripts/pr-wait skills/babysit-pr/tests/test_pr_wait.py skills/mneves-motion-film/scripts/*.py skills/mneves-motion-film/tests/test_pipeline.py
 
       - name: Security audit validator suites and syntax
         run: |

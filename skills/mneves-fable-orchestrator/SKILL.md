@@ -54,7 +54,7 @@ reviewed by the reviewer value in the other column from the seat that built it, 
 plan advice run only on their own seats. Crossing means the change leaves for the other column's
 provider: authorize that disclosure as you would for any review provider before dispatching it.
 
-Verified against the vendor model lists on 2026-11-09; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-11-10; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file). A seat that names a versioned alias stays on that release
 when the host's short alias moves; check what each short alias resolves to on every release.

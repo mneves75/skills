@@ -235,6 +235,9 @@ def run_reviews(repo: Path, script_dir: Path, fixture: str, engines: list[str]) 
             "--prompt",
             MALICIOUS_PROMPT if fixture == "malicious" else BENIGN_PROMPT,
         ]
+        if engine == "kimi":
+            # The harness reviews a synthetic fixture, so its prompt may show in the process list.
+            command.append("--allow-kimi-argv-prompt")
         if fixture == "malicious":
             command.extend(
                 [

@@ -181,7 +181,10 @@ report = {
     "overall_confidence": 0.99,
     "review_completion": "complete",
 }
-print(json.dumps(report))
+if "--output-format" in args and args[args.index("--output-format") + 1] == "stream-json":
+    print(json.dumps({"role": "assistant", "content": json.dumps(report)}))
+else:
+    print(json.dumps(report))
 '''
 
 
@@ -1998,6 +2001,8 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
                         argv = [str(SCRIPT), "--engine", engine, "--mode", mode, "--max-priority", "P2",
                                 "--dataset", e2e, "--prompt-file", "context.md", "--prompt", "Review the complete candidate.",
                                 "--output", str(root / "result.txt"), "--json-output", str(root / "result.json")]
+                        if engine == "kimi":
+                            argv.append("--allow-kimi-argv-prompt")
                         if ref:
                             argv.extend(["--base", ref])
                         output = io.StringIO()
@@ -6956,6 +6961,7 @@ os.execv(target, [str(target), *sys.argv[1:]])
                     "kimi",
                     "--kimi-bin",
                     str(kimi_bin),
+                    "--allow-kimi-argv-prompt",
                     "--dry-run",
                 ],
                 cwd=repo,
@@ -7000,6 +7006,7 @@ os.execv(target, [str(target), *sys.argv[1:]])
                     "kimi",
                     "--kimi-bin",
                     str(kimi_bin),
+                    "--allow-kimi-argv-prompt",
                     "--dry-run",
                 ],
                 cwd=repo,
@@ -7043,6 +7050,7 @@ os.execv(target, [str(target), *sys.argv[1:]])
                     "kimi",
                     "--kimi-bin",
                     str(kimi_bin),
+                    "--allow-kimi-argv-prompt",
                     "--dry-run",
                 ],
                 cwd=repo,
@@ -7098,6 +7106,7 @@ os.execv(target, [str(target), *sys.argv[1:]])
                     "kimi",
                     "--kimi-bin",
                     str(kimi_bin),
+                    "--allow-kimi-argv-prompt",
                     "--dry-run",
                 ],
                 cwd=repo,
@@ -7151,6 +7160,7 @@ os.execv(target, [str(target), *sys.argv[1:]])
                     "kimi",
                     "--kimi-bin",
                     str(kimi_bin),
+                    "--allow-kimi-argv-prompt",
                     "--dry-run",
                 ],
                 cwd=repo,
@@ -7203,6 +7213,7 @@ os.execv(target, [str(target), *sys.argv[1:]])
                     "kimi",
                     "--kimi-bin",
                     str(kimi_bin),
+                    "--allow-kimi-argv-prompt",
                     "--dry-run",
                 ],
                 cwd=repo,
@@ -7214,6 +7225,120 @@ os.execv(target, [str(target), *sys.argv[1:]])
 
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertRegex(result.stdout, r"engine check: kimi[^\n]* OK\b")
+
+    @unittest.skipIf(os.name == "nt", "the fake executable is POSIX-only")
+    def test_kimi_refuses_argv_prompt_without_explicit_opt_in(self) -> None:
+        # RS-H01: Kimi Code takes a one-shot prompt only as `--prompt <text>`,
+        # and other local accounts can read process arguments while it runs.
+        # Without --allow-kimi-argv-prompt the run (and its dry run) must stop
+        # before any Kimi process starts, not even a --version probe.
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            repo = init_repo(root)
+            source = repo / "source.txt"
+            source.write_text("staged private change\n", encoding="utf-8")
+            git(repo, "add", "source.txt")
+            marker = root / "kimi-was-started"
+            kimi_bin = write_executable(
+                root / "kimi",
+                f"#!/bin/sh\n: > '{marker}'\nexit 1\n",
+            )
+            env = os.environ.copy()
+            add_fake_trufflehog(self.helper, root, env)
+            for extra in ([], ["--dry-run"]):
+                with self.subTest(extra=extra):
+                    result = subprocess.run(
+                        [
+                            sys.executable,
+                            str(SCRIPT),
+                            "--mode",
+                            "local",
+                            "--engine",
+                            "kimi",
+                            "--kimi-bin",
+                            str(kimi_bin),
+                            *extra,
+                        ],
+                        cwd=repo,
+                        env=env,
+                        text=True,
+                        capture_output=True,
+                        check=False,
+                    )
+
+                    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertIn("--allow-kimi-argv-prompt", result.stderr)
+                    self.assertIn("process list", result.stderr)
+                    self.assertFalse(marker.exists(), "kimi must not start without the opt-in")
+
+    @unittest.skipIf(os.name == "nt", "the fake executable is POSIX-only")
+    def test_kimi_argv_opt_in_runs_the_review(self) -> None:
+        # With the opt-in the review runs as before: the prompt is the
+        # `--prompt` argument and the fake reviewer's report is accepted.
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            repo = init_repo(root)
+            source = repo / "source.txt"
+            source.write_text("staged change\n", encoding="utf-8")
+            git(repo, "add", "source.txt")
+            kimi_bin = write_executable(root / "kimi", fake_kimi_script())
+            record = root / "kimi-record.json"
+            env = os.environ.copy()
+            add_fake_trufflehog(self.helper, root, env)
+            env["KIMI_CODE_HOME"] = str(root / "kimi-empty-home")
+            (root / "kimi-empty-home").mkdir()
+            env["AUTOREVIEW_FAKE_RECORD"] = str(record)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--mode",
+                    "local",
+                    "--engine",
+                    "kimi",
+                    "--kimi-bin",
+                    str(kimi_bin),
+                    "--allow-kimi-argv-prompt",
+                ],
+                cwd=repo,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            argv = json.loads(record.read_text(encoding="utf-8"))["argv"]
+            self.assertIn("staged change", argv[argv.index("--prompt") + 1])
+
+    def test_kimi_argv_opt_in_is_refused_for_other_engines(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            repo = init_repo(root)
+            env = os.environ.copy()
+            add_fake_trufflehog(self.helper, root, env)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--mode",
+                    "local",
+                    "--engine",
+                    "codex",
+                    "--allow-kimi-argv-prompt",
+                    "--dry-run",
+                ],
+                cwd=repo,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("--allow-kimi-argv-prompt is only supported for kimi", result.stderr)
 
     def test_dry_run_flag_exits_nonzero_when_claude_tool_not_read_only(self) -> None:
         # run_claude() computes its --tools inventory via
@@ -7298,6 +7423,7 @@ os.execv(target, [str(target), *sys.argv[1:]])
                     "kimi",
                     "--kimi-bin",
                     str(kimi_bin),
+                    "--allow-kimi-argv-prompt",
                     "--prompt-file",
                     "big-prompt.md",
                     "--dry-run",
