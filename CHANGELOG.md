@@ -23,8 +23,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Credential access and separate publication are spelled out.
 - **mneves-production-readiness**: saves the ledger and plan only when asked, instead of offering
   to. The credential rule names what it covers.
-- **untangle-codebase**: the user's explicit instructions come before host instructions and this
-  procedure. Independent review and acceptance are required when the user or the repository asks
+- **untangle-codebase**: within host instructions and permissions, the user's explicit instructions
+  win over this procedure. Independent review and acceptance are required when the user or the repository asks
   for them, or when the refactor crosses a public contract, a safety mechanism or outside callers.
   Otherwise the focused self-check runs, and the report says that no independent review ran.
 - **mneves-superaudit**: the verification check applies to substantial or high-risk work.

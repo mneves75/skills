@@ -25,7 +25,7 @@ Within the requested release scope:
 
 `autoreview` is a review gate, not a human approval step. Follow its existing authorization requirements for the selected content and review destination; when that authorization already exists, run it without asking again. Preserve its secret-scanning and isolation controls. This policy grants no new authorization to disclose private data.
 
-Staging authorization does not waive required gates or authorize destructive operations, credential access (reading, printing or using a secret beyond the deploy's configured bindings), separate publication (a package, store listing or page outside the authorized target), or an unspecified deployment target. Missing required input and failed gates remain blockers.
+Staging authorization does not waive required gates or authorize destructive operations, credential access (reading, printing or copying any secret, configured deploy bindings included, or using one beyond those bindings), separate publication (a package, store listing or page outside the authorized target), or an unspecified deployment target. Missing required input and failed gates remain blockers.
 
 **One decision packet.** A gate that cannot pass (an advisory with no patched release, a tool that cannot run here) becomes one request to the user, sent as soon as it is known: the candidate (repository, commit, version), the target, each failing gate as a named waiver with its reason, the security gate verdict with each block it asks the owner to waive, and the rollback plan. Keep running every other gate while you wait. An approval of the packet approves exactly the waivers it lists; record them in the release evidence.
 
