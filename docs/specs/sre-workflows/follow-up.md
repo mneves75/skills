@@ -4,7 +4,8 @@ Companion to [spec.md](spec.md), [evaluation.md](evaluation.md) and [review.md](
 Round 3 ended that correction loop with BEHAVIOR (criterion 4) FAIL, and the three items below
 were written then as proposals. The owner authorized a new loop: items 1 and 2 were executed in
 round 4, which still failed criterion 4 and retention for both skills, so both entrypoints were
-retired into `docs/sre-guides/`. Item 3 is rescoped to the guides and prompts and is pending.
+retired into `docs/sre-guides/`. Item 3 was rescoped to the guides and prompts, which were
+released in 1.38.0.
 Each item keeps its original text below its status; paths under `skills/mneves-slo/` and
 `skills/mneves-incident-learning/` are where the files lived then. Tracked here as local
 Markdown; no GitHub issue is opened.
@@ -93,7 +94,7 @@ and inputs stay in the private run record.
 ## 3. Final checks and release decision
 
 Type: gate
-Status: pending, rescoped
+Status: done, rescoped; released in 1.38.0
 Blocked by: 1, 2, or an owner decision to proceed without them (1 and 2 executed)
 
 Rescoped after the retirement: the candidate is now the guides and prompts, with no skill

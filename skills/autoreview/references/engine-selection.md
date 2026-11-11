@@ -6,8 +6,8 @@ Override precedence and per-engine prerequisites.
 
 Use `--engine`, `--model`, and `--thinking` to override the defaults.
 `--codex-speed fast` selects priority service when supported. Only Claude accepts
-`--fallback-model`; one effort covers the Claude chain, so an Opus chain defaults to medium
-and a chain that mixes Opus with other models needs `--thinking claude=<level>`.
+`--fallback-model`; one effort covers the Claude chain, `--help` names its default, and a
+chain that mixes models with different default efforts needs an explicit `--thinking claude=<level>`.
 Per-engine environment overrides use `AUTOREVIEW_<ENGINE>_*`.
 CLI options override environment settings, which override built-in defaults.
 An explicitly selected model other than the default has no automatic Codex fallback.

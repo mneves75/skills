@@ -1,6 +1,6 @@
 ---
 name: untangle-codebase
-description: Diagnose structural coupling and plan or implement a bounded, behavior-preserving refactor of an explicitly scoped code area.
+description: Diagnose structural coupling and plan or implement a bounded, behavior-preserving refactor of an explicitly scoped code area. Use when asked to diagnose coupling in, or refactor, a named code area.
 license: MIT
 ---
 

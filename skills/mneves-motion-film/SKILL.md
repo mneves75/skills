@@ -1,6 +1,6 @@
 ---
 name: mneves-motion-film
-description: "Make a short product film (demo, launch or explainer video) from a brief, with on-screen text quoted from the product's own pages, music synthesized on a beat grid and a Remotion render, checked for facts, contrast, loudness, codecs and audio sync and reviewed by a fresh reviewer for up to five rounds, then delivered with any open problem listed. Use when asked to make, update or redo a product video."
+description: "Make or update a short product film from a brief, with checked facts, music and a Remotion render. Use when asked to make, update or redo a product video."
 license: Apache-2.0
 compatibility: "Python 3.11+ (standard library only), ffmpeg and ffprobe, Node with a Remotion 4 project; capture.py needs Chrome."
 ---

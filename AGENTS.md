@@ -206,6 +206,7 @@ Single context: root `GLOSSARY.md` and relevant `docs/adr/` entries. See `docs/a
 For multi-session work, read and update the relevant spec's `progress.md` and `tests.json`
 before continuing. Record observed results, failed attempts, open decisions and evidence limits;
 keep private logs and gate records in ignored scratch. The [routing work record](docs/specs/skill-routing/progress.md)
-tracks the situation-policy implementation and its evaluation limits. The tstack review (included in the 1.45.1 candidate) uses
+tracks the situation-policy implementation and its evaluation limits. The tstack review (released in 1.45.1) uses
 [progress.md](docs/specs/tstack-adoption/progress.md) and
-[tests.json](docs/specs/tstack-adoption/tests.json). `CLAUDE.md` imports these instructions.
+[tests.json](docs/specs/tstack-adoption/tests.json), and the routing eval uses
+[progress.md](docs/specs/routing-eval/progress.md). `CLAUDE.md` imports these instructions.

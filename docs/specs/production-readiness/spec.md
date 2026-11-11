@@ -2,7 +2,7 @@
 
 Status: Released as 1.37.0 (PR #18, taken over after its authoring session ended). The
 independent acceptance recorded below failed at `333b07f`; its two findings were fixed, and the
-1.37.0 candidate goes through the `mneves-security` deploy gate before it merges; the gate
+1.37.0 candidate went through the `mneves-security` deploy gate before it merged; the gate
 record stays with the release evidence. Owner decisions of 2026-10-16 (see CHANGELOG 1.37.0) supersede the
 staging set and the open owner decision below: SEC-12 and SEC-13 block through the security
 verdict, and readiness also runs on the dev stop.

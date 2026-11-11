@@ -20,8 +20,12 @@ Thank you for your interest in contributing to this skills collection.
 ---
 name: your-skill-name
 description: Clear description of what this skill does and when to use it.
+license: Apache-2.0
 ---
 ```
+
+An adapted skill keeps its upstream license. A skill that ships an executable also adds
+`compatibility:` (at most 500 characters naming the tools it needs).
 
 4. Add longer documentation or linked references when they help; keep all examples portable.
 5. Update the README catalog, HOWTO, AGENTS tree, VERSION, changelog and README badge;
@@ -160,9 +164,12 @@ skill under `skills/`, folder name equal to the frontmatter `name`, no `SKILL.md
 repo root (it would shadow the rest), no absolute or home-directory paths in the text.
 Verify with `npx skills@latest add . --list` before opening a PR. CI runs the same check.
 Original skills use the `mneves-` prefix. An adapted third-party skill may retain its upstream
-name only when its copyright, compatible license, source, and material modifications are recorded.
+name only when its copyright, compatible license, source, and material modifications are recorded,
+and takes the `mneves-` prefix when that name collides with another widely installed skill or the
+owner chooses to prefix it (see the naming invariant in [AGENTS.md](AGENTS.md#invariants-ci-enforces-the-checkable-ones)).
 
-- **SKILL.md**: Required. Must have valid YAML frontmatter with `name` and `description`.
+- **SKILL.md**: Required. Must have valid YAML frontmatter with `name`, `description` and
+  `license`, plus `compatibility` for a skill that ships an executable.
 - **README.md**: Recommended. Detailed documentation for the skill.
 - **scripts/**: Optional. Helper scripts or tools.
 - **references/**: Optional. Supporting documentation.
