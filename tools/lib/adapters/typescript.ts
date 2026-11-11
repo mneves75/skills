@@ -11,16 +11,9 @@
  */
 
 import path from "node:path";
-import {
-	type CheckContext,
-	type CheckResult,
-	type CheckRunner,
-	dirExists,
-	fileExists,
-	readJson,
-	readText,
-} from "../check-registry.js";
+import type { CheckContext, CheckResult, CheckRunner } from "../check-registry.js";
 import { runCommand } from "../command.js";
+import { dirExists, fileExists, readJson, readText } from "../files.js";
 import { countSourceMatches, createLanguageAdapter } from "./base.js";
 
 // ============================================================================

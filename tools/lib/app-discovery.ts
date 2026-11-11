@@ -15,6 +15,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { fileExists, readJson, readText } from "./files.js";
 import type { Language } from "./language-detection.js";
 
 // ============================================================================
@@ -146,38 +147,6 @@ const SKIP_DIRECTORIES = new Set([
 const MAX_WORKSPACE_LINE_LENGTH = 4096;
 
 // ============================================================================
-// Utility Functions
-// ============================================================================
-
-async function fileExists(filepath: string): Promise<boolean> {
-	try {
-		return await Bun.file(filepath).exists();
-	} catch {
-		return false;
-	}
-}
-
-async function readJsonSafe<T>(filepath: string): Promise<T | null> {
-	try {
-		const file = Bun.file(filepath);
-		if (!(await file.exists())) return null;
-		return await file.json();
-	} catch {
-		return null;
-	}
-}
-
-async function readTextSafe(filepath: string): Promise<string | null> {
-	try {
-		const file = Bun.file(filepath);
-		if (!(await file.exists())) return null;
-		return await file.text();
-	} catch {
-		return null;
-	}
-}
-
-// ============================================================================
 // Workspace Detection
 // ============================================================================
 
@@ -190,7 +159,7 @@ async function detectWorkspaceConfig(
 	// Check for pnpm-workspace.yaml
 	const pnpmWorkspacePath = path.join(repoRoot, "pnpm-workspace.yaml");
 	if (await fileExists(pnpmWorkspacePath)) {
-		const content = await readTextSafe(pnpmWorkspacePath);
+		const content = await readText(pnpmWorkspacePath);
 		if (content) {
 			// Parse YAML (simple extraction of packages patterns)
 			const patterns: string[] = [];
@@ -222,7 +191,7 @@ async function detectWorkspaceConfig(
 	if (await fileExists(turboPath)) {
 		// Turbo uses npm/pnpm/yarn workspaces, so look for those patterns
 		const pkgPath = path.join(repoRoot, "package.json");
-		const pkg = await readJsonSafe<{ workspaces?: string[] | { packages: string[] } }>(pkgPath);
+		const pkg = await readJson<{ workspaces?: string[] | { packages: string[] } }>(pkgPath);
 		const patterns = Array.isArray(pkg?.workspaces)
 			? pkg.workspaces
 			: pkg?.workspaces?.packages || [];
@@ -245,7 +214,7 @@ async function detectWorkspaceConfig(
 
 	// Check for npm/yarn/bun workspaces in package.json
 	const pkgPath = path.join(repoRoot, "package.json");
-	const pkg = await readJsonSafe<{ workspaces?: string[] | { packages: string[] } }>(pkgPath);
+	const pkg = await readJson<{ workspaces?: string[] | { packages: string[] } }>(pkgPath);
 	if (pkg?.workspaces) {
 		const patterns = Array.isArray(pkg.workspaces)
 			? pkg.workspaces
@@ -267,7 +236,7 @@ async function detectWorkspaceConfig(
 	// Check for Go workspace (go.work)
 	const goWorkPath = path.join(repoRoot, "go.work");
 	if (await fileExists(goWorkPath)) {
-		const content = await readTextSafe(goWorkPath);
+		const content = await readText(goWorkPath);
 		if (content) {
 			const patterns: string[] = [];
 			const lines = content.split("\n");
@@ -284,7 +253,7 @@ async function detectWorkspaceConfig(
 	// Check for Cargo workspace (Cargo.toml with [workspace])
 	const cargoPath = path.join(repoRoot, "Cargo.toml");
 	if (await fileExists(cargoPath)) {
-		const content = await readTextSafe(cargoPath);
+		const content = await readText(cargoPath);
 		if (content?.includes("[workspace]")) {
 			const patterns: string[] = [];
 			const lines = content.split("\n");
@@ -330,7 +299,7 @@ async function classifyNodeApp(
 	manifestPath: string,
 	relativePath: string,
 ): Promise<AppType> {
-	const pkg = await readJsonSafe<{
+	const pkg = await readJson<{
 		name?: string;
 		private?: boolean;
 		scripts?: Record<string, string>;
@@ -409,7 +378,7 @@ async function classifyRustApp(
 	manifestPath: string,
 	relativePath: string,
 ): Promise<AppType> {
-	const content = await readTextSafe(manifestPath);
+	const content = await readText(manifestPath);
 	if (!content) return "library";
 
 	// Check for workspace
@@ -441,7 +410,7 @@ async function classifyPythonApp(
 	manifestPath: string,
 	relativePath: string,
 ): Promise<AppType> {
-	const content = await readTextSafe(manifestPath);
+	const content = await readText(manifestPath);
 	if (!content) return "library";
 
 	// Has entry points = app
@@ -524,11 +493,11 @@ async function extractAppName(
 ): Promise<string> {
 	switch (manifestType) {
 		case "package.json": {
-			const pkg = await readJsonSafe<{ name?: string }>(manifestPath);
+			const pkg = await readJson<{ name?: string }>(manifestPath);
 			return pkg?.name || path.basename(path.dirname(manifestPath));
 		}
 		case "go.mod": {
-			const content = await readTextSafe(manifestPath);
+			const content = await readText(manifestPath);
 			const match = content?.match(/^module\s+(\S+)/m);
 			if (match?.[1]) {
 				// Return last part of module path
@@ -538,17 +507,17 @@ async function extractAppName(
 			return path.basename(path.dirname(manifestPath));
 		}
 		case "Cargo.toml": {
-			const content = await readTextSafe(manifestPath);
+			const content = await readText(manifestPath);
 			const match = content?.match(/^\s*name\s*=\s*"([^"]+)"/m);
 			return match?.[1] || path.basename(path.dirname(manifestPath));
 		}
 		case "pyproject.toml": {
-			const content = await readTextSafe(manifestPath);
+			const content = await readText(manifestPath);
 			const match = content?.match(/^\s*name\s*=\s*"([^"]+)"/m);
 			return match?.[1] || path.basename(path.dirname(manifestPath));
 		}
 		case "pom.xml": {
-			const content = await readTextSafe(manifestPath);
+			const content = await readText(manifestPath);
 			const match = content?.match(/<artifactId>([^<]+)<\/artifactId>/);
 			return match?.[1] || path.basename(path.dirname(manifestPath));
 		}

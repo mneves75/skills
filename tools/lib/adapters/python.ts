@@ -12,15 +12,9 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import {
-	type CheckContext,
-	type CheckResult,
-	type CheckRunner,
-	dirExists,
-	fileExists,
-	readText,
-} from "../check-registry.js";
+import type { CheckContext, CheckResult, CheckRunner } from "../check-registry.js";
 import { runCommand } from "../command.js";
+import { dirExists, fileExists, readText } from "../files.js";
 import { countSourceMatches, createLanguageAdapter, findTaskRunner } from "./base.js";
 
 // ============================================================================

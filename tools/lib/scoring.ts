@@ -8,9 +8,8 @@
  * - Strict: Minimum level across all pillars (original behavior)
  * - Average: Simple percentage average
  *
- * Key insight: Factory.ai uses numerator/denominator per-app scoring,
- * then aggregates across the organization. This enables "5 of 7 apps
- * pass security" style reporting.
+ * Each app is scored per pillar; a repository's pillar score is the average of its
+ * apps' scores for that pillar, and every level uses the same thresholds.
  */
 
 import type { DetectedApp } from "./app-discovery.js";
@@ -40,8 +39,6 @@ export interface ScoringConfig {
 	mode: ScoringMode;
 	/** Custom pillar weights (only used in weighted mode) */
 	pillarWeights?: Partial<Record<Pillar, number>>;
-	/** Threshold for "passing" a check (0-100, default 80) */
-	passThreshold?: number;
 }
 
 /**
@@ -87,16 +84,14 @@ export interface AppScore {
 export interface AggregatedPillarScore {
 	pillar: Pillar;
 	name: string;
-	/** Number of apps passing threshold for this pillar */
-	numerator: number;
-	/** Total apps evaluated */
-	denominator: number;
-	/** Percentage (numerator/denominator * 100) */
-	percentage: number;
-	/** Derived level from percentage */
+	/** Level from averageScore, with the thresholds the overall level uses */
 	level: Level;
-	/** Average score across all apps */
+	/** Average of the apps' scores for this pillar, one decimal */
 	averageScore: number;
+	/** Checks that passed, across all apps (skipped checks excluded) */
+	passed: number;
+	/** Checks that ran, across all apps (skipped checks excluded) */
+	total: number;
 }
 
 /**
@@ -367,9 +362,6 @@ export function calculateAppScore(
 
 /**
  * Aggregate scores across multiple applications
- *
- * This implements Factory.ai's numerator/denominator pattern:
- * "5 of 7 apps pass security at L3+"
  */
 export function aggregateOrgScore(
 	appScores: AppScore[],
@@ -387,8 +379,6 @@ export function aggregateOrgScore(
 		};
 	}
 
-	const passThreshold = config.passThreshold ?? 80;
-
 	// Collect all pillars across all apps
 	const pillarSet = new Set<Pillar>();
 	for (const app of appScores) {
@@ -402,30 +392,30 @@ export function aggregateOrgScore(
 
 	for (const pillar of pillarSet) {
 		const appPillarScores: number[] = [];
+		let passed = 0;
+		let total = 0;
 
 		for (const app of appScores) {
 			const pillarScore = app.pillars.find((p) => p.pillar === pillar);
 			if (pillarScore) {
 				appPillarScores.push(pillarScore.score);
+				passed += pillarScore.passed;
+				total += pillarScore.total;
 			}
 		}
 
-		const numerator = appPillarScores.filter((s) => s >= passThreshold).length;
-		const denominator = appPillarScores.length;
-		const percentage = denominator > 0 ? (numerator / denominator) * 100 : 0;
 		const averageScore =
 			appPillarScores.length > 0
-				? appPillarScores.reduce((a, b) => a + b, 0) / appPillarScores.length
+				? Math.round((appPillarScores.reduce((a, b) => a + b, 0) / appPillarScores.length) * 10) / 10
 				: 0;
 
 		aggregatedPillars.push({
 			pillar,
 			name: PILLAR_NAMES[pillar],
-			numerator,
-			denominator,
-			percentage,
-			level: scoreToLevel(percentage),
-			averageScore: Math.round(averageScore * 10) / 10,
+			level: scoreToLevel(averageScore),
+			averageScore,
+			passed,
+			total,
 		});
 	}
 
@@ -445,9 +435,9 @@ export function aggregateOrgScore(
 		pillar: ap.pillar,
 		name: ap.name,
 		score: ap.averageScore,
-		level: scoreToLevel(ap.averageScore),
-		passed: ap.numerator,
-		total: ap.denominator,
+		level: ap.level,
+		passed: ap.passed,
+		total: ap.total,
 		checks: [],
 	}));
 

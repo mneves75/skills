@@ -11,8 +11,8 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 import type { CheckResult, CheckRunner, LanguageAdapter } from "../check-registry.js";
-import { fileExists, readText } from "../check-registry.js";
 import { sharedChecks } from "../checks/shared.js";
+import { fileExists, readText } from "../files.js";
 import type { Language } from "../language-detection.js";
 
 // ============================================================================

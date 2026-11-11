@@ -15,7 +15,6 @@
  */
 
 import type { DetectedApp } from "./app-discovery.js";
-import type { FileCache } from "./file-cache.js";
 import type { Language } from "./language-detection.js";
 
 // ============================================================================
@@ -117,8 +116,6 @@ export interface CheckContext {
 	repoRoot: string;
 	/** Runtime options */
 	options: CheckOptions;
-	/** File cache for reducing redundant I/O */
-	cache: FileCache;
 }
 
 /**
@@ -139,14 +136,6 @@ export interface CheckOptions {
  * A check runner function
  */
 export type CheckRunner = (ctx: CheckContext) => Promise<CheckResult>;
-
-/**
- * A complete registered check (definition + runner)
- */
-export interface RegisteredCheck extends CheckDefinition {
-	/** The function that runs the check */
-	run: CheckRunner;
-}
 
 /**
  * Result with check metadata attached
@@ -182,13 +171,13 @@ export interface LanguageAdapter {
  * Central registry for all checks
  */
 export class CheckRegistry {
-	private checks: Map<string, RegisteredCheck> = new Map();
+	private checks: Map<string, CheckDefinition> = new Map();
 	private adapters: Map<Language, LanguageAdapter> = new Map();
 
 	/**
 	 * Register a check definition (overwrites if already exists)
 	 */
-	registerCheck(check: RegisteredCheck): void {
+	registerCheck(check: CheckDefinition): void {
 		// Allow overwriting for testing and adapter registration
 		this.checks.set(check.id, check);
 	}
@@ -196,7 +185,7 @@ export class CheckRegistry {
 	/**
 	 * Register multiple checks at once
 	 */
-	registerChecks(checks: RegisteredCheck[]): void {
+	registerChecks(checks: CheckDefinition[]): void {
 		for (const check of checks) {
 			this.registerCheck(check);
 		}
@@ -212,33 +201,24 @@ export class CheckRegistry {
 	/**
 	 * Get all registered checks
 	 */
-	getAllChecks(): RegisteredCheck[] {
+	getAllChecks(): CheckDefinition[] {
 		return Array.from(this.checks.values());
 	}
 
 	/**
 	 * Get checks applicable to a language
 	 */
-	getChecksForLanguage(language: Language): RegisteredCheck[] {
+	getChecksForLanguage(language: Language): CheckDefinition[] {
 		return this.getAllChecks().filter(
 			(c) => !c.languages || c.languages.length === 0 || c.languages.includes(language),
 		);
 	}
 
 	/**
-	 * Get the appropriate runner for a check and language
+	 * The language adapter's runner for a check; undefined when the check is not implemented for it
 	 */
 	getRunner(checkId: string, language: Language): CheckRunner | undefined {
-		// First try language-specific adapter
-		const adapter = this.adapters.get(language);
-		if (adapter) {
-			const runner = adapter.getRunner(checkId);
-			if (runner) return runner;
-		}
-
-		// Fall back to the check's built-in runner
-		const check = this.checks.get(checkId);
-		return check?.run;
+		return this.adapters.get(language)?.getRunner(checkId);
 	}
 
 	/**
@@ -265,10 +245,12 @@ export class CheckRegistry {
 		const start = Date.now();
 		const runner = this.getRunner(checkId, ctx.app.language);
 
+		// A check that cannot run for this language counts neither for nor against the score.
 		if (!runner) {
 			return {
-				pass: false,
-				details: `No runner for check '${checkId}' and language '${ctx.app.language}'`,
+				pass: true,
+				skipped: true,
+				details: `Not implemented for ${ctx.app.language}`,
 				check,
 			};
 		}
@@ -325,66 +307,15 @@ export function defineCheck(
 	pillar: Pillar,
 	level: Level,
 	name: string,
-	run: CheckRunner,
 	options?: Partial<Omit<CheckDefinition, "id" | "pillar" | "level" | "name">>,
-): RegisteredCheck {
+): CheckDefinition {
 	return {
 		id,
 		pillar,
 		level,
 		name,
-		run,
 		...options,
 	};
-}
-
-/**
- * Check if a file exists (utility for runners)
- */
-export async function fileExists(filepath: string): Promise<boolean> {
-	try {
-		return await Bun.file(filepath).exists();
-	} catch {
-		return false;
-	}
-}
-
-/**
- * Check if a directory exists (utility for runners)
- */
-export function dirExists(dirpath: string): boolean {
-	try {
-		const stat = require("node:fs").statSync(dirpath);
-		return stat.isDirectory();
-	} catch {
-		return false;
-	}
-}
-
-/**
- * Read JSON file safely (utility for runners)
- */
-export async function readJson<T>(filepath: string): Promise<T | null> {
-	try {
-		const file = Bun.file(filepath);
-		if (!(await file.exists())) return null;
-		return await file.json();
-	} catch {
-		return null;
-	}
-}
-
-/**
- * Read text file safely (utility for runners)
- */
-export async function readText(filepath: string): Promise<string | null> {
-	try {
-		const file = Bun.file(filepath);
-		if (!(await file.exists())) return null;
-		return await file.text();
-	} catch {
-		return null;
-	}
 }
 
 /**

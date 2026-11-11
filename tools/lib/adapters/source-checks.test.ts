@@ -3,7 +3,6 @@ import { chmod, mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import type { CheckContext, LanguageAdapter } from "../check-registry.js";
-import { createFileCache } from "../file-cache.js";
 import { goAdapter } from "./go.js";
 import { pythonAdapter } from "./python.js";
 import { rustAdapter } from "./rust.js";
@@ -80,7 +79,6 @@ async function run(
 			},
 			repoRoot: directory,
 			options: { timeout: 10000 },
-			cache: createFileCache(),
 		};
 		const runner = adapter.getRunner(check);
 		if (!runner)

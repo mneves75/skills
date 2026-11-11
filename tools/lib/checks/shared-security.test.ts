@@ -3,7 +3,6 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { CheckContext } from "../check-registry.js";
-import { createFileCache } from "../file-cache.js";
 import { sharedChecks } from "./shared.js";
 
 for (const suspicious of [".env", "credentials.json", "secrets.json", "private.key", undefined]) {
@@ -19,7 +18,7 @@ for (const suspicious of [".env", "credentials.json", "secrets.json", "private.k
 						type: "app", language: "typescript", manifest: "package.json",
 						manifestPath: join(directory, "package.json"), isRoot: true,
 					},
-					repoRoot: directory, options: {}, cache: createFileCache(),
+					repoRoot: directory, options: {},
 				};
 				const result = await sharedChecks["secrets-management"]?.(ctx);
 				expect(result?.pass).toBe(suspicious === undefined);
@@ -42,7 +41,7 @@ for (const [readme, pass] of [["Builds are slow; see the slides.", false], ["Our
 					type: "app", language: "typescript", manifest: "package.json",
 					manifestPath: join(directory, "package.json"), isRoot: true,
 				},
-				repoRoot: directory, options: {}, cache: createFileCache(),
+				repoRoot: directory, options: {},
 			};
 			expect((await sharedChecks["error-budgets"]?.(ctx))?.pass).toBe(pass);
 		} finally {
