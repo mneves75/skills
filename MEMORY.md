@@ -20,7 +20,7 @@ measure whether a *target* codebase is ready for agents.
   independent and checkable; approval boundaries name what they cover; review gates in
   untangle-codebase, mneves-security, ship-deploy and motion-film are scoped to the work that needs
   them; user instructions take precedence over skill procedure. Routing-eval revision 8 (O1).
-- **1.50.0 candidate**: the rest of the read-only audit. The readiness assessor's pillar levels
+- **1.50.0** (2026-11-11 UTC closeout): the rest of the read-only audit. The readiness assessor's pillar levels
   follow each pillar's score, checks with no implementation for a language are skipped instead of
   failing, an unsupported `--language` exits 2, and its file cache and duplicate helpers are gone.
   The reference `release.sh` reads the security record with `json_fields` (one JSON object, no
@@ -29,8 +29,11 @@ measure whether a *target* codebase is ready for agents.
   the readiness ledger and plan (cursor `afcf6de`). Left open on purpose: autoreview's defensive
   `getattr` reads (L-09), `deploy.sh` process count (L-10), CI syntax lists (L-11), `bun-types`
   (Q-06), specs kept as history (D-24, D-25), and the unconfirmed hypotheses ROOT-H02 and ROOT-H03.
-  Its own binding verdict and live proof belong in its private exact-candidate records and
-  annotated release tag.
+  Merged as `0c1b638` (PR #55, audit `59d08af`, identical tree `b52f607d`), tagged `v1.50.0`
+  after CI run 43092519321 and Pages run 43095093871 succeeded and the served files matched the gated tree. Security WAIVED six standing controls;
+  readiness ready with 26 waivers, sixteen of them candidate-only conditional approvals to
+  2026-11-14T23:59:59Z. A first independent acceptance failed on one Low evidence finding (IA-03);
+  the second passed.
 - **1.49.0** (2026-11-11 UTC closeout): the orchestrator's main session became the planning seat
   (it plans, advises and reviews; executors build from a written spec; the local fallback row is
   the economy executor with a data-disclosure limit; a non-trivial plan is red-teamed first), with
