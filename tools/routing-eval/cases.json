@@ -5,7 +5,8 @@
   "2: O1 and O8 ask for the exact alias or id rather than the seat's description (wording only; expectations unchanged). Added P10 and P11 for poteto-mode's per-job raise and lower, identified while reading its Subagents section before the red results arrived.",
   "3: P1-P9 state that the job needs no per-job raise or lower (wording only; expectations unchanged). The 1.46.1 control on Claude failed unchanged cases P2 (opus @high answered medium) and P6 (Pi openai answered high) because poteto-mode lowers a review's level one step, which the text allows for an explicit level or a non-Opus model; the cases had not fixed the job. P10 and P11 test the job adjustment. Every run is repeated on this revision.",
   "4: added O9-O12 (frontend subagent, ordinary worker, bounded worker, plan advisor), S1-S2 (setup-pstack's own wording) and P12-P18 (the Reasoning effort paragraph in each remaining changed skill), plus P19 (Codex runtime control), after independent acceptance on 366bd67 found those seats and files without a selecting case. Cases O1-O8 and P1-P11 are unchanged from revision 3, and their revision-3 runs are reused case by case.",
-  "5: moved the set into the repository (tools/routing-eval/cases.json) and added `anchors` outside the cases, mapping each case id to the verbatim passages that decide it, so `routing-eval.py check` can catch a removed or reworded passage without a model call. No case changed."
+  "5: moved the set into the repository (tools/routing-eval/cases.json) and added `anchors` outside the cases, mapping each case id to the verbatim passages that decide it, so `routing-eval.py check` can catch a removed or reworded passage without a model call. No case changed.",
+  "6: release 1.49.0 makes the orchestrator's Claude main session the planning seat (O1 now expects claude-fable-5-2 at high and is the only case marked changed against 1.48.0), drops the advisor from that row (O2's expectation is unchanged; its anchor is the plan advisor row), names autoreview's `--thinking high` on the reviewer row (O3 and O4 unchanged) and renames the local fallback row to economy executor. Added O13 for that seat, unchanged against 1.48.0 because the model and effort it binds did not change."
  ],
  "purpose": "Expected-outcome eval of the routing text: does an agent reading the shipped skill text dispatch the expected model and reasoning effort for each seat? Expectations come from the owner's rules and the orchestrator's Defaults block, frozen before any run.",
  "threshold": "Candidate: every sample of every case passes on both consumers. Baseline control (the previous release's text, run with --baseline): every case marked changed fails on every sample, and every unchanged case passes, and no sample errors; a changed case that passes on the baseline does not discriminate: the control fails until the case is replaced or no longer marked changed. Only a full run (every case on both consumers) can meet either threshold.",
@@ -21,21 +22,20 @@
    "scenario": "You are the Claude Code main session working under this skill. Report the model and reasoning effort this skill sets for your own main session. `model` is the exact alias or model id the text gives for it, not the seat's description; `how` is not-applicable.",
    "expected": {
     "model": [
-     "opus",
-     "claude-opus-5-5"
+     "claude-fable-5-2"
     ],
     "effort": [
-     "medium"
+     "high"
     ]
    },
-   "known_failure": "Opus main session at xhigh (the 1.46.1 value)."
+   "known_failure": "Opus main session at medium (the 1.48.0 value)."
   },
   {
    "id": "O2-advisor-claude",
    "sources": [
     "skills/mneves-fable-orchestrator/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "You are the Claude Code main session working under this skill. Report the model you configure as your advisor (`advisorModel`) and the reasoning effort this skill names for that advisor (`none` if it names none). `how` is dispatch-parameter.",
    "expected": {
     "model": [
@@ -52,7 +52,7 @@
    "sources": [
     "skills/mneves-fable-orchestrator/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "A Codex worker running gpt-6.1-sol built a change. Following this skill, you dispatch the review of that change. Report the reviewer's model and reasoning effort.",
    "expected": {
     "model": [
@@ -87,7 +87,7 @@
    "sources": [
     "skills/mneves-fable-orchestrator/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Working on the Claude side under this skill, you dispatch the planner seat as a subagent. Report the model and the reasoning effort this skill sets for that planner (`none` if it names none).",
    "expected": {
     "model": [
@@ -104,7 +104,7 @@
    "sources": [
     "skills/mneves-fable-orchestrator/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Working on the Claude side under this skill, you dispatch the heavy executor as a subagent. Report its model and the reasoning effort this skill sets for it (`none` if it names none).",
    "expected": {
     "model": [
@@ -122,7 +122,7 @@
    "sources": [
     "skills/mneves-fable-orchestrator/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Your Agent tool's model field accepts only the short aliases `opus`, `sonnet`, `haiku` and `fable`. Following this skill, you dispatch the Claude planner seat. Report the model value the planner must run on, and in `how` where you set it: in the dispatch call's model field (dispatch-parameter) or in the agent definition's model field (agent-definition-model-field).",
    "expected": {
     "model": [
@@ -157,7 +157,7 @@
     "collections/pstack/skills/thermos/SKILL.md",
     "collections/pstack/skills/poteto-mode/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Runtime: Claude Code. The pstack override sheet contains exactly these role lines: `thermos reviewers: opus` and `default effort: xhigh`. You dispatch one thermos reviewer. Treat this job as needing no per-job raise or lower of the reasoning level. Report the `model` you pass on the Agent call and the `effort` you pass (`none` if you pass none).",
    "expected": {
     "model": [
@@ -211,7 +211,7 @@
     "collections/pstack/skills/thermos/SKILL.md",
     "collections/pstack/skills/poteto-mode/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Runtime: Claude Code. The pstack override sheet contains exactly these role lines: `thermos reviewers: opus` and `default effort: session`. You dispatch one thermos reviewer. Treat this job as needing no per-job raise or lower of the reasoning level. Report the `model` you pass on the Agent call and the `effort` you pass (`none` if you pass none).",
    "expected": {
     "model": [
@@ -229,7 +229,7 @@
     "collections/pstack/skills/thermos/SKILL.md",
     "collections/pstack/skills/poteto-mode/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Runtime: Claude Code. The pstack override sheet contains exactly one role line, `thermos reviewers: opus`, and no `default effort` line. You dispatch one thermos reviewer. Treat this job as needing no per-job raise or lower of the reasoning level. Report the `model` you pass on the Agent call and the `effort` you pass (`none` if you pass none).",
    "expected": {
     "model": [
@@ -267,7 +267,7 @@
     "collections/pstack/skills/poteto-mode/SKILL.md",
     "collections/pstack/skills/poteto-mode/references/pi-tools.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Runtime: Pi, and the session's current model comes from the `anthropic` provider; the Pi platform mapping in pi-tools.md applies. The pstack override sheet contains exactly these role lines: `thermos reviewers: opus` and `default effort: xhigh`. You dispatch one thermos reviewer. Treat this job as needing no per-job raise or lower of the reasoning level. Report in `model` the provider/id the child actually runs on, and the `effort` it runs at (`none` if none is passed).",
    "expected": {
     "model": [
@@ -286,7 +286,7 @@
     "collections/pstack/skills/poteto-mode/SKILL.md",
     "collections/pstack/skills/poteto-mode/references/pi-tools.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Runtime: Pi, and the session's current model comes from the `anthropic` provider; the Pi platform mapping in pi-tools.md applies. The pstack override sheet contains exactly these role lines: `arena runners: opus, fable` and `default effort: xhigh`. Treat this job as needing no per-job raise or lower of the reasoning level. Report in `model` the provider/id the runner from the `fable` entry actually runs on, and the `effort` it runs at (`none` if none is passed).",
    "expected": {
     "model": [
@@ -305,7 +305,7 @@
     "collections/pstack/skills/poteto-mode/SKILL.md",
     "collections/pstack/skills/poteto-mode/references/pi-tools.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Runtime: Pi, and the session's current model comes from the `anthropic` provider; the Pi platform mapping in pi-tools.md applies. The pstack override sheet contains exactly these role lines: `arena runners: opus, fable` and `default effort: xhigh`. Treat this job as needing no per-job raise or lower of the reasoning level. Report in `model` the provider/id the runner from the `opus` entry actually runs on, and the `effort` it runs at (`none` if none is passed).",
    "expected": {
     "model": [
@@ -323,7 +323,7 @@
     "collections/pstack/skills/thermos/SKILL.md",
     "collections/pstack/skills/poteto-mode/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Runtime: Claude Code. The pstack override sheet contains exactly these role lines: `thermos reviewers: opus` and `default effort: xhigh`. The review is the hardest, subtlest work in this change: a lock-free queue's memory ordering. You dispatch one thermos reviewer, picking its reasoning level for the job as these files direct. Report the `model` you pass on the Agent call and the `effort` you pass (`none` if you pass none).",
    "expected": {
     "model": [
@@ -341,7 +341,7 @@
     "collections/pstack/skills/thermos/SKILL.md",
     "collections/pstack/skills/poteto-mode/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Runtime: Claude Code. The pstack override sheet contains exactly these role lines: `thermos reviewers: opus` and `default effort: xhigh`. The review is routine: a one-word typo fix in a comment. You dispatch one thermos reviewer, picking its reasoning level for the job as these files direct. Report the `model` you pass on the Agent call and the `effort` you pass (`none` if you pass none).",
    "expected": {
     "model": [
@@ -358,7 +358,7 @@
    "sources": [
     "skills/mneves-fable-orchestrator/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Working on the Claude side under this skill, you dispatch the frontend subagent as a subagent. Report its model (the exact alias or id the text gives, not the seat's description) and the reasoning effort this skill sets for it (`none` if it names none).",
    "expected": {
     "model": [
@@ -376,7 +376,7 @@
    "sources": [
     "skills/mneves-fable-orchestrator/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Working on the Claude side under this skill, you dispatch the ordinary worker as a subagent. Report its model (the exact alias or id the text gives, not the seat's description) and the reasoning effort this skill sets for it (`none` if it names none).",
    "expected": {
     "model": [
@@ -394,7 +394,7 @@
    "sources": [
     "skills/mneves-fable-orchestrator/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Working on the Claude side under this skill, you dispatch the bounded worker as a subagent. Report its model (the exact alias or id the text gives, not the seat's description) and the reasoning effort this skill sets for it (`none` if it names none).",
    "expected": {
     "model": [
@@ -412,7 +412,7 @@
    "sources": [
     "skills/mneves-fable-orchestrator/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Working on the Claude side under this skill, you dispatch the plan advisor as a subagent. Report its model (the exact alias or id the text gives, not the seat's description) and the reasoning effort this skill sets for it (`none` if it names none).",
    "expected": {
     "model": [
@@ -429,7 +429,7 @@
    "sources": [
     "collections/pstack/skills/setup-pstack/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Runtime: Claude Code. You run setup-pstack and the user accepts every default role line and the default reasoning effort you start from, so the sheet is written with those values. Report the `model` value of the `feature, refactoring` role and the `effort` that role will run at (`none` if none).",
    "expected": {
     "model": [
@@ -464,7 +464,7 @@
     "collections/pstack/skills/architect/SKILL.md",
     "collections/pstack/skills/poteto-mode/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Runtime: Claude Code. The pstack override sheet contains exactly these role lines: `architect runners: opus, fable` and `default effort: xhigh`. You dispatch the runner from the `opus` entry. Treat this job as needing no per-job raise or lower of the reasoning level. Report the `model` you pass on the Agent call and the `effort` you pass (`none` if you pass none).",
    "expected": {
     "model": [
@@ -482,7 +482,7 @@
     "collections/pstack/skills/how/SKILL.md",
     "collections/pstack/skills/poteto-mode/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Runtime: Claude Code. The pstack override sheet contains exactly these role lines: `how explorer: opus` and `default effort: xhigh`. You dispatch the how explorer. Treat this job as needing no per-job raise or lower of the reasoning level. Report the `model` you pass on the Agent call and the `effort` you pass (`none` if you pass none).",
    "expected": {
     "model": [
@@ -500,7 +500,7 @@
     "collections/pstack/skills/interrogate/SKILL.md",
     "collections/pstack/skills/poteto-mode/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Runtime: Claude Code. The pstack override sheet contains exactly these role lines: `interrogate reviewers: opus, fable` and `default effort: xhigh`. You dispatch the reviewer from the `opus` entry. Treat this job as needing no per-job raise or lower of the reasoning level. Report the `model` you pass on the Agent call and the `effort` you pass (`none` if you pass none).",
    "expected": {
     "model": [
@@ -518,7 +518,7 @@
     "collections/pstack/skills/no-comments/SKILL.md",
     "collections/pstack/skills/poteto-mode/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Runtime: Claude Code. The pstack override sheet contains exactly these role lines: `no-comments reviewer: opus` and `default effort: xhigh`. You dispatch the no-comments reviewer. Treat this job as needing no per-job raise or lower of the reasoning level. Report the `model` you pass on the Agent call and the `effort` you pass (`none` if you pass none).",
    "expected": {
     "model": [
@@ -536,7 +536,7 @@
     "collections/pstack/skills/reflect/SKILL.md",
     "collections/pstack/skills/poteto-mode/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Runtime: Claude Code. The pstack override sheet contains exactly these role lines: `reflect tooling: opus` and `default effort: xhigh`. You dispatch the reflect tooling subagent. Treat this job as needing no per-job raise or lower of the reasoning level. Report the `model` you pass on the Agent call and the `effort` you pass (`none` if you pass none).",
    "expected": {
     "model": [
@@ -554,7 +554,7 @@
     "collections/pstack/skills/swarm/SKILL.md",
     "collections/pstack/skills/poteto-mode/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Runtime: Claude Code. The pstack override sheet contains exactly these role lines: `swarm workers: opus` and `default effort: xhigh`. You dispatch one swarm worker. Treat this job as needing no per-job raise or lower of the reasoning level. Report the `model` you pass on the Agent call and the `effort` you pass (`none` if you pass none).",
    "expected": {
     "model": [
@@ -572,7 +572,7 @@
     "collections/pstack/skills/why/SKILL.md",
     "collections/pstack/skills/poteto-mode/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Runtime: Claude Code. The pstack override sheet contains exactly these role lines: `why investigators: opus` and `default effort: xhigh`. You dispatch one why investigator. Treat this job as needing no per-job raise or lower of the reasoning level. Report the `model` you pass on the Agent call and the `effort` you pass (`none` if you pass none).",
    "expected": {
     "model": [
@@ -602,25 +602,42 @@
     ]
    },
    "known_failure": "Medium forced onto an `opus` alias that Codex maps to gpt-6.1-sol."
+  },
+  {
+   "id": "O13-economy-executor",
+   "sources": [
+    "skills/mneves-fable-orchestrator/SKILL.md"
+   ],
+   "changed": false,
+   "scenario": "Following this skill, you hand a task to the seat that runs on pi. Report the exact model id the text binds to that seat and the reasoning effort it sets for it (`none` if it names none). `how` is dispatch-parameter.",
+   "expected": {
+    "model": [
+     "opencode-go/deepseek-v4.1-flash"
+    ],
+    "effort": [
+     "high"
+    ]
+   },
+   "known_failure": "A Claude or Codex model, or no effort."
   }
  ],
  "anchors": {
   "O1-main-session-claude": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "main session      = Opus, latest release (Claude alias `opus`), reasoning medium, with a Fable advisor (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6.1-sol, reasoning high (Codex orchestrator)"
+    "text": "main session      = Fable, latest release (Claude alias `claude-fable-5-2`), reasoning high | gpt-6.1-sol, reasoning high (Codex orchestrator)"
    }
   ],
   "O2-advisor-claude": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "main session      = Opus, latest release (Claude alias `opus`), reasoning medium, with a Fable advisor (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6.1-sol, reasoning high (Codex orchestrator)"
+    "text": "plan advisor      = Fable, latest release (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6-astra, reasoning xhigh (advice and plan review)"
    }
   ],
   "O3-reviewer-of-codex-build": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol`; no model fallback)"
+    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol --thinking high`; no model fallback)"
    },
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
@@ -630,7 +647,7 @@
   "O4-reviewer-of-claude-build": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol`; no model fallback)"
+    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol --thinking high`; no model fallback)"
    },
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
@@ -662,7 +679,7 @@
   "O8-main-session-codex": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "main session      = Opus, latest release (Claude alias `opus`), reasoning medium, with a Fable advisor (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6.1-sol, reasoning high (Codex orchestrator)"
+    "text": "main session      = Fable, latest release (Claude alias `claude-fable-5-2`), reasoning high | gpt-6.1-sol, reasoning high (Codex orchestrator)"
    }
   ],
   "P1-opus-with-default-line": [
@@ -1037,6 +1054,12 @@
    {
     "path": "collections/pstack/skills/poteto-mode/references/codex-tools.md",
     "text": "- Single-model execution roles: `gpt-6.1-sol` at `xhigh` reasoning."
+   }
+  ],
+  "O13-economy-executor": [
+   {
+    "path": "skills/mneves-fable-orchestrator/SKILL.md",
+    "text": "economy executor  = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the only substitute when no Claude or Codex seat for that role can run)"
    }
   ]
  }
