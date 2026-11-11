@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.50.0] - 2026-11-11
+
+### Changed
+- **Readiness assessor, report semantics**: a pillar's level now follows that pillar's own score,
+  with the thresholds the overall level uses (a single-app repository used to show only L1 or L5
+  beside any percentage); pillar scores print to one decimal and, in a monorepo, are the average
+  of the apps. A check with no implementation for the assessed language is skipped instead of
+  failing with "Override required": it counts in no score, is no longer a gap, and is listed once
+  per language as not implemented (`no-deprecated-deps` everywhere, seven checks on Rust, eight
+  on Java). Skipped checks no longer count as passing. Scores and gaps move accordingly, so a CI
+  gate that pins a level may need a new value.
+- **Readiness assessor, command line**: `--language` with a language that has no adapter exits 2
+  and names the supported ones (it used to run every check as a failing stub); an empty option
+  value exits 2; an option value may contain `=`. `--verbose` printed cache statistics only and
+  now prints nothing extra. The HTML report uses the system font stack.
+- **Release bookkeeping**: fold the published 1.49.0 binding run into the readiness cursor,
+  binding-run line, recorded controls and gate history.
+
+### Fixed
+- **mneves-ship-deploy**: the reference `release.sh` reads the security-gate record with the
+  same strict JSON reader it uses for the readiness record. The line-based reader it replaces
+  reported a compact one-line record as unreadable and could match a nested `commit` key. A test
+  keeps the two copies of that reader, in `release.sh` and `verify-live.sh`, identical.
+- **CI**: the two Python floor-compile tests of the release contract check run in CI and fail
+  there when `python3.11` is missing; they used to skip without notice.
+- A load-sensitive assessor test waits for the child process to exit instead of asserting at
+  once.
+
+### Removed
+- The assessor's nearly unused file cache and duplicate file helpers (one copy remains), and an
+  autoreview test fixture no test loaded.
+
 ## [1.49.0] - 2026-11-11
 
 ### Changed

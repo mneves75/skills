@@ -1,5 +1,7 @@
 # Release closeout for this repository
 
+Historical; superseded by [`CONTRIBUTING.md#preparing-a-release`](../../../CONTRIBUTING.md#preparing-a-release).
+
 Status: written 2026-10-27, revised 2026-10-28, built on PR #29 (release 1.42.0). Scope: this repository's own release procedure and
 its readiness ledger, not the shipped skills.
 
