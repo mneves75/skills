@@ -24,10 +24,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   binding-run line, recorded controls and gate history.
 
 ### Fixed
-- **mneves-ship-deploy**: the reference `release.sh` reads the security-gate record with the
-  same strict JSON reader it uses for the readiness record. The line-based reader it replaces
-  reported a compact one-line record as unreadable and could match a nested `commit` key. A test
-  keeps the two copies of that reader, in `release.sh` and `verify-live.sh`, identical.
+- **mneves-ship-deploy**: the reference `release.sh` reads the security-gate record with
+  `json_fields`, the strict reader it already used for the health response: the body must be one
+  JSON object with no repeated top-level key, and only top-level fields are read. The readiness
+  record keeps its own, stricter validator. The line-based reader `json_fields` replaces called a
+  compact one-line record unreadable and could match a nested `commit` key. A test keeps the two
+  copies of `json_fields`, in `release.sh` and `verify-live.sh`, identical.
 - **CI**: the two Python floor-compile tests of the release contract check run in CI and fail
   there when `python3.11` is missing; they used to skip without notice.
 - A load-sensitive assessor test waits for the child process to exit instead of asserting at

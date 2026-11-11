@@ -17,7 +17,8 @@ measure whether a *target* codebase is ready for agents.
 - **1.50.0 candidate**: the rest of the read-only audit. The readiness assessor's pillar levels
   follow each pillar's score, checks with no implementation for a language are skipped instead of
   failing, an unsupported `--language` exits 2, and its file cache and duplicate helpers are gone.
-  The reference `release.sh` reads the security record with its strict JSON reader, and CI runs
+  The reference `release.sh` reads the security record with `json_fields` (one JSON object, no
+  repeated top-level key) in place of a line regex, and CI runs
   the Python floor-compile tests instead of skipping them. It folds the 1.49.0 binding run into
   the readiness ledger and plan (cursor `afcf6de`). Left open on purpose: autoreview's defensive
   `getattr` reads (L-09), `deploy.sh` process count (L-10), CI syntax lists (L-11), `bun-types`
