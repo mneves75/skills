@@ -10,6 +10,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { fileExists } from "./files.js";
 
 // ============================================================================
 // Types
@@ -177,17 +178,6 @@ const EXCLUDE_DIRS = new Set([
 // ============================================================================
 // Detection Functions
 // ============================================================================
-
-/**
- * Check if a file exists
- */
-async function fileExists(filepath: string): Promise<boolean> {
-	try {
-		return await Bun.file(filepath).exists();
-	} catch {
-		return false;
-	}
-}
 
 /**
  * Detect language from config files (fast, high confidence)

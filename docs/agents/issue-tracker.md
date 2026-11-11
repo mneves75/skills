@@ -3,7 +3,7 @@
 Specs and tickets live in `docs/specs/<feature>/` when work needs more than one session.
 Single-session work can use the confirmed request without a separate spec.
 
-- Keep the spec at `docs/specs/<feature>/spec.md`.
+- Keep the spec at `docs/specs/<feature>/spec.md`, or only a `progress.md` for work that fits one session.
 - Use one ticket per `issues/<NN>-<slug>.md`, with a `Status:` line and acceptance criteria.
 - Append discussion under `## Comments`.
 - When a skill says to publish or fetch a ticket, write or read these local files.

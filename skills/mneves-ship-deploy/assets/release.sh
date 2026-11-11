@@ -154,20 +154,31 @@ for key in sys.argv[1:]:
 ' "${@:2}"
 }
 json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
-# record_field <file> <key>: every "<key>": "<value>" line of a security gate record, value only. The
-# record keeps one scalar per line, so a line reader is enough.
-record_field() { sed -n "s/^[[:space:]]*\"$2\"[[:space:]]*:[[:space:]]*\"\\([^\"]*\\)\".*/\\1/p" "$1"; }
+# waiver_ids: the "id" of every object in the "waivers" list of the JSON record on stdin, separated by
+# spaces. It fails when the list is not a list of objects that each carry an id of printable ASCII.
+waiver_ids() {
+  python3 -I -c '
+import json, sys
+waivers = json.load(sys.stdin).get("waivers", [])
+ids = [item.get("id") if isinstance(item, dict) else None for item in waivers] if isinstance(waivers, list) else [None]
+if not all(isinstance(i, str) and i and all(" " < ch <= "~" for ch in i) for i in ids):
+    sys.exit(1)
+print(" ".join(ids))
+'
+}
 # gate_verdict <commit> <target>: what the tag message says about the security gate, read from the record
 # the mneves-security skill writes in deploy-gate mode for this exact commit and target. A missing record
 # is stated, never refused: the gate is a release rule, not a guard of this script.
 gate_verdict() {
-  local record="$root/.scratch/security-gate/$1/$2.json" verdict ids blockers
+  local record="$root/.scratch/security-gate/$1/$2.json" fields verdict="" ids="" blockers=""
   [ -f "$record" ] || { echo "security gate: none recorded"; return 0; }
-  verdict="$(record_field "$record" verdict)"
-  ids="$(record_field "$record" id | tr '\n' ' ' | sed 's/ *$//')"
-  blockers="$(record_field "$record" blockers)"
   # A record that names another commit or target than its path (a copy) is not this release's verdict.
-  [ "$(record_field "$record" commit)" = "$1" ] && [ "$(record_field "$record" target)" = "$2" ] || verdict=""
+  if fields="$(json_fields "$(cat "$record")" verdict blockers commit target)" \
+    && [ "$(printf '%s\n' "$fields" | sed -n 3p)" = "$1" ] && [ "$(printf '%s\n' "$fields" | sed -n 4p)" = "$2" ] \
+    && ids="$(waiver_ids < "$record")"; then
+    verdict="$(printf '%s\n' "$fields" | sed -n 1p)"
+    blockers="$(printf '%s\n' "$fields" | sed -n 2p)"
+  fi
   case "$verdict:$ids" in
     pass:*) echo "security gate: PASS" ;;
     waived:?*) echo "security gate: WAIVED $ids" ;;

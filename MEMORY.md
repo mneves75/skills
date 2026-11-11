@@ -14,16 +14,29 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
-- **1.49.0 candidate**: the orchestrator's main session becomes the planning seat (it plans,
-  advises and reviews; executors build from a written spec; the old local fallback row is the
-  economy executor, a regular seat with a data-disclosure limit; a non-trivial plan is red-teamed
-  first). Routing-eval revision 6 follows that text. A read-only audit of the whole repository
-  found 58 items; the certain ones are fixed here, including a readiness-assessor bug where a
-  mistyped option disabled a CI gate, and the rest are listed for the owner. The site's catalog
-  drops the stale "new" highlight, the guide page takes the landing page's header and type, and
-  the install commands stop breaking mid-word on phones. It folds the 1.48.0 binding run into
-  the readiness ledger and plan (cursor `93bf9f9`). Its own binding verdict and live proof belong
-  in its private exact-candidate records and annotated release tag.
+- **1.50.0 candidate**: the rest of the read-only audit. The readiness assessor's pillar levels
+  follow each pillar's score, checks with no implementation for a language are skipped instead of
+  failing, an unsupported `--language` exits 2, and its file cache and duplicate helpers are gone.
+  The reference `release.sh` reads the security record with `json_fields` (one JSON object, no
+  repeated top-level key) in place of a line regex, and CI runs
+  the Python floor-compile tests instead of skipping them. It folds the 1.49.0 binding run into
+  the readiness ledger and plan (cursor `afcf6de`). Left open on purpose: autoreview's defensive
+  `getattr` reads (L-09), `deploy.sh` process count (L-10), CI syntax lists (L-11), `bun-types`
+  (Q-06), specs kept as history (D-24, D-25), and the unconfirmed hypotheses ROOT-H02 and ROOT-H03.
+  Its own binding verdict and live proof belong in its private exact-candidate records and
+  annotated release tag.
+- **1.49.0** (2026-11-11 UTC closeout): the orchestrator's main session became the planning seat
+  (it plans, advises and reviews; executors build from a written spec; the local fallback row is
+  the economy executor with a data-disclosure limit; a non-trivial plan is red-teamed first), with
+  routing-eval revisions 6 and 7. The "certain" findings of a read-only audit were fixed,
+  including a readiness-assessor bug where a mistyped option disabled a CI gate. The site's
+  catalog dropped the stale "new" highlight, the guide page took the landing page's header and
+  type, and pstack adaptation 08 says Codex's substitute models are not Opus. Published as
+  `afcf6de` (PR #54, audit `d8038a8`, identical tree `535ba63c`), tagged `v1.49.0`; CI run
+  43017650551 and Pages run 43019616907 succeeded and the served files matched the gated tree.
+  Security WAIVED six standing controls; readiness ready with 26 waivers, sixteen of them
+  candidate-only conditional approvals to 2026-11-12T23:59:59Z. Two earlier candidates stopped:
+  one on two Low acceptance findings, one on the eval's baseline control; both were fixed.
 - **1.48.0** (2026-11-11 UTC closeout): closed the two needs-validation items the 1.47.0 gate
   carried. Autoreview refuses the Kimi engine without `--allow-kimi-argv-prompt`, because Kimi
   Code takes the prompt only as a process argument other local accounts can read (RS-H01).

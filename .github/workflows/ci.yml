@@ -98,7 +98,22 @@ jobs:
       - name: Landing copy controller syntax
         run: node --check site/copy-command.js
 
+      # The floor-compile tests need python3.11; the image's tool cache has one. Only that binary goes on
+      # PATH, so every other step keeps the image's python3. A missing binary fails the next step.
+      - name: Expose the Python floor binary
+        run: |
+          set -euo pipefail
+          for dir in /opt/hostedtoolcache/Python/3.11.*/x64/bin; do
+            if [ -x "$dir/python3.11" ]; then
+              mkdir -p "$RUNNER_TEMP/floor-python"
+              ln -sf "$dir/python3.11" "$RUNNER_TEMP/floor-python/python3.11"
+            fi
+          done
+          if [ -d "$RUNNER_TEMP/floor-python" ]; then echo "$RUNNER_TEMP/floor-python" >> "$GITHUB_PATH"; fi
+
       - name: Release contract check (planted violations, read-only)
+        env:
+          REQUIRE_FLOOR_PYTHON: "1"
         run: python3 skills/mneves-ship-deploy/scripts/run-tests.py
 
       - name: Reference release guards (throwaway repo, fake wrangler, no network)

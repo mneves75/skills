@@ -17,6 +17,7 @@ def main() -> int:
     with tempfile.TemporaryDirectory(prefix="release-contract-home.") as home:
         env = {key: os.environ[key] for key in (
             "PATH", "LANG", "LC_ALL", "SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT", "TMP", "TEMP", "TMPDIR",
+            "REQUIRE_FLOOR_PYTHON",
         ) if key in os.environ}
         env.update({
             "HOME": home, "USERPROFILE": home,

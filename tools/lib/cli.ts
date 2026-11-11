@@ -110,12 +110,11 @@ export function parseArgs(argv: string[], config: ArgConfig = {}): ParsedArgs {
 		if (arg.startsWith("--")) {
 			const name = arg.slice(2);
 
-			// Handle --option=value syntax
+			// Handle --option=value syntax; the value may itself contain "=", and must not be empty
 			if (name.includes("=")) {
-				const parts = name.split("=", 2);
-				const optName = parts[0] ?? "";
-				const optValue = parts[1] ?? "";
-				if (optionSet.has(optName)) {
+				const optName = name.slice(0, name.indexOf("="));
+				const optValue = name.slice(name.indexOf("=") + 1);
+				if (optionSet.has(optName) && optValue !== "") {
 					result.options.set(optName, optValue);
 				} else {
 					result.unknown.push(arg);
@@ -127,10 +126,11 @@ export function parseArgs(argv: string[], config: ArgConfig = {}): ParsedArgs {
 			if (flagSet.has(name)) {
 				result.flags.add(name);
 			} else if (optionSet.has(name)) {
-				// Next arg is the value
+				// Next arg is the value; an empty one is consumed and rejected
 				const nextArg = argv[i + 1];
 				if (nextArg !== undefined && !nextArg.startsWith("-")) {
-					result.options.set(name, nextArg);
+					if (nextArg === "") result.unknown.push(arg);
+					else result.options.set(name, nextArg);
 					i++;
 				} else {
 					result.unknown.push(arg);
@@ -141,12 +141,11 @@ export function parseArgs(argv: string[], config: ArgConfig = {}): ParsedArgs {
 		} else if (arg.startsWith("-") && arg.length > 1) {
 			const name = arg.slice(1);
 
-			// Handle -o=value syntax
+			// Handle -o=value syntax, with the same value rules as --option=value
 			if (name.includes("=")) {
-				const parts = name.split("=", 2);
-				const optName = parts[0] ?? "";
-				const optValue = parts[1] ?? "";
-				if (optionSet.has(optName)) {
+				const optName = name.slice(0, name.indexOf("="));
+				const optValue = name.slice(name.indexOf("=") + 1);
+				if (optionSet.has(optName) && optValue !== "") {
 					result.options.set(optName, optValue);
 				} else {
 					result.unknown.push(arg);
@@ -158,10 +157,11 @@ export function parseArgs(argv: string[], config: ArgConfig = {}): ParsedArgs {
 			if (flagSet.has(name)) {
 				result.flags.add(name);
 			} else if (optionSet.has(name)) {
-				// Next arg is the value
+				// Next arg is the value; an empty one is consumed and rejected
 				const nextArg = argv[i + 1];
 				if (nextArg !== undefined && !nextArg.startsWith("-")) {
-					result.options.set(name, nextArg);
+					if (nextArg === "") result.unknown.push(arg);
+					else result.options.set(name, nextArg);
 					i++;
 				} else {
 					result.unknown.push(arg);

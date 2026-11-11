@@ -683,6 +683,23 @@ serve "$STAGING_URL" "$sha" staging
 gate_record "$sha" staging pass ""
 printf '#!/bin/sh\nexit 1\n' > "$origin/hooks/pre-receive"; chmod +x "$origin/hooks/pre-receive"
 expect "a tag that cannot be pushed is suggested with the same gate verdict" 1 "security gate: PASS'; git push origin refs/tags/v1.2.3-beta1" -- staging
+# The record is JSON, so its layout does not matter: a compact record on one line reads the same.
+new_repo gatecompact
+sha="$(head_sha)"
+serve "$STAGING_URL" "$sha" staging
+mkdir -p "$work/.scratch/security-gate/$sha"
+printf '{"schema": 1, "unit": ".", "target": "staging", "commit": "%s", "verdict": "waived", "open_blockers": 0, "blockers": "", "waivers": [{"id": "SEC-19", "owner": "@owner", "reason": "booked", "expires": "2026-11-30T00:00:00Z"}, {"id": "gate:audit", "owner": "@owner", "reason": "booked", "expires": "2026-11-30T00:00:00Z"}]}' \
+  "$sha" > "$work/.scratch/security-gate/$sha/staging.json"
+expect "a release with a compact one-line gate record succeeds" 0 "Released v1.2.3-beta1" -- staging
+check "a compact gate record states WAIVED with every waiver id" tag_says v1.2.3-beta1 "security gate: WAIVED SEC-19 gate:audit"
+# A "commit" key inside a nested object is not the record's commit.
+new_repo gatenested
+sha="$(head_sha)"
+serve "$STAGING_URL" "$sha" staging
+gate_record "$sha" staging waived "" SEC-19
+sed -i.bak 's/"owner": "@owner",/"commit": "2222222222222222222222222222222222222222", "owner": "@owner",/' "$work/.scratch/security-gate/$sha/staging.json"
+expect "a release with a nested commit key in its gate record succeeds" 0 "Released v1.2.3-beta1" -- staging
+check "a nested commit key does not hide the top-level commit" tag_says v1.2.3-beta1 "security gate: WAIVED SEC-19"
 
 # ==== A waiver ====
 new_repo waive
@@ -951,6 +968,16 @@ git tag --list
 CLEAN
 if tag_hazard "$here/release.sh"; then fail "release.sh never moves, deletes or force-pushes a tag"
 else pass "release.sh never moves, deletes or force-pushes a tag"; fi
+
+# ==== Both scripts carry the same JSON reader ====
+# Each script must stand alone, so json_fields is copied, not shared. same_reader <a> <b> holds only when
+# both files define it and the two bodies are identical.
+reader_body() { sed -n '/^json_fields() {$/,/^}$/p' "$1"; }
+same_reader() { [ -n "$(reader_body "$1")" ] && [ "$(reader_body "$1")" = "$(reader_body "$2")" ]; }
+check "release.sh and verify-live.sh carry the same json_fields" same_reader "$here/release.sh" "$here/verify-live.sh"
+sed 's/print(value if ok else "")/print(value if ok else " ")/' "$here/verify-live.sh" > "$tmp/verify-live.planted"
+if same_reader "$here/release.sh" "$tmp/verify-live.planted"; then fail "a one-character change to one json_fields copy is caught"
+else pass "a one-character change to one json_fields copy is caught"; fi
 
 if [ "$failures" -ne 0 ]; then echo "release guard tests FAILED ($failures)"; exit 1; fi
 echo "release guard tests passed"

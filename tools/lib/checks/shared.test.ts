@@ -42,11 +42,10 @@ printf '%s\\n' '${scenario.output}'
 			Bun.spawnSync([join(bin, scenario.command)], { env: { READINESS_WARM: "1" } });
 			const script = `
 				import { sharedChecks } from ${JSON.stringify(new URL("./shared.ts", import.meta.url).pathname)};
-				import { createFileCache } from ${JSON.stringify(new URL("../file-cache.ts", import.meta.url).pathname)};
 				const start = performance.now();
 				const result = await sharedChecks[${JSON.stringify(scenario.check)}]({
 					app: { path: ${JSON.stringify(directory)}, language: ${JSON.stringify(scenario.language)} },
-					repoRoot: ${JSON.stringify(directory)}, options: { timeout: 150 }, cache: createFileCache(),
+					repoRoot: ${JSON.stringify(directory)}, options: { timeout: 150 },
 				});
 				console.log(JSON.stringify({ result, elapsed: performance.now() - start }));
 			`;
@@ -63,8 +62,13 @@ printf '%s\\n' '${scenario.output}'
 				if (mode === "slow") {
 					expect(elapsed).toBeLessThan(700);
 					expect(result.pass).toBe(false);
+					// The kill is sent before the check returns; delivery and reaping lag on a loaded machine.
 					const pid = Number(await Bun.file(pidFile).text());
-					expect(() => process.kill(pid, 0)).toThrow();
+					const isAlive = () => { try { process.kill(pid, 0); return true; } catch { return false; } };
+					const goneDeadline = Date.now() + 5000;
+					while (isAlive() && Date.now() < goneDeadline) await Bun.sleep(20);
+					expect(isAlive()).toBe(false);
+					// Gone without writing the marker: killed, not finished on its own after 0.9 s.
 					await Bun.sleep(1000);
 					expect(await Bun.file(marker).exists()).toBe(false);
 				} else {
@@ -78,6 +82,6 @@ printf '%s\\n' '${scenario.output}'
 				}
 				await rm(directory, { recursive: true, force: true });
 			}
-		});
+		}, 15000);
 	}
 }

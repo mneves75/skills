@@ -12,15 +12,9 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import {
-	type CheckContext,
-	type CheckResult,
-	type CheckRunner,
-	dirExists,
-	fileExists,
-	readText,
-} from "../check-registry.js";
+import type { CheckContext, CheckResult, CheckRunner } from "../check-registry.js";
 import { runCommand } from "../command.js";
+import { dirExists, fileExists, readText } from "../files.js";
 import {
 	hasLibraryCategory,
 	parseDependencies,
@@ -66,14 +60,9 @@ export function createPathCheck(
 			? [ctx.app.path, ctx.repoRoot]
 			: [ctx.app.path];
 
-		// Use cache if available, otherwise fall back to direct check
-		const checkExists = ctx.cache
-			? (p: string) => ctx.cache.exists(p)
-			: fileExists;
-
 		for (const basePath of pathsToCheck) {
 			for (const file of files) {
-				if (await checkExists(path.join(basePath, file))) {
+				if (await fileExists(path.join(basePath, file))) {
 					const result: CheckResult = { pass: true, details: successDetails };
 					if (resultKey === "configPath") {
 						result.configPath = file;
