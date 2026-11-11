@@ -19,6 +19,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 SKILL = Path(__file__).resolve().parents[1]
 CHECKER = SKILL / "scripts" / "release-contract-check.py"
@@ -1704,9 +1705,26 @@ class ReadOnly(Base):
         self.assertRegex(text, r"Python 3\.11")
         self.assertIn("tomllib", text)
 
-    def floor_binary(self) -> str | None:
+    def floor_binary(self) -> str:
+        """The python3.<floor> binary on PATH. Without one the test skips, or fails when CI sets
+        REQUIRE_FLOOR_PYTHON=1, so a runner that lost the binary cannot pass silently."""
         match = re.search(r"Python 3\.(\d+)", CHECKER.read_text())
-        return shutil.which(f"python3.{match.group(1)}") if match else None
+        binary = shutil.which(f"python3.{match.group(1)}") if match else None
+        if binary:
+            return binary
+        if os.environ.get("REQUIRE_FLOOR_PYTHON") == "1":
+            self.fail("REQUIRE_FLOOR_PYTHON=1 but no python3.<floor> binary is on PATH")
+        self.skipTest("no python3.<floor> binary on PATH; only the text check of the floor ran")
+
+    def test_a_missing_floor_binary_fails_when_required_and_skips_otherwise(self) -> None:
+        with mock.patch.object(shutil, "which", return_value=None):
+            with mock.patch.dict(os.environ, {"REQUIRE_FLOOR_PYTHON": "1"}):
+                with self.assertRaises(self.failureException):
+                    self.floor_binary()
+            with mock.patch.dict(os.environ):
+                os.environ.pop("REQUIRE_FLOOR_PYTHON", None)
+                with self.assertRaises(unittest.SkipTest):
+                    self.floor_binary()
 
     def compile_with(self, binary: str, source: Path) -> subprocess.CompletedProcess:
         code = "import py_compile, sys; py_compile.compile(sys.argv[1], cfile=sys.argv[2], doraise=True)"
@@ -1714,14 +1732,10 @@ class ReadOnly(Base):
 
     def test_the_checker_compiles_under_the_stated_floor(self) -> None:
         binary = self.floor_binary()
-        if not binary:
-            self.skipTest("no python3.<floor> binary on PATH; only the text check of the floor ran")
         self.assertEqual(self.compile_with(binary, CHECKER).returncode, 0)
 
     def test_the_floor_compile_check_fails_on_syntax_newer_than_the_floor(self) -> None:
         binary = self.floor_binary()
-        if not binary:
-            self.skipTest("no python3.<floor> binary on PATH")
         scratch = self.tmp_out / "newer.py"
         scratch.write_text(CHECKER.read_text() + "\ntype Alias = int\n")  # PEP 695 syntax is 3.12+
         proc = self.compile_with(binary, scratch)
