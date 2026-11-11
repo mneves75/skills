@@ -134,6 +134,14 @@ assert not problems, "; ".join(problems)
 PY
 }
 
+# 0. An unknown option prints the usage: the whole leading comment block, never a line of code.
+make_repo
+out=$(run_deploy 7 --bogus) && code=0 || code=$?
+if [ "$code" -eq 2 ] && grep -q -- '--dry-run stops after step 2' <<<"$out" && grep -q 'DEPLOY_REPO' <<<"$out" \
+   && ! grep -q 'set -euo pipefail' <<<"$out"; then
+  ok "an unknown option prints the whole header as usage and exits 2"
+else bad "unknown option usage (exit $code): $out"; fi
+
 # A publication followed by a tag resume keeps the original audit, including all protected fields.
 make_repo
 audit=$(cat "$FAKE_STATE/head")
