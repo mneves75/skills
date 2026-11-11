@@ -25,7 +25,7 @@ Within the requested release scope:
 
 `autoreview` is a review gate, not a human approval step. Follow its existing authorization requirements for the selected content and review destination; when that authorization already exists, run it without asking again. Preserve its secret-scanning and isolation controls. This policy grants no new authorization to disclose private data.
 
-Staging authorization does not waive required gates or authorize destructive operations, credential access, separate publication, or an unspecified deployment target. Missing required input and failed gates remain blockers.
+Staging authorization does not waive required gates or authorize destructive operations, credential access (reading, printing or using a secret beyond the deploy's configured bindings), separate publication (a package, store listing or page outside the authorized target), or an unspecified deployment target. Missing required input and failed gates remain blockers.
 
 **One decision packet.** A gate that cannot pass (an advisory with no patched release, a tool that cannot run here) becomes one request to the user, sent as soon as it is known: the candidate (repository, commit, version), the target, each failing gate as a named waiver with its reason, the security gate verdict with each block it asks the owner to waive, and the rollback plan. Keep running every other gate while you wait. An approval of the packet approves exactly the waivers it lists; record them in the release evidence.
 
@@ -65,7 +65,7 @@ Run in order, except the security gate (item 2), which runs last; fix what each 
 
 1. `autoreview` — pre-commit code review, when installed; otherwise use the repository's documented independent review gate. Run automatically when its content and destination are already authorized; do not pause for redundant confirmation. Keep the review bounded: one review and one rerun after accepted corrections. Verify findings and apply in-scope corrections automatically. Unresolved actionable findings block the release; report them rather than repeating the same review indefinitely.
 2. **Security gate** (mandatory in both modes) — the separately installed `mneves-security` skill in deploy-gate mode: a full security, privacy and compliance audit with a fix plan and a PASS, BLOCK or WAIVED verdict for the exact commit and each target. Run it last, after steps 1, 3 and 4, the build gates and Phase 2 have landed their changes, so it audits the final release content; it binds by tree hash to the release commit before any push, merge or tag that deploys it, and any later change to the tree is a new candidate with a new audit. Its verdict rules decide what blocks; a block clears only by a fix, disproof, or the owner's named waiver in the decision packet. One audit serves every target of the same tree; production runs the gate's reuse pass before promotion. Its runtime checks belong in `scripts/verify-live.sh` (or the live proof a project uses), so they pass before any tag, and each tag message records the verdict (`security gate: PASS`, or `WAIVED` with the waived IDs). Without the skill, the release is blocked until it is installed (`npx skills@latest add mneves75/skills --skill mneves-security -g -y`) or the owner waives the gate by name; no other review substitutes for it.
-3. `improve` (deep pass), when installed; otherwise a read-only survey in the main session — prioritized plans. Land only what is in scope for this release; everything else becomes a named follow-up, not silent work.
+3. `improve` (deep pass) for a feature or structural release (a patch release skips it), when installed; otherwise a read-only survey in the main session — prioritized plans. Land only what is in scope for this release; everything else becomes a named follow-up, not silent work.
 4. `mneves-production-readiness` — the provisional readiness assessment, when installed; otherwise the repository's documented readiness review. Fix the in-scope blockers it finds, commit ledger changes with the release, and carry the rest of its plan as named follow-ups. It never relaxes another gate; its open production blockers join the decision packet as named waivers.
 5. If Phase 1 uncovers work too large for this session, use the host's native task/goal facility only when the user requests that workflow; otherwise report the remaining work. Keep it within the authorized release scope.
 
@@ -163,7 +163,7 @@ Then:
 - Publication (GitHub Release, npm, app stores) needs its own explicit `release`/`publish` ask — a tag and a deploy are not a release. When asked: `npm view <pkg>@<version>` proves the npm side; the GitHub Release body links the npm version page, tarball, integrity, and CI proof.
 - Bump the changelog to the next patch `Unreleased` and commit.
 - End on the repository's expected branch, preserving unrelated changes. Switch branches only when authorized; update with a fast-forward and verify `git status -sb`.
-- Close with a real narrative recap (2–5 paragraphs): what shipped and why, what the review gates caught, staging evidence, the exact tags and deploy URLs, what stayed unverified, follow-ups.
+- Close with a narrative recap in short paragraphs: what shipped and why, what the review gates caught, staging evidence, the exact tags and deploy URLs, what stayed unverified, follow-ups.
 
 ## Hard rules
 

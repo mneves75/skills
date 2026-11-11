@@ -43,7 +43,7 @@ start `film/`, and add [assets/eslint.film.mjs](assets/eslint.film.mjs) to the E
    fresh first; `--check` compares those local copies, not the live site. Ids are text digests,
    so editing one page line breaks only the copy that quotes it.
    Done when every claim you intend to show is a fact.
-3. **Storyboard.** A planner in a fresh context drafts three directions
+3. **Storyboard.** For a new or redone film (an update edits the existing shot table), a planner in a fresh context drafts three directions
    ([references/storyboard.md](references/storyboard.md), which also holds the picture and
    sound rules). Choose one and log the strongest rejected alternative. Done when the shot
    table names every shot, line (as fact id), key press and what the viewer learns.
@@ -59,7 +59,8 @@ start `film/`, and add [assets/eslint.film.mjs](assets/eslint.film.mjs) to the E
    runs, in order: facts freshness (the pages still give `facts.json`), facts trace, the project's ESLint (JSX literals), contrast, music, loudness (mix and music alone), render, mux, muted copy,
    media checks, sync, contact sheets. Done when it exits 0. Read every contact sheet
    yourself: overflow, clipped text, a still hold, a key press with no visible change.
-7. **Review rounds.** Each round, a new reviewer on the reviewer seat (never the model that
+7. **Review rounds.** For a new or redone film, or an update that changes picture, timing or music
+   (other updates get one round), each round a new reviewer on the reviewer seat (never the model that
    built it) sees only `film.mp4` and `facts.json`; the same round, a muted test retells the
    film from 2 fps sheets ([references/review.md](references/review.md) holds both briefs and
    the dispatch). Fix the worst problem first, rebuild, and give the next reviewer the earlier

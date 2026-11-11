@@ -54,7 +54,7 @@ For each image, tell the image tool:
 5. the required output count, aspect ratio, and whether screens appear separately or together.
 
 Keep copy short enough to render legibly. Favor content over chrome. Avoid the usual synthetic UI
-defaults unless the product genuinely calls for them: indiscriminate cards and pills, decorative
+defaults unless the product calls for them: indiscriminate cards and pills, decorative
 charts, random gradients, excessive glass effects, tiny labels, empty luxury styling, or a phone-sized
 website.
 

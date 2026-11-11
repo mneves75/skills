@@ -28,7 +28,8 @@ and data exposure over checklist volume. A clean scan does not prove a secure ap
   rules. Creating this skill or invoking an audit grants none of those actions.
 
 Honor existing authorization; do not ask again for authorized steps. Stop immediately
-before a destructive action, credential/secret handling, external mutation or scope
+before a destructive action, credential/secret handling (reading, printing, rotating or using a
+secret), external mutation (provider dashboards, DNS, databases, posting outside this repository) or scope
 expansion that the current task and host have not authorized. Continue independent
 permitted work. Never delete data, rotate production keys, change ownership rules or
 apply production RLS from an inferred schema. Prepare a reviewed migration/rollback
@@ -82,7 +83,7 @@ independent tracks, and give each worker a bounded goal, files, constraints and 
 Apply the first-principles/alternatives challenge in step 4 directly. Model bindings
 come from the host or orchestrator; this skill does not pin models or reasoning tiers.
 
-Always perform adversarial review. Use installed `code-review` for distinct standards
+In audit, fix and deploy-gate modes, perform adversarial review. Use installed `code-review` for distinct standards
 and requirement checks when appropriate; otherwise use a fresh read-only reviewer on
 the fixed diff. Use installed `mneves-verify` for independent acceptance; without it,
 give a fresh verifier the frozen criteria, artifacts and stopping condition. Security

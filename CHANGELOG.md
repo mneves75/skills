@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.51.0] - 2026-11-11
+
+### Changed
+- **mneves-fable-orchestrator**: the Claude main session is Opus, latest release, at reasoning
+  medium (it was Fable at high). Fable stays the planner and the plan advisor. The main session
+  dispatches implementation only when the work is substantial, independent and objectively
+  verifiable, and does the rest itself. The "a seat never reviews what it built" rule applies when
+  review runs. Approval boundaries now name what they cover: reading, printing, rotating or using a
+  secret; remote services, publishing, and messages outside the session.
+- **Routing eval**: case O1 expects the new main-session value, and O8's anchor follows the same
+  Defaults line (revision 8).
+- **mneves-security**: adversarial review runs in the audit, fix and deploy-gate modes. The
+  approval line gives examples of credential handling and external mutation.
+- **mneves-ship-deploy**: the deep `improve` pass runs for feature and structural releases, not
+  patch releases. The closing recap is written in short paragraphs, with no fixed paragraph count.
+  Credential access and separate publication are spelled out.
+- **mneves-production-readiness**: saves the ledger and plan only when asked, instead of offering
+  to. The credential rule names what it covers.
+- **untangle-codebase**: the user's explicit instructions come before host instructions and this
+  procedure. Independent review and acceptance are required when the user or the repository asks
+  for them, or when the refactor crosses a public contract, a safety mechanism or outside callers.
+  Otherwise the focused self-check runs, and the report says that no independent review ran.
+- **mneves-superaudit**: the verification check applies to substantial or high-risk work.
+- **takeover**: runs the repository's CI checks for the touched area before the push, and CI runs
+  the full set after it.
+- **mneves-motion-film**: the storyboard planner and the full review rounds apply to a new or
+  redone film, or to an update that changes picture, timing or music. Other updates edit the shot
+  table and get one review round.
+- **modernize**: fetches the latest origin for the branch, the base branch and related branches,
+  instead of pulling, so a dirty worktree stays untouched.
+- **mneves-socratic-tutor**, **imagegen-frontend-mobile**: dropped stock intensifiers.
+- **Release bookkeeping**: fold the published 1.50.0 binding run into the readiness cursor,
+  binding-run line, recorded controls and gate history.
+
+Basis: Anthropic's "Prompting Claude Fable 5.2" guide (standing delegation, named approvals,
+absolute rules, style limits) and OpenAI's GPT-6 prompting guide (user precedence over skills,
+calibrated testing, stock words). Model ids re-verified on 2026-11-11 against
+platform.claude.com/docs/en/about-claude/models/overview, developers.openai.com/api/docs/models
+and the opencode model list.
+
 ## [1.50.0] - 2026-11-11
 
 ### Changed

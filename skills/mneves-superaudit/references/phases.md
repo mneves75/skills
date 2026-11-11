@@ -62,7 +62,7 @@ artifact, not the source that was meant to produce it.
 repo's documented rules, evidence quality) and Spec (every requested behavior, boundary, non-goal,
 and acceptance criterion against the changed artifact). The `autoreview` skill in this collection
 runs a structured, isolated review when the risk or a repository gate calls for one, and
-`mneves-verify` supplies an independent fresh-context PASS/FAIL check before you call anything done.
+`mneves-verify` supplies an independent fresh-context PASS/FAIL check before you call substantial or high-risk work done.
 Routine and prose-only changes need no model review.
 
 Bound: one review round, plus one rerun only if accepted findings changed the artifact. Findings are

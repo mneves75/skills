@@ -9,7 +9,7 @@ compatibility: Codex dispatch needs the Codex CLI (`codex`) logged in, bash, and
 
 The main session plans, advises and reviews. Its tokens go where judgment matters: requirements,
 architecture, the spec, integration, reading what comes back, and final acceptance. Implementation
-goes to an executor with a written spec; the main session may keep the hardest part of a task.
+goes to an executor with a written spec when it is substantial, independent and checkable; the main session does the rest and may keep the hardest part.
 
 ## Roles
 
@@ -39,7 +39,7 @@ before it can perform ordinary implementation.
 The only place this skill names models. Edit this block on a model release; nothing else.
 
 ```
-main session      = Fable, latest release (Claude alias `claude-fable-5-2`), reasoning high | gpt-6.1-sol, reasoning high (Codex orchestrator)
+main session      = Opus, latest release (Claude alias `claude-opus-5-5`), reasoning medium | gpt-6.1-sol, reasoning high (Codex orchestrator)
 frontend subagent = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (Codex worker)
 ordinary worker   = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (Codex worker)
 bounded worker    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (bounded Codex task)
@@ -51,7 +51,7 @@ specialist        = gpt-6.1-sol, reasoning high (specialist execution; a special
 economy executor  = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the only substitute when no Claude or Codex seat for that role can run)
 ```
 
-A seat never reviews what it built. That covers the workers, the heavy executor, the economy
+When review runs, a seat never reviews what it built. That covers the workers, the heavy executor, the economy
 executor, and the main session when it kept the hardest part: a change is
 reviewed by the reviewer value in the other column from the seat that built it, and an economy
 executor's change by either reviewer value. Planning and
@@ -108,9 +108,9 @@ Keep work in the main session when it is a trivial edit, depends on session-only
 credentials, changes authorization, or requires a product/architecture decision. The main session
 may also keep the hardest part of a task, where writing the spec would cost more than the work.
 
-Dispatch the rest of the implementation: write the spec first, then send it to an executor. The
-work should be objectively verifiable and have disjoint
-file ownership. Parallelize only independent workstreams. Do not delegate a few direct reads or
+Dispatch implementation only when it is substantial, independent and objectively verifiable, with
+disjoint file ownership: write the spec first, then send it to an executor; otherwise the main
+session does it. Parallelize only independent workstreams. Do not delegate a few direct reads or
 duplicate work already assigned. Never stash, switch, rebase, or reset someone else's dirty work
 merely to begin a dispatch; give parallel workers their own worktrees instead.
 
@@ -192,5 +192,6 @@ and continue independent review. Scores never replace tests or standards/spec ju
 Routine edits need only proportionate deterministic checks. If a correction is needed, continue
 the existing agent or lane so it retains context.
 
-Delegation never widens permission. Destructive or irreversible actions, credentials, external
-writes, and scope expansion keep the main session's approval boundary.
+Delegation never widens permission. Destructive or irreversible actions, credentials (reading, printing, rotating or using a secret),
+external writes (remote services, publishing, messages outside the session), and scope expansion
+keep the main session's approval boundary.

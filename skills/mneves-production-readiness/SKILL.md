@@ -15,8 +15,8 @@ evidence for the controls that apply is.
 
 ## Scope and authority
 
-- **Audit or plan request**: inspect and report. Change no project files; offer to save the
-  ledger and plan.
+- **Audit or plan request**: inspect and report. Change no project files; save the ledger and
+  plan only when asked.
 - **Release workflow** (`mneves-ship-deploy`, or an explicit request for a readiness gate): write
   only the ledger and the readiness record. Commits, pushes and deploys follow that workflow's
   own authority.
@@ -25,7 +25,7 @@ evidence for the controls that apply is.
   workflow. Security fixes belong to the security review. A fixed gap's row moves to PASS only
   on proof observed in this session (a check that fails without the fix and passes with it, or
   the control's own `Verify` run), never on the fix's existence.
-- Never delete data, handle credentials, change provider dashboards, read production records,
+- Never delete data, handle credentials (read, print, copy or use a secret), change provider dashboards, read production records,
   restore into production, rotate keys or contact third parties. Restore drills run only into an
   isolated target the owner authorized. Gaps that need such steps become owner actions with exact
   instructions: what to do, where, and what proof to send back.

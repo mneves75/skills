@@ -14,6 +14,12 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
+- **1.51.0 candidate**: skill text aligned with Anthropic's "Prompting Claude Fable 5.2" guide and
+  OpenAI's GPT-6 prompting guide. The Claude main session is Opus at reasoning medium (Fable keeps
+  the planner and plan-advisor seats); implementation is dispatched only when substantial,
+  independent and checkable; approval boundaries name what they cover; review gates in
+  untangle-codebase, mneves-security, ship-deploy and motion-film are scoped to the work that needs
+  them; user instructions take precedence over skill procedure. Routing-eval revision 8 (O1).
 - **1.50.0 candidate**: the rest of the read-only audit. The readiness assessor's pillar levels
   follow each pillar's score, checks with no implementation for a language are skipped instead of
   failing, an unsupported `--language` exits 2, and its file cache and duplicate helpers are gone.
