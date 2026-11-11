@@ -59,6 +59,11 @@ dispatch the model and reasoning effort each seat is meant to run at? Cases live
     the shell tool and fails any sample whose event stream shows a tool.
   - The other two: a subset run could report the threshold met, and a baseline on which a
     changed case passed still exited 0. Both now fail.
+  - Two more rounds found the same guarantee still open: a tool-using Codex attempt could be
+    retried into a pass when the call timed out or answered badly, and then when reading its
+    answer file failed (independent acceptance, ACC-R01). Patching each path had failed twice, so
+    the retry loop was removed: each sample is asked once, and any failure is an error. No live
+    sample had needed a retry (0 of 198). A provider hiccup now fails the run, which is rerun.
 
 ## Open
 

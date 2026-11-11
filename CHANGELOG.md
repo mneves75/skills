@@ -29,7 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pass threshold; it is a release step, never run by CI. Only a full run, every case on both
   consumers, can pass. The Codex consumer runs with its shell tool disabled and any tool event
   fails the sample: the 1.47.0 runner left that tool on, so only its Claude consumer was
-  tool-free.
+  tool-free. Each sample is asked once; a failed call is an error, never retried.
 - `.claude/settings.json` denies edits to the vendored `collections/pstack` skills, `UPSTREAM`, `LICENSE*` and `NOTICE*`; asks before `gh pr merge`, a push to `origin main` and `tools/scripts/deploy.sh`; a Stop hook runs the tools typecheck, lint and tests when the tree changed since the last green run.
 
 ### Changed

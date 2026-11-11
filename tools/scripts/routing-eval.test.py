@@ -6,6 +6,7 @@ import copy
 import importlib.util
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import sys
@@ -167,7 +168,13 @@ assert "--json-schema" in sys.argv and sys.argv[sys.argv.index("--tools") + 1] =
 answers = json.loads(os.environ["FAKE_ANSWERS"])
 if answers.get("claude") == "error":
     print("boom", file=sys.stderr); sys.exit(1)
-answer = next(a for marker, a in answers["cases"].items() if marker in prompt)
+marker, answer = next((m, a) for m, a in answers["cases"].items() if m in prompt)
+if answers.get("fail_first"):
+    try:
+        os.open(os.path.join(os.environ["FAKE_LOG"], "first-claude-" + marker), os.O_CREAT | os.O_EXCL)
+        print("boom once", file=sys.stderr); sys.exit(1)
+    except FileExistsError:
+        pass
 print(json.dumps({"is_error": False, "structured_output": answer}))
 """
 
@@ -184,18 +191,34 @@ open(os.path.join(os.environ["FAKE_LOG"], "codex-" + uuid.uuid4().hex), "w").wri
 answers = json.loads(os.environ["FAKE_ANSWERS"])
 if answers.get("codex") == "error":
     print("boom", file=sys.stderr); sys.exit(1)
-answer = next(a for marker, a in answers["cases"].items() if marker in prompt)
+marker, answer = next((m, a) for m, a in answers["cases"].items() if m in prompt)
+if answers.get("fail_first"):
+    try:
+        os.open(os.path.join(os.environ["FAKE_LOG"], "first-codex-" + marker), os.O_CREAT | os.O_EXCL)
+        print("boom once", file=sys.stderr); sys.exit(1)
+    except FileExistsError:
+        pass
 print(json.dumps({"type": "thread.started", "thread_id": "t"}))
 for n, kind in enumerate(answers.get("codex_items", ["reasoning", "agent_message"])):
     for event in ("item.started", "item.completed"):
         print(json.dumps({"type": event, "item": {"id": f"item_{n}", "type": kind}}))
 out = sys.argv[sys.argv.index("-o") + 1]
-if answers.get("codex_hang"):
+ending = answers.get("codex_ending", "clean")
+if ending == "hang":
     sys.stdout.flush()
     import time
     time.sleep(60)
 print(json.dumps({"type": "turn.completed", "usage": {}}))
-open(out, "w").write("{not json" if answers.get("codex_bad_json") else json.dumps(answer))
+if ending == "bad_json":
+    open(out, "w").write("{not json")
+elif ending == "bad_utf8":
+    open(out, "wb").write(bytes([255, 254, 123]))
+elif ending == "answer_is_a_directory":
+    os.mkdir(out)
+elif ending == "exit_1":
+    open(out, "w").write(json.dumps(answer)); sys.exit(1)
+elif ending != "no_answer":
+    open(out, "w").write(json.dumps(answer))
 """
 
 RIGHT = {"CASE-ONE": {"model": "opus", "effort": "medium", "how": "not-applicable", "reason": "r"},
@@ -249,7 +272,7 @@ class RunTests(unittest.TestCase):
 
     def run_tool(self, answers, *extra, out=None, env=None):
         env = dict(os.environ, PATH=f"{self.bin}{os.pathsep}{os.environ['PATH']}", FAKE_LOG=str(self.log),
-                   FAKE_ANSWERS=json.dumps(answers), ROUTING_EVAL_RETRY_SLEEP="0", **(env or {}))
+                   FAKE_ANSWERS=json.dumps(answers), **(env or {}))
         return tool("run", "HEAD", "--out", str(out or self.out), "--cases", str(self.cases), "--root", str(self.repo),
                     "--claude-cmd", str(self.bin / "claude"), "--codex-cmd", str(self.bin / "codex"), *extra, env=env)
 
@@ -328,30 +351,49 @@ class RunTests(unittest.TestCase):
         self.assertEqual(record["tool_use"], ["command_execution"])
         self.assertTrue(record["error"])
         self.assertFalse(record["pass"])
-        self.assertEqual(len(record["exits"]), 1, "a tool use must not be retried")
         self.assertIn("command_execution", (self.out / "C1-codex-1.raw.txt").read_text())
         self.assertEqual(json.loads((self.out / "C1-claude-1.json").read_text())["tool_use"], [])
 
-    def assert_tool_use_is_terminal(self):
+    def calls(self, provider):
+        return len(list(self.log.glob(f"{provider}-*")))
+
+    def test_a_sample_is_asked_once_so_a_failed_call_is_an_error(self):
+        # Each consumer fails its first call per case and would answer correctly if asked again.
+        result = self.run_tool({"cases": RIGHT, "fail_first": True})
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
         summary = self.summary()
         self.assertFalse(summary["threshold_met"])
-        self.assertEqual(summary["per_case"]["C1/codex"]["error"], 3)
-        record = json.loads((self.out / "C1-codex-1.json").read_text())
-        self.assertEqual(record["tool_use"], ["command_execution"])
-        self.assertTrue(record["error"])
-        self.assertEqual(len(record["exits"]), 1, "a tool use must not be retried")
+        self.assertEqual(summary["totals"], {"pass": 8, "fail": 0, "error": 4, "samples": 12})
+        for key in ("C1/claude", "C2/claude", "C1/codex", "C2/codex"):
+            self.assertEqual(summary["per_case"][key]["error"], 1, key)
+        self.assertEqual((self.calls("claude"), self.calls("codex")), (6, 6), "one call per sample, no second try")
 
-    def test_codex_tool_use_survives_a_timeout(self):
-        # The events arrive, then the call hangs past its deadline: the tool use still ends the sample.
-        result = self.run_tool({"cases": RIGHT, "codex_items": ["command_execution"], "codex_hang": True},
-                               env={"ROUTING_EVAL_CALL_TIMEOUT": "2"})
-        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-        self.assert_tool_use_is_terminal()
+    def test_codex_tool_use_then_any_bad_ending_is_an_error(self):
+        # After a tool event, nothing the call does next can turn the sample into a pass.
+        for ending in ("clean", "hang", "bad_json", "bad_utf8", "answer_is_a_directory", "exit_1", "no_answer"):
+            with self.subTest(ending=ending):
+                for old in self.log.glob("codex-*"):
+                    old.unlink()
+                shutil.rmtree(self.out, ignore_errors=True)  # an earlier ending left a directory as the answer
+                result = self.run_tool({"cases": RIGHT, "codex_items": ["command_execution"], "codex_ending": ending},
+                                       env={"ROUTING_EVAL_CALL_TIMEOUT": "2"})
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                summary = self.summary()
+                self.assertFalse(summary["threshold_met"])
+                self.assertEqual(summary["per_case"]["C1/codex"], {"changed": False, "pass": 0, "fail": 0, "error": 3, "samples": 3})
+                self.assertEqual(summary["per_case"]["C2/codex"]["error"], 3)
+                self.assertEqual(self.calls("codex"), 6, "one call per sample, no second try")
+                record = json.loads((self.out / "C1-codex-1.json").read_text())
+                self.assertTrue(record["error"])
+                self.assertFalse(record["pass"])
 
-    def test_codex_tool_use_survives_an_unparseable_answer(self):
-        result = self.run_tool({"cases": RIGHT, "codex_items": ["command_execution"], "codex_bad_json": True})
-        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
-        self.assert_tool_use_is_terminal()
+    def test_codex_bad_ending_without_tool_use_is_an_error(self):
+        for ending in ("bad_json", "bad_utf8", "answer_is_a_directory", "exit_1", "no_answer"):
+            with self.subTest(ending=ending):
+                result = self.run_tool({"cases": RIGHT, "codex_ending": ending})
+                self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+                self.assertEqual(self.summary()["per_case"]["C1/codex"]["error"], 3)
+                self.assertEqual(self.summary()["per_case"]["C1/claude"]["pass"], 3)
 
     def test_codex_with_only_message_and_reasoning_items_passes(self):
         result = self.run_tool({"cases": RIGHT, "codex_items": ["reasoning", "agent_message", "reasoning"]})

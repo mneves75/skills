@@ -16,7 +16,9 @@ case's sources, asks each consumer without tools and with schema-bound output, g
 deterministically against the frozen expectations, and writes the raw answers, one JSON record per
 sample and summary.json under DIR. Claude runs with `--tools ""`. Codex runs with its shell tool
 disabled and its `--json` event stream inspected: any item other than a message or reasoning is a
-tool use, and that sample is an error (recorded in `tool_use`), never retried into a pass.
+tool use, and that sample is an error (recorded in `tool_use`). Each sample is asked once: a call
+that fails, times out, uses a tool or answers unreadably is an error and is never asked again, so no
+later answer can turn it into a pass. A provider hiccup therefore fails the run; run it again.
 
 Threshold (exit 0 when met, 1 otherwise). Only a full run can meet it: every case in the cases
 file on both claude and codex. `--cases-only` and single-provider runs still run and grade, for
@@ -69,10 +71,7 @@ PROMPT = """You are being evaluated on how an agent applies skill instructions. 
 Scenario: {scenario}
 
 Answer with JSON only, matching the schema: `model` (as the scenario defines it), `effort` (one of low, medium, high, xhigh, max, or none), `how` (dispatch-parameter, agent-definition-model-field, or not-applicable), `reason` (one sentence naming the line that decides it)."""
-ATTEMPTS = 3
 MIN_SAMPLES = 3
-# Seconds between attempts of one sample; tests set the variable to 0.
-RETRY_SLEEP = float(os.environ.get("ROUTING_EVAL_RETRY_SLEEP", "30"))
 # Seconds one model call may take; tests set the variable to cut a hanging fake short.
 CALL_TIMEOUT = float(os.environ.get("ROUTING_EVAL_CALL_TIMEOUT", "900"))
 
@@ -253,7 +252,6 @@ def ask_codex(cmd: list[str], prompt: str, work: Path) -> tuple[int, str, dict |
             "--ephemeral", "-s", "read-only", "--disable", "shell_tool", "--json",
             "-m", CODEX_MODEL, "-c", f"model_reasoning_effort={CODEX_EFFORT}",
             "-C", str(work), "--output-schema", str(schema), "-o", str(out), "-"]
-    # Every way this call can end keeps the event stream, so a tool use is never lost to a retry.
     try:
         p = subprocess.run(argv, cwd=work, input=prompt, capture_output=True, text=True, timeout=CALL_TIMEOUT)
         code, events, stderr = p.returncode, p.stdout, p.stderr
@@ -262,14 +260,12 @@ def ask_codex(cmd: list[str], prompt: str, work: Path) -> tuple[int, str, dict |
         events = partial.decode(errors="replace") if isinstance(partial, bytes) else partial
         code, stderr = -1, f"timed out after {exc.timeout} seconds"
     used = tool_use(events)
-    final = out.read_text() if out.exists() else ""
-    answer = None
-    if code == 0 and not used:
-        try:
-            parsed = json.loads(final)
-        except json.JSONDecodeError:
-            parsed = None
-        answer = parsed if isinstance(parsed, dict) else None
+    try:
+        final = out.read_text()
+        parsed = json.loads(final)
+    except (OSError, ValueError) as exc:  # missing, a directory, not UTF-8, not JSON
+        final, parsed = f"unreadable answer: {exc!r}", None
+    answer = parsed if code == 0 and not used and isinstance(parsed, dict) else None
     raw = events + "\n--- answer (-o) ---\n" + final + "\n--- stderr tail ---\n" + stderr[-2000:]
     return code, raw, answer, used
 
@@ -280,29 +276,19 @@ def run_one(job: tuple, out_dir: Path, commands: dict[str, list[str]]) -> dict:
     work.mkdir(parents=True, exist_ok=True)
     ask = ask_claude if provider == "claude" else ask_codex
     started = time.time()
-    tries, answer, used = [], None, []
-    for attempt in range(ATTEMPTS):
-        try:
-            code, raw, answer, used = ask(commands[provider], prompt, work)
-        except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError) as exc:
-            code, raw, answer, used = -1, repr(exc), None, []
-        tries.append(code)
-        (out_dir / f"{case['id']}-{provider}-{n}.raw.txt").write_text(raw)
-        if used:
-            # A consumer that used a tool is not the consumer under test: error, never retried into a pass.
-            answer = None
-            break
-        if answer is not None:
-            break
-        if attempt + 1 < ATTEMPTS:
-            time.sleep(RETRY_SLEEP)
+    # One call per sample. Asking again after a failure is how a tool-using attempt once passed.
+    try:
+        code, raw, answer, used = ask(commands[provider], prompt, work)
+    except (OSError, subprocess.TimeoutExpired, ValueError) as exc:
+        code, raw, answer, used = -1, repr(exc), None, []
+    (out_dir / f"{case['id']}-{provider}-{n}.raw.txt").write_text(raw)
     fields = grade(case, answer) if answer is not None else {}
-    rec = {"case": case["id"], "provider": provider, "sample": n, "exits": tries,
+    rec = {"case": case["id"], "provider": provider, "sample": n, "exit": code,
            "seconds": round(time.time() - started, 1), "answer": answer, "fields": fields, "tool_use": used,
            "pass": answer is not None and all(fields.values()), "error": answer is None}
     (out_dir / f"{case['id']}-{provider}-{n}.json").write_text(json.dumps(rec, indent=1) + "\n")
     print(case["id"], provider, n, "PASS" if rec["pass"] else ("ERROR" if rec["error"] else "FAIL"),
-          json.dumps(answer, ensure_ascii=False)[:220] if answer else tries, flush=True)
+          json.dumps(answer, ensure_ascii=False)[:220] if answer else code, flush=True)
     return rec
 
 
