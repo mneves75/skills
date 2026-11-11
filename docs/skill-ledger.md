@@ -72,7 +72,7 @@ refresh inventory.
 | `make-pr-easy-to-review` | retained | none | Unchanged. |
 | `no-comments` | retained | 01, 02, 07 | Uses the shipped `comment-sicko` brief. |
 | `poteto-help` | retained | 02 | Recipes point at the engineering references. |
-| `poteto-mode` | changed | 01, 02, 05, 06, 07 | Local-only autonomy with stops before external writes; its Babysit playbook stops as blocked at a finite repair bound that yields to stricter limits; routes to the four engineering references instead of mandatory principle panels. `scripts/orch/` is no longer in upstream or the port, so it is not shipped. |
+| `poteto-mode` | changed | 01, 02, 05, 06, 07, 08 | Local-only autonomy with stops before external writes; its Babysit playbook stops as blocked at a finite repair bound that yields to stricter limits; routes to the four engineering references instead of mandatory principle panels. `scripts/orch/` is no longer in upstream or the port, so it is not shipped. 1.49.0: the Codex mapping says its substitutes are not Opus models, so the `medium` rule of 07 does not apply to them (08). |
 | `recall` | changed | 02, 05 | Reads chat history only on request. |
 | `reflect` | changed | 01, 02, 05, 07 | Files backlog only with authorization. |
 | `setup-pstack` | retained | 01, 02, 07 | Model sheet setup. |

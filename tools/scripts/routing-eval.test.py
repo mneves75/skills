@@ -125,6 +125,17 @@ class CheckTests(unittest.TestCase):
         spec["cases"][0]["expected"]["model"] = []
         self.assert_single_problem(spec, "A: expected model must be a non-empty list of strings")
 
+    def test_changed_may_be_clarified(self):
+        spec = base_spec()
+        spec["cases"][0]["changed"] = "clarified"
+        result = self.run_check(spec)
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_changed_outside_its_values(self):
+        spec = base_spec()
+        spec["cases"][0]["changed"] = "maybe"
+        self.assert_single_problem(spec, 'A: changed must be true, false or "clarified"')
+
     def test_wrong_schema(self):
         spec = base_spec()
         spec["schema"] = "routing-eval-4"
@@ -175,6 +186,12 @@ if answers.get("fail_first"):
         print("boom once", file=sys.stderr); sys.exit(1)
     except FileExistsError:
         pass
+if marker in answers.get("wrong_first", {}):
+    try:
+        os.open(os.path.join(os.environ["FAKE_LOG"], "wrong-claude-" + marker), os.O_CREAT | os.O_EXCL)
+        answer = answers["wrong_first"][marker]
+    except FileExistsError:
+        pass
 print(json.dumps({"is_error": False, "structured_output": answer}))
 """
 
@@ -196,6 +213,12 @@ if answers.get("fail_first"):
     try:
         os.open(os.path.join(os.environ["FAKE_LOG"], "first-codex-" + marker), os.O_CREAT | os.O_EXCL)
         print("boom once", file=sys.stderr); sys.exit(1)
+    except FileExistsError:
+        pass
+if marker in answers.get("wrong_first", {}):
+    try:
+        os.open(os.path.join(os.environ["FAKE_LOG"], "wrong-codex-" + marker), os.O_CREAT | os.O_EXCL)
+        answer = answers["wrong_first"][marker]
     except FileExistsError:
         pass
 print(json.dumps({"type": "thread.started", "thread_id": "t"}))
@@ -328,6 +351,45 @@ class RunTests(unittest.TestCase):
         self.assertFalse(summary["threshold_met"])
         self.assertTrue(summary["control_limits"])
         self.assertTrue(all("C2" in limit for limit in summary["control_limits"]))
+
+    # C2 answers wrong on its first sample per consumer and right on the other two.
+    MIXED = {"cases": RIGHT, "wrong_first": {"CASE-TWO": dict(RIGHT["CASE-TWO"], how="dispatch-parameter")}}
+
+    def test_baseline_clarified_case_is_recorded_not_judged(self):
+        self.write_cases(changed_two="clarified")
+        result = self.run_tool(self.MIXED, "--baseline")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        summary = self.summary()
+        self.assertTrue(summary["threshold_met"])
+        self.assertEqual(summary["problems"], [])
+        self.assertEqual(summary["control_limits"], [])
+        self.assertEqual(summary["clarified_on_baseline"], [
+            "C2/claude: clarified case passed 2, failed 1, errored 0 of 3 samples on the baseline",
+            "C2/codex: clarified case passed 2, failed 1, errored 0 of 3 samples on the baseline"])
+        self.assertEqual(summary["per_case"]["C2/codex"],
+                         {"changed": "clarified", "pass": 2, "fail": 1, "error": 0, "samples": 3})
+        self.assertEqual(summary["totals"], {"pass": 10, "fail": 2, "error": 0, "samples": 12})
+
+    def test_candidate_clarified_case_is_judged(self):
+        self.write_cases(changed_two="clarified")
+        result = self.run_tool(self.MIXED)
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        summary = self.summary()
+        self.assertFalse(summary["threshold_met"])
+        self.assertIn("C2/claude: 1 of 3 samples failed", summary["problems"])
+        self.assertIn("C2/codex: 1 of 3 samples failed", summary["problems"])
+        self.assertEqual(summary["clarified_on_baseline"], [])
+
+    def test_baseline_clarified_case_that_errors_fails(self):
+        self.write_cases(changed_two="clarified")
+        result = self.run_tool({"cases": RIGHT, "fail_first": True}, "--baseline")
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        summary = self.summary()
+        self.assertFalse(summary["threshold_met"])
+        self.assertIn("C2/claude: 1 of 3 samples errored", summary["problems"])
+        self.assertIn("C2/codex: 1 of 3 samples errored", summary["problems"])
+        self.assertIn("C2/codex: clarified case passed 2, failed 0, errored 1 of 3 samples on the baseline",
+                      summary["clarified_on_baseline"])
 
     def test_erroring_consumer_fails_with_errors_counted(self):
         result = self.run_tool({"cases": RIGHT, "codex": "error"})

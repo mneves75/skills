@@ -41,6 +41,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   situation table lists all 25 skills; `--expect-findings` says what it does; stale "candidate"
   and "pending" wording for shipped releases is corrected; two skill descriptions are one
   capability-and-trigger line again.
+- **pstack on Codex**: the Codex model mapping says its substitutes are not Opus models, so the
+  `medium` rule for Opus no longer bleeds onto them (adaptation 08). The routing eval caught it
+  (2 of 24 Codex samples) and can now mark a case as clarified: judged on the candidate,
+  recorded but not judged on the baseline.
 
 ## [1.48.0] - 2026-11-10
 

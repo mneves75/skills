@@ -55,6 +55,8 @@ Skills name Claude defaults (a single-role default for code/prose/judgment, a wo
 - Execution and review panels (`arena`, `interrogate`, `how` critics, `reflect`): use `gpt-6.1-sol` at `xhigh` reasoning. Note reduced model diversity when every participant uses the same model; independent contexts do not provide cross-model independence.
 - Planning (`architect`) and read-only advice: select the host's dedicated planning/advisor route and its effort, rather than an execution alias. Never use that route for implementation or code review.
 
+These substitutes are not Opus models, so the `medium` rule for a value that resolves to an Opus model does not apply to them on Codex.
+
 `/setup-pstack` writes the configured model list. On Codex, set it to your Codex model slugs.
 
 ## Session routing hook

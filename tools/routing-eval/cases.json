@@ -6,10 +6,11 @@
   "3: P1-P9 state that the job needs no per-job raise or lower (wording only; expectations unchanged). The 1.46.1 control on Claude failed unchanged cases P2 (opus @high answered medium) and P6 (Pi openai answered high) because poteto-mode lowers a review's level one step, which the text allows for an explicit level or a non-Opus model; the cases had not fixed the job. P10 and P11 test the job adjustment. Every run is repeated on this revision.",
   "4: added O9-O12 (frontend subagent, ordinary worker, bounded worker, plan advisor), S1-S2 (setup-pstack's own wording) and P12-P18 (the Reasoning effort paragraph in each remaining changed skill), plus P19 (Codex runtime control), after independent acceptance on 366bd67 found those seats and files without a selecting case. Cases O1-O8 and P1-P11 are unchanged from revision 3, and their revision-3 runs are reused case by case.",
   "5: moved the set into the repository (tools/routing-eval/cases.json) and added `anchors` outside the cases, mapping each case id to the verbatim passages that decide it, so `routing-eval.py check` can catch a removed or reworded passage without a model call. No case changed.",
-  "6: release 1.49.0 makes the orchestrator's Claude main session the planning seat (O1 now expects claude-fable-5-2 at high and is the only case marked changed against 1.48.0), drops the advisor from that row (O2's expectation is unchanged; its anchor is the plan advisor row), names autoreview's `--thinking high` on the reviewer row (O3 and O4 unchanged) and renames the local fallback row to economy executor. Added O13 for that seat, unchanged against 1.48.0 because the model and effort it binds did not change."
+  "6: release 1.49.0 makes the orchestrator's Claude main session the planning seat (O1 now expects claude-fable-5-2 at high and is the only case marked changed against 1.48.0), drops the advisor from that row (O2's expectation is unchanged; its anchor is the plan advisor row), names autoreview's `--thinking high` on the reviewer row (O3 and O4 unchanged) and renames the local fallback row to economy executor. Added O13 for that seat, unchanged against 1.48.0 because the model and effort it binds did not change.",
+  "7: P19 failed 2 of 24 Codex samples across eight runs of the unchanged 1.47.0 to 1.48.0 text, by applying the Opus `medium` rule to a model Codex substitutes. Adaptation 08 says in codex-tools.md that the rule does not apply to those substitutes. P19's expectation is unchanged and it is marked clarified."
  ],
  "purpose": "Expected-outcome eval of the routing text: does an agent reading the shipped skill text dispatch the expected model and reasoning effort for each seat? Expectations come from the owner's rules and the orchestrator's Defaults block, frozen before any run.",
- "threshold": "Candidate: every sample of every case passes on both consumers. Baseline control (the previous release's text, run with --baseline): every case marked changed fails on every sample, and every unchanged case passes, and no sample errors; a changed case that passes on the baseline does not discriminate: the control fails until the case is replaced or no longer marked changed. Only a full run (every case on both consumers) can meet either threshold.",
+ "threshold": "Candidate: every sample of every case passes on both consumers. Baseline control (the previous release's text, run with --baseline): every case marked changed fails on every sample, and every unchanged case passes, and no sample errors; a changed case that passes on the baseline does not discriminate: the control fails until the case is replaced or no longer marked changed. A case marked changed \"clarified\" had its source reworded to remove an ambiguity without changing its expected answer: a candidate run judges it like any case, and a baseline run records its counts in clarified_on_baseline and fails it only on an errored sample. Only a full run (every case on both consumers) can meet either threshold.",
  "sources_note": "pstack cases include poteto-mode/SKILL.md because thermos and arena defer each subagent's reasoning level to its Subagents section, and the Claude Code and Codex hooks inject it every session. Sources are read from the commit under test with git show.",
  "grading": "Deterministic. Lowercase and strip backticks and spaces; a graded field passes when its value is in the expected list. Ungraded fields are recorded only.",
  "cases": [
@@ -586,7 +587,7 @@
   },
   {
    "id": "P19-codex-runtime-opus-alias",
-   "changed": false,
+   "changed": "clarified",
    "sources": [
     "collections/pstack/skills/thermos/SKILL.md",
     "collections/pstack/skills/poteto-mode/SKILL.md",
@@ -1054,6 +1055,10 @@
    {
     "path": "collections/pstack/skills/poteto-mode/references/codex-tools.md",
     "text": "- Single-model execution roles: `gpt-6.1-sol` at `xhigh` reasoning."
+   },
+   {
+    "path": "collections/pstack/skills/poteto-mode/references/codex-tools.md",
+    "text": "These substitutes are not Opus models, so the `medium` rule for a value that resolves to an Opus model does not apply to them on Codex."
    }
   ],
   "O13-economy-executor": [
