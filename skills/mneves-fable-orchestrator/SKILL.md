@@ -7,8 +7,9 @@ compatibility: Codex dispatch needs the Codex CLI (`codex`) logged in, bash, and
 
 # Fable Orchestrator
 
-Route only when delegation saves time or adds independent evidence. The active main session owns
-requirements, architecture, high-stakes judgment, integration, and final acceptance.
+The main session plans, advises and reviews. Its tokens go where judgment matters: requirements,
+architecture, the spec, integration, reading what comes back, and final acceptance. Implementation
+goes to an executor with a written spec; the main session may keep the hardest part of a task.
 
 ## Roles
 
@@ -18,7 +19,7 @@ whole skill.
 
 | Role | Responsibility |
 |---|---|
-| Main session | Orchestration: framing, design decisions, decomposition, acceptance |
+| Main session | Planning, advice and review: framing, design decisions, the spec, decomposition, acceptance |
 | Frontend subagent | Bounded UI work: components, styling, layout, visual polish |
 | Ordinary worker | Scoped implementation and routine inherited agents |
 | Bounded worker | Search, summaries, writing, and mechanically checkable tasks |
@@ -27,6 +28,7 @@ whole skill.
 | Plan advisor | Read-only review of a plan before a decision with real downside; nothing else |
 | Reviewer | Independent review of a fixed Git target (`autoreview` when installed) |
 | Specialist | Deliberate comparison or capability-specific work |
+| Economy executor | Bounded, test-first tickets on a low-cost model |
 
 The user's current instruction beats this routing. Preserve explicit caller overrides and
 specialist selections. The heavy executor is an executor: do not insert an advisor-only handoff
@@ -37,41 +39,53 @@ before it can perform ordinary implementation.
 The only place this skill names models. Edit this block on a model release; nothing else.
 
 ```
-main session      = Opus, latest release (Claude alias `opus`), reasoning medium, with a Fable advisor (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6.1-sol, reasoning high (Codex orchestrator)
+main session      = Fable, latest release (Claude alias `claude-fable-5-2`), reasoning high | gpt-6.1-sol, reasoning high (Codex orchestrator)
 frontend subagent = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (Codex worker)
 ordinary worker   = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (Codex worker)
 bounded worker    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (bounded Codex task)
 heavy executor    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (Codex worker)
-reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol`; no model fallback)
+reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol --thinking high`; no model fallback)
 planner           = Fable, latest release (Claude subagent alias `claude-fable-5-2`) | gpt-6-astra, reasoning xhigh (planning)
 plan advisor      = Fable, latest release (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6-astra, reasoning xhigh (advice and plan review)
 specialist        = gpt-6.1-sol, reasoning high (specialist execution; a specialist review takes the reviewer seat)
-local fallback    = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the only substitute when no Claude or Codex seat for that role can run)
+economy executor  = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the only substitute when no Claude or Codex seat for that role can run)
 ```
 
-The builder seats (main session, workers, heavy executor) never review their own output: a change is
-reviewed by the reviewer value in the other column from the seat that built it, and planning and
+A seat never reviews what it built. That covers the workers, the heavy executor, the economy
+executor, and the main session when it kept the hardest part: a change is
+reviewed by the reviewer value in the other column from the seat that built it, and an economy
+executor's change by either reviewer value. Planning and
 plan advice run only on their own seats. Crossing means the change leaves for the other column's
 provider: authorize that disclosure as you would for any review provider before dispatching it.
 
-Verified against the vendor model lists on 2026-11-10; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-11-11; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file). A seat that names a versioned alias stays on that release
 when the host's short alias moves; check what each short alias resolves to on every release.
 A dispatch tool that accepts only short aliases cannot take a versioned id: set it in the
 agent definition's model field instead.
 
-### When no primary seat can run
+### The economy executor
 
-The local fallback row is a substitution, never an extra seat. Use it only when no authorized primary seat for that role can run — not installed, not signed in, out of quota, or refused by host policy — and record why each applicable primary failed. Host-policy or task restrictions on a provider are not a reason to route around them. Then:
+The economy executor row is a regular implementation seat for bounded tickets whose proof is a
+test written first. Dispatching to it sends the code to that row's provider, so:
 
-- Announce the substitution in the first status line and repeat it in the final report with the
-  reason. A silent switch hides which model produced the evidence.
-- Never take it when the caller, the repository, or a gate names a model, or requires the
-  reviewer to differ from the builder. Report that gate as blocked instead.
-- One local model cannot satisfy cross-model review: it reviewing its own output is self-review, and two sessions of the same model are still self-review. If no other model can review, report the review gate blocked instead of running it.
+- Never send it a repository that declares client, personal or regulated data, or one whose
+  owner has not approved that provider. Host-policy or task restrictions on a provider are not a
+  reason to route around them.
+- Say which seat built the change in the first status line and in the final report. A silent
+  choice hides which model produced the evidence.
+- Never take it when the caller, the repository, or a gate names a model. Report that gate as
+  blocked instead.
+- It cannot satisfy cross-model review of its own output: it reviewing its own output is
+  self-review, and two sessions of the same model are still self-review. If no other model can
+  review, report the review gate blocked instead of running it.
 - Nothing else relaxes. Effort selection, evidence, acceptance and permission rules are the
-  same, and a fallback seat gains no authority the primary seat lacked.
+  same, and this seat gains no authority another seat lacked.
+
+It is also the only substitute when no authorized primary seat for a role can run: not installed,
+not signed in, out of quota, or refused by host policy. Record why each applicable primary
+failed, and announce the substitution the same way.
 
 Reasoning-effort names are vendor enums and change; if one is rejected, read the CLI's `--help`
 rather than guessing a neighbouring value.
@@ -84,10 +98,18 @@ transcript. Without it, say it is unavailable and use the main session's solo pl
 un-counciled. Do not turn ordinary delegation, expert review or verification into a council
 implicitly; provider disclosure and the requested round/cost bounds remain binding.
 
-Keep work in the main session when it is a small direct edit, depends on session-only tools or
-credentials, changes authorization, or requires a product/architecture decision.
+Before writing a non-trivial plan, red-team it. Play the request back in full. Assume it failed
+six months on and name the three likeliest causes: an assumption nobody checked, a failure case
+nobody considered, optimism that saved effort. Give each its trigger, its cost and the cheapest
+experiment that would show it early. Say whether a simpler route reaches the same goal. End with
+one verdict: ship, run this experiment first, or stop.
 
-Delegate when the work is independent, substantial, objectively verifiable, and has disjoint
+Keep work in the main session when it is a trivial edit, depends on session-only tools or
+credentials, changes authorization, or requires a product/architecture decision. The main session
+may also keep the hardest part of a task, where writing the spec would cost more than the work.
+
+Dispatch the rest of the implementation: write the spec first, then send it to an executor. The
+work should be objectively verifiable and have disjoint
 file ownership. Parallelize only independent workstreams. Do not delegate a few direct reads or
 duplicate work already assigned. Never stash, switch, rebase, or reset someone else's dirty work
 merely to begin a dispatch; give parallel workers their own worktrees instead.
@@ -96,7 +118,7 @@ Select the cheapest configured role that can satisfy the task and its proof; esc
 requirements or demonstrated difficulty. Host routing and explicit caller choices override
 these portable defaults. Configure the spawned model/effort in the actual dispatch, not prose.
 Use fresh context and a self-contained brief for an independent worker; continue the same
-worker for corrections to its task. Routine direct work stays in the main session.
+worker for corrections to its task.
 
 Use the reviewer only when the user, repository, or risk requires independent review. A
 different-model requirement needs an explicitly selected reviewer allowed by the host policy;
@@ -144,6 +166,10 @@ output. A worker's "tests pass" is a claim; proof is what you observed in this s
 green mocked tests do not prove user-visible behavior. Review guard, budget, fixture, and test-helper edits closely because they can weaken the
 check rather than fix the behavior; a commit message you did not commission is a lead. Check the brief's assumptions and production rules; test
 existence is not a substitute for the required behavior.
+
+Read the diff for shape as well as behavior: fewer, deeper modules with smaller interfaces; input
+checked once where it enters and trusted after; one-off logic written where it is used, not split
+into a function ahead of a second caller.
 
 Bind each claim to the right task, project/session and source revision before accepting it.
 Inspect the cited artifact and reconcile the strongest counterexample; a missing record or

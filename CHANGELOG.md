@@ -5,6 +5,47 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.49.0] - 2026-11-11
+
+### Changed
+- **mneves-fable-orchestrator**: the main session is the planning seat. It plans, advises and
+  reviews, writes the spec, reads what comes back and accepts it; workers and executors build,
+  and the main session may keep the hardest part of a task. A non-trivial plan is red-teamed
+  before it is written: the request played back, three likely causes of failure with a trigger,
+  a cost and a cheap experiment each, and one verdict. The local fallback row is now the economy
+  executor, a regular seat for bounded tickets whose proof is a test written first; it never
+  receives a repository that declares client, personal or regulated data, and it stays the only
+  substitute when no primary seat can run. Accepting delegated work includes reading the diff for
+  shape. The reviewer row names autoreview's `--thinking high`, which the seat's tier already
+  meant. Routing-eval revision 6 follows the text.
+- **Site**: every catalog entry has the same quiet treatment, and only skills from the two most
+  recent releases that added one carry a small "Added in" tag (the lime fill had spread to
+  skills from 1.34.0 on). The guide page has the landing page's header, type and colors in
+  light and dark, with a contents list built from its sections. On a phone the install commands
+  no longer break inside a word.
+- **Release bookkeeping**: fold the published 1.48.0 binding run into the readiness cursor,
+  binding-run line, recorded controls and gate history.
+- The orchestrator's Defaults block was re-verified against the vendor model lists on
+  2026-11-11.
+
+### Fixed
+- **Readiness assessor**: an unknown option, an option without its value or a stray argument now
+  exits 2 and names it. Before, `--min-levle=5` was ignored, so a CI gate passed without
+  checking anything. About 440 lines nothing called are removed; reports are unchanged.
+- **`deploy.sh` and `init.sh`**: `--help` prints the whole header (it stopped mid-sentence in one
+  and printed a line of code in the other). `init.sh` names `python3.11`, the binary the floor
+  check uses.
+- **Docs, from a read-only audit of the repository**: the readiness skill names the maturity
+  levels the tool prints; the assessor is described as part of a full clone, not a single-skill
+  install; `mneves-teach-back-srs` no longer promises a delete command it lacks; the guide's
+  situation table lists all 25 skills; `--expect-findings` says what it does; stale "candidate"
+  and "pending" wording for shipped releases is corrected; two skill descriptions are one
+  capability-and-trigger line again.
+- **pstack on Codex**: the Codex model mapping says its substitutes are not Opus models, so the
+  `medium` rule for Opus no longer bleeds onto them (adaptation 08). The routing eval caught it
+  (2 of 24 Codex samples) and can now mark a case as clarified: judged on the candidate,
+  recorded but not judged on the baseline.
+
 ## [1.48.0] - 2026-11-10
 
 ### Security

@@ -62,8 +62,10 @@ answers still need checking against the evidence. A draft objective still blocks
 
 **Original skills carry the `mneves-` prefix.** A rename in 1.3.0 collapsed three near-collisions
 with upstream/community skill names. An adapted third-party skill instead keeps its upstream name,
-license, copyright, and provenance so its origin stays obvious. Directory name and frontmatter
-`name:` always match.
+license, copyright, and provenance so its origin stays obvious, unless that name collides with
+another widely installed skill or the owner chooses to prefix it (`mneves-socratic-tutor`); then
+it takes the `mneves-` prefix and the provenance records the upstream name. Directory name and
+frontmatter `name:` always match.
 
 **`imagegen-frontend-mobile` is an attributed adaptation.** The installed upstream procedure was
 1,465 lines and repeated aesthetic rules many times. The version here keeps the useful sequence

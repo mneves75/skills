@@ -35,7 +35,8 @@ fakes() {
 # 1. Everything required present: --check exits 0 and names the optional programs as absent.
 fakes "$tmp/full" git bun node python3
 out=$(PATH="$tmp/full" bash "$root/tools/scripts/init.sh" --check 2>&1) && code=0 || code=$?
-if [ "$code" -eq 0 ] && grep -q '^ok *python3 (3.11+)' <<<"$out" && grep -q '^absent *ffmpeg' <<<"$out"; then
+if [ "$code" -eq 0 ] && grep -q '^ok *python3 (3.11+)' <<<"$out" && grep -q '^absent *ffmpeg' <<<"$out" \
+   && grep -q '^absent *python3.11' <<<"$out" && ! grep -q 'python3\.10' <<<"$out"; then
   ok "--check with the required programs exits 0 and lists optional ones as absent"
 else bad "--check with the required programs (exit $code): $out"; fi
 
@@ -54,10 +55,18 @@ if [ "$code" -eq 1 ] && grep -q '^missing *python3 (3.11+)' <<<"$out"; then
   ok "--check with an old Python exits 1 and names the 3.11 floor"
 else bad "--check with an old Python (exit $code): $out"; fi
 
-# 4. An unknown argument prints the usage and exits 2; nothing runs.
+# 4. An unknown argument prints the usage (the header comment only) and exits 2; nothing runs.
 out=$(PATH="$tmp/full" bash "$root/tools/scripts/init.sh" --install-everything 2>&1) && code=0 || code=$?
-if [ "$code" -eq 2 ] && grep -q -- '--check' <<<"$out"; then ok "unknown argument exits 2 with the usage"
+if [ "$code" -eq 2 ] && grep -q -- '--check' <<<"$out" && ! grep -q 'set -euo' <<<"$out"; then
+  ok "unknown argument exits 2 with the usage and no line of code"
 else bad "unknown argument (exit $code): $out"; fi
+
+# 4b. The usage reads the script as a file even when its name looks like a sed option.
+mkdir -p "$tmp/odd"; cp "$root/tools/scripts/init.sh" "$tmp/odd/-e2p"
+out=$(cd "$tmp/odd" && PATH="$tmp/full" bash -- -e2p --install-everything 2>&1 </dev/null) && code=0 || code=$?
+if [ "$code" -eq 2 ] && grep -q -- '--check' <<<"$out" && ! grep -q 'set -euo' <<<"$out"; then
+  ok "usage is the header even when the script is named like an option"
+else bad "option-shaped script name (exit $code): $out"; fi
 
 # 5. Outside the repository it refuses (exit 2) instead of installing somewhere else.
 mkdir -p "$tmp/elsewhere/tools/scripts"
@@ -65,6 +74,12 @@ cp "$root/tools/scripts/init.sh" "$tmp/elsewhere/tools/scripts/init.sh"
 out=$(PATH="$tmp/full" bash "$tmp/elsewhere/tools/scripts/init.sh" --check 2>&1) && code=0 || code=$?
 if [ "$code" -eq 2 ] && grep -q 'not the mneves-skills repository root' <<<"$out"; then ok "refuses outside the repository"
 else bad "outside the repository (exit $code): $out"; fi
+
+# 6. The optional floor binary is the one the ship-deploy floor compile check looks for.
+fakes "$tmp/floor" git bun node python3 python3.11
+out=$(PATH="$tmp/floor" bash "$root/tools/scripts/init.sh" --check 2>&1) && code=0 || code=$?
+if [ "$code" -eq 0 ] && grep -q '^ok *python3.11' <<<"$out"; then ok "--check reports the ship-deploy floor binary python3.11 as present"
+else bad "python3.11 present (exit $code): $out"; fi
 
 echo "init.test: $pass passed, $fail failed"
 [ "$fail" -eq 0 ]

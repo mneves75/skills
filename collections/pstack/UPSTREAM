@@ -14,6 +14,7 @@ adaptation: 04-readonly-why-bounded-babysit.patch sha256:fa9cfa0db67201282194371
 adaptation: 05-explicit-opt-in.patch sha256:57eade0a7f88fbd8571ca599a2ea315238c8e95e81320d8b8c0b624a8ee4067d
 adaptation: 06-render-and-install-consent.patch sha256:0deb312d5f06049ca9075218de1642786e8262a5f962ac77a2d96626303468c5
 adaptation: 07-opus-medium-effort.patch sha256:af514dfe78d5b6d3fd5131c9561d93f91b3ff9784bd9b926d3ebb386bb555716
+adaptation: 08-codex-substitutes-not-opus.patch sha256:a0f4a0a730adeaab1d23fa9ea33725b56b83c31effa8038d6e5c6fbba9d9c409
 excluded: statechart/scripts/test
 retired: make-bot-ui
 retired: principle-*

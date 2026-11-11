@@ -88,20 +88,6 @@
           "oklch(95% 0.06171 136.23)"
         ]
       },
-      "lime-code": {
-        "role": "secondary",
-        "displayName": "Lime Code Surface",
-        "tonalRamp": [
-          "oklch(15% 0.11 121.35)",
-          "oklch(26.43% 0.11 121.35)",
-          "oklch(37.86% 0.11 121.35)",
-          "oklch(49.29% 0.11 121.35)",
-          "oklch(60.71% 0.11 121.35)",
-          "oklch(72.14% 0.11 121.35)",
-          "oklch(83.57% 0.11 121.35)",
-          "oklch(95% 0.11 121.35)"
-        ]
-      },
       "paper": {
         "role": "neutral",
         "displayName": "Reading Paper",
@@ -601,4 +587,3 @@
     ]
   }
 }
-

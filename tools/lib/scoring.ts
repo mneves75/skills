@@ -14,11 +14,13 @@
  */
 
 import type { DetectedApp } from "./app-discovery.js";
-import type {
-	CheckDefinition,
-	CheckResultWithMeta,
-	Level,
-	Pillar,
+import {
+	type CheckDefinition,
+	type CheckResultWithMeta,
+	LEVEL_NAMES,
+	type Level,
+	PILLAR_NAMES,
+	type Pillar,
 } from "./check-registry.js";
 
 // ============================================================================
@@ -144,20 +146,8 @@ export const DEFAULT_PILLAR_WEIGHTS: Record<Pillar, number> = {
 	product: 0.3, // Not relevant for OSS libraries/frameworks
 };
 
-/**
- * Human-readable pillar names
- */
-export const PILLAR_NAMES: Record<Pillar, string> = {
-	style: "Style & Validation",
-	build: "Build System",
-	testing: "Testing",
-	documentation: "Documentation",
-	devenv: "Development Environment",
-	observability: "Debugging & Observability",
-	security: "Security",
-	taskdiscovery: "Task Discovery",
-	product: "Product & Experimentation",
-};
+/** Report order of the pillars (style -> product) */
+const PILLAR_ORDER = Object.keys(PILLAR_NAMES) as Pillar[];
 
 /**
  * Level thresholds (percentage -> level)
@@ -176,17 +166,6 @@ export const LEVEL_THRESHOLDS: [number, Level][] = [
 	[35, 2],
 	[0, 1],
 ];
-
-/**
- * Level names for display
- */
-export const LEVEL_NAMES: Record<Level, string> = {
-	1: "Functional",
-	2: "Documented",
-	3: "Standardized",
-	4: "Optimized",
-	5: "Autonomous",
-};
 
 // ============================================================================
 // Core Scoring Functions
@@ -244,20 +223,8 @@ export function calculatePillarScores(
 	}
 
 	// Sort by pillar order (style -> product)
-	const pillarOrder: Pillar[] = [
-		"style",
-		"build",
-		"testing",
-		"documentation",
-		"devenv",
-		"observability",
-		"security",
-		"taskdiscovery",
-		"product",
-	];
-
 	scores.sort(
-		(a, b) => pillarOrder.indexOf(a.pillar) - pillarOrder.indexOf(b.pillar),
+		(a, b) => PILLAR_ORDER.indexOf(a.pillar) - PILLAR_ORDER.indexOf(b.pillar),
 	);
 
 	return scores;
@@ -463,20 +430,8 @@ export function aggregateOrgScore(
 	}
 
 	// Sort pillars by standard order
-	const pillarOrder: Pillar[] = [
-		"style",
-		"build",
-		"testing",
-		"documentation",
-		"devenv",
-		"observability",
-		"security",
-		"taskdiscovery",
-		"product",
-	];
-
 	aggregatedPillars.sort(
-		(a, b) => pillarOrder.indexOf(a.pillar) - pillarOrder.indexOf(b.pillar),
+		(a, b) => PILLAR_ORDER.indexOf(a.pillar) - PILLAR_ORDER.indexOf(b.pillar),
 	);
 
 	// Calculate overall org score
@@ -601,38 +556,4 @@ export function getTopRecommendations(
 		impact: fc.weight >= 1.2 ? "high" : fc.weight >= 0.8 ? "medium" : "low",
 		reason: `Improve ${PILLAR_NAMES[fc.pillar]} (L${fc.level} requirement)`,
 	}));
-}
-
-/**
- * Compare two scores and describe the difference
- */
-export function compareScores(
-	before: AppScore,
-	after: AppScore,
-): {
-	levelChange: number;
-	scoreChange: number;
-	improved: Pillar[];
-	regressed: Pillar[];
-} {
-	const levelChange = after.level - before.level;
-	const scoreChange = Math.round((after.score - before.score) * 10) / 10;
-
-	const improved: Pillar[] = [];
-	const regressed: Pillar[] = [];
-
-	for (const afterPillar of after.pillars) {
-		const beforePillar = before.pillars.find(
-			(p) => p.pillar === afterPillar.pillar,
-		);
-		if (beforePillar) {
-			if (afterPillar.score > beforePillar.score) {
-				improved.push(afterPillar.pillar);
-			} else if (afterPillar.score < beforePillar.score) {
-				regressed.push(afterPillar.pillar);
-			}
-		}
-	}
-
-	return { levelChange, scoreChange, improved, regressed };
 }

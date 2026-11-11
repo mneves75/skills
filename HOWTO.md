@@ -43,8 +43,14 @@ collection does not automatically change those instructions in other projects.
 | [`autoreview`](#autoreview) | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
 | [`untangle-codebase`](#untangle-codebase) | diagnose structural coupling or implement an explicitly scoped refactor | "refactor duplicated tax logic in src/checkout/, preserving public entrypoints" |
 | [`council`](#council) | get independent members to argue with a plan before you commit to it | "convene the council on this migration plan, two rounds" |
+| [`full-stop`](#full-stop) | take a change unattended to a proven, reviewed PR ready for you to merge, never merged (explicit request only) | "/full-stop" or "run full-stop" |
+| [`takeover`](#takeover) | finish someone else's PR, branch or agent thread while keeping their credit | "take over this PR" |
+| [`modernize`](#modernize) | rebase an aging PR onto its current base and decide whether it should still exist | "modernize this PR" |
+| [`babysit-pr`](#babysit-pr) | monitor a pull request through review and CI | "babysit this PR" |
+| [`leaving-pr-comments`](#leaving-pr-comments) | format and attribute GitHub comments an agent posts for you | "leave a review comment on this PR" |
 | [`mneves-handoff`](#mneves-handoff) | hand a task to another agent, review first | "handoff the flaky login test" |
 | [`mneves-render`](#mneves-render) | build repeatable HTML, Word and PDF exports from Markdown | "write a renderer for my Markdown reports" |
+| [`mneves-motion-film`](#mneves-motion-film) | make or update a short product film from a brief | "make a launch video for this product" |
 | [`mneves-security`](#mneves-security) | hunt vulnerabilities, audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy | "audit security and privacy; fix confirmed local issues; do not deploy" |
 | [`security-audit`](#security-audit) | run a deep, coverage-led source audit with a ledger and machine-readable findings | "full security audit of this codebase, with the coverage ledger" |
 | [`mneves-production-readiness`](#mneves-production-readiness) | check an app is ready for paying customers before each staging or production deploy | "is this ready for production? give me the fix plan" |
@@ -168,7 +174,8 @@ a secret. NOT APPLICABLE needs evidence; blocked/untested controls never become 
 
 **Prerequisites and limits.** Ships no scanner or required integration. Uses the target
 project's tools and current official documentation; missing retrieval is disclosed.
-Fable/expert-review/code-review/verify are separately installed optional procedures
+`mneves-fable-orchestrator`, `mneves-expert-review`, `code-review` and `mneves-verify` are
+separately installed optional procedures
 with inline fallbacks. Independent security acceptance still requires a fresh,
 different-model verifier; when unavailable, the useful report remains available and
 that assurance gate is BLOCKED. The skill provides engineering readiness, not legal
@@ -240,7 +247,7 @@ Procedure: [SKILL.md](skills/security-audit/SKILL.md).
 
 **What it does.** Checks that an app will not lose or corrupt data, charge wrongly, fail
 without anyone noticing, become impossible to undo, or depend on one person. It inspects the
-actual project against 103 controls (data model and migrations, backups and restore, money,
+actual project against 104 controls (data model and migrations, backups and restore, money,
 time and text handling, delivery, queues and integrations, email, cost, monitoring and on-call,
 testing, billing, public API, AI operations, user experience, maintainability and ownership)
 plus 32 security and compliance rows that it takes from `mneves-security`. It records each
@@ -502,7 +509,7 @@ care; otherwise the agent infers it and says which it picked.
 
 **Tips.**
 - "Now for my CTO" re-explains at another level without starting over.
-- The skill refuses "it's easy" and "obviously". If you want that tone, you are on your own.
+- Its worked example avoids "simply" and "it's easy".
 - Mixed room? It writes for the least technical person and adds a marked "for the engineers"
   block.
 
@@ -512,7 +519,8 @@ care; otherwise the agent infers it and says which it picked.
 
 **What it does.** Runs a six-step pass over a draft (or a request with no draft yet): clarify
 the real objective, rebuild from first principles, research only when it changes the answer,
-attack it from three angles at once (hostile panel, pre-mortem, the strongest opposing case),
+challenge it once (expert, implementer, user and risk perspectives in one pass, a pre-mortem,
+the strongest opposing case),
 compare distinct alternatives using explicit criteria and justified weights, then improve,
 audit once, and deliver. It scales with the stakes: a factual one-liner gets the mental
 version, a migration plan gets the full pass.
@@ -550,7 +558,7 @@ recommendation or architecture decision.
 **Tips.**
 - Give it the draft, not a summary of the draft. It reads the whole thing first.
 - Use `mneves-verify` afterwards when the user, repository, workflow, or risk requires an
-  independent judge. The panel argues; the verifier runs things.
+  independent judge. The review challenges; the verifier runs things.
 - Ask for the challenge-the-premise alternative explicitly if it does not surface it. That is
   the one you cannot produce yourself, and it is reported even when rejected.
 
@@ -828,11 +836,13 @@ the loop ends. Findings map to *fixed*, *disproved* or *blocked*, nothing else.
 
 ## mneves-fable-orchestrator
 
-**What it does.** Routes non-trivial work across the main session, Codex, and subagents when
-delegation creates independent progress or evidence. Building and reviewing run on different
-seats: the main session and every worker build, planning and plan advice run on their own
-seats, and code review runs on the other host's reviewer (Codex reviews Claude-built work, Claude
-reviews Codex-built work), so the model that built a change never reviews it. The concrete
+**What it does.** Splits non-trivial work between a main session that plans, advises and
+reviews and the executors it dispatches. The main session writes the spec, reads what comes back
+and accepts it; workers, a heavy executor or a low-cost economy executor build, and the main
+session may keep the hardest part. It red-teams a non-trivial plan before writing it. Building and
+reviewing run on different seats: code review runs on the other host's reviewer (Codex reviews
+Claude-built work, Claude reviews Codex-built work), so the model that built a change never
+reviews it. The concrete
 models and reasoning tiers live only in the skill's Defaults block.
 Codex review has no automatic model fallback. The portable defaults do not change a running
 harness's main-session model. Caller overrides and actual host
@@ -855,8 +865,8 @@ ln -s ~/.agents/skills/mneves-fable-orchestrator/tools/codex-lane ~/bin/codex-la
 ```
 
 (Adjust the source path to wherever the skill was installed. A lane stores launch arguments,
-not environment, so pass `CODEX_HOME` on every `start` and `next` when you use more than one
-Codex home.)
+not environment, so pass `CODEX_HOME` on every `start`, `next`, `adopt` and `fork` when you
+use more than one Codex home.)
 
 **Example** (illustrative; a real run dispatches Codex). You ask for row-level security on a multi-tenant API.
 
@@ -895,8 +905,9 @@ fact with `codex-lane adopt <lane> <thread-id>`.
 **What it does.** Scores a repository on how well it supports an agent's loop of gathering
 context, making a change, verifying it and iterating. Nine pillars (style, build, testing,
 documentation, dev environment, observability, security, task discovery, product), fifty-plus
-checks, a percentage and a maturity level L1–L5. Ships with a Bun/TypeScript tool that runs
-locally and sends nothing about your repository anywhere. Some checks run the project's own
+checks, a percentage and a maturity level L1–L5. Its Bun/TypeScript tool comes with the
+repository (a full clone), not with a single-skill install; it runs locally and sends nothing
+about your repository anywhere. Some checks run the project's own
 build, lint and test tools through `/bin/sh` with a deadline; those tools may download
 packages and write build output. It needs a POSIX system (macOS or Linux) and a repository
 you trust.

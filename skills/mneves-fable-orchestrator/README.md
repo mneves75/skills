@@ -8,7 +8,7 @@ Delegate only when the work is independent, substantial, and objectively verifia
 
 | Role | Who | What |
 |------|-----|------|
-| Main session | The orchestrating session (Claude or Codex; model per the skill's Defaults block) | Repo understanding, architecture decisions, task decomposition, spec writing, acceptance |
+| Main session | The orchestrating session (Claude or Codex; model per the skill's Defaults block) | Planning, advice and review: repo understanding, architecture decisions, task decomposition, spec writing, acceptance. Dispatches implementation; may keep the hardest part |
 | Frontend subagent | Frontend subagents (model per the Defaults block) | UI components, styling, layout, visual polish |
 | Ordinary worker | A scoped worker (model per the Defaults block) | Routine implementation with checkable acceptance |
 | Bounded worker | A scoped worker (model per the Defaults block) | Search, writing, and mechanical changes with a narrow result |
@@ -17,6 +17,7 @@ Delegate only when the work is independent, substantial, and objectively verifia
 | Plan advisor | Claude's native advisor or a read-only Codex run (model per the Defaults block) | Review of the main session's plan before a decision with real downside |
 | Reviewer | A read-only Claude subagent, `autoreview`, or a read-only Codex run (model per the Defaults block) | Independent review of a fixed Git target, never by the model that built it |
 | Specialist | A deliberately chosen model (model per the Defaults block) | Comparison or capability-specific work |
+| Economy executor | A low-cost model through `pi` (model per the Defaults block) | Bounded tickets whose proof is a test written first; never a repository that declares client, personal or regulated data |
 
 User-requested multi-phase work needs a driver that survives context loss: a lane, a checked-in plan file, or your harness's long-task mechanism.
 
@@ -65,7 +66,7 @@ thread instead of re-specifying it: `codex-lane adopt api-rls <thread-id> [cwd]`
   `-o`/`--output-last-message`, `--ephemeral` (it owns the event stream and last-message file,
   and an ephemeral thread cannot be resumed).
 - The wrapper stores launch arguments, never environment: set `CODEX_HOME` (or any other
-  environment) on every `start`, `next`, and `adopt` for that lane.
+  environment) on every `start`, `next`, `adopt` and `fork` for that lane.
 - If the backend refuses to resume a long thread (`thread/resume failed` on stderr), `next` exits
   non-zero, says so on stderr, and withholds the stale previous message; start a fresh lane with
   a self-contained order. Only stderr is consulted: the event stream is the model's own output.

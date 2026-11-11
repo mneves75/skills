@@ -27,6 +27,9 @@ dispatch the model and reasoning effort each seat is meant to run at? Cases live
   are for diagnosis. The baseline control passes only when every unchanged case passes and every
   changed case fails every sample: a changed case that passes on the baseline does not
   discriminate, and the control fails until the case is replaced or no longer marked changed.
+  A case marked `"changed": "clarified"` had its source reworded to remove an ambiguity without
+  changing its expected answer: the candidate run judges it, and the baseline run records its
+  counts in `clarified_on_baseline` and fails only on an errored sample.
   Output stays with the release's private gate records. Live runs call paid models and are
   never run by CI.
 

@@ -121,5 +121,5 @@ Skip the rituals: "think of 10 other solutions", "imagine you are 5 years from n
 satisfied", a second full review pass over unchanged work. None substitutes for a configured
 reasoning effort, and none was traced to a real failure.
 
-When this skill misfires, add one line describing that failure. Nothing else. The README explains
-what else was deliberately left out and why.
+When this skill misfires, report the failure to the owner as one line for this section. Nothing
+else. The README explains what else was deliberately left out and why.

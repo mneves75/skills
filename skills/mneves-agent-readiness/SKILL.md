@@ -62,11 +62,11 @@ bun --bun "$SKILLS/tools/readiness-check.ts" --min-level=3
 
 | Level | Name | Description |
 |-------|------|-------------|
-| **L1** | Functional | Code runs, basic files exist |
-| **L2** | Navigable | Agent can find things |
-| **L3** | Actionable | Agent can make changes safely |
-| **L4** | Verifiable | Agent can check its work |
-| **L5** | Autonomous | Agent can work independently |
+| **L1** | Functional | Not ready for agents |
+| **L2** | Documented | Agents struggle but can contribute |
+| **L3** | Standardized | Agents need some guidance |
+| **L4** | Optimized | Agents can work with minimal supervision |
+| **L5** | Autonomous | Full agent delegation possible |
 
 **Target**: Level 3 minimum for productive AI development.
 

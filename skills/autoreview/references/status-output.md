@@ -11,8 +11,9 @@ Exit-code semantics and the versioned machine-readable outcome written by
 | `1`  | Accepted findings, an incorrect provider verdict, or a failed review attempt    |
 | `2`  | Unfinished assessment, incomplete scope/attribution, or a missing required finding |
 
-`--expect-findings` changes exit codes as before; inspect `status` independently
-of `exit_code`.
+`--expect-findings` treats findings as success, for harness acceptance tests: exit
+`0` with findings, `1` without, and `2` still for an unfinished assessment. Inspect
+`status` independently of `exit_code`.
 
 ## Status sidecar
 

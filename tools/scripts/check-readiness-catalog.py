@@ -72,7 +72,8 @@ def check_catalogs(audit: Audit) -> dict[str, tuple[Path, int]]:
     return controls
 
 
-def check_map(audit: Audit, controls: dict[str, tuple[Path, int]]) -> None:
+def check_map(audit: Audit, controls: dict[str, tuple[Path, int]]) -> int:
+    """Check the preservation map; return how many items it must carry."""
     lines = audit.lines(SPEC)
     expected = {f"B{i}" for i in range(1, 148)} | {f"R{i}" for i in range(1, 14)}
     counts: Counter[str] = Counter()
@@ -103,6 +104,7 @@ def check_map(audit: Audit, controls: dict[str, tuple[Path, int]]) -> None:
             audit.error(SPEC, heading, f"{item} must appear exactly once (found {counts[item]})")
     for control in sorted(controls.keys() - mapped):
         audit.error(SPEC, heading, f"control {control} is missing from Preservation map")
+    return len(expected)
 
 
 def check_references(audit: Audit) -> None:
@@ -194,14 +196,14 @@ def main() -> int:
     parser.add_argument("repository", nargs="?", type=Path, default=Path(__file__).resolve().parents[2])
     audit = Audit(parser.parse_args().repository)
     controls = check_catalogs(audit)
-    check_map(audit, controls)
+    preserved = check_map(audit, controls)
     check_references(audit)
     check_ledger(audit, controls)
     if audit.errors:
         print("\n".join(audit.errors))
         print(f"readiness catalog: FAILED ({len(audit.errors)} violations)")
         return 1
-    print(f"readiness catalog: OK ({len(controls)} controls, 160 preserved items, ledger consistent)")
+    print(f"readiness catalog: OK ({len(controls)} controls, {preserved} preserved items, ledger consistent)")
     return 0
 
 

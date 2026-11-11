@@ -14,15 +14,28 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
-- **1.48.0 candidate**: closes the two needs-validation items the 1.47.0 gate carried.
-  Autoreview refuses the Kimi engine without `--allow-kimi-argv-prompt`, because Kimi Code takes
-  the prompt only as a process argument other local accounts can read (RS-H01). `pr-wait` knows
-  review and deploy bots by their own GitHub App, not a name fragment (ROOT-H01). The routing
-  eval moves from private scratch into `tools/routing-eval/` with a deterministic CI freshness
-  check; live runs stay a release step. It folds the 1.47.0 binding run into the readiness
-  ledger and plan (cursor `ae1e809`) and carries PR #49's instruction changes, which reached
-  `main` without a release. Its own binding verdict and live proof belong in its private
-  exact-candidate records and annotated release tag.
+- **1.49.0 candidate**: the orchestrator's main session becomes the planning seat (it plans,
+  advises and reviews; executors build from a written spec; the old local fallback row is the
+  economy executor, a regular seat with a data-disclosure limit; a non-trivial plan is red-teamed
+  first). Routing-eval revision 6 follows that text. A read-only audit of the whole repository
+  found 58 items; the certain ones are fixed here, including a readiness-assessor bug where a
+  mistyped option disabled a CI gate, and the rest are listed for the owner. The site's catalog
+  drops the stale "new" highlight, the guide page takes the landing page's header and type, and
+  the install commands stop breaking mid-word on phones. It folds the 1.48.0 binding run into
+  the readiness ledger and plan (cursor `93bf9f9`). Its own binding verdict and live proof belong
+  in its private exact-candidate records and annotated release tag.
+- **1.48.0** (2026-11-11 UTC closeout): closed the two needs-validation items the 1.47.0 gate
+  carried. Autoreview refuses the Kimi engine without `--allow-kimi-argv-prompt`, because Kimi
+  Code takes the prompt only as a process argument other local accounts can read (RS-H01).
+  `pr-wait` knows review and deploy bots by their own GitHub App, not a name fragment (ROOT-H01).
+  The routing eval moved from private scratch into `tools/routing-eval/` with a deterministic CI
+  freshness check; live runs stay a release step, each sample asked once with the Codex consumer's
+  shell tool disabled. Published as `93bf9f9` (PR #53, audit `dc65309`, identical tree
+  `f97af5d1`), tagged `v1.48.0`; CI run 42956613883 and Pages run 42957770657 succeeded and the
+  served files matched the gated tree. Security WAIVED six standing controls; readiness ready with
+  26 waivers, sixteen of them candidate-only conditional approvals to 2026-11-12T23:59:59Z. An
+  earlier candidate (`b7f0f44`) failed independent acceptance on a finding in the new eval runner;
+  the fix removed its retry loop.
 - **1.47.0** (2026-11-10 UTC closeout): adds `mneves-socratic-tutor`, adapted from
   janestreet/agent_skills `socratic-tutor` at `7c6715c` (MIT) under the owner's chosen prefix,
   with next-turn trials written first (`docs/specs/mneves-socratic-tutor/`). It moved the Fable
@@ -155,7 +168,7 @@ measure whether a *target* codebase is ready for agents.
   under eleven owner waivers expiring 2026-10-25T23:59:59Z, recorded in
   `docs/readiness/ledger.md` and `.scratch/readiness/production.json`.
 - **1.37.0** (2026-10-16): fifteen default skills, adding `mneves-production-readiness`, a deploy
-  gate for data, recovery, money, operations, UX and maintainability (103 controls plus 32
+  gate for data, recovery, money, operations, UX and maintainability (104 controls plus 32
   security and compliance rows imported from the `mneves-security` gate record). Release
   contract version 2 adds the readiness record (guarantee 11). Owner decisions: delta cadence,
   staging blocks on DM-02/DM-03/TST-05 only, production waives blocker and contract rows by

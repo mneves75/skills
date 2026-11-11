@@ -70,11 +70,6 @@ CREATE INDEX IF NOT EXISTS idx_reviews_card ON reviews(card_id);
 """
 
 
-def _now() -> str:
-    """Current UTC time as ISO string (consistent with SQLite datetime('now'))."""
-    return datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S")
-
-
 def get_db_path() -> Path:
     """Resolve DB path relative to current working directory."""
     return Path.cwd() / DB_DIR / DB_NAME
@@ -84,9 +79,9 @@ class SrsError(Exception):
     """A user-facing failure; the CLI prints it and exits with status 1."""
 
 
-def connect(db_path: Path | None = None) -> sqlite3.Connection:
+def connect() -> sqlite3.Connection:
     """Connect to the SRS database."""
-    path = db_path or get_db_path()
+    path = get_db_path()
     if not path.exists():
         raise SrsError(f"Database not found at {path}. Run 'init' first.")
     conn = sqlite3.connect(str(path))

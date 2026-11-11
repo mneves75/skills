@@ -53,7 +53,7 @@ You explain → the agent verifies against code → Socratic follow-ups → Card
 - **Location**: `<project-root>/.ai-learn/srs.db`
 - **Auto-gitignored** on first init
 - **WAL mode** for concurrent safety
-- **Soft deletes**: cards are never hard-deleted
+- **Deleted cards**: rows with a `deleted_at` value are excluded from reads; there is no delete command
 - **No external dependencies**: Python 3.11+ stdlib only
 
 ## SM-2 Algorithm

@@ -7,7 +7,7 @@
  * Supports regular, dev, and build dependencies.
  */
 
-import type { Dependency, DependencyManifest, ParseOptions } from "./types.js";
+import type { Dependency, DependencyManifest } from "./types.js";
 
 // ============================================================================
 // Types
@@ -47,10 +47,7 @@ interface CargoDep {
  */
 export async function parseCargoToml(
 	filepath: string,
-	options: ParseOptions = {},
 ): Promise<DependencyManifest | null> {
-	const { includeDev = true } = options;
-
 	try {
 		const file = Bun.file(filepath);
 		if (!(await file.exists())) {
@@ -75,7 +72,7 @@ export async function parseCargoToml(
 		}
 
 		// Parse dev dependencies
-		if (includeDev && cargo["dev-dependencies"]) {
+		if (cargo["dev-dependencies"]) {
 			for (const [name, spec] of Object.entries(cargo["dev-dependencies"])) {
 				const dep = parseCargoDep(name, spec);
 				if (dep) {

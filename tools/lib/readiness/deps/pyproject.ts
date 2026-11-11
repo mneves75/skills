@@ -11,7 +11,6 @@ import type {
 	Dependency,
 	DependencyManifest,
 	ManifestType,
-	ParseOptions,
 } from "./types.js";
 
 // ============================================================================
@@ -64,10 +63,7 @@ interface PoetryDep {
  */
 export async function parsePyProject(
 	filepath: string,
-	options: ParseOptions = {},
 ): Promise<DependencyManifest | null> {
-	const { includeDev = true } = options;
-
 	try {
 		const file = Bun.file(filepath);
 		if (!(await file.exists())) {
@@ -100,7 +96,7 @@ export async function parsePyProject(
 			}
 
 			// Parse optional dependencies (often used for dev)
-			if (includeDev && pyproject.project["optional-dependencies"]) {
+			if (pyproject.project["optional-dependencies"]) {
 				for (const [group, deps] of Object.entries(
 					pyproject.project["optional-dependencies"],
 				)) {
@@ -141,7 +137,7 @@ export async function parsePyProject(
 			}
 
 			// Parse Poetry dev dependencies
-			if (includeDev && poetry["dev-dependencies"]) {
+			if (poetry["dev-dependencies"]) {
 				for (const [depName, depSpec] of Object.entries(
 					poetry["dev-dependencies"],
 				)) {
@@ -154,7 +150,7 @@ export async function parsePyProject(
 			}
 
 			// Parse Poetry groups (e.g., [tool.poetry.group.dev.dependencies])
-			if (includeDev && poetry.group) {
+			if (poetry.group) {
 				for (const [groupName, group] of Object.entries(poetry.group)) {
 					const isDev = ["dev", "test", "testing", "development"].includes(
 						groupName.toLowerCase(),
@@ -179,7 +175,7 @@ export async function parsePyProject(
 		}
 
 		// UV format dev dependencies
-		if (includeDev && pyproject.tool?.uv?.["dev-dependencies"]) {
+		if (pyproject.tool?.uv?.["dev-dependencies"]) {
 			for (const dep of pyproject.tool.uv["dev-dependencies"]) {
 				const parsed = parsePep508(dep);
 				if (parsed) {
@@ -210,7 +206,6 @@ export async function parsePyProject(
  */
 export async function parseRequirementsTxt(
 	filepath: string,
-	_options: ParseOptions = {},
 ): Promise<DependencyManifest | null> {
 	try {
 		const file = Bun.file(filepath);

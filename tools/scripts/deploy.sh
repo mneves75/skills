@@ -38,7 +38,8 @@
 # DEPLOY_POLL_SECONDS (30), DEPLOY_TIMEOUT_SECONDS (2400), DEPLOY_SERVE_ATTEMPTS (10).
 set -euo pipefail
 
-usage() { sed -n '2,21p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2; exit 2; }
+# The usage is the file's leading comment block, which ends where the code starts, so it cannot drift.
+usage() { sed -n -e '1d' -e '/^[^#]/q' -e 'p' < "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//' >&2; exit 2; }
 pr=""; dry_run=0; make_tag=0
 for arg in "$@"; do
   case $arg in

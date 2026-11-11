@@ -10,8 +10,9 @@ no stopping condition. That prompt shape runs for hours and lands a diff nobody 
 
 ## What it does differently
 
-**Grants nothing.** Local edits only. Commit, push, tag, release, deploy, and PR merge each need the
-user's explicit word for that action and target. Release is a phase that exists to be refused.
+**Grants nothing.** It carries forward authority already granted by the user or trusted host
+policy; every other commit, push, merge, tag, release, or deploy needs its own approval for that
+action and target. Release is a phase that exists to be refused.
 
 **Bounded, not exhaustive.** Every item ends on a stated condition, not on a feeling of
 completeness. Reviews get one round plus one rerun if accepted findings changed the artifact. If a

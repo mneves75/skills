@@ -119,24 +119,3 @@ export type LibraryMappings = {
 	};
 };
 
-// ============================================================================
-// Parser Interface
-// ============================================================================
-
-/**
- * Options for parsing
- */
-export interface ParseOptions {
-	/** Include dev dependencies (default: true) */
-	includeDev?: boolean;
-	/** Parse lockfile for resolved versions (default: false) */
-	parseLockfile?: boolean;
-}
-
-/**
- * Parser function signature
- */
-export type ManifestParser = (
-	filepath: string,
-	options?: ParseOptions
-) => Promise<DependencyManifest | null>;

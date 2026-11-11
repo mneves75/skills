@@ -671,23 +671,3 @@ export async function discoverApps(repoPath?: string): Promise<DiscoveryResult> 
 		workspaceConfig,
 	};
 }
-
-/**
- * Get only deployable apps (excluding libraries and workspace roots)
- */
-export function getDeployableApps(result: DiscoveryResult): DetectedApp[] {
-	return result.apps.filter((app) => app.type === "app");
-}
-
-/**
- * Get the primary app (root app or first deployable app)
- */
-export function getPrimaryApp(result: DiscoveryResult): DetectedApp | undefined {
-	// First check for root app
-	const rootApp = result.apps.find((a) => a.isRoot && a.type === "app");
-	if (rootApp) return rootApp;
-
-	// Then first deployable app
-	const deployable = getDeployableApps(result);
-	return deployable[0];
-}

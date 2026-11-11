@@ -10,7 +10,6 @@
 import type {
 	Dependency,
 	DependencyManifest,
-	ParseOptions,
 } from "./types.js";
 
 // ============================================================================
@@ -21,11 +20,8 @@ import type {
  * Parse a go.mod file
  */
 export async function parseGoMod(
-	filepath: string,
-	options: ParseOptions = {}
+	filepath: string
 ): Promise<DependencyManifest | null> {
-	const { includeDev = true } = options;
-
 	try {
 		const file = Bun.file(filepath);
 		if (!(await file.exists())) {
@@ -77,7 +73,6 @@ export async function parseGoMod(
 			if (line.startsWith("require ") && !line.includes("(")) {
 				const dep = parseRequireLine(line.substring(8).trim());
 				if (dep) {
-					if (dep.type === "development" && !includeDev) continue;
 					if (dep.type === "development") {
 						devDependencies.push(dep);
 					} else {
@@ -91,7 +86,6 @@ export async function parseGoMod(
 			if (inRequireBlock) {
 				const dep = parseRequireLine(line);
 				if (dep) {
-					if (dep.type === "development" && !includeDev) continue;
 					if (dep.type === "development") {
 						devDependencies.push(dep);
 					} else {
@@ -145,12 +139,4 @@ function parseRequireLine(line: string): Dependency | null {
 		version: version,
 		type: isIndirect ? "development" : "production",
 	};
-}
-
-/**
- * Check if a module path matches a pattern
- * Supports prefix matching (e.g., "github.com/stretchr" matches "github.com/stretchr/testify")
- */
-export function moduleMatches(modulePath: string, pattern: string): boolean {
-	return modulePath === pattern || modulePath.startsWith(pattern + "/");
 }

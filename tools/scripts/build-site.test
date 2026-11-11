@@ -100,6 +100,45 @@ def validate_guide_accessibility(html):
     assert all(tabindex == '0' and in_main for _, tabindex, in_main in guide.scroll_regions), \
         'guide code/table scroll containers must be keyboard-focusable within main'
 
+class GuideContents(HTMLParser):
+    """Each table of contents (one per layout) and the section headings it must list."""
+    def __init__(self):
+        super().__init__()
+        self.navs = []
+        self.nav_depth = 0
+        self.in_main = False
+        self.headings = []
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == 'nav':
+            if self.nav_depth:
+                self.nav_depth += 1
+            elif attrs.get('aria-label') == 'Guide contents':
+                self.nav_depth = 1
+                self.navs.append([])
+        if tag == 'main':
+            self.in_main = True
+        if tag == 'a' and self.nav_depth:
+            self.navs[-1].append(attrs.get('href'))
+        if tag == 'h2' and self.in_main and attrs.get('id'):
+            self.headings.append(attrs['id'])
+
+    def handle_endtag(self, tag):
+        if tag == 'nav' and self.nav_depth:
+            self.nav_depth -= 1
+        if tag == 'main':
+            self.in_main = False
+
+def validate_guide_contents(html):
+    contents = GuideContents()
+    contents.feed(html)
+    assert contents.navs, 'guide has no table of contents (<nav aria-label="Guide contents">)'
+    expected = [f'#{heading}' for heading in contents.headings]
+    assert len(expected) > 2, f'guide fixture has too few section headings: {expected}'
+    for hrefs in contents.navs:
+        assert hrefs == expected, f'table of contents differs from the section headings: {hrefs} != {expected}'
+
 with tempfile.TemporaryDirectory(prefix='skills-build-site-') as scratch:
     target = Path(scratch)
     for name in ('HOWTO.md', 'CHANGELOG.md', 'site/index.html',
@@ -119,6 +158,7 @@ with tempfile.TemporaryDirectory(prefix='skills-build-site-') as scratch:
         html = (target / 'site/howto.html').read_text()
         assert '<h2 id="combining-them">Combining them</h2>' in html, 'HOWTO truncated before its final section'
         validate_guide_accessibility(html)
+        validate_guide_contents(html)
         index = (target / 'site/index.html').read_text()
         validate_catalog(index, html, skill_names)
         current = {name: hashlib.sha256((target / name).read_bytes()).hexdigest()
@@ -151,7 +191,7 @@ with tempfile.TemporaryDirectory(prefix='skills-build-site-') as scratch:
         else:
             raise AssertionError(f'catalog guard accepted {label}')
     guide_mutants = {
-        'missing main landmark': html.replace('<main>', '<div>', 1).replace('</main>', '</div>', 1),
+        'missing main landmark': html.replace('<main id="guide">', '<div id="guide">', 1).replace('</main>', '</div>', 1),
         'non-focusable scroll container': html.replace('tabindex="0"', 'tabindex="-1"', 1),
     }
     for label, mutant in guide_mutants.items():
@@ -162,6 +202,20 @@ with tempfile.TemporaryDirectory(prefix='skills-build-site-') as scratch:
             print(f'PASS: reject {label}')
         else:
             raise AssertionError(f'guide accessibility guard accepted {label}')
+    second_section = re.findall(r'<h2 id="([^"]+)">', html)[1]
+    contents_mutants = {
+        'missing table of contents': html.replace('aria-label="Guide contents"', 'aria-label="Other"'),
+        'stale contents entry': html.replace(f'href="#{second_section}"', 'href="#stale-section"', 1),
+        'contents entry without a section': html.replace(f'<h2 id="{second_section}">', '<h2>', 1),
+    }
+    for label, mutant in contents_mutants.items():
+        assert mutant != html, f'{label} mutation did not plant a violation'
+        try:
+            validate_guide_contents(mutant)
+        except AssertionError:
+            print(f'PASS: reject {label}')
+        else:
+            raise AssertionError(f'guide contents guard accepted {label}')
 
     # The active-content guard, through the real generator: each payload appended to a copy of
     # HOWTO.md must stop the build before site/howto.html is written. Several of them are read as

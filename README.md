@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.48.0-blue)
+![Version](https://img.shields.io/badge/version-1.49.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -42,7 +42,7 @@ artifacts.
 | [mneves-security](skills/mneves-security/) | Evidence-backed security/privacy audit and vulnerability hunting (candidates must name a crossed boundary and survive a fresh disprover), ordered remediation, authorized safe fixes and the mandatory gate before every staging or production deploy, using current OWASP guidance, adversarial review and independent acceptance |
 | [security-audit](skills/security-audit/) | Six-phase, coverage-led source audit with independent candidate and final verification, three finding verdicts, a schema-checked ledger and machine-readable findings; ships its Node validators and tests, and is not a deploy gate |
 | [mneves-production-readiness](skills/mneves-production-readiness/) | Gate staging and production deploys on production readiness: a ledger of evidence-backed controls (data, recovery, money, operations, ownership), a verdict per target and a detailed fix plan; security rows delegate to `mneves-security` |
-| [mneves-fable-orchestrator](skills/mneves-fable-orchestrator/) | Route ordinary, bounded and difficult work by capability; models live in one Defaults block, including one announced fallback lane; ships [`codex-lane`](skills/mneves-fable-orchestrator/tools/codex-lane) |
+| [mneves-fable-orchestrator](skills/mneves-fable-orchestrator/) | The main session plans, advises and reviews; executors build from a written spec. Models live in one Defaults block, including an economy executor seat; ships [`codex-lane`](skills/mneves-fable-orchestrator/tools/codex-lane) |
 | [mneves-superaudit](skills/mneves-superaudit/) | Bounded audit-and-ship pass: slop, performance, agent DX, PR triage — falsifiable completion criteria, existing authority and requested stops |
 | [mneves-ship-deploy](skills/mneves-ship-deploy/) | Deploy the pushed commit, prove it live, then tag, through dev (when present) and staging without redundant confirmation; explicit approval of the exact candidate before production; ships a release-contract check |
 | [mneves-socratic-tutor](skills/mneves-socratic-tutor/) | Socratic tutoring to mastery on any topic: diagnostic first, a 0-5 skill map that marks untested subskills, one question per turn, levels earned on repeated checks that include unprompted recall, spaced review, a final assessment and a paste-able save state; adapted from Jane Street (MIT) |
@@ -136,7 +136,8 @@ done
 
 ## Readiness check (tool)
 
-`mneves-agent-readiness` ships a Bun + TypeScript assessor with no runtime dependencies.
+`mneves-agent-readiness` uses a Bun + TypeScript assessor with no runtime dependencies. It
+comes with the repository (a full clone), not with a single-skill install.
 It assesses the current directory:
 
 ```bash

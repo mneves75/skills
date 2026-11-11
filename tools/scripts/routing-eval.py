@@ -26,7 +26,10 @@ diagnosis, but always report a partial-run problem. Candidate: at least 3 sample
 every case passes, nothing errored. `--baseline` (an older text as a control): every unchanged case
 passes every sample, every changed case fails every sample, nothing errored. A changed case that
 passes any sample on the baseline does not discriminate: it is listed in `control_limits` and the
-control fails until the case is replaced or no longer marked changed.
+control fails until the case is replaced or no longer marked changed. A case marked
+`"changed": "clarified"` had its source reworded to remove an ambiguity without changing its
+expected answer: a candidate run judges it like any case, while a baseline run records its counts
+in `clarified_on_baseline` and judges only its errors.
 """
 from __future__ import annotations
 
@@ -107,8 +110,8 @@ def shape_problems(spec: object) -> list[str]:
             problems.append(f"{cid}: sources must be a non-empty list of paths")
         if not isinstance(case.get("scenario"), str) or not case["scenario"].strip():
             problems.append(f"{cid}: scenario must be a non-empty string")
-        if not isinstance(case.get("changed"), bool):
-            problems.append(f"{cid}: changed must be a boolean")
+        if not isinstance(case.get("changed"), bool) and case.get("changed") != "clarified":
+            problems.append(f'{cid}: changed must be true, false or "clarified"')
         if not isinstance(case.get("known_failure"), str):
             problems.append(f"{cid}: known_failure must be a string")
         expected = case.get("expected")
@@ -194,9 +197,10 @@ def per_case_counts(cases: list[dict], providers: list[str], records: list[dict]
 
 
 def threshold(per_case: dict[str, dict], samples: int, baseline: bool,
-              coverage: dict) -> tuple[bool, list[str], list[str]]:
-    """Return (met, problems, control_limits) for one run. Any control limit also fails the run."""
-    problems, limits = [], []
+              coverage: dict) -> tuple[bool, list[str], list[str], list[str]]:
+    """Return (met, problems, control_limits, clarified_on_baseline) for one run. Any control limit
+    also fails the run; a clarified case on the baseline is only recorded."""
+    problems, limits, clarified = [], [], []
     if not coverage["full"]:
         problems.append(f"partial run: {coverage['cases']} of {coverage['of']} cases on "
                         f"{', '.join(coverage['providers'])}; a threshold needs every case on claude and codex")
@@ -205,12 +209,15 @@ def threshold(per_case: dict[str, dict], samples: int, baseline: bool,
     for key, c in per_case.items():
         if c["error"]:
             problems.append(f"{key}: {c['error']} of {c['samples']} samples errored")
-        if baseline and c["changed"]:
+        if baseline and c["changed"] == "clarified":
+            clarified.append(f"{key}: clarified case passed {c['pass']}, failed {c['fail']}, "
+                             f"errored {c['error']} of {c['samples']} samples on the baseline")
+        elif baseline and c["changed"]:
             if c["pass"]:
                 limits.append(f"{key}: changed case passed {c['pass']} of {c['samples']} samples on the baseline")
         elif c["fail"]:
             problems.append(f"{key}: {c['fail']} of {c['samples']} samples failed")
-    return not problems and not limits, problems, limits
+    return not problems and not limits, problems, limits, clarified
 
 
 def tool_use(events: str) -> list[str]:
@@ -370,7 +377,7 @@ def command_run(args: argparse.Namespace) -> int:
     total = len(spec["cases"])
     coverage = {"cases": len(cases), "of": total, "providers": providers,
                 "full": len(cases) == total and sorted(providers) == ["claude", "codex"]}
-    met, problems, limits = threshold(per_case, args.samples, args.baseline, coverage)
+    met, problems, limits, clarified = threshold(per_case, args.samples, args.baseline, coverage)
     consumers = {"claude": {"model": CLAUDE_MODEL, "effort": CLAUDE_EFFORT},
                  "codex": {"model": CODEX_MODEL, "effort": CODEX_EFFORT}}
     summary = {
@@ -385,6 +392,7 @@ def command_run(args: argparse.Namespace) -> int:
                    "fail": sum(not r["pass"] and not r["error"] for r in records),
                    "error": sum(r["error"] for r in records), "samples": len(records)},
         "per_case": per_case, "threshold_met": met, "problems": problems, "control_limits": limits,
+        "clarified_on_baseline": clarified,
     }
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=1) + "\n")
     print(json.dumps({"totals": summary["totals"], "threshold_met": met}))
@@ -392,6 +400,8 @@ def command_run(args: argparse.Namespace) -> int:
         print("problem:", line)
     for line in limits:
         print("control limit:", line)
+    for line in clarified:
+        print("clarified:", line)
     return 0 if met else 1
 
 
