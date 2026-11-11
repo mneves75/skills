@@ -94,7 +94,7 @@ const ratio = (a, b) => {
 };
 const targets = [...document.querySelectorAll('article.skill.new *, code')]
   .filter(el => [...el.childNodes].some(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim()));
-if (!targets.some(el => el.matches('article.skill.new code'))) throw new Error('no inline code in a lime card to check');
+if (!targets.some(el => el.matches('article.skill.new .release-note'))) throw new Error('no new-skill tag to check');
 const low = [];
 for (const el of targets) {
   const bg = backdrop(el);

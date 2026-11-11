@@ -3,25 +3,127 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; font-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="strict-origin-when-cross-origin">
 <title>How to use these skills</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%23132236'/%3E%3Ctext x='16' y='23' font-size='23' font-family='sans-serif' font-weight='700' text-anchor='middle' fill='white'%3Es%3C/text%3E%3C/svg%3E">
+<link rel="preload" href="assets/fonts/bricolage-grotesque.woff2" as="font" type="font/woff2" crossorigin>
 <style>
-:root{--bg:#fff;--fg:#1a1a1a;--muted:#666;--line:#e5e5e5;--code:#f4f4f4;--link:#1d4ed8}
-@media (prefers-color-scheme:dark){:root{--bg:#0f0f0f;--fg:#eaeaea;--muted:#999;--line:#2a2a2a;--code:#1c1c1c;--link:#7aa2ff}}
-body{margin:0 auto;max-width:46rem;padding:2rem 1.25rem 4rem;font:16px/1.6 -apple-system,system-ui,sans-serif;color:var(--fg);background:var(--bg)}
-h1,h2,h3{line-height:1.25}h1{font-size:2rem}h2{margin-top:2.5rem;padding-top:1rem;border-top:1px solid var(--line)}
-a{color:var(--link)}code{font:0.9em ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--code);padding:.1em .3em;border-radius:3px;overflow-wrap:anywhere}
-p,li,blockquote{max-width:36em}
-pre{background:var(--code);padding:1rem;overflow-x:auto;border-radius:6px;white-space:pre-wrap;overflow-wrap:anywhere}pre code{background:none;padding:0}
-table{border-collapse:collapse;width:100%;margin:1rem 0;display:block;overflow-x:auto}th,td{text-align:left;padding:.5rem;border-bottom:1px solid var(--line);vertical-align:top;overflow-wrap:anywhere}th{color:var(--muted);font-weight:600}
-pre:focus-visible,table:focus-visible{outline:2px solid var(--link);outline-offset:3px}
-blockquote{margin:1rem 0;padding:.25rem 1rem;border-left:3px solid var(--line);color:var(--fg)}hr{border:0;border-top:1px solid var(--line);margin:2rem 0}
+@font-face{font-family:Bricolage;src:url('assets/fonts/bricolage-grotesque.woff2') format('woff2');font-weight:200 800;font-style:normal;font-display:swap}
+:root{color-scheme:light dark;--paper:#fff;--ink:#132236;--muted:#43556c;--rule:#d5dce5;--accent:#164bd6;--soft:#f0f5ff;--lime:#def59b;--on-lime:#203615;--code:#edf1f7;--focus:#164bd6;--display:Bricolage,Arial,sans-serif;--body:Bricolage,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+@media(prefers-color-scheme:dark){:root{--paper:#111b2b;--ink:#f1f5fc;--muted:#b6c4d8;--rule:#36465d;--accent:#abc4ff;--soft:#1b2d49;--code:#21324a;--focus:#d8ee9c}}
+*{box-sizing:border-box}
+html{scroll-padding-top:1.5rem}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.6 var(--body);-webkit-font-smoothing:antialiased}
+::selection{background:var(--lime);color:var(--on-lime)}
+:focus-visible{outline:3px solid var(--focus);outline-offset:5px}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:.22em}
+a:hover{text-decoration-thickness:2px}
+code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+code{font-size:.88em;background:var(--code);padding:.12em .3em;border-radius:3px;overflow-wrap:anywhere}
+h1,h2,h3,h4{font-family:var(--display);font-weight:650;line-height:1.15;letter-spacing:-.015em;text-wrap:balance}
+.wrap{max-width:78rem;margin-inline:auto;padding-inline:clamp(1.25rem,4vw,3rem)}
+.skip{position:absolute;top:.6rem;left:1rem;padding:.7rem 1rem;background:var(--ink);color:var(--paper);transform:translateY(-150%);z-index:3}.skip:focus{transform:translateY(0)}
+.masthead{display:flex;align-items:center;justify-content:space-between;gap:2rem;padding-block:1.5rem;border-bottom:1px solid var(--rule)}
+.brand{display:flex;gap:.65rem;align-items:center;color:var(--ink);font-size:1.1rem;font-weight:700;text-decoration:none;white-space:nowrap}
+.mark{width:32px;height:32px;display:grid;place-items:center;background:var(--ink);color:var(--paper);border-radius:4px;font-size:1.55rem;line-height:1}
+.nav{display:flex;flex-wrap:wrap;align-items:center;gap:1.5rem}.nav a{color:var(--ink);font-size:.95rem;text-decoration:none;padding-block:.5rem}.nav a:hover,.nav a[aria-current]{text-decoration:underline}
+.guide{display:grid;grid-template-columns:13rem minmax(0,1fr);gap:3.5rem;align-items:start}
+.guide>main{min-width:0;max-width:48rem;padding-block:2.5rem 3rem}
+.toc ol{list-style:none;margin:0;padding:0}
+.toc a{display:block;padding:.3rem 0;color:var(--muted);font-size:.88rem;line-height:1.35;text-decoration:none;overflow-wrap:anywhere}.toc a:hover{color:var(--ink);text-decoration:underline}
+.toc a:focus-visible{outline-offset:2px}
+.toc-side{position:sticky;top:0;max-height:100vh;overflow-y:auto;padding:2.5rem .5rem 2rem;margin-inline:-.5rem}
+.toc-title{margin:0 0 .5rem;font-size:.8125rem;font-weight:600;color:var(--ink)}
+.toc-inline{display:none}
+.toc-inline details{background:var(--soft);border-radius:3px}
+.toc-inline summary{min-height:48px;padding:.75rem .8rem;font-size:.95rem;font-weight:600;cursor:pointer}
+.toc-inline ol{padding:0 .8rem .7rem}
+main h1{margin:0 0 1.25rem;font-size:clamp(2.4rem,4.6vw,3.6rem);letter-spacing:-.025em;line-height:1.1}
+main h2{margin:3rem 0 1rem;padding-top:1.5rem;border-top:1px solid var(--rule);font-size:clamp(1.6rem,2.4vw,2rem);overflow-wrap:anywhere}
+main h3{margin:2rem 0 .6rem;font-size:1.2rem}main h4{margin:1.5rem 0 .5rem;font-size:1rem}
+main p,main li,main blockquote{max-width:34em}
+main p,main ul,main ol{margin:0 0 1rem}main li+li{margin-top:.3rem}
+pre{margin:0 0 1.25rem;padding:1rem 1.2rem;background:var(--code);border-radius:4px;font-size:.82rem;line-height:1.7;white-space:pre;overflow-x:auto;scrollbar-color:var(--muted) var(--code)}pre code{background:none;padding:0;font-size:inherit;overflow-wrap:normal}
+table{display:block;max-width:100%;overflow-x:auto;border-collapse:collapse;margin:0 0 1.25rem;font-size:.92rem}th,td{text-align:left;padding:.55rem .8rem .55rem 0;border-bottom:1px solid var(--rule);vertical-align:top}th{color:var(--muted);font-weight:600}td code,th code{white-space:nowrap;overflow-wrap:normal}
+blockquote{margin:0 0 1rem;padding:.25rem 1rem;border-left:3px solid var(--rule)}hr{border:0;border-top:1px solid var(--rule);margin:2rem 0}
+.footer{display:flex;gap:1.25rem;flex-wrap:wrap;padding-block:1.5rem 2rem;border-top:1px solid var(--rule);font-size:.85rem;color:var(--muted)}
+@media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
+@media(max-width:64rem){.guide{grid-template-columns:minmax(0,1fr);gap:0}.toc-side{display:none}.toc-inline{display:block;max-width:48rem;width:100%;margin-inline:auto;padding-top:1.5rem}.guide>main{padding-top:2rem;margin-inline:auto;width:100%}}
+@media(max-width:48rem){body{font-size:16px}.masthead{gap:1rem;flex-wrap:wrap;padding-block:1.15rem}.nav{gap:1.15rem}}
+@media(max-width:36rem){.brand{font-size:1rem}.nav{gap:1rem;font-size:.88rem}}
+@media(forced-colors:active){.toc-inline details{border:1px solid ButtonText}}
 </style>
 </head>
 <body>
-<nav aria-label="Site" style="font-size:.875rem"><a href="./">mneves75/skills</a> · How to use the skills</nav>
-<main>
+<a class="skip" href="#guide">Skip to the guide</a>
+<div class="wrap">
+<header class="masthead">
+  <a class="brand" href="./"><span class="mark" aria-hidden="true">s</span>mneves75/skills</a>
+  <nav class="nav" aria-label="Site"><a href="index.html#skills">Catalog</a><a href="index.html#install">Install</a><a href="howto.html" aria-current="page">Guide</a><a href="https://github.com/mneves75/skills">GitHub</a></nav>
+</header>
+<div class="guide">
+<nav class="toc toc-side" aria-label="Guide contents"><p class="toc-title">Contents</p><ol>
+<li><a href="#install-once">Install once</a></li>
+<li><a href="#untangle-codebase">untangle-codebase</a></li>
+<li><a href="#mneves-security">mneves-security</a></li>
+<li><a href="#security-audit">security-audit</a></li>
+<li><a href="#mneves-production-readiness">mneves-production-readiness</a></li>
+<li><a href="#mneves-render">mneves-render</a></li>
+<li><a href="#mneves-motion-film">mneves-motion-film</a></li>
+<li><a href="#autoreview">autoreview</a></li>
+<li><a href="#mneves-handoff">mneves-handoff</a></li>
+<li><a href="#imagegen-frontend-mobile">imagegen-frontend-mobile</a></li>
+<li><a href="#mneves-eli5">mneves-eli5</a></li>
+<li><a href="#mneves-expert-review">mneves-expert-review</a></li>
+<li><a href="#council">council</a></li>
+<li><a href="#full-stop">full-stop</a></li>
+<li><a href="#takeover">takeover</a></li>
+<li><a href="#modernize">modernize</a></li>
+<li><a href="#babysit-pr">babysit-pr</a></li>
+<li><a href="#leaving-pr-comments">leaving-pr-comments</a></li>
+<li><a href="#mneves-verify">mneves-verify</a></li>
+<li><a href="#mneves-fable-orchestrator">mneves-fable-orchestrator</a></li>
+<li><a href="#mneves-agent-readiness">mneves-agent-readiness</a></li>
+<li><a href="#mneves-superaudit">mneves-superaudit</a></li>
+<li><a href="#mneves-socratic-tutor">mneves-socratic-tutor</a></li>
+<li><a href="#mneves-teach-back-srs">mneves-teach-back-srs</a></li>
+<li><a href="#mneves-ship-deploy">mneves-ship-deploy</a></li>
+<li><a href="#mneves-chatgpt-search">mneves-chatgpt-search</a></li>
+<li><a href="#pstack-collection">pstack collection</a></li>
+<li><a href="#combining-them">Combining them</a></li>
+</ol></nav>
+<nav class="toc toc-inline" aria-label="Guide contents"><details><summary>Contents</summary><ol>
+<li><a href="#install-once">Install once</a></li>
+<li><a href="#untangle-codebase">untangle-codebase</a></li>
+<li><a href="#mneves-security">mneves-security</a></li>
+<li><a href="#security-audit">security-audit</a></li>
+<li><a href="#mneves-production-readiness">mneves-production-readiness</a></li>
+<li><a href="#mneves-render">mneves-render</a></li>
+<li><a href="#mneves-motion-film">mneves-motion-film</a></li>
+<li><a href="#autoreview">autoreview</a></li>
+<li><a href="#mneves-handoff">mneves-handoff</a></li>
+<li><a href="#imagegen-frontend-mobile">imagegen-frontend-mobile</a></li>
+<li><a href="#mneves-eli5">mneves-eli5</a></li>
+<li><a href="#mneves-expert-review">mneves-expert-review</a></li>
+<li><a href="#council">council</a></li>
+<li><a href="#full-stop">full-stop</a></li>
+<li><a href="#takeover">takeover</a></li>
+<li><a href="#modernize">modernize</a></li>
+<li><a href="#babysit-pr">babysit-pr</a></li>
+<li><a href="#leaving-pr-comments">leaving-pr-comments</a></li>
+<li><a href="#mneves-verify">mneves-verify</a></li>
+<li><a href="#mneves-fable-orchestrator">mneves-fable-orchestrator</a></li>
+<li><a href="#mneves-agent-readiness">mneves-agent-readiness</a></li>
+<li><a href="#mneves-superaudit">mneves-superaudit</a></li>
+<li><a href="#mneves-socratic-tutor">mneves-socratic-tutor</a></li>
+<li><a href="#mneves-teach-back-srs">mneves-teach-back-srs</a></li>
+<li><a href="#mneves-ship-deploy">mneves-ship-deploy</a></li>
+<li><a href="#mneves-chatgpt-search">mneves-chatgpt-search</a></li>
+<li><a href="#pstack-collection">pstack collection</a></li>
+<li><a href="#combining-them">Combining them</a></li>
+</ol></details></nav>
+<main id="guide">
 <h1>How to use these skills</h1>
 <p>This page shows what each skill does, how to trigger it, and what a session looks like. For the one-line summaries see the <a href="https://github.com/mneves75/skills/blob/main/README.md">README</a>; for the exact
 procedure an agent follows, open <code>skills/&lt;name&gt;/SKILL.md</code>. Service level objectives and
@@ -76,6 +178,31 @@ collection does not automatically change those instructions in other projects.</
 <td>&quot;convene the council on this migration plan, two rounds&quot;</td>
 </tr>
 <tr>
+<td><a href="#full-stop"><code>full-stop</code></a></td>
+<td>take a change unattended to a proven, reviewed PR ready for you to merge, never merged (explicit request only)</td>
+<td>&quot;/full-stop&quot; or &quot;run full-stop&quot;</td>
+</tr>
+<tr>
+<td><a href="#takeover"><code>takeover</code></a></td>
+<td>finish someone else&#39;s PR, branch or agent thread while keeping their credit</td>
+<td>&quot;take over this PR&quot;</td>
+</tr>
+<tr>
+<td><a href="#modernize"><code>modernize</code></a></td>
+<td>rebase an aging PR onto its current base and decide whether it should still exist</td>
+<td>&quot;modernize this PR&quot;</td>
+</tr>
+<tr>
+<td><a href="#babysit-pr"><code>babysit-pr</code></a></td>
+<td>monitor a pull request through review and CI</td>
+<td>&quot;babysit this PR&quot;</td>
+</tr>
+<tr>
+<td><a href="#leaving-pr-comments"><code>leaving-pr-comments</code></a></td>
+<td>format and attribute GitHub comments an agent posts for you</td>
+<td>&quot;leave a review comment on this PR&quot;</td>
+</tr>
+<tr>
 <td><a href="#mneves-handoff"><code>mneves-handoff</code></a></td>
 <td>hand a task to another agent, review first</td>
 <td>&quot;handoff the flaky login test&quot;</td>
@@ -84,6 +211,11 @@ collection does not automatically change those instructions in other projects.</
 <td><a href="#mneves-render"><code>mneves-render</code></a></td>
 <td>build repeatable HTML, Word and PDF exports from Markdown</td>
 <td>&quot;write a renderer for my Markdown reports&quot;</td>
+</tr>
+<tr>
+<td><a href="#mneves-motion-film"><code>mneves-motion-film</code></a></td>
+<td>make or update a short product film from a brief</td>
+<td>&quot;make a launch video for this product&quot;</td>
 </tr>
 <tr>
 <td><a href="#mneves-security"><code>mneves-security</code></a></td>
@@ -244,7 +376,8 @@ A public provider key is evaluated under its actual contract, not automatically 
 a secret. NOT APPLICABLE needs evidence; blocked/untested controls never become PASS.</p>
 <p><strong>Prerequisites and limits.</strong> Ships no scanner or required integration. Uses the target
 project&#39;s tools and current official documentation; missing retrieval is disclosed.
-Fable/expert-review/code-review/verify are separately installed optional procedures
+<code>mneves-fable-orchestrator</code>, <code>mneves-expert-review</code>, <code>code-review</code> and <code>mneves-verify</code> are
+separately installed optional procedures
 with inline fallbacks. Independent security acceptance still requires a fresh,
 different-model verifier; when unavailable, the useful report remains available and
 that assurance gate is BLOCKED. The skill provides engineering readiness, not legal
@@ -304,7 +437,7 @@ finding nor the absence of one.</li>
 <h2 id="mneves-production-readiness">mneves-production-readiness</h2>
 <p><strong>What it does.</strong> Checks that an app will not lose or corrupt data, charge wrongly, fail
 without anyone noticing, become impossible to undo, or depend on one person. It inspects the
-actual project against 103 controls (data model and migrations, backups and restore, money,
+actual project against 104 controls (data model and migrations, backups and restore, money,
 time and text handling, delivery, queues and integrations, email, cost, monitoring and on-call,
 testing, billing, public API, AI operations, user experience, maintainability and ownership)
 plus 32 security and compliance rows that it takes from <code>mneves-security</code>. It records each
@@ -509,7 +642,7 @@ care; otherwise the agent infers it and says which it picked.</p>
 <p><strong>Tips.</strong></p>
 <ul>
 <li>&quot;Now for my CTO&quot; re-explains at another level without starting over.</li>
-<li>The skill refuses &quot;it&#39;s easy&quot; and &quot;obviously&quot;. If you want that tone, you are on your own.</li>
+<li>Its worked example avoids &quot;simply&quot; and &quot;it&#39;s easy&quot;.</li>
 <li>Mixed room? It writes for the least technical person and adds a marked &quot;for the engineers&quot;
 block.</li>
 </ul>
@@ -517,7 +650,8 @@ block.</li>
 <h2 id="mneves-expert-review">mneves-expert-review</h2>
 <p><strong>What it does.</strong> Runs a six-step pass over a draft (or a request with no draft yet): clarify
 the real objective, rebuild from first principles, research only when it changes the answer,
-attack it from three angles at once (hostile panel, pre-mortem, the strongest opposing case),
+challenge it once (expert, implementer, user and risk perspectives in one pass, a pre-mortem,
+the strongest opposing case),
 compare distinct alternatives using explicit criteria and justified weights, then improve,
 audit once, and deliver. It scales with the stakes: a factual one-liner gets the mental
 version, a migration plan gets the full pass.</p>
@@ -551,7 +685,7 @@ recommendation or architecture decision.</p>
 <ul>
 <li>Give it the draft, not a summary of the draft. It reads the whole thing first.</li>
 <li>Use <code>mneves-verify</code> afterwards when the user, repository, workflow, or risk requires an
-independent judge. The panel argues; the verifier runs things.</li>
+independent judge. The review challenges; the verifier runs things.</li>
 <li>Ask for the challenge-the-premise alternative explicitly if it does not surface it. That is
 the one you cannot produce yourself, and it is reported even when rejected.</li>
 </ul>
@@ -770,11 +904,13 @@ it varies inputs, retries, and checks persistence so a hard-coded success screen
 </ul>
 <hr>
 <h2 id="mneves-fable-orchestrator">mneves-fable-orchestrator</h2>
-<p><strong>What it does.</strong> Routes non-trivial work across the main session, Codex, and subagents when
-delegation creates independent progress or evidence. Building and reviewing run on different
-seats: the main session and every worker build, planning and plan advice run on their own
-seats, and code review runs on the other host&#39;s reviewer (Codex reviews Claude-built work, Claude
-reviews Codex-built work), so the model that built a change never reviews it. The concrete
+<p><strong>What it does.</strong> Splits non-trivial work between a main session that plans, advises and
+reviews and the executors it dispatches. The main session writes the spec, reads what comes back
+and accepts it; workers, a heavy executor or a low-cost economy executor build, and the main
+session may keep the hardest part. It red-teams a non-trivial plan before writing it. Building and
+reviewing run on different seats: code review runs on the other host&#39;s reviewer (Codex reviews
+Claude-built work, Claude reviews Codex-built work), so the model that built a change never
+reviews it. The concrete
 models and reasoning tiers live only in the skill&#39;s Defaults block.
 Codex review has no automatic model fallback. The portable defaults do not change a running
 harness&#39;s main-session model. Caller overrides and actual host
@@ -792,8 +928,8 @@ any non-trivial task where the agent has to decide who executes.</p>
 <pre tabindex="0"><code class="language-bash">ln -s ~/.agents/skills/mneves-fable-orchestrator/tools/codex-lane ~/bin/codex-lane
 </code></pre>
 <p>(Adjust the source path to wherever the skill was installed. A lane stores launch arguments,
-not environment, so pass <code>CODEX_HOME</code> on every <code>start</code> and <code>next</code> when you use more than one
-Codex home.)</p>
+not environment, so pass <code>CODEX_HOME</code> on every <code>start</code>, <code>next</code>, <code>adopt</code> and <code>fork</code> when you
+use more than one Codex home.)</p>
 <p><strong>Example</strong> (illustrative; a real run dispatches Codex). You ask for row-level security on a multi-tenant API.</p>
 <ol>
 <li>The main session writes a private spec file (<code>spec=$(mktemp)</code>): goal, acceptance criteria, exact files, the files it
@@ -827,8 +963,9 @@ from another repo cannot aim Codex at the wrong tree.</li>
 <p><strong>What it does.</strong> Scores a repository on how well it supports an agent&#39;s loop of gathering
 context, making a change, verifying it and iterating. Nine pillars (style, build, testing,
 documentation, dev environment, observability, security, task discovery, product), fifty-plus
-checks, a percentage and a maturity level L1–L5. Ships with a Bun/TypeScript tool that runs
-locally and sends nothing about your repository anywhere. Some checks run the project&#39;s own
+checks, a percentage and a maturity level L1–L5. Its Bun/TypeScript tool comes with the
+repository (a full clone), not with a single-skill install; it runs locally and sends nothing
+about your repository anywhere. Some checks run the project&#39;s own
 build, lint and test tools through <code>/bin/sh</code> with a deadline; those tools may download
 packages and write build output. It needs a POSIX system (macOS or Linux) and a repository
 you trust.</p>
@@ -1120,6 +1257,8 @@ on a repo where agents keep failing, and <code>mneves-eli5</code> is for the mom
 any of this to someone else. <code>imagegen-frontend-mobile</code> is the image-only path for mobile concepts;
 hand its chosen direction to the relevant implementation workflow when code is required.</p>
 </main>
-<footer style="margin-top:3rem;color:var(--muted);font-size:.875rem">Source: <a href="https://github.com/mneves75/skills/blob/main/HOWTO.md">HOWTO.md</a> · <a href="https://github.com/mneves75/skills">mneves75/skills</a></footer>
+</div>
+<footer class="footer"><span>Source: <a href="https://github.com/mneves75/skills/blob/main/HOWTO.md">HOWTO.md</a></span><a href="https://github.com/mneves75/skills">mneves75/skills</a></footer>
+</div>
 </body>
 </html>

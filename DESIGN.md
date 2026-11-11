@@ -8,7 +8,6 @@ colors:
   blue-muted: "#d7e4ff"
   lime: "#def59b"
   on-lime: "#203615"
-  lime-code: "#c7de8b"
   paper: "#fff"
   ink: "#132236"
   muted: "#43556c"
@@ -123,11 +122,10 @@ components:
   skill-entry:
     textColor: "{colors.ink}"
     typography: "{typography.title}"
-  new-procedure:
+  new-procedure-tag:
     backgroundColor: "{colors.lime}"
     textColor: "{colors.on-lime}"
     rounded: "{rounded.control}"
-    padding: "{spacing.inset}"
   sample-card:
     backgroundColor: "{colors.soft}"
     rounded: "{rounded.control}"
@@ -172,7 +170,7 @@ Clean reading neutrals meet saturated installation blue and a small lime highlig
 
 ### Secondary
 
-- **Fresh Lime** (`lime`, `on-lime`, `lime-code`): the new-procedure fill and its dark green text; also browser text selection and focus inside installation. `lime-code` is the inline-code surface inside a new procedure, in both schemes, so its code never takes the dark-mode code surface.
+- **Fresh Lime** (`lime`, `on-lime`): the small "Added in" tag on a procedure from the two most recent releases that added one, and its dark green text; also browser text selection and focus inside installation.
 - **Night Focus Lime** (`focus-dark`): keyboard outlines on the dark reading surface.
 
 ### Neutral
