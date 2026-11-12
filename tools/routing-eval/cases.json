@@ -639,7 +639,7 @@
   "O3-reviewer-of-codex-build": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol --thinking high`; no model fallback)"
+    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol --thinking high`); when no Codex account can run: Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high"
    },
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
@@ -649,7 +649,7 @@
   "O4-reviewer-of-claude-build": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol --thinking high`; no model fallback)"
+    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol --thinking high`); when no Codex account can run: Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high"
    },
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",

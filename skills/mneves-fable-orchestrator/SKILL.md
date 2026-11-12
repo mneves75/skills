@@ -44,7 +44,7 @@ frontend subagent = Opus, latest release (Claude subagent alias `opus`), reasoni
 ordinary worker   = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (Codex worker)
 bounded worker    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (bounded Codex task)
 heavy executor    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (Codex worker)
-reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol --thinking high`; no model fallback)
+reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol --thinking high`); when no Codex account can run: Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high
 planner           = Fable, latest release (Claude subagent alias `claude-fable-5-2`) | gpt-6-astra, reasoning xhigh (planning)
 plan advisor      = Fable, latest release (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6-astra, reasoning xhigh (advice and plan review)
 specialist        = gpt-6.1-sol, reasoning high (specialist execution; a specialist review takes the reviewer seat)
@@ -54,7 +54,11 @@ economy executor  = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any h
 When review runs, a seat never reviews what it built. That covers the workers, the heavy executor, the economy
 executor, and the main session when it kept the hardest part: a change is
 reviewed by the reviewer value in the other column from the seat that built it, and an economy
-executor's change by either reviewer value. Planning and
+executor's change by either reviewer value. When that value is the Codex one and no Codex
+account can run (out of quota, not signed in, or refused by host policy), the reviewer row's
+fallback reviews in its place, in a fresh context, gates and security acceptance included;
+record the substitution and why the Codex reviewer failed. The fallback never reviews a change
+its own model built. Planning and
 plan advice run only on their own seats. Crossing means the change leaves for the other column's
 provider: authorize that disclosure as you would for any review provider before dispatching it.
 
@@ -83,8 +87,9 @@ test written first. Dispatching to it sends the code to that row's provider, so:
 - Nothing else relaxes. Effort selection, evidence, acceptance and permission rules are the
   same, and this seat gains no authority another seat lacked.
 
-It is also the only substitute when no authorized primary seat for a role can run: not installed,
-not signed in, out of quota, or refused by host policy. Record why each applicable primary
+It is also the only substitute, apart from the reviewer row's named fallback, when no authorized
+primary seat for a role can run: not installed, not signed in, out of quota, or refused by host
+policy. Record why each applicable primary
 failed, and announce the substitution the same way.
 
 Reasoning-effort names are vendor enums and change; if one is rejected, read the CLI's `--help`

@@ -154,8 +154,11 @@ A waived commit has no successful CI run, so the ordinary rollback dispatch cann
 
 Waiver expiry is the owner's choice, up to the readiness skill's 90-day cap; never set one on the
 owner's behalf. Security acceptance needs a model other than the builder's, and finders and their
-verifier run in separate contexts. When no such model can run (for example, both Codex accounts
-are out of quota), report the acceptance gate as blocked instead of reviewing with the same model.
+verifier run in separate contexts. When the Codex reviewer cannot run (for example, both Codex
+accounts are out of quota), the orchestrator's reviewer-row fallback takes the acceptance and the
+lanes in a fresh context, provided its model did not build the candidate, and the gate record says
+why. When no model other than the builder's can run, report the acceptance gate as blocked instead
+of reviewing with the same model.
 
 ## Skill Requirements
 
