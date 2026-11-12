@@ -30,9 +30,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **mneves-superaudit**: the verification check applies to substantial or high-risk work.
 - **takeover**: runs the repository's CI checks for the touched area before the push, and CI runs
   the full set after it.
-- **mneves-motion-film**: the storyboard planner and the full review rounds apply to a new or
-  redone film, or to an update that changes picture, timing or music. Other updates edit the shot
-  table and get one review round.
+- **mneves-motion-film**: the storyboard planner runs only for a new or redone film; an update
+  edits the existing shot table. The full review rounds apply to a new or redone film or to an
+  update that changes picture, timing or music; other updates get one review round.
 - **modernize**: fetches the latest origin for the branch, the base branch and related branches,
   instead of pulling, so a dirty worktree stays untouched.
 - **mneves-socratic-tutor**, **imagegen-frontend-mobile**: dropped stock intensifiers.
