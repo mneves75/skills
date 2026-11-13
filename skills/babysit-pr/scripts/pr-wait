@@ -626,8 +626,12 @@ class Watcher:
         for name, apps in self.bound.items():
             results = [r for r in published.get(name, []) if r["app"] in apps]
             if read is not None and published.get(name) and not results:
-                self.emit(f"publisher:{head}:{name}", f"required check {snippet(name, 200)} reported only by "
-                          "an app other than the one the base branch requires; not counted")
+                line = (f"required check {snippet(name, 200)} reported only by an app other than the one "
+                        "the base branch requires; not counted")
+                # A first run reports no events, so say it on stderr too, or the wait looks hung.
+                if f"publisher:{head}:{name}" not in self.reported:
+                    log(line)
+                self.emit(f"publisher:{head}:{name}", line)
             worst = max(results, key=lambda r: RANK.get(r["bucket"], 2), default=None)
             checks[name] = {"name": name, "bucket": worst["bucket"] if worst else "pending",
                             "link": (worst or {}).get("link") or "", "description": ""}

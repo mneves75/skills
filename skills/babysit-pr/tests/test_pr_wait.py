@@ -602,6 +602,7 @@ class PrWaitTest(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         self.assertIn(f"green on {HEAD[:7]}", proc.stdout)
         self.assertIn(f"required checks: ci (app {ACTIONS_APP})", proc.stderr)
+        self.assertIn('required check "ci" reported only by an app other than the one', proc.stderr)
         # Green needs two identical polls, so the first real stage turns green on poll 4.
         self.assertEqual(self.polls(), 4, "green came before the required app reported")
 
