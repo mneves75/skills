@@ -7,7 +7,8 @@
   "4: added O9-O12 (frontend subagent, ordinary worker, bounded worker, plan advisor), S1-S2 (setup-pstack's own wording) and P12-P18 (the Reasoning effort paragraph in each remaining changed skill), plus P19 (Codex runtime control), after independent acceptance on 366bd67 found those seats and files without a selecting case. Cases O1-O8 and P1-P11 are unchanged from revision 3, and their revision-3 runs are reused case by case.",
   "5: moved the set into the repository (tools/routing-eval/cases.json) and added `anchors` outside the cases, mapping each case id to the verbatim passages that decide it, so `routing-eval.py check` can catch a removed or reworded passage without a model call. No case changed.",
   "6: release 1.49.0 makes the orchestrator's Claude main session the planning seat (O1 now expects claude-fable-5-2 at high and is the only case marked changed against 1.48.0), drops the advisor from that row (O2's expectation is unchanged; its anchor is the plan advisor row), names autoreview's `--thinking high` on the reviewer row (O3 and O4 unchanged) and renames the local fallback row to economy executor. Added O13 for that seat, unchanged against 1.48.0 because the model and effort it binds did not change.",
-  "7: P19 failed 2 of 24 Codex samples across eight runs of the unchanged 1.47.0 to 1.48.0 text, by applying the Opus `medium` rule to a model Codex substitutes. Adaptation 08 says in codex-tools.md that the rule does not apply to those substitutes. P19's expectation is unchanged and it is marked clarified."
+  "7: P19 failed 2 of 24 Codex samples across eight runs of the unchanged 1.47.0 to 1.48.0 text, by applying the Opus `medium` rule to a model Codex substitutes. Adaptation 08 says in codex-tools.md that the rule does not apply to those substitutes. P19's expectation is unchanged and it is marked clarified.",
+  "8: 1.51.0 moves the Claude main session to Opus 5.5 at reasoning medium (owner, 2026-11-11). O1 now expects claude-opus-5-5 at medium and stays changed; O8's anchor follows the same Defaults line and its expectation (gpt-6.1-sol, high) is unchanged."
  ],
  "purpose": "Expected-outcome eval of the routing text: does an agent reading the shipped skill text dispatch the expected model and reasoning effort for each seat? Expectations come from the owner's rules and the orchestrator's Defaults block, frozen before any run.",
  "threshold": "Candidate: every sample of every case passes on both consumers. Baseline control (the previous release's text, run with --baseline): every case marked changed fails on every sample, and every unchanged case passes, and no sample errors; a changed case that passes on the baseline does not discriminate: the control fails until the case is replaced or no longer marked changed. A case marked changed \"clarified\" had its source reworded to remove an ambiguity without changing its expected answer: a candidate run judges it like any case, and a baseline run records its counts in clarified_on_baseline and fails it only on an errored sample. Only a full run (every case on both consumers) can meet either threshold.",
@@ -23,13 +24,13 @@
    "scenario": "You are the Claude Code main session working under this skill. Report the model and reasoning effort this skill sets for your own main session. `model` is the exact alias or model id the text gives for it, not the seat's description; `how` is not-applicable.",
    "expected": {
     "model": [
-     "claude-fable-5-2"
+     "claude-opus-5-5"
     ],
     "effort": [
-     "high"
+     "medium"
     ]
    },
-   "known_failure": "Opus main session at medium (the 1.48.0 value)."
+   "known_failure": "Fable main session at high (the 1.50.0 value)."
   },
   {
    "id": "O2-advisor-claude",
@@ -626,7 +627,7 @@
   "O1-main-session-claude": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "main session      = Fable, latest release (Claude alias `claude-fable-5-2`), reasoning high | gpt-6.1-sol, reasoning high (Codex orchestrator)"
+    "text": "main session      = Opus, latest release (Claude alias `claude-opus-5-5`), reasoning medium | gpt-6.1-sol, reasoning high (Codex orchestrator)"
    }
   ],
   "O2-advisor-claude": [
@@ -680,7 +681,7 @@
   "O8-main-session-codex": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "main session      = Fable, latest release (Claude alias `claude-fable-5-2`), reasoning high | gpt-6.1-sol, reasoning high (Codex orchestrator)"
+    "text": "main session      = Opus, latest release (Claude alias `claude-opus-5-5`), reasoning medium | gpt-6.1-sol, reasoning high (Codex orchestrator)"
    }
   ],
   "P1-opus-with-default-line": [

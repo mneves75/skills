@@ -39,8 +39,7 @@ Recheck the source PR too: it may have improved while you were working.
 
 Proof is evidence you observed yourself in this session: command output, a
 reproduction, a rendered screen. Reproduce the original failure, apply the
-finished change, and watch the same reproduction pass; run the checks the
-repository's CI runs; add one focused test that fails without the change when
+finished change, and watch the same reproduction pass; run the repository's CI checks for the touched area (CI runs the full set after the push); add one focused test that fails without the change when
 the behavior has none. For UI and runtime behavior, run the app: green mocked
 tests do not prove the user experience works. State what remains unverified.
 

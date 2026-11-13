@@ -25,7 +25,7 @@ fails or returns an invalid report reports `reviewer_unavailable` with exit 1.
 A failed later pass never publishes a partial review report.
 
 ```json
-{"schema_version":1,"status":"reviewer_unavailable","exit_code":1,"engine":"codex","report_produced":false,"reason":"engine_failed","reviewer_exit_code":124,"timed_out":true}
+{"schema_version":1,"status":"reviewer_unavailable","exit_code":1,"engine":"codex","report_produced":false,"reason":"engine_failed","reviewer_exit_code":124,"timed_out":true,"omitted_sensitive_paths":0}
 ```
 
 ## Field semantics
@@ -41,6 +41,11 @@ including zero for rejected output, otherwise null. `timed_out` identifies the
 helper's deadline, not a reviewer that happens to exit 124. Completed envelopes
 have `report_produced: true`; this means a validated final report exists, not
 that its verdict is clean.
+
+`omitted_sensitive_paths` counts the changed paths with sensitive names (`.env`, key
+files, credential-named data) that were left out of the reviewer's input. The
+reviewer never saw them, so a `scoped-clean` status does not cover them; the same
+count is printed to stderr before review. Review those paths yourself.
 
 ## Contents and lifecycle
 

@@ -838,8 +838,9 @@ the loop ends. Findings map to *fixed*, *disproved* or *blocked*, nothing else.
 
 **What it does.** Splits non-trivial work between a main session that plans, advises and
 reviews and the executors it dispatches. The main session writes the spec, reads what comes back
-and accepts it; workers, a heavy executor or a low-cost economy executor build, and the main
-session may keep the hardest part. It red-teams a non-trivial plan before writing it. Building and
+and accepts it; workers, a heavy executor or a low-cost economy executor build substantial,
+independent, checkable work, and the main session makes smaller changes itself and may keep the
+hardest part. It red-teams a non-trivial plan before writing it. Building and
 reviewing run on different seats: code review runs on the other host's reviewer (Codex reviews
 Claude-built work, Claude reviews Codex-built work), so the model that built a change never
 reviews it. The concrete
