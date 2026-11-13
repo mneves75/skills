@@ -7753,6 +7753,71 @@ os.execv(target, [str(target), *sys.argv[1:]])
                 self.assertEqual(captured.paths, {"ordinary.txt"})
                 self.assertFalse(marker.exists(), "a nested filter ran during commit review")
 
+    def test_populated_gitlink_detection_ignores_submodule_metadata(self) -> None:
+        # The refusal keys on a mode-160000 index entry whose path holds `.git`
+        # in any form: a gitfile, a directory, a symlink (even dangling), or a
+        # gitlink path that is itself a symlink to an outside repository. It
+        # never consults `.gitmodules`, `submodule.<name>.active` or `ignore`.
+        layouts = ["gitfile", "directory", "bare-entry-no-gitmodules"]
+        if os.name != "nt":
+            layouts += ["dot-git-symlink", "dangling-dot-git-symlink", "gitlink-path-symlink"]
+        for layout in layouts:
+            with self.subTest(layout=layout), tempfile.TemporaryDirectory() as tempdir:
+                root = Path(tempdir)
+                outside = root / "outside"
+                outside.mkdir()
+                git(outside, "init", "-q")
+                (outside / "source.txt").write_bytes(b"outside\n")
+                git(outside, "add", "source.txt")
+                git(outside, "commit", "-qm", "outside")
+                pointer = git(outside, "rev-parse", "HEAD").strip()
+
+                repo = init_repo(root)
+                (repo / "ordinary.txt").write_bytes(b"base\n")
+                git(repo, "add", "ordinary.txt")
+                git(repo, "update-index", "--add", "--cacheinfo", f"160000,{pointer},vendor/dep")
+                git(repo, "commit", "-qm", "bare gitlink, no .gitmodules")
+                self.assertFalse((repo / ".gitmodules").exists())
+                dep = repo / "vendor" / "dep"
+                dep.parent.mkdir(exist_ok=True)
+                if layout == "gitlink-path-symlink":
+                    dep.symlink_to(outside, target_is_directory=True)
+                else:
+                    dep.mkdir()
+                    dot_git = dep / ".git"
+                    if layout == "gitfile":
+                        dot_git.write_text(f"gitdir: {(outside / '.git').as_posix()}\n", encoding="utf-8")
+                    elif layout in {"directory", "bare-entry-no-gitmodules"}:
+                        dot_git.mkdir()
+                    elif layout == "dot-git-symlink":
+                        dot_git.symlink_to(outside / ".git", target_is_directory=True)
+                    else:
+                        dot_git.symlink_to(root / "absent", target_is_directory=True)
+                (repo / "ordinary.txt").write_bytes(b"base\nlocal edit\n")
+
+                for call in (
+                    lambda: self.helper["choose_target"](repo, "auto", None),
+                    lambda: self.helper["choose_target"](repo, "local", None),
+                    lambda: self.helper["local_bundle"](repo),
+                ):
+                    with self.assertRaisesRegex(SystemExit, "populated submodule at vendor/dep"):
+                        call()
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            # An unpopulated gitlink (empty directory) is not refused by this
+            # guard; the existing gitlink-change refusal still governs it.
+            repo = init_repo(Path(tempdir))
+            (repo / "ordinary.txt").write_bytes(b"base\n")
+            git(repo, "add", "ordinary.txt")
+            git(repo, "commit", "-qm", "base")
+            pointer = git(repo, "rev-parse", "HEAD").strip()
+            git(repo, "update-index", "--add", "--cacheinfo", f"160000,{pointer},vendor/dep")
+            git(repo, "commit", "-qm", "unpopulated gitlink")
+            (repo / "vendor" / "dep").mkdir(parents=True)
+            (repo / "ordinary.txt").write_bytes(b"base\nlocal edit\n")
+            self.assertEqual(self.helper["choose_target"](repo, "local", None), ("local", None))
+            self.assertIn("ordinary.txt", self.helper["local_bundle"](repo).paths)
+
 PROXY_KEYS = ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy")
 
 

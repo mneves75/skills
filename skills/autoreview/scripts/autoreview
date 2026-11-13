@@ -1864,7 +1864,8 @@ def refuse_populated_gitlinks(repo: Path) -> None:
     # dirty content escapes the gitlink refusal. Read the index only, then refuse.
     for record in git(repo, "ls-files", "--stage", "-z").split("\0"):
         metadata, _, rel = record.partition("\t")
-        if metadata.startswith("160000 ") and (repo / rel / ".git").exists():
+        # lexists: a `.git` symlink counts even when it dangles.
+        if metadata.startswith("160000 ") and os.path.lexists(repo / rel / ".git"):
             raise SystemExit(
                 f"populated submodule at {display_escape(rel, 500)}: local and auto review would "
                 "run Git inside it; review committed changes with --mode branch or --mode commit"
