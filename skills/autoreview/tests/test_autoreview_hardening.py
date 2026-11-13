@@ -7688,6 +7688,71 @@ os.execv(target, [str(target), *sys.argv[1:]])
             self.assertEqual(sidecar["status"], "scoped-clean")
             self.assertEqual(sidecar["omitted_sensitive_paths"], 1)
 
+    def test_populated_submodule_refuses_local_and_auto_before_git_status(self) -> None:
+        # RSCR-H06 (dirty submodule content dropped from local review), RSCR-H04
+        # (a nested-only filter runs during the status probe on a same-size edit)
+        # and the RSCR-H01 auto residual (ignore = all hides a moved submodule
+        # HEAD from target selection). Local and auto review refuse a populated
+        # gitlink before any status call; object-only commit review still runs.
+        for scenario in ("dirty-content", "nested-filter-same-size", "moved-head-ignore-all"):
+            with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as tempdir:
+                root = Path(tempdir)
+                child = root / "child"
+                child.mkdir()
+                git(child, "init", "-q")
+                (child / "source.txt").write_bytes(b"before\n")
+                (child / ".gitattributes").write_bytes(b"source.txt filter=probe\n")
+                git(child, "add", "source.txt", ".gitattributes")
+                git(child, "commit", "-qm", "initial")
+
+                repo = init_repo(root)
+                git(repo, "config", "core.autocrlf", "false")
+                (repo / "ordinary.txt").write_bytes(b"base\n")
+                git(repo, "add", "ordinary.txt")
+                git(repo, "-c", "protocol.file.allow=always", "submodule", "add", "-q",
+                    str(child), "vendor/dependency")
+                if scenario == "moved-head-ignore-all":
+                    git(repo, "config", "-f", ".gitmodules", "submodule.vendor/dependency.ignore", "all")
+                    git(repo, "add", ".gitmodules")
+                git(repo, "commit", "-qm", "add submodule")
+                (repo / "ordinary.txt").write_bytes(b"base\nreview me\n")
+                git(repo, "commit", "-qam", "ordinary change")
+
+                nested = repo / "vendor" / "dependency"
+                marker = root / "filter-dispatched"
+                if scenario == "dirty-content":
+                    (nested / "source.txt").write_bytes(b"changed and longer\n")
+                elif scenario == "nested-filter-same-size":
+                    program = root / "probe.py"
+                    program.write_bytes((
+                        "from pathlib import Path\nimport sys\n"
+                        f"Path({str(marker)!r}).write_bytes(b'synthetic dispatch\\n')\n"
+                        "sys.stdout.buffer.write(sys.stdin.buffer.read())\n"
+                    ).encode("utf-8"))
+                    git(nested, "config", "filter.probe.clean",
+                        shlex.join((Path(sys.executable).as_posix(), program.as_posix())))
+                    target = nested / "source.txt"
+                    info = target.stat()
+                    target.write_bytes(b"BEFORE\n")
+                    os.utime(target, ns=(info.st_atime_ns, info.st_mtime_ns + 2_000_000_000))
+                else:
+                    (nested / "source.txt").write_bytes(b"moved\n")
+                    git(nested, "commit", "-qam", "move submodule HEAD")
+                (repo / "ordinary.txt").write_bytes(b"base\nreview me\nlocal edit\n")
+
+                for call in (
+                    lambda: self.helper["choose_target"](repo, "auto", None),
+                    lambda: self.helper["choose_target"](repo, "local", None),
+                    lambda: self.helper["local_bundle"](repo),
+                ):
+                    with self.assertRaisesRegex(SystemExit, "populated submodule at vendor/dependency"):
+                        call()
+                self.assertFalse(marker.exists(), "a nested filter ran during local or auto selection")
+
+                captured = self.helper["commit_bundle"](repo, "HEAD")
+                self.assertEqual(captured.paths, {"ordinary.txt"})
+                self.assertFalse(marker.exists(), "a nested filter ran during commit review")
+
 PROXY_KEYS = ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy")
 
 

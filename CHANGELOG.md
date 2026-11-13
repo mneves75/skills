@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **autoreview**: a tracked `.gitmodules` `ignore = all` setting no longer hides a gitlink pointer
   change from the refusal, so the change cannot go unreviewed while the run ends clean
   (RSCR-H01, Medium).
+- **autoreview**: local and auto review now refuse a checkout with a populated submodule
+  before any `git status`, and point to `--mode branch` or `--mode commit`. Status had run a
+  filter defined only in the submodule's own configuration on a same-size edit (RSCR-H04),
+  auto review picked a branch target while the submodule HEAD had moved under `ignore = all`
+  (RSCR-H01), and changed submodule content left local review without a refusal (RSCR-H06).
+  A checkout with populated submodules can no longer be reviewed in local or auto mode.
 - **autoreview**: changed paths left out of the reviewer's input because of their sensitive names
   are now counted on stderr and in the status sidecar's `omitted_sensitive_paths`; before, only
   the prompt mentioned them (RSCR-H02, Medium). The status stays `scoped-clean`.

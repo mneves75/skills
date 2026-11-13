@@ -1858,6 +1858,19 @@ def current_branch(repo: Path) -> str:
     return git(repo, "branch", "--show-current", check=False).strip() or "detached"
 
 
+def refuse_populated_gitlinks(repo: Path) -> None:
+    # Any status or work-tree diff recurses into a populated submodule, where Git
+    # applies the nested repository's own configuration (filters included) and its
+    # dirty content escapes the gitlink refusal. Read the index only, then refuse.
+    for record in git(repo, "ls-files", "--stage", "-z").split("\0"):
+        metadata, _, rel = record.partition("\t")
+        if metadata.startswith("160000 ") and (repo / rel / ".git").exists():
+            raise SystemExit(
+                f"populated submodule at {display_escape(rel, 500)}: local and auto review would "
+                "run Git inside it; review committed changes with --mode branch or --mode commit"
+            )
+
+
 def is_dirty(repo: Path) -> bool:
     return bool(
         git(repo, "status", "--porcelain", "--untracked-files=no").strip()
@@ -1868,6 +1881,8 @@ def is_dirty(repo: Path) -> bool:
 def choose_target(repo: Path, mode: str, base_ref: str | None) -> tuple[str, str | None]:
     mode = "local" if mode == "uncommitted" else mode
     branch = current_branch(repo)
+    if mode in {"local", "auto"}:
+        refuse_populated_gitlinks(repo)
     if mode == "local" or (mode == "auto" and is_dirty(repo)):
         # Pin an explicit base once; later queries must not follow a moving branch.
         return "local", validate_git_ref(repo, base_ref, "base", pin=True) if base_ref is not None else None
@@ -2898,6 +2913,7 @@ def verify_mixed_sources(repo: Path, records: tuple[MixedPath, ...]) -> None:
 
 
 def local_bundle(repo: Path, base_ref: str | None = None) -> CapturedBundle:
+    refuse_populated_gitlinks(repo)
     if base_ref is not None:
         base_ref = validate_git_ref(repo, base_ref, "base", pin=True)
     staged_base = ("--end-of-options", base_ref) if base_ref is not None else ()
