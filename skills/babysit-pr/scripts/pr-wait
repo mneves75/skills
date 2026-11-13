@@ -165,7 +165,7 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                 nodes {
                   __typename
                   ... on CheckRun {
-                    name conclusion databaseId detailsUrl startedAt
+                    name conclusion databaseId detailsUrl
                     steps(first: 1) { totalCount }
                     checkSuite { app { slug databaseId } workflowRun { event workflow { name } } }
                     annotations(first: 10) { nodes { annotationLevel message } }
@@ -505,7 +505,7 @@ class Watcher:
                 if node["context"] in self.bound:
                     # A status carries no app id; an app's bot login is its slug.
                     published.setdefault(node["context"], []).append({
-                        "app": self.app_id(login) if is_bot else None, "started": "",
+                        "app": self.app_id(login) if is_bot else None, "order": 0,
                         "bucket": STATUS_BUCKET.get(node.get("state"), "pending"), "link": node.get("targetUrl")})
                 continue
             if node.get("__typename") != "CheckRun" or not isinstance(node.get("name"), str):
@@ -520,9 +520,10 @@ class Watcher:
                 published.setdefault(node["name"], []).append({
                     "app": app_id if isinstance(app_id, int) else None,
                     # A re-run adds a newer attempt of the same check; like `gh pr checks`, only the
-                    # latest attempt per app, workflow and event counts. Not started yet sorts newest.
+                    # latest attempt per app, workflow and event counts. Check run ids grow with
+                    # creation, so the highest id is the newest attempt, started or not.
                     "attempt": (app_id, (run.get("workflow") or {}).get("name"), run.get("event")),
-                    "started": node.get("startedAt") or "~",
+                    "order": node["databaseId"] if isinstance(node.get("databaseId"), int) else -1,
                     "bucket": RUN_BUCKET.get(node.get("conclusion"), "pending"), "link": node.get("detailsUrl")})
             if node.get("conclusion") is None:
                 running.add(node["name"])
@@ -634,7 +635,7 @@ class Watcher:
                 if r["app"] not in apps:
                     continue
                 key = r.get("attempt", ("status", index))  # statuses: GitHub keeps one per context
-                if key not in latest or r["started"] >= latest[key]["started"]:
+                if key not in latest or r["order"] >= latest[key]["order"]:
                     latest[key] = r
             results = list(latest.values())
             if read is not None and published.get(name) and not results:

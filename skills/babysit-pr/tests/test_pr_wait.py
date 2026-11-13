@@ -632,16 +632,17 @@ class PrWaitTest(unittest.TestCase):
         self.assertEqual(self.polls(), 4, "green came before the second bound app reported")
 
     def test_successful_rerun_of_a_bound_check_replaces_its_failure(self) -> None:
-        # Both attempts stay in the rollup; only the latest one counts, as in gh pr checks.
-        old = {**check_run("ci", "FAILURE"), "startedAt": "2026-11-13T10:00:00Z"}
-        new = {**check_run("ci", "SUCCESS"), "startedAt": "2026-11-13T11:00:00Z"}
+        # Both attempts stay in the rollup; only the latest (highest id) counts. The old
+        # attempt was cancelled before it started, so it has no start time to order by.
+        old = check_run("ci", "CANCELLED")
+        new = check_run("ci", "SUCCESS")
         proc = self.bound({"checks": [check("ci", "pass")], "rollup": [new, old]})
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         self.assertIn(f"green on {HEAD[:7]}", proc.stdout)
 
     def test_failing_rerun_of_a_bound_check_still_fails(self) -> None:
-        old = {**check_run("ci", "SUCCESS"), "startedAt": "2026-11-13T10:00:00Z"}
-        new = {**check_run("ci", "FAILURE"), "startedAt": "2026-11-13T11:00:00Z"}
+        old = check_run("ci", "SUCCESS")
+        new = check_run("ci", "FAILURE")
         proc = self.bound({"checks": [check("ci", "fail")], "rollup": [old, new], "checks_exit": 1})
         self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
         self.assertIn('required check failed: "ci"', proc.stdout)
