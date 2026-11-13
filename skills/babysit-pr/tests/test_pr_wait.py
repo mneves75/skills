@@ -71,7 +71,14 @@ elif args[:1] == ["api"] and ("/rules/branches/" in args[1] or "/protection/" in
     if not names:
         print("gh: Not Found (HTTP 404)", file=sys.stderr)
         sys.exit(1)
-    print("\n".join(names))
+    # pr-wait asks for [context, app id] per entry; a bare name is an entry bound to no app.
+    print("\n".join(json.dumps(n if isinstance(n, list) else [n, None]) for n in names))
+elif args[:1] == ["api"] and args[1].startswith("apps/"):
+    app_id = scenario.get("apps", {}).get(args[1].split("/", 1)[1])
+    if app_id is None:
+        print("gh: Not Found (HTTP 404)", file=sys.stderr)
+        sys.exit(1)
+    print(app_id)
 elif args[:1] == ["api"] and "/actions/jobs/" in args[1]:
     run_id = int(args[1].rsplit("/", 1)[1])
     if scenario.get("jobs_error"):
@@ -105,13 +112,24 @@ def check(name: str, bucket: str) -> dict:
 RUN_IDS = itertools.count(1000)
 
 
+ACTIONS_APP = 15368
+
+
 def check_run(name: str, conclusion: str | None, *messages: str, steps: int = 0, app: str = "github-actions",
-              job: bool = True) -> dict:
+              job: bool = True, app_id: int = ACTIONS_APP) -> dict:
     """job=False: a run created through the Checks API, which the fake Actions API does not find."""
     notes = [{"annotationLevel": "FAILURE", "message": m} for m in messages]
     return {"__typename": "CheckRun", "name": name, "conclusion": conclusion, "steps": {"totalCount": steps},
             "databaseId": next(RUN_IDS), "isJob": job and app == "github-actions",
-            "checkSuite": {"app": {"slug": app}}, "annotations": {"nodes": notes}}
+            "detailsUrl": f"https://example.test/run/{name}",
+            "checkSuite": {"app": {"slug": app, "databaseId": app_id}}, "annotations": {"nodes": notes}}
+
+
+def status(context: str, state: str, login: str, bot: bool) -> dict:
+    """A commit status; anyone with write access can post one under any context name."""
+    return {"__typename": "StatusContext", "context": context, "state": state,
+            "targetUrl": f"https://example.test/status/{context}",
+            "creator": {"login": login, "__typename": "Bot" if bot else "User"}}
 
 
 def filler(count: int) -> list[dict]:
@@ -565,6 +583,65 @@ class PrWaitTest(unittest.TestCase):
         proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
         self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
         self.assertIn('check failed: "build"', proc.stdout)
+
+    def bound(self, *stages: dict, **scenario: object) -> subprocess.CompletedProcess[str]:
+        """Classic protection requires ci from the Actions app; one scenario per poll."""
+        self.scenario.write_text(json.dumps({
+            "pr": pull_request(), "protection": [["ci", ACTIONS_APP]], **scenario, "stages": list(stages)}))
+        return self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+
+    def polls(self) -> int:
+        return int(Path(f"{self.scenario}.polls").read_text())
+
+    def test_required_check_from_another_publisher_is_not_green(self) -> None:
+        # ROOT-H02: gh pr checks merges publishers, so a status posted by a person passed ci.
+        forged = {"checks": [check("ci", "pass")], "rollup": [status("ci", "SUCCESS", "mallory", bot=False)]}
+        real = {"checks": [check("ci", "pass")],
+                "rollup": [status("ci", "SUCCESS", "mallory", bot=False), check_run("ci", "SUCCESS")]}
+        proc = self.bound(forged, forged, real)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn(f"green on {HEAD[:7]}", proc.stdout)
+        self.assertIn(f"required checks: ci (app {ACTIONS_APP})", proc.stderr)
+        # Green needs two identical polls, so the first real stage turns green on poll 4.
+        self.assertEqual(self.polls(), 4, "green came before the required app reported")
+
+    def test_other_app_check_run_with_the_required_name_is_not_green(self) -> None:
+        forged = {"checks": [check("ci", "pass")], "rollup": [check_run("ci", "SUCCESS", app="other", app_id=999)]}
+        real = {"checks": [check("ci", "pass")], "rollup": [check_run("ci", "SUCCESS")]}
+        proc = self.bound(forged, forged, real)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(self.polls(), 4)
+
+    def test_required_app_failure_fails_despite_a_passing_twin(self) -> None:
+        # gh pr checks shows the forged pass; the bound app's own run failed.
+        stage = {"checks": [check("ci", "pass")],
+                 "rollup": [status("ci", "SUCCESS", "mallory", bot=False), check_run("ci", "FAILURE")]}
+        proc = self.bound(stage)
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn('required check failed: "ci" "https://example.test/run/ci"', proc.stdout)
+
+    def test_status_from_the_required_apps_bot_counts(self) -> None:
+        stage = {"checks": [check("ci", "pass")], "rollup": [status("ci", "SUCCESS", "github-actions", bot=True)]}
+        proc = self.bound(stage, apps={"github-actions": ACTIONS_APP})
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(self.polls(), 2)
+
+    def test_required_check_bound_to_any_app_keeps_name_matching(self) -> None:
+        # -1 is GitHub's explicit "any app": a plain status passes as before.
+        self.scenario.write_text(json.dumps({
+            "pr": pull_request(), "protection": [["ci", -1]], "checks": [check("ci", "pass")],
+            "rollup": [status("ci", "SUCCESS", "someone", bot=False)]}))
+        proc = self.run_wait("7", "--repo", "o/r", "--until", "green", "--interval", "5")
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("required checks: ci\n", proc.stderr)
+
+    def test_status_from_a_bot_without_an_app_counts_nothing(self) -> None:
+        # A bot status whose login names no app (HTTP 404) leaves ci pending, never green.
+        forged = {"checks": [check("ci", "pass")], "rollup": [status("ci", "SUCCESS", "unknown-bot", bot=True)]}
+        real = {"checks": [check("ci", "pass")], "rollup": [check_run("ci", "SUCCESS")]}
+        proc = self.bound(forged, real)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertEqual(self.polls(), 3)
 
     def test_second_watcher_exits_two(self) -> None:
         self.write([check("build", "pending")], checks_exit=8)
