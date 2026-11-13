@@ -632,9 +632,11 @@ class Watcher:
                 if f"publisher:{head}:{name}" not in self.reported:
                     log(line)
                 self.emit(f"publisher:{head}:{name}", line)
-            worst = max(results, key=lambda r: RANK.get(r["bucket"], 2), default=None)
-            checks[name] = {"name": name, "bucket": worst["bucket"] if worst else "pending",
-                            "link": (worst or {}).get("link") or "", "description": ""}
+            # GitHub enforces every rule that binds the name, so each bound app must report;
+            # one that has not is pending. Worst result first, as for duplicate names.
+            silent = [{"bucket": "pending", "link": ""} for app in apps if all(r["app"] != app for r in results)]
+            worst = max(results + silent, key=lambda r: RANK.get(r["bucket"], 2))
+            checks[name] = {"name": name, "bucket": worst["bucket"], "link": worst.get("link") or "", "description": ""}
         # An incomplete read keeps every gating bot pending, so `ready` could never come.
         self.incomplete_reads = 0 if read is not None else self.incomplete_reads + 1
         # A check is a bot's only when that bot alone reports it; a job of the same name keeps it gating.

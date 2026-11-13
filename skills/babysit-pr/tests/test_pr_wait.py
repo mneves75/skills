@@ -621,6 +621,16 @@ class PrWaitTest(unittest.TestCase):
         self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
         self.assertIn('required check failed: "ci" "https://example.test/run/ci"', proc.stdout)
 
+    def test_name_bound_to_two_apps_waits_for_both(self) -> None:
+        # A ruleset binds ci to app 999 and classic protection binds it to Actions; GitHub needs both.
+        one = {"checks": [check("ci", "pass")], "rollup": [check_run("ci", "SUCCESS")]}
+        both = {"checks": [check("ci", "pass")],
+                "rollup": [check_run("ci", "SUCCESS"), check_run("ci", "SUCCESS", app="other", app_id=999)]}
+        proc = self.bound(one, one, both, required=[["ci", 999]])
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn(f"required checks: ci (app 999, {ACTIONS_APP})", proc.stderr)
+        self.assertEqual(self.polls(), 4, "green came before the second bound app reported")
+
     def test_status_from_the_required_apps_bot_counts(self) -> None:
         stage = {"checks": [check("ci", "pass")], "rollup": [status("ci", "SUCCESS", "github-actions", bot=True)]}
         proc = self.bound(stage, apps={"github-actions": ACTIONS_APP})
