@@ -631,6 +631,21 @@ class PrWaitTest(unittest.TestCase):
         self.assertIn(f"required checks: ci (app 999, {ACTIONS_APP})", proc.stderr)
         self.assertEqual(self.polls(), 4, "green came before the second bound app reported")
 
+    def test_successful_rerun_of_a_bound_check_replaces_its_failure(self) -> None:
+        # Both attempts stay in the rollup; only the latest one counts, as in gh pr checks.
+        old = {**check_run("ci", "FAILURE"), "startedAt": "2026-11-13T10:00:00Z"}
+        new = {**check_run("ci", "SUCCESS"), "startedAt": "2026-11-13T11:00:00Z"}
+        proc = self.bound({"checks": [check("ci", "pass")], "rollup": [new, old]})
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn(f"green on {HEAD[:7]}", proc.stdout)
+
+    def test_failing_rerun_of_a_bound_check_still_fails(self) -> None:
+        old = {**check_run("ci", "SUCCESS"), "startedAt": "2026-11-13T10:00:00Z"}
+        new = {**check_run("ci", "FAILURE"), "startedAt": "2026-11-13T11:00:00Z"}
+        proc = self.bound({"checks": [check("ci", "fail")], "rollup": [old, new], "checks_exit": 1})
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn('required check failed: "ci"', proc.stdout)
+
     def test_status_from_the_required_apps_bot_counts(self) -> None:
         stage = {"checks": [check("ci", "pass")], "rollup": [status("ci", "SUCCESS", "github-actions", bot=True)]}
         proc = self.bound(stage, apps={"github-actions": ACTIONS_APP})
