@@ -41,6 +41,7 @@ ENGINE_GIT_CONFIG_OVERRIDES = (
     ("core.pager", "cat"),
     ("diff.external", ""),
     ("diff.renames", "false"),
+    ("log.showSignature", "false"),
     ("pager.diff", "cat"),
     ("pager.log", "cat"),
     ("pager.show", "cat"),
@@ -49,7 +50,11 @@ ENGINE_GIT_CONFIG_OVERRIDES = (
 SAFE_GIT_CONFIG_ARGS = tuple(
     arg for key, value in ENGINE_GIT_CONFIG_OVERRIDES for arg in ("-c", f"{key}={value}")
 ) + ("-c", "diff.suppressBlankEmpty=false")
-SAFE_DIFF_FLAGS = ("--no-ext-diff", "--no-textconv", "--no-renames", "--no-color")
+# A tracked .gitmodules `ignore = all` must not hide a gitlink pointer change; `dirty`
+# still reports pointer changes without scanning submodule work trees.
+SAFE_DIFF_FLAGS = (
+    "--no-ext-diff", "--no-textconv", "--no-renames", "--no-color", "--ignore-submodules=dirty",
+)
 COMMIT_DIFF_FLAGS = (*SAFE_DIFF_FLAGS, "--root", "--no-commit-id", "-r")
 DIFF_HUNK_CONTENT_BOUNDARY = "\0autoreview-diff-hunk-boundary\0"
 SENSITIVE_PATH_PARTS = {
@@ -183,6 +188,7 @@ class CapturedBundle(NamedTuple):
     paths: set[str]
     mixed: tuple[MixedPath, ...] = ()
     spans: tuple[SourceSpan, ...] = ()
+    omitted: int = 0
 
 
 class UntrackedSources(NamedTuple):
@@ -3031,7 +3037,10 @@ def local_bundle(repo: Path, base_ref: str | None = None) -> CapturedBundle:
         dict(untracked_snapshots),
     ) if mixed_paths else ()
     paths = (set(staged_paths) - staged_blocked_paths) | (set(unstaged_paths) - unstaged_blocked_paths)
-    return CapturedBundle("\n\n".join(parts), paths | set(untracked), mixed, tuple(spans))
+    return CapturedBundle(
+        "\n\n".join(parts), paths | set(untracked), mixed, tuple(spans),
+        omitted_tracked + omitted_untracked,
+    )
 
 
 def source_file_fingerprint(
@@ -3262,7 +3271,8 @@ def branch_bundle(repo: Path, base_ref: str) -> CapturedBundle:
             ),
             branch_patch,
         ]
-    ), set(branch_paths) - tracked_sensitive_paths(branch_paths))
+    ), set(branch_paths) - tracked_sensitive_paths(branch_paths),
+        omitted=len(tracked_sensitive_paths(branch_paths)))
 
 
 def commit_diff_refs(repo: Path, commit_ref: str) -> tuple[str, ...]:
@@ -3309,7 +3319,7 @@ def commit_bundle(repo: Path, commit_ref: str) -> CapturedBundle:
     commit_patch = validate_review_patch(commit_paths, commit_patch)
     commit_summary = REVIEW_SECURITY_OMISSION
     if not blocked_paths:
-        commit_summary = git(repo, "show", "--no-patch", "--format=fuller", refs[-1])
+        commit_summary = git(repo, "show", "--no-patch", "--no-show-signature", "--format=fuller", refs[-1])
         commit_summary += git(repo, "diff-tree", *COMMIT_DIFF_FLAGS, "--stat", *refs)
     parent_header = f"parent: {refs[0]}" if len(refs) == 2 else "parent: none (verified raw root)"
     text = "\n\n".join(
@@ -3322,7 +3332,7 @@ def commit_bundle(repo: Path, commit_ref: str) -> CapturedBundle:
         ]
     )
     paths = set(commit_paths) - blocked_paths
-    return CapturedBundle(text, paths)
+    return CapturedBundle(text, paths, omitted=len(blocked_paths))
 
 
 def build_bundle(repo: Path, target: str, target_ref: str | None, commit_ref: str) -> CapturedBundle:
@@ -7497,7 +7507,7 @@ def atomic_write_text(path: Path, content: str) -> None:
         temporary_path.unlink(missing_ok=True)
 
 
-def write_review_status(args: argparse.Namespace, status: str, exit_code: int,
+def write_review_status(args: argparse.Namespace, status: str, exit_code: int, omitted: int,
                         failure: ReviewerUnavailable | None = None) -> None:
     if not getattr(args, "status_output", None):
         return
@@ -7510,6 +7520,7 @@ def write_review_status(args: argparse.Namespace, status: str, exit_code: int,
         "reason": failure.reason if failure else None,
         "reviewer_exit_code": failure.returncode if failure else None,
         "timed_out": failure.timed_out if failure else False,
+        "omitted_sensitive_paths": omitted,
     }
     atomic_write_text(Path(args.status_output).expanduser(), json.dumps(envelope, indent=2) + "\n")
 
@@ -7576,6 +7587,13 @@ def main_impl() -> int:
             max_prompt_bytes_for_reviewers(reviewers), args.verify_secrets_online,
         )
     print(f"bundle: {utf8_size(captured.text)} bytes; review passes: {len(prompts)}", flush=True)
+    if captured.omitted:
+        noun = "path" if captured.omitted == 1 else "paths"
+        print(
+            f"autoreview: {captured.omitted} sensitive-named {noun} omitted from review; "
+            "the reviewer never saw them, so check them yourself",
+            file=sys.stderr, flush=True,
+        )
     with PreparationProgress("pre-review verification") as progress:
         current_snapshot = source_tree_snapshot(repo, progress)
         verify_evidence(repo, evidence.files)
@@ -7595,7 +7613,7 @@ def main_impl() -> int:
             evidence.files,
         )
     except ReviewerUnavailable as exc:
-        write_review_status(args, "reviewer_unavailable", 1, exc)
+        write_review_status(args, "reviewer_unavailable", 1, captured.omitted, exc)
         raise
     chunk_reports = [(label, result.report) for label, result in pass_results]
     if len(chunk_reports) == 1 and not captured.mixed:
@@ -7652,7 +7670,7 @@ def main_impl() -> int:
         exit_code = 0 if has_findings else 1
     else:
         exit_code = 1 if has_findings or overall_incorrect else 0
-    write_review_status(args, report["review_status"], exit_code)
+    write_review_status(args, report["review_status"], exit_code, captured.omitted)
     return exit_code
 
 

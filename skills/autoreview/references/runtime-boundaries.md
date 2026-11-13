@@ -25,7 +25,10 @@ selected Xcode, pass `DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer`.
 absolute, external `DEVELOPER_DIR` is kept in Git's sanitized environment; neither override
 reaches the isolated reviewer. Git collection never runs checkout-controlled executables:
 executable filter drivers are disabled for collection, and a diff that needs a converter to be
-read is refused before review. Executables inside the checkout you run from are never selected
+read is refused before review. Signature display is off for every collection command, so a
+signed-looking commit never starts a configured `gpg.program`, and diffs ignore a tracked
+`.gitmodules` `ignore` setting, so a gitlink pointer change is always seen and refused.
+Executables inside the checkout you run from are never selected
 from `PATH`, so a checkout whose local Git metadata relocates the work tree (`core.worktree`,
 a `gitdir:` file, or a Git directory used as the working directory) is refused; normal
 checkouts and linked worktrees are unaffected.

@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.51.0] - 2026-11-11
 
+### Security
+- **autoreview**: commit mode no longer starts a signature program named in the reviewed
+  repository's local Git configuration (`log.showSignature` with `gpg.program`); signature
+  display is off for every collection command. Found by the 1.51.0 security gate (RSCR-H03, High).
+- **autoreview**: a tracked `.gitmodules` `ignore = all` setting no longer hides a gitlink pointer
+  change from the refusal, so the change cannot go unreviewed while the run ends clean
+  (RSCR-H01, Medium).
+- **autoreview**: changed paths left out of the reviewer's input because of their sensitive names
+  are now counted on stderr and in the status sidecar's `omitted_sensitive_paths`; before, only
+  the prompt mentioned them (RSCR-H02, Medium). The status stays `scoped-clean`.
+
 ### Changed
 - **mneves-fable-orchestrator**: the Claude main session is Opus, latest release, at reasoning
   medium (it was Fable at high). Fable stays the planner and the plan advisor. The main session
