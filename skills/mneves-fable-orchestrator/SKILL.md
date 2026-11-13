@@ -54,11 +54,13 @@ economy executor  = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any h
 When review runs, a seat never reviews what it built. That covers the workers, the heavy executor, the economy
 executor, and the main session when it kept the hardest part: a change is
 reviewed by the reviewer value in the other column from the seat that built it, and an economy
-executor's change by either reviewer value. When that value is the Codex one and no Codex
-account can run (out of quota, not signed in, or refused by host policy), the reviewer row's
-fallback reviews in its place, in a fresh context, gates and security acceptance included;
-record the substitution and why the Codex reviewer failed. The fallback never reviews a change
-its own model built. Planning and
+executor's change by either reviewer value. When no reviewer value allowed for a change can run
+except the Codex one, and no Codex account can run (Codex not installed, out of quota, not signed
+in, or refused by host policy; a slow or failing run does not count), the reviewer row's
+fallback reviews in its place, in a fresh context, gates and security acceptance included.
+Record the substitution and the error each Codex account returned. The fallback never reviews a
+change its own model built; when it is excluded and no other model can review, report the gate
+blocked, and the economy executor does not take that review. Planning and
 plan advice run only on their own seats. Crossing means the change leaves for the other column's
 provider: authorize that disclosure as you would for any review provider before dispatching it.
 
@@ -127,9 +129,10 @@ worker for corrections to its task.
 
 Use the reviewer only when the user, repository, or risk requires independent review. A
 different-model requirement needs an explicitly selected reviewer allowed by the host policy;
-ordinary review defaults do not satisfy it automatically. If none is available, report the
-gate as blocked. The planner and plan advisor serve planning and advice only; they do not
-execute implementations or code reviews.
+ordinary review defaults do not satisfy it automatically. The reviewer row's fallback, under the
+conditions above, is such a selection. If none is available, report the gate as blocked. The
+planner and plan advisor serve planning and advice only and never execute implementations; their
+model reviews only as the reviewer row's fallback.
 
 For a Codex dispatch from another harness, one round is `codex exec`, and `tools/codex-lane`
 (shipped here) keeps a thread alive across rounds. `codex-auto` appears in the reference as a

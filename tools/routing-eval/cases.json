@@ -8,7 +8,8 @@
   "5: moved the set into the repository (tools/routing-eval/cases.json) and added `anchors` outside the cases, mapping each case id to the verbatim passages that decide it, so `routing-eval.py check` can catch a removed or reworded passage without a model call. No case changed.",
   "6: release 1.49.0 makes the orchestrator's Claude main session the planning seat (O1 now expects claude-fable-5-2 at high and is the only case marked changed against 1.48.0), drops the advisor from that row (O2's expectation is unchanged; its anchor is the plan advisor row), names autoreview's `--thinking high` on the reviewer row (O3 and O4 unchanged) and renames the local fallback row to economy executor. Added O13 for that seat, unchanged against 1.48.0 because the model and effort it binds did not change.",
   "7: P19 failed 2 of 24 Codex samples across eight runs of the unchanged 1.47.0 to 1.48.0 text, by applying the Opus `medium` rule to a model Codex substitutes. Adaptation 08 says in codex-tools.md that the rule does not apply to those substitutes. P19's expectation is unchanged and it is marked clarified.",
-  "8: 1.51.0 moves the Claude main session to Opus 5.5 at reasoning medium (owner, 2026-11-11). O1 now expects claude-opus-5-5 at medium and stays changed; O8's anchor follows the same Defaults line and its expectation (gpt-6.1-sol, high) is unchanged."
+  "8: 1.51.0 moves the Claude main session to Opus 5.5 at reasoning medium (owner, 2026-11-11). O1 now expects claude-opus-5-5 at medium and stays changed; O8's anchor follows the same Defaults line and its expectation (gpt-6.1-sol, high) is unchanged.",
+  "9: 1.51.1 names a reviewer fallback for when no Codex account can run (owner, 2026-11-12). O3 and O4 follow the edited reviewer row with unchanged expectations; new O14 expects that fallback (claude-fable-5-2 at high) and is changed."
  ],
  "purpose": "Expected-outcome eval of the routing text: does an agent reading the shipped skill text dispatch the expected model and reasoning effort for each seat? Expectations come from the owner's rules and the orchestrator's Defaults block, frozen before any run.",
  "threshold": "Candidate: every sample of every case passes on both consumers. Baseline control (the previous release's text, run with --baseline): every case marked changed fails on every sample, and every unchanged case passes, and no sample errors; a changed case that passes on the baseline does not discriminate: the control fails until the case is replaced or no longer marked changed. A case marked changed \"clarified\" had its source reworded to remove an ambiguity without changing its expected answer: a candidate run judges it like any case, and a baseline run records its counts in clarified_on_baseline and fails it only on an errored sample. Only a full run (every case on both consumers) can meet either threshold.",
@@ -83,6 +84,23 @@
     ]
    },
    "known_failure": "The Opus medium rule leaking onto the Codex reviewer, or an Opus self-review."
+  },
+  {
+   "id": "O14-reviewer-fallback-no-codex",
+   "sources": [
+    "skills/mneves-fable-orchestrator/SKILL.md"
+   ],
+   "changed": true,
+   "scenario": "A Claude ordinary worker (Opus) built a change that needs review. Codex is installed, but every Codex account returns an out-of-quota error. Following this skill, you dispatch the review of that change. Report the reviewer's model (the exact alias or id the text gives) and reasoning effort.",
+   "expected": {
+    "model": [
+     "claude-fable-5-2"
+    ],
+    "effort": [
+     "high"
+    ]
+   },
+   "known_failure": "Reporting the gate blocked (the 1.51.0 text), an Opus self-review, or the economy executor."
   },
   {
    "id": "O5-planner-claude",
@@ -1066,6 +1084,16 @@
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
     "text": "economy executor  = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the only substitute when no Claude or Codex seat for that role can run)"
+   }
+  ],
+  "O14-reviewer-fallback-no-codex": [
+   {
+    "path": "skills/mneves-fable-orchestrator/SKILL.md",
+    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol --thinking high`); when no Codex account can run: Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high"
+   },
+   {
+    "path": "skills/mneves-fable-orchestrator/SKILL.md",
+    "text": "fallback reviews in its place, in a fresh context, gates and security acceptance included."
    }
   ]
  }
