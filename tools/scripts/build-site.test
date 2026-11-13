@@ -235,6 +235,9 @@ with tempfile.TemporaryDirectory(prefix='skills-build-site-') as scratch:
         'event handler': '<p onclick="alert(1)">x</p>',
         'attribute outside the accepted set': '<p style="color:red">x</p>',
         'unknown element with attributes': '<task hidden>x</task>',
+        # Unfinished at the end of HOWTO.md: the template's next `>` would complete it.
+        'unfinished tag at the end': '<div style="position:fixed;inset:0;background:red"',
+        'unfinished accepted tag at the end': '<p class="x"',
     }
     for element in ('script', 'style', 'textarea', 'title', 'xmp', 'plaintext', 'iframe', 'noembed',
                     'noframes', 'noscript', 'template', 'svg', 'math', 'object', 'embed'):
