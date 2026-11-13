@@ -9,7 +9,7 @@
   "6: release 1.49.0 makes the orchestrator's Claude main session the planning seat (O1 now expects claude-fable-5-2 at high and is the only case marked changed against 1.48.0), drops the advisor from that row (O2's expectation is unchanged; its anchor is the plan advisor row), names autoreview's `--thinking high` on the reviewer row (O3 and O4 unchanged) and renames the local fallback row to economy executor. Added O13 for that seat, unchanged against 1.48.0 because the model and effort it binds did not change.",
   "7: P19 failed 2 of 24 Codex samples across eight runs of the unchanged 1.47.0 to 1.48.0 text, by applying the Opus `medium` rule to a model Codex substitutes. Adaptation 08 says in codex-tools.md that the rule does not apply to those substitutes. P19's expectation is unchanged and it is marked clarified.",
   "8: 1.51.0 moves the Claude main session to Opus 5.5 at reasoning medium (owner, 2026-11-11). O1 now expects claude-opus-5-5 at medium and stays changed; O8's anchor follows the same Defaults line and its expectation (gpt-6.1-sol, high) is unchanged.",
-  "9: 1.51.1 names a reviewer fallback for when no Codex account can run (owner, 2026-11-12). O3 and O4 follow the edited reviewer row with unchanged expectations; new O14 expects that fallback (claude-fable-5-2 at high) and is changed."
+  "9: 1.51.1 names a reviewer fallback for when no Codex account can run (owner, 2026-11-12). O3 and O4 follow the edited reviewer row with unchanged expectations; new O14 expects that fallback (claude-fable-5-2 at high) and is changed. O1 is no longer marked changed: 1.51.0 already sets its expectation, so the 1.51.0 baseline must pass it."
  ],
  "purpose": "Expected-outcome eval of the routing text: does an agent reading the shipped skill text dispatch the expected model and reasoning effort for each seat? Expectations come from the owner's rules and the orchestrator's Defaults block, frozen before any run.",
  "threshold": "Candidate: every sample of every case passes on both consumers. Baseline control (the previous release's text, run with --baseline): every case marked changed fails on every sample, and every unchanged case passes, and no sample errors; a changed case that passes on the baseline does not discriminate: the control fails until the case is replaced or no longer marked changed. A case marked changed \"clarified\" had its source reworded to remove an ambiguity without changing its expected answer: a candidate run judges it like any case, and a baseline run records its counts in clarified_on_baseline and fails it only on an errored sample. Only a full run (every case on both consumers) can meet either threshold.",
@@ -21,7 +21,7 @@
    "sources": [
     "skills/mneves-fable-orchestrator/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "You are the Claude Code main session working under this skill. Report the model and reasoning effort this skill sets for your own main session. `model` is the exact alias or model id the text gives for it, not the seat's description; `how` is not-applicable.",
    "expected": {
     "model": [

@@ -20,7 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **autoreview**: explicit caller overrides include a caller that substitutes another reviewer
   under its own recorded policy.
 - **Routing eval**: revision 9 moves the O3 and O4 anchors to the new reviewer row and adds case
-  O14-reviewer-fallback-no-codex, which expects `claude-fable-5-2` at high.
+  O14-reviewer-fallback-no-codex, which expects `claude-fable-5-2` at high. O1 is no longer marked
+  changed, since 1.51.0 already sets its expectation and the 1.51.0 baseline must pass it.
 - **Readiness ledger and plan**: fold in the 1.51.0 binding run (production cursor `2ecd2d0`,
   dispositions unchanged from 1.50.0).
 

@@ -73,7 +73,8 @@ dispatch the model and reasoning effort each seat is meant to run at? Cases live
   the 1.51.0 gate's `routing-eval/` and `routing-eval-baseline/`.
 - **1.51.1, revision 9.** New O14 expects the reviewer fallback (Fable at reasoning high) when no
   Codex account can run, marked changed; O3 and O4 follow the edited reviewer row with unchanged
-  expectations.
+  expectations. O1 is no longer marked changed: left changed, it would pass on the 1.51.0
+  baseline and fail the control (found by the crossed review).
 
 ## Open
 
