@@ -7740,14 +7740,17 @@ os.execv(target, [str(target), *sys.argv[1:]])
                     git(nested, "commit", "-qam", "move submodule HEAD")
                 (repo / "ordinary.txt").write_bytes(b"base\nreview me\nlocal edit\n")
 
+                # The status helpers refuse on their own too, not only through their callers.
                 for call in (
+                    lambda: self.helper["is_dirty"](repo),
+                    lambda: self.helper["local_status"](repo, []),
                     lambda: self.helper["choose_target"](repo, "auto", None),
                     lambda: self.helper["choose_target"](repo, "local", None),
                     lambda: self.helper["local_bundle"](repo),
                 ):
                     with self.assertRaisesRegex(SystemExit, "populated submodule at vendor/dependency"):
                         call()
-                self.assertFalse(marker.exists(), "a nested filter ran during local or auto selection")
+                    self.assertFalse(marker.exists(), "a nested filter ran during local or auto selection")
 
                 captured = self.helper["commit_bundle"](repo, "HEAD")
                 self.assertEqual(captured.paths, {"ordinary.txt"})
@@ -7817,6 +7820,56 @@ os.execv(target, [str(target), *sys.argv[1:]])
             (repo / "ordinary.txt").write_bytes(b"base\nlocal edit\n")
             self.assertEqual(self.helper["choose_target"](repo, "local", None), ("local", None))
             self.assertIn("ordinary.txt", self.helper["local_bundle"](repo).paths)
+
+    def test_gitlink_patch_never_formats_inline_submodule_diff(self) -> None:
+        # RSCR-H07: an outer `diff.submodule=diff` would format a gitlink move
+        # inline, inside the nested repository, where its own textconv or
+        # external diff driver could run before the gitlink refusal.
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            child = root / "child"
+            child.mkdir()
+            git(child, "init", "-q")
+            (child / ".gitattributes").write_bytes(b"*.txt diff=audit\n")
+            (child / "source.txt").write_bytes(b"first\n")
+            git(child, "add", ".gitattributes", "source.txt")
+            git(child, "commit", "-qm", "first")
+
+            repo = init_repo(root)
+            git(repo, "config", "core.autocrlf", "false")
+            git(repo, "-c", "protocol.file.allow=always", "submodule", "add", "-q",
+                str(child), "vendor/dependency")
+            git(repo, "commit", "-qm", "add submodule")
+            base = git(repo, "rev-parse", "HEAD").strip()
+            nested = repo / "vendor" / "dependency"
+            (nested / "source.txt").write_bytes(b"second\n")
+            git(nested, "commit", "-qam", "second")
+            git(repo, "add", "vendor/dependency")
+            git(repo, "commit", "-qm", "move gitlink")
+
+            marker = root / "driver-dispatched"
+            program = root / "driver.py"
+            program.write_bytes((
+                "from pathlib import Path\nimport sys\n"
+                f"Path({str(marker)!r}).write_bytes(b'synthetic dispatch\\n')\n"
+                "sys.stdout.buffer.write(Path(sys.argv[1]).read_bytes())\n"
+            ).encode("utf-8"))
+            driver = shlex.join((Path(sys.executable).as_posix(), program.as_posix()))
+            git(nested, "config", "diff.audit.textconv", driver)
+            git(nested, "config", "diff.audit.command", driver)
+            git(repo, "config", "diff.submodule", "diff")
+
+            # Positive control: Git itself does run the nested driver for this layout.
+            git(repo, "diff", "--submodule=diff", base, "HEAD")
+            self.assertTrue(marker.exists(), "control: inline submodule diff did not run the driver")
+            marker.unlink()
+
+            with self.assertRaisesRegex(SystemExit, "gitlink/submodule changes"):
+                self.helper["commit_bundle"](repo, "HEAD")
+            with self.assertRaisesRegex(SystemExit, "gitlink/submodule changes"):
+                self.helper["branch_bundle"](repo, base)
+            self.assertFalse(marker.exists(), "collection ran a nested diff driver")
+            self.assertIn(("diff.submodule", "short"), self.helper["ENGINE_GIT_CONFIG_OVERRIDES"])
 
 PROXY_KEYS = ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy")
 

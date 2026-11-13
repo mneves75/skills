@@ -27,7 +27,8 @@ reaches the isolated reviewer. Git collection never runs checkout-controlled exe
 executable filter drivers are disabled for collection, and a diff that needs a converter to be
 read is refused before review. Signature display is off for every collection command, so a
 signed-looking commit never starts a configured `gpg.program`, and diffs ignore a tracked
-`.gitmodules` `ignore` setting, so a gitlink pointer change is always seen and refused.
+`.gitmodules` `ignore` setting, so a gitlink pointer change is always seen and refused; it is
+printed as one line, never diffed inside the nested repository.
 Local and auto review refuse a checkout with a populated submodule before any status call,
 because Git would apply the nested repository's own configuration there and its changed
 content would escape the refusal; review committed changes with `--mode branch` or

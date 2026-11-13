@@ -41,6 +41,7 @@ ENGINE_GIT_CONFIG_OVERRIDES = (
     ("core.pager", "cat"),
     ("diff.external", ""),
     ("diff.renames", "false"),
+    ("diff.submodule", "short"),
     ("log.showSignature", "false"),
     ("pager.diff", "cat"),
     ("pager.log", "cat"),
@@ -51,9 +52,11 @@ SAFE_GIT_CONFIG_ARGS = tuple(
     arg for key, value in ENGINE_GIT_CONFIG_OVERRIDES for arg in ("-c", f"{key}={value}")
 ) + ("-c", "diff.suppressBlankEmpty=false")
 # A tracked .gitmodules `ignore = all` must not hide a gitlink pointer change; `dirty`
-# still reports pointer changes without scanning submodule work trees.
+# still reports pointer changes without scanning submodule work trees. `--submodule=short`
+# prints a gitlink as one line, so a patch never formats a diff inside the nested repository.
 SAFE_DIFF_FLAGS = (
     "--no-ext-diff", "--no-textconv", "--no-renames", "--no-color", "--ignore-submodules=dirty",
+    "--submodule=short",
 )
 COMMIT_DIFF_FLAGS = (*SAFE_DIFF_FLAGS, "--root", "--no-commit-id", "-r")
 DIFF_HUNK_CONTENT_BOUNDARY = "\0autoreview-diff-hunk-boundary\0"
@@ -1873,6 +1876,7 @@ def refuse_populated_gitlinks(repo: Path) -> None:
 
 
 def is_dirty(repo: Path) -> bool:
+    refuse_populated_gitlinks(repo)
     return bool(
         git(repo, "status", "--porcelain", "--untracked-files=no").strip()
         or untracked_sources(repo).files
@@ -2754,6 +2758,7 @@ def collect_untracked_file_snapshots(
 
 
 def local_status(repo: Path, untracked: list[str], *, redact: bool = False) -> str:
+    refuse_populated_gitlinks(repo)
     if redact:
         return REVIEW_SECURITY_OMISSION
     status = git(repo, "status", "--short", "--untracked-files=no").rstrip()
