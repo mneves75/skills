@@ -7637,7 +7637,8 @@ os.execv(target, [str(target), *sys.argv[1:]])
                 "\nsynthetic signed object\n"
             )
             object_path = root / "signed-commit.txt"
-            object_path.write_text(signed, encoding="utf-8")
+            # Bytes, not text: Windows text mode would write CRLF and corrupt the object.
+            object_path.write_bytes(signed.encode("utf-8"))
             oid = git(repo, "hash-object", "-t", "commit", "-w", str(object_path)).strip()
             git(repo, "update-ref", "HEAD", oid)
 
