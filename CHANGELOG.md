@@ -21,8 +21,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   under its own recorded policy.
 - **Routing eval**: revision 9 moves the O3 and O4 anchors to the new reviewer row and adds case
   O14-reviewer-fallback-no-codex, which expects `claude-fable-5-2` at high.
+- **Readiness ledger and plan**: fold in the 1.51.0 binding run (production cursor `2ecd2d0`,
+  dispositions unchanged from 1.50.0).
 
 ## [1.51.0] - 2026-11-11
+
+### Security
+- **autoreview**: commit mode no longer starts a signature program named in the reviewed
+  repository's local Git configuration (`log.showSignature` with `gpg.program`); signature
+  display is off for every collection command. Found by the 1.51.0 security gate (RSCR-H03, High).
+- **autoreview**: a tracked `.gitmodules` `ignore = all` setting no longer hides a gitlink pointer
+  change from the refusal, so the change cannot go unreviewed while the run ends clean
+  (RSCR-H01, Medium).
+- **autoreview**: local and auto review now refuse a checkout with a populated submodule
+  before any `git status`, and point to `--mode branch` or `--mode commit`. Status had run a
+  filter defined only in the submodule's own configuration on a same-size edit (RSCR-H04),
+  auto review picked a branch target while the submodule HEAD had moved under `ignore = all`
+  (RSCR-H01), and changed submodule content left local review without a refusal (RSCR-H06).
+  A checkout with populated submodules can no longer be reviewed in local or auto mode.
+- **autoreview**: changed paths left out of the reviewer's input because of their sensitive names
+  are now counted on stderr and in the status sidecar's `omitted_sensitive_paths`; before, only
+  the prompt mentioned them (RSCR-H02, Medium). The status stays `scoped-clean`.
 
 ### Changed
 - **mneves-fable-orchestrator**: the Claude main session is Opus, latest release, at reasoning

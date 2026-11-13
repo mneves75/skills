@@ -10,6 +10,7 @@ import json
 import os
 import re
 import runpy
+import shlex
 import shutil
 import signal
 import stat
@@ -1539,7 +1540,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
             path.write_text("TOKEN=changed-placeholder\n", encoding="utf-8")
             git(repo, "add", path.name)
 
-            bundle, _paths, _mixed, _spans = self.helper["local_bundle"](repo)
+            bundle, _paths, _mixed, _spans, _omitted = self.helper["local_bundle"](repo)
 
             self.assertIn(self.helper["REVIEW_SECURITY_OMISSION"], bundle)
 
@@ -1557,7 +1558,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
                 path.write_text("placeholder=true\n", encoding="utf-8")
                 (repo / "review.py").write_text("print('review me')\n", encoding="utf-8")
 
-                bundle, _paths, _mixed, _spans = self.helper["local_bundle"](repo)
+                bundle, _paths, _mixed, _spans, _omitted = self.helper["local_bundle"](repo)
 
                 self.assertIn("# Review Input Omissions", bundle)
                 self.assertIn(self.helper["REVIEW_SECURITY_OMISSION"], bundle)
@@ -1604,7 +1605,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
                 self.helper["local_bundle"].__globals__,
                 {"read_file_bytes": read_once},
             ):
-                bundle, _paths, _mixed, _spans = self.helper["local_bundle"](repo)
+                bundle, _paths, _mixed, _spans, _omitted = self.helper["local_bundle"](repo)
 
             expected_record = json.dumps("review me" + os.linesep)
             self.assertIn(
@@ -1901,7 +1902,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
             snapshot = self.helper["source_tree_snapshot"](repo)
             git(repo, "update-ref", "refs/heads/review-base", "HEAD")
             self.assertEqual(self.helper["source_tree_snapshot"](repo), snapshot)
-            bundle, _paths, _mixed, _spans = self.helper["local_bundle"](repo, pinned)
+            bundle, _paths, _mixed, _spans, _omitted = self.helper["local_bundle"](repo, pinned)
             self.assertIn("+committed task change", bundle)
             self.assertEqual(
                 self.helper["build_bundle"](repo, target, pinned, "HEAD").paths,
@@ -1923,7 +1924,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
                 if staged:
                     git(repo, "add", safe)
                 with self.subTest(staged=staged):
-                    bundle, _paths, _mixed, _spans = self.helper["local_bundle"](repo)
+                    bundle, _paths, _mixed, _spans, _omitted = self.helper["local_bundle"](repo)
                     self.assertIn("struct CredentialFile", bundle)
                     self.assertIn(safe, self.helper["local_bundle"](repo).paths)
                     for label in ("--dataset", "--prompt-file"):
@@ -2090,7 +2091,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
                         self.assertEqual(outcome, {
                             "schema_version": 1, "status": expected_status, "exit_code": exit_code,
                             "engine": "codex", "report_produced": True, "reason": None,
-                            "reviewer_exit_code": None, "timed_out": False,
+                            "reviewer_exit_code": None, "timed_out": False, "omitted_sensitive_paths": 0,
                         })
                         text = (root / "result.txt").read_text()
                         self.assertEqual(result["review_status"], expected_status)
@@ -2255,7 +2256,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
                     self.assertEqual(json.loads(sidecar.read_text(encoding="utf-8")), {
                         "schema_version": 1, "status": "scoped-clean", "exit_code": 0,
                         "engine": "codex", "report_produced": True, "reason": None,
-                        "reviewer_exit_code": None, "timed_out": False,
+                        "reviewer_exit_code": None, "timed_out": False, "omitted_sensitive_paths": 0,
                     })
                     rendered = human.read_text(encoding="utf-8")
                     self.assertIn("scoped-clean:", rendered)
@@ -2328,7 +2329,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
                                 self.assertEqual(json.loads(status_path.read_text()), {
                                     "schema_version": 1, "status": expected_status, "exit_code": expected_exit,
                                     "engine": "codex", "report_produced": True, "reason": None,
-                                    "reviewer_exit_code": None, "timed_out": False,
+                                    "reviewer_exit_code": None, "timed_out": False, "omitted_sensitive_paths": 0,
                                 })
                                 for provider in providers:
                                     self.assertIn(provider["overall_explanation"], text.getvalue())
@@ -2490,7 +2491,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
                 dataset=[str(untracked.relative_to(repo))],
             ), repo)
             extra, datasets = evidence.prompt, evidence.datasets
-            bundle, _paths, _mixed, _spans = self.helper["local_bundle"](repo)
+            bundle, _paths, _mixed, _spans, _omitted = self.helper["local_bundle"](repo)
             pack, = self.helper["build_review_prompts"](repo, "local", None, bundle, extra, datasets)
             provider = mock.Mock(return_value=json.dumps({
                 "findings": [], "overall_correctness": "patch is correct",
@@ -3495,14 +3496,14 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
             (repo / ".env").write_text("placeholder=true\n", encoding="utf-8")
             (repo / "base.txt").write_text("base\nreview me\n", encoding="utf-8")
             git(repo, "add", ".env", "base.txt")
-            local, _paths, _mixed, _spans = self.helper["local_bundle"](repo)
+            local, _paths, _mixed, _spans, _omitted = self.helper["local_bundle"](repo)
             self.assertIn(self.helper["REVIEW_SECURITY_OMISSION"], local)
             self.assertNotIn(".env", local)
             self.assertNotIn("placeholder=true", local)
             self.assertIn("+review me", local)
 
             git(repo, "commit", "-q", "-m", "sensitive path")
-            for bundle, paths, _mixed, _spans in (
+            for bundle, paths, _mixed, _spans, _omitted in (
                 self.helper["branch_bundle"](repo, base),
                 self.helper["commit_bundle"](repo, "HEAD"),
             ):
@@ -3522,16 +3523,16 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
             workflow = repo / ".github" / "workflows" / "secret-scan.yml"
             workflow.parent.mkdir(parents=True)
             workflow.write_text("name: Secret scan\n", encoding="utf-8")
-            untracked_bundle, _paths, _mixed, _spans = self.helper["local_bundle"](repo)
+            untracked_bundle, _paths, _mixed, _spans, _omitted = self.helper["local_bundle"](repo)
             self.assertIn("secret-scan.yml", untracked_bundle)
 
             git(repo, "add", str(workflow.relative_to(repo)))
-            tracked_bundle, _paths, _mixed, _spans = self.helper["local_bundle"](repo)
+            tracked_bundle, _paths, _mixed, _spans, _omitted = self.helper["local_bundle"](repo)
             self.assertIn("secret-scan.yml", tracked_bundle)
 
             git(repo, "commit", "-q", "-m", "add secret scanner")
-            branch_bundle, _paths, _mixed, _spans = self.helper["branch_bundle"](repo, base)
-            commit_bundle, _paths, _mixed, _spans = self.helper["commit_bundle"](repo, "HEAD")
+            branch_bundle, _paths, _mixed, _spans, _omitted = self.helper["branch_bundle"](repo, base)
+            commit_bundle, _paths, _mixed, _spans, _omitted = self.helper["commit_bundle"](repo, "HEAD")
             self.assertIn("secret-scan.yml", branch_bundle)
             self.assertIn("secret-scan.yml", commit_bundle)
 
@@ -3599,7 +3600,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
             path.parent.mkdir()
             path.write_text(source, encoding="utf-8")
 
-            bundle, _paths, _mixed, _spans = self.helper["local_bundle"](repo)
+            bundle, _paths, _mixed, _spans, _omitted = self.helper["local_bundle"](repo)
 
             self.assertIn("ordinary-hardcoded-value-12345", bundle)
 
@@ -3893,7 +3894,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
             git(repo, "add", "-u")
             git(repo, "commit", "-q", "-m", "delete template")
 
-            bundle, _paths, _mixed, _spans = self.helper["branch_bundle"](repo, base)
+            bundle, _paths, _mixed, _spans, _omitted = self.helper["branch_bundle"](repo, base)
 
             self.assertIn("deleted file mode 100644", bundle)
             self.assertIn("------BEGIN [A-Z ]+-----", bundle)
@@ -4053,7 +4054,7 @@ with Path(__file__).with_name("scans.jsonl").open("a", encoding="utf-8") as reco
 
             path.write_text('const request = { token: String() };\n', encoding="utf-8")
 
-            bundle, _paths, _mixed, _spans = self.helper["local_bundle"](repo)
+            bundle, _paths, _mixed, _spans, _omitted = self.helper["local_bundle"](repo)
 
             self.assertIn('-const request = { token: "test-token" };', bundle)
 
@@ -7574,6 +7575,301 @@ os.execv(target, [str(target), *sys.argv[1:]])
             self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
             self.assertIn("inputs: FAILED", result.stdout)
             self.assertIn("missing-dataset.json", result.stdout)
+
+    def test_gitlink_change_hidden_by_gitmodules_ignore_is_blocked(self) -> None:
+        # RSCR-H01: a tracked `.gitmodules` with `ignore = all` must not hide a
+        # gitlink pointer change from the refusal, whether the setting predates
+        # the change or arrives with it.
+        modules = '[submodule "dep"]\n\tpath = vendor/dep\n\turl = ./unused-offline\n'
+        for ignore_at_base in (False, True):
+            with self.subTest(ignore_at_base=ignore_at_base), tempfile.TemporaryDirectory() as tempdir:
+                repo = init_repo(Path(tempdir))
+                tracked = repo / "tracked.txt"
+                pointers = []
+                for content in ("one\n", "two\n"):
+                    tracked.write_text(content, encoding="utf-8")
+                    git(repo, "add", "tracked.txt")
+                    git(repo, "commit", "-q", "-m", content.strip())
+                    pointers.append(git(repo, "rev-parse", "HEAD").strip())
+                (repo / ".gitmodules").write_text(
+                    modules + ("\tignore = all\n" if ignore_at_base else ""), encoding="utf-8",
+                )
+                git(repo, "add", ".gitmodules")
+                git(repo, "update-index", "--add", "--cacheinfo", f"160000,{pointers[0]},vendor/dep")
+                git(repo, "commit", "-q", "-m", "base gitlink")
+                base = git(repo, "rev-parse", "HEAD").strip()
+
+                (repo / ".gitmodules").write_text(modules + "\tignore = all\n", encoding="utf-8")
+                git(repo, "add", ".gitmodules")
+                git(repo, "update-index", "--cacheinfo", f"160000,{pointers[1]},vendor/dep")
+                with self.assertRaisesRegex(SystemExit, "gitlink/submodule changes"):
+                    self.helper["local_bundle"](repo)
+                git(repo, "commit", "-q", "-m", "move gitlink under ignore = all")
+                with self.assertRaisesRegex(SystemExit, "gitlink/submodule changes"):
+                    self.helper["commit_bundle"](repo, "HEAD")
+                with self.assertRaisesRegex(SystemExit, "gitlink/submodule changes"):
+                    self.helper["branch_bundle"](repo, base)
+
+    def test_commit_bundle_never_runs_checkout_configured_signature_program(self) -> None:
+        # RSCR-H03: checkout-local `log.showSignature` + `gpg.program` must not
+        # make commit collection start a program, even for a signed-looking commit.
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            repo = init_repo(root)
+            (repo / "tracked.txt").write_text("one\n", encoding="utf-8")
+            git(repo, "add", "tracked.txt")
+            git(repo, "commit", "-q", "-m", "unsigned base")
+            base = git(repo, "rev-parse", "HEAD").strip()
+            marker = root / "gpg-marker"
+            probe = write_executable(
+                root / "gpg-probe.sh",
+                "#!/bin/sh\nprintf 'signature verifier dispatched\\n' > " + shlex.quote(str(marker)) + "\nexit 1\n",
+            )
+            git(repo, "config", "log.showSignature", "true")
+            for key in ("gpg.program", "gpg.openpgp.program", "gpg.x509.program", "gpg.ssh.program"):
+                git(repo, "config", key, str(probe))
+            tree = git(repo, "rev-parse", "HEAD^{tree}").strip()
+            signed = (
+                f"tree {tree}\nparent {base}\n"
+                "author Probe <probe@example.invalid> 1700000000 +0000\n"
+                "committer Probe <probe@example.invalid> 1700000000 +0000\n"
+                "gpgsig -----BEGIN PGP SIGNATURE-----\n \n synthetic\n -----END PGP SIGNATURE-----\n"
+                "\nsynthetic signed object\n"
+            )
+            object_path = root / "signed-commit.txt"
+            # Bytes, not text: Windows text mode would write CRLF and corrupt the object.
+            object_path.write_bytes(signed.encode("utf-8"))
+            oid = git(repo, "hash-object", "-t", "commit", "-w", str(object_path)).strip()
+            git(repo, "update-ref", "HEAD", oid)
+
+            captured = self.helper["commit_bundle"](repo, "HEAD")
+            self.assertIn("synthetic signed object", captured.text)
+            self.assertFalse(marker.exists(), "commit collection ran a checkout-configured signature program")
+
+    def test_sensitive_omission_reaches_the_operator_and_status(self) -> None:
+        # RSCR-H02: an omitted sensitive-named path must be visible outside the
+        # prompt: counted on the bundle, printed to the operator, and recorded
+        # in the status sidecar.
+        with tempfile.TemporaryDirectory() as tempdir:
+            repo = init_repo(Path(tempdir))
+            git(repo, "config", "core.autocrlf", "false")
+            (repo / "ordinary.txt").write_text("before\n", encoding="utf-8")
+            git(repo, "add", "ordinary.txt")
+            git(repo, "commit", "-q", "-m", "base")
+            base = git(repo, "rev-parse", "HEAD").strip()
+            (repo / ".env").write_text("DUMMY_VALUE=synthetic-placeholder\n", encoding="utf-8")
+            (repo / "ordinary.txt").write_text("after\n", encoding="utf-8")
+            git(repo, "add", ".env", "ordinary.txt")
+            self.assertEqual(self.helper["local_bundle"](repo).omitted, 1)
+            git(repo, "commit", "-q", "-m", "sensitive and ordinary change")
+            self.assertEqual(self.helper["commit_bundle"](repo, "HEAD").omitted, 1)
+            self.assertEqual(self.helper["branch_bundle"](repo, base).omitted, 1)
+
+            provider = {
+                "findings": [], "overall_correctness": "patch is correct",
+                "overall_explanation": "Synthetic clean review.", "overall_confidence": 0.9,
+                "review_completion": "complete",
+            }
+            status = repo.parent / "status.json"
+            argv = [str(SCRIPT), "--engine", "codex", "--mode", "branch", "--base", base,
+                    "--status-output", str(status)]
+            stdout, stderr = io.StringIO(), io.StringIO()
+            with mock.patch.dict(self.helper["main_impl"].__globals__, {
+                "repo_root": lambda: repo,
+                "resolve_engine_binary": lambda *_args: (True, None),
+                "scan_outgoing_review_pack": lambda *_: None,
+                "run_engine": mock.Mock(return_value=json.dumps(provider)),
+            }), mock.patch.object(sys, "argv", argv), \
+                    contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                self.assertEqual(self.helper["main_impl"](), 0)
+            self.assertIn("1 sensitive-named path omitted from review", stderr.getvalue())
+            self.assertNotIn(".env", stdout.getvalue() + stderr.getvalue())
+            sidecar = json.loads(status.read_text())
+            self.assertEqual(sidecar["status"], "scoped-clean")
+            self.assertEqual(sidecar["omitted_sensitive_paths"], 1)
+
+    def test_populated_submodule_refuses_local_and_auto_before_git_status(self) -> None:
+        # RSCR-H06 (dirty submodule content dropped from local review), RSCR-H04
+        # (a nested-only filter runs during the status probe on a same-size edit)
+        # and the RSCR-H01 auto residual (ignore = all hides a moved submodule
+        # HEAD from target selection). Local and auto review refuse a populated
+        # gitlink before any status call; object-only commit review still runs.
+        for scenario in ("dirty-content", "nested-filter-same-size", "moved-head-ignore-all"):
+            with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as tempdir:
+                root = Path(tempdir)
+                child = root / "child"
+                child.mkdir()
+                git(child, "init", "-q")
+                (child / "source.txt").write_bytes(b"before\n")
+                (child / ".gitattributes").write_bytes(b"source.txt filter=probe\n")
+                git(child, "add", "source.txt", ".gitattributes")
+                git(child, "commit", "-qm", "initial")
+
+                repo = init_repo(root)
+                git(repo, "config", "core.autocrlf", "false")
+                (repo / "ordinary.txt").write_bytes(b"base\n")
+                git(repo, "add", "ordinary.txt")
+                git(repo, "-c", "protocol.file.allow=always", "submodule", "add", "-q",
+                    str(child), "vendor/dependency")
+                if scenario == "moved-head-ignore-all":
+                    git(repo, "config", "-f", ".gitmodules", "submodule.vendor/dependency.ignore", "all")
+                    git(repo, "add", ".gitmodules")
+                git(repo, "commit", "-qm", "add submodule")
+                (repo / "ordinary.txt").write_bytes(b"base\nreview me\n")
+                git(repo, "commit", "-qam", "ordinary change")
+
+                nested = repo / "vendor" / "dependency"
+                marker = root / "filter-dispatched"
+                if scenario == "dirty-content":
+                    (nested / "source.txt").write_bytes(b"changed and longer\n")
+                elif scenario == "nested-filter-same-size":
+                    program = root / "probe.py"
+                    program.write_bytes((
+                        "from pathlib import Path\nimport sys\n"
+                        f"Path({str(marker)!r}).write_bytes(b'synthetic dispatch\\n')\n"
+                        "sys.stdout.buffer.write(sys.stdin.buffer.read())\n"
+                    ).encode("utf-8"))
+                    git(nested, "config", "filter.probe.clean",
+                        shlex.join((Path(sys.executable).as_posix(), program.as_posix())))
+                    target = nested / "source.txt"
+                    info = target.stat()
+                    target.write_bytes(b"BEFORE\n")
+                    os.utime(target, ns=(info.st_atime_ns, info.st_mtime_ns + 2_000_000_000))
+                else:
+                    (nested / "source.txt").write_bytes(b"moved\n")
+                    git(nested, "commit", "-qam", "move submodule HEAD")
+                (repo / "ordinary.txt").write_bytes(b"base\nreview me\nlocal edit\n")
+
+                # The status helpers refuse on their own too, not only through their callers.
+                for call in (
+                    lambda: self.helper["is_dirty"](repo),
+                    lambda: self.helper["local_status"](repo, []),
+                    lambda: self.helper["choose_target"](repo, "auto", None),
+                    lambda: self.helper["choose_target"](repo, "local", None),
+                    lambda: self.helper["local_bundle"](repo),
+                ):
+                    with self.assertRaisesRegex(SystemExit, "populated submodule at vendor/dependency"):
+                        call()
+                    self.assertFalse(marker.exists(), "a nested filter ran during local or auto selection")
+
+                captured = self.helper["commit_bundle"](repo, "HEAD")
+                self.assertEqual(captured.paths, {"ordinary.txt"})
+                self.assertFalse(marker.exists(), "a nested filter ran during commit review")
+
+    def test_populated_gitlink_detection_ignores_submodule_metadata(self) -> None:
+        # The refusal keys on a mode-160000 index entry whose path holds `.git`
+        # in any form: a gitfile, a directory, a symlink (even dangling), or a
+        # gitlink path that is itself a symlink to an outside repository. It
+        # never consults `.gitmodules`, `submodule.<name>.active` or `ignore`.
+        layouts = ["gitfile", "directory", "bare-entry-no-gitmodules"]
+        if os.name != "nt":
+            layouts += ["dot-git-symlink", "dangling-dot-git-symlink", "gitlink-path-symlink"]
+        for layout in layouts:
+            with self.subTest(layout=layout), tempfile.TemporaryDirectory() as tempdir:
+                root = Path(tempdir)
+                outside = root / "outside"
+                outside.mkdir()
+                git(outside, "init", "-q")
+                (outside / "source.txt").write_bytes(b"outside\n")
+                git(outside, "add", "source.txt")
+                git(outside, "commit", "-qm", "outside")
+                pointer = git(outside, "rev-parse", "HEAD").strip()
+
+                repo = init_repo(root)
+                (repo / "ordinary.txt").write_bytes(b"base\n")
+                git(repo, "add", "ordinary.txt")
+                git(repo, "update-index", "--add", "--cacheinfo", f"160000,{pointer},vendor/dep")
+                git(repo, "commit", "-qm", "bare gitlink, no .gitmodules")
+                self.assertFalse((repo / ".gitmodules").exists())
+                dep = repo / "vendor" / "dep"
+                dep.parent.mkdir(exist_ok=True)
+                if layout == "gitlink-path-symlink":
+                    dep.symlink_to(outside, target_is_directory=True)
+                else:
+                    dep.mkdir()
+                    dot_git = dep / ".git"
+                    if layout == "gitfile":
+                        dot_git.write_text(f"gitdir: {(outside / '.git').as_posix()}\n", encoding="utf-8")
+                    elif layout in {"directory", "bare-entry-no-gitmodules"}:
+                        dot_git.mkdir()
+                    elif layout == "dot-git-symlink":
+                        dot_git.symlink_to(outside / ".git", target_is_directory=True)
+                    else:
+                        dot_git.symlink_to(root / "absent", target_is_directory=True)
+                (repo / "ordinary.txt").write_bytes(b"base\nlocal edit\n")
+
+                for call in (
+                    lambda: self.helper["choose_target"](repo, "auto", None),
+                    lambda: self.helper["choose_target"](repo, "local", None),
+                    lambda: self.helper["local_bundle"](repo),
+                ):
+                    with self.assertRaisesRegex(SystemExit, "populated submodule at vendor/dep"):
+                        call()
+
+        with tempfile.TemporaryDirectory() as tempdir:
+            # An unpopulated gitlink (empty directory) is not refused by this
+            # guard; the existing gitlink-change refusal still governs it.
+            repo = init_repo(Path(tempdir))
+            (repo / "ordinary.txt").write_bytes(b"base\n")
+            git(repo, "add", "ordinary.txt")
+            git(repo, "commit", "-qm", "base")
+            pointer = git(repo, "rev-parse", "HEAD").strip()
+            git(repo, "update-index", "--add", "--cacheinfo", f"160000,{pointer},vendor/dep")
+            git(repo, "commit", "-qm", "unpopulated gitlink")
+            (repo / "vendor" / "dep").mkdir(parents=True)
+            (repo / "ordinary.txt").write_bytes(b"base\nlocal edit\n")
+            self.assertEqual(self.helper["choose_target"](repo, "local", None), ("local", None))
+            self.assertIn("ordinary.txt", self.helper["local_bundle"](repo).paths)
+
+    def test_gitlink_patch_never_formats_inline_submodule_diff(self) -> None:
+        # RSCR-H07: an outer `diff.submodule=diff` would format a gitlink move
+        # inline, inside the nested repository, where its own textconv or
+        # external diff driver could run before the gitlink refusal.
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            child = root / "child"
+            child.mkdir()
+            git(child, "init", "-q")
+            (child / ".gitattributes").write_bytes(b"*.txt diff=audit\n")
+            (child / "source.txt").write_bytes(b"first\n")
+            git(child, "add", ".gitattributes", "source.txt")
+            git(child, "commit", "-qm", "first")
+
+            repo = init_repo(root)
+            git(repo, "config", "core.autocrlf", "false")
+            git(repo, "-c", "protocol.file.allow=always", "submodule", "add", "-q",
+                str(child), "vendor/dependency")
+            git(repo, "commit", "-qm", "add submodule")
+            base = git(repo, "rev-parse", "HEAD").strip()
+            nested = repo / "vendor" / "dependency"
+            (nested / "source.txt").write_bytes(b"second\n")
+            git(nested, "commit", "-qam", "second")
+            git(repo, "add", "vendor/dependency")
+            git(repo, "commit", "-qm", "move gitlink")
+
+            marker = root / "driver-dispatched"
+            program = root / "driver.py"
+            program.write_bytes((
+                "from pathlib import Path\nimport sys\n"
+                f"Path({str(marker)!r}).write_bytes(b'synthetic dispatch\\n')\n"
+                "sys.stdout.buffer.write(Path(sys.argv[1]).read_bytes())\n"
+            ).encode("utf-8"))
+            driver = shlex.join((Path(sys.executable).as_posix(), program.as_posix()))
+            git(nested, "config", "diff.audit.textconv", driver)
+            git(nested, "config", "diff.audit.command", driver)
+            git(repo, "config", "diff.submodule", "diff")
+
+            # Positive control: Git itself does run the nested driver for this layout.
+            git(repo, "diff", "--submodule=diff", base, "HEAD")
+            self.assertTrue(marker.exists(), "control: inline submodule diff did not run the driver")
+            marker.unlink()
+
+            with self.assertRaisesRegex(SystemExit, "gitlink/submodule changes"):
+                self.helper["commit_bundle"](repo, "HEAD")
+            with self.assertRaisesRegex(SystemExit, "gitlink/submodule changes"):
+                self.helper["branch_bundle"](repo, base)
+            self.assertFalse(marker.exists(), "collection ran a nested diff driver")
+            self.assertIn(("diff.submodule", "short"), self.helper["ENGINE_GIT_CONFIG_OVERRIDES"])
 
 PROXY_KEYS = ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy")
 

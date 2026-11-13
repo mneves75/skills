@@ -14,12 +14,23 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
-- **1.51.0 candidate**: skill text aligned with Anthropic's "Prompting Claude Fable 5.2" guide and
-  OpenAI's GPT-6 prompting guide. The Claude main session is Opus at reasoning medium (Fable keeps
-  the planner and plan-advisor seats); implementation is dispatched only when substantial,
-  independent and checkable; approval boundaries name what they cover; review gates in
-  untangle-codebase, mneves-security, ship-deploy and motion-film are scoped to the work that needs
-  them; user instructions take precedence over skill procedure. Routing-eval revision 8 (O1).
+- **1.51.1 candidate**: when no Codex account can run, the orchestrator's reviewer seat falls back
+  to Fable at reasoning high instead of blocking the gate. Routing-eval revision 9 (O14). Folds
+  the 1.51.0 binding run into the readiness ledger and plan (cursor `2ecd2d0`).
+- **1.51.0** (2026-11-13 UTC closeout): skill text aligned with Anthropic's "Prompting Claude Fable
+  5.2" guide and OpenAI's GPT-6 prompting guide. The Claude main session is Opus at reasoning
+  medium (Fable keeps the planner and plan-advisor seats); implementation is dispatched only when
+  substantial, independent and checkable; approval boundaries name what they cover; review gates
+  in untangle-codebase, mneves-security, ship-deploy and motion-film are scoped to the work that
+  needs them; user instructions take precedence over skill procedure. Routing-eval revision 8 (O1).
+  The gate confirmed autoreview Git collection findings (RSCR-H01 to H04, H06; H03 High: a
+  checkout-configured signature program ran) and the owner chose fix over waiver: signature
+  display off, `.gitmodules` ignore overridden, gitlinks printed as one line, sensitive-path
+  omissions reported, and local/auto review refuses a populated submodule. Merged as `2ecd2d0`
+  (PR #56, audit `7e1b7d4`, identical tree `957981a7`), tagged `v1.51.0` after CI run 43486742852
+  and Pages run 43489247922 succeeded and the served files matched. Security WAIVED six standing
+  controls; readiness ready with 26 waivers. Acceptance passed on the third attempt (an advisory
+  endpoint that needs POST, then missing Python advisory evidence).
 - **1.50.0** (2026-11-11 UTC closeout): the rest of the read-only audit. The readiness assessor's pillar levels
   follow each pillar's score, checks with no implementation for a language are skipped instead of
   failing, an unsupported `--language` exits 2, and its file cache and duplicate helpers are gone.

@@ -67,6 +67,13 @@ dispatch the model and reasoning effort each seat is meant to run at? Cases live
     answer file failed (independent acceptance, ACC-R01). Patching each path had failed twice, so
     the retry loop was removed: each sample is asked once, and any failure is an error. No live
     sample had needed a retry (0 of 198). A provider hiccup now fails the run, which is rerun.
+- **1.51.0, revision 8.** O1 expects the Claude main session on Opus at reasoning medium and
+  stays changed. On text equal to the 1.51.0 candidate's, 204 of 204 samples passed; the baseline
+  on 1.50.0 met its control (198 of 204, every O1 sample failing as expected). Private records:
+  the 1.51.0 gate's `routing-eval/` and `routing-eval-baseline/`.
+- **1.51.1, revision 9.** New O14 expects the reviewer fallback (Fable at reasoning high) when no
+  Codex account can run, marked changed; O3 and O4 follow the edited reviewer row with unchanged
+  expectations.
 
 ## Open
 
