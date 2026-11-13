@@ -75,6 +75,9 @@ dispatch the model and reasoning effort each seat is meant to run at? Cases live
   Codex account can run, marked changed; O3 and O4 follow the edited reviewer row with unchanged
   expectations. O1 is no longer marked changed: left changed, it would pass on the 1.51.0
   baseline and fail the control (found by the crossed review).
+  Result on the candidate (a4d8970): 210 of 210 samples passed. On the 1.51.0 text (2ecd2d0) the
+  control was met: O14 failed all 6 samples, every other case passed. Private records:
+  `.scratch/routing-eval-1.51.1/`.
 
 ## Open
 
