@@ -12,7 +12,9 @@ disagree about where markup ends, so the guard accepts only markup on which they
 - an element the guard does not name only when it carries no attribute (an HTML5 tokenizer
   reads it as an ordinary tag);
 - no comment, declaration, CDATA section or processing instruction, and no `<` the parser
-  left as text: the guard fails closed instead of guessing where such markup ends.
+  left as text: the guard fails closed instead of guessing where such markup ends;
+- no markup left unfinished at the end of the input, which the text written after it would
+  complete.
 
 Escaped text is never inspected, so a fenced `<button onclick="x()">` example or an inline
 `javascript:` mention passes.
@@ -98,6 +100,10 @@ class SubsetChecker(HTMLParser):
 def main() -> int:
     checker = SubsetChecker()
     checker.feed(sys.stdin.read())
+    # Markup still unfinished at the end of the input is completed by whatever the caller writes
+    # after it (build-site.sh's template), so it is checked as never ending: close() would drop it.
+    if checker.rawdata:
+        checker.report("markup left unfinished at the end of the input")
     checker.close()
     for finding in checker.findings:
         print(f"check-html-active: {finding}", file=sys.stderr)
