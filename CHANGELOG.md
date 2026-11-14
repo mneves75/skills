@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   dispositions unchanged from 1.51.0).
 - The orchestrator's Defaults block was re-verified against the vendor model lists on
   2026-11-14; ids unchanged.
+- **Routing eval**: revision 10 stops marking O14 changed, since 1.51.1 already sets its
+  expectation and the 1.51.1 baseline must pass it. No expectation changed.
 
 ## [1.51.1] - 2026-11-13
 
