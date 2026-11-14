@@ -78,6 +78,18 @@ dispatch the model and reasoning effort each seat is meant to run at? Cases live
   Result on the candidate (a4d8970): 210 of 210 samples passed. On the 1.51.0 text (2ecd2d0) the
   control was met: O14 failed all 6 samples, every other case passed. Private records:
   `.scratch/routing-eval-1.51.1/`.
+- **1.51.2, revision 10.** No routing text changes; only the Defaults block's verified-on date
+  moves, which changes the hashed source, so every case runs again on the candidate. O14 is no
+  longer marked changed: left changed, it would pass on the 1.51.1 baseline and fail the control.
+  No expectation changed. Live run on a0f9fd9 (2026-11-14T01:23Z to 01:33Z): 210/210 passed,
+  35 cases on both consumers, threshold met; no case is marked changed, so no baseline ran.
+  Failed attempt: the first run kept its work directories under the repository's `.scratch/`,
+  so Codex CLI 0.169.0 loaded this repository's AGENTS.md on top of the host's global
+  instructions, went over its 32768-byte `project_doc_max_bytes` limit and emitted an `error`
+  item. The runner rightly counts that as a non-message item, so every codex sample errored and
+  the run was stopped. Earlier runs loaded the same text (about the same input tokens) without
+  that item. Run `--out` outside any repository, so no project instruction file reaches either
+  consumer.
 
 ## Open
 

@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.51.2] - 2026-11-14
+
+### Security
+- **babysit-pr**: `pr-wait` counts a required check bound to a GitHub App only from that app. A
+  commit status or check run with the same name from another publisher no longer makes it report
+  green while GitHub keeps the merge blocked. When several rules bind the name, every bound app
+  must report; only the latest attempt of each counts. Found by the 1.51.1 security gate
+  (ROOT-H02, Low).
+- **Site build**: `check-html-active.py` rejects markup left unfinished at the end of `HOWTO.md`,
+  which the page template used to complete into markup the guard bans. Found by the 1.51.1
+  security gate (TOOLS-H01, Low).
+
+### Changed
+- **Readiness ledger and plan**: fold in the 1.51.1 binding run (production cursor `e0b3776`,
+  dispositions unchanged from 1.51.0).
+- The orchestrator's Defaults block was re-verified against the vendor model lists on
+  2026-11-14; ids unchanged.
+- **Routing eval**: revision 10 stops marking O14 changed, since 1.51.1 already sets its
+  expectation and the 1.51.1 baseline must pass it. No expectation changed.
+
 ## [1.51.1] - 2026-11-13
 
 ### Changed

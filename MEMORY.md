@@ -14,9 +14,16 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
-- **1.51.1 candidate**: when no Codex account can run, the orchestrator's reviewer seat falls back
-  to Fable at reasoning high instead of blocking the gate. Routing-eval revision 9 (O14). Folds
-  the 1.51.0 binding run into the readiness ledger and plan (cursor `2ecd2d0`).
+- **1.51.2 candidate**: `pr-wait` counts a required check bound to a GitHub App only from that
+  app (ROOT-H02), and the site's HTML guard rejects markup left unfinished at the end of
+  `HOWTO.md` (TOOLS-H01); both were confirmed Low by the 1.51.1 gate and kept open there by the
+  owner. Folds the 1.51.1 binding run into the readiness ledger and plan (cursor `e0b3776`).
+- **1.51.1** (2026-11-14 UTC closeout): when no Codex account can run, the orchestrator's reviewer
+  seat falls back to Fable at reasoning high instead of blocking the gate. Routing-eval revision 9
+  (O14). Merged as `e0b3776` (PR #57, audit `577bff4`, identical tree `3cbed26`), tagged `v1.51.1`
+  after CI run 43531981851 and Pages run 43534216988 succeeded and the served files matched.
+  Security WAIVED six standing controls; readiness ready with 26 waivers; acceptance passed on the
+  first attempt. ROOT-H02 and TOOLS-H01 stayed open as Low by the owner's choice.
 - **1.51.0** (2026-11-13 UTC closeout): skill text aligned with Anthropic's "Prompting Claude Fable
   5.2" guide and OpenAI's GPT-6 prompting guide. The Claude main session is Opus at reasoning
   medium (Fable keeps the planner and plan-advisor seats); implementation is dispatched only when
