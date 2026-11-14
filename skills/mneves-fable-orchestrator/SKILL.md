@@ -44,7 +44,7 @@ frontend subagent = Opus, latest release (Claude subagent alias `opus`), reasoni
 ordinary worker   = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (Codex worker)
 bounded worker    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (bounded Codex task)
 heavy executor    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (Codex worker)
-reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol --thinking high`; no model fallback)
+reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol --thinking high`); when no Codex account can run: Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high
 planner           = Fable, latest release (Claude subagent alias `claude-fable-5-2`) | gpt-6-astra, reasoning xhigh (planning)
 plan advisor      = Fable, latest release (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6-astra, reasoning xhigh (advice and plan review)
 specialist        = gpt-6.1-sol, reasoning high (specialist execution; a specialist review takes the reviewer seat)
@@ -54,11 +54,17 @@ economy executor  = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any h
 When review runs, a seat never reviews what it built. That covers the workers, the heavy executor, the economy
 executor, and the main session when it kept the hardest part: a change is
 reviewed by the reviewer value in the other column from the seat that built it, and an economy
-executor's change by either reviewer value. Planning and
+executor's change by either reviewer value. When no reviewer value allowed for a change can run
+except the Codex one, and no Codex account can run (Codex not installed, out of quota, not signed
+in, or refused by host policy; a slow or failing run does not count), the reviewer row's
+fallback reviews in its place, in a fresh context, gates and security acceptance included.
+Record the substitution and the error each Codex account returned. The fallback never reviews a
+change its own model built; when it is excluded and no other model can review, report the gate
+blocked, and the economy executor does not take that review. Planning and
 plan advice run only on their own seats. Crossing means the change leaves for the other column's
 provider: authorize that disclosure as you would for any review provider before dispatching it.
 
-Verified against the vendor model lists on 2026-11-11; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-11-13; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file). A seat that names a versioned alias stays on that release
 when the host's short alias moves; check what each short alias resolves to on every release.
@@ -83,8 +89,9 @@ test written first. Dispatching to it sends the code to that row's provider, so:
 - Nothing else relaxes. Effort selection, evidence, acceptance and permission rules are the
   same, and this seat gains no authority another seat lacked.
 
-It is also the only substitute when no authorized primary seat for a role can run: not installed,
-not signed in, out of quota, or refused by host policy. Record why each applicable primary
+It is also the only substitute, apart from the reviewer row's named fallback, when no authorized
+primary seat for a role can run: not installed, not signed in, out of quota, or refused by host
+policy. Record why each applicable primary
 failed, and announce the substitution the same way.
 
 Reasoning-effort names are vendor enums and change; if one is rejected, read the CLI's `--help`
@@ -122,9 +129,10 @@ worker for corrections to its task.
 
 Use the reviewer only when the user, repository, or risk requires independent review. A
 different-model requirement needs an explicitly selected reviewer allowed by the host policy;
-ordinary review defaults do not satisfy it automatically. If none is available, report the
-gate as blocked. The planner and plan advisor serve planning and advice only; they do not
-execute implementations or code reviews.
+ordinary review defaults do not satisfy it automatically. The reviewer row's fallback, under the
+conditions above, is such a selection. If none is available, report the gate as blocked. The
+planner and plan advisor serve planning and advice only and never execute implementations; their
+model reviews only as the reviewer row's fallback.
 
 For a Codex dispatch from another harness, one round is `codex exec`, and `tools/codex-lane`
 (shipped here) keeps a thread alive across rounds. `codex-auto` appears in the reference as a

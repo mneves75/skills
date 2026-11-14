@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.51.1] - 2026-11-13
+
+### Changed
+- **mneves-fable-orchestrator**: when no Codex account can run (not installed, out of quota, not
+  signed in, or blocked by host policy), Claude Fable reviews in Sol's place at reasoning high, in a
+  fresh context, for gates and security acceptance as well. The record names the error each Codex
+  account returned. A slow or failing Codex run does not count. Fable never reviews a change its
+  own model built; if only the builder's model can run, the gate is blocked. The planner, explicit-reviewer and
+  economy-executor lines follow: the planner's model reviews only as this fallback, the fallback
+  counts as an explicit reviewer selection, and the economy executor never takes an excluded review.
+- **CONTRIBUTING**, **HOWTO** and the site's how-to page: the acceptance rule names the Fable
+  fallback and still blocks when only the builder's model can run.
+- **autoreview**: explicit caller overrides include a caller that substitutes another reviewer
+  under its own recorded policy.
+- **Routing eval**: revision 9 moves the O3 and O4 anchors to the new reviewer row and adds case
+  O14-reviewer-fallback-no-codex, which expects `claude-fable-5-2` at high. O1 is no longer marked
+  changed, since 1.51.0 already sets its expectation and the 1.51.0 baseline must pass it.
+- **Readiness ledger and plan**: fold in the 1.51.0 binding run (production cursor `2ecd2d0`,
+  dispositions unchanged from 1.50.0).
+
 ## [1.51.0] - 2026-11-11
 
 ### Security

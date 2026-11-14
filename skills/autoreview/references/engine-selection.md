@@ -20,7 +20,8 @@ may reject some levels (`--help` lists them), and a model other than the default
 Codex is the default engine. The helper owns the default model and reasoning tier and
 prints them at startup; run `--help` for the current values rather than assuming them.
 Codex review has no automatic model fallback. Account-access failures are reported without
-switching to an advisory or planning model. Explicit caller overrides remain authoritative.
+switching to an advisory or planning model. Explicit caller overrides remain authoritative,
+including a caller that substitutes another reviewer under its own recorded policy.
 
 ## Optional engine prerequisites
 
