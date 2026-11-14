@@ -83,6 +83,10 @@ as a failed poll and is read again on the next. GitHub can answer a plain 404
 such a user a required check that only classic protection names, and that has not
 started, may not be waited for.
 
+A required check bound to a GitHub App counts only results from that app. A
+commit status anyone can post under the same name does not make it green, and a
+status from an app's bot counts once the app's id is looked up from its slug.
+
 It reads the last 100 review threads. When GitHub says older ones exist, or does
 not clearly say none do, `ready` never passes: at the point it would, it stops with
 exit 1 ("could not read every review thread"), because an older unresolved thread

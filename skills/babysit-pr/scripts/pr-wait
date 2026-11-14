@@ -119,6 +119,10 @@ BILLING_PREFIX = "the job was not started because"
 BILLING_WORDS = ("billing", "payments have failed", "spending limit")
 # Check run conclusions that land in the fail or cancel bucket.
 RUN_FAILED = ("FAILURE", "CANCELLED", "TIMED_OUT", "STARTUP_FAILURE", "ACTION_REQUIRED")
+# Buckets for results read from the rollup, as gh pr checks names them; anything else is pending.
+RUN_BUCKET = {"SUCCESS": "pass", "NEUTRAL": "skipping", "SKIPPED": "skipping", "CANCELLED": "cancel",
+              "FAILURE": "fail", "TIMED_OUT": "fail", "STARTUP_FAILURE": "fail", "ACTION_REQUIRED": "fail"}
+STATUS_BUCKET = {"SUCCESS": "pass", "FAILURE": "fail", "ERROR": "fail"}
 # gh pr checks buckets, worst first. Duplicate names (push and pull_request runs
 # of one job) collapse to the worst bucket.
 RANK = {"fail": 4, "cancel": 3, "pending": 2, "pass": 1, "skipping": 0}
@@ -161,13 +165,13 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
                 nodes {
                   __typename
                   ... on CheckRun {
-                    name conclusion databaseId
+                    name conclusion databaseId detailsUrl
                     steps(first: 1) { totalCount }
-                    checkSuite { app { slug } }
+                    checkSuite { app { slug databaseId } workflowRun { event workflow { name } } }
                     annotations(first: 10) { nodes { annotationLevel message } }
                   }
                   ... on StatusContext {
-                    context
+                    context state targetUrl
                     creator { login __typename }
                   }
                 }
@@ -322,26 +326,44 @@ def lock(repo: str, pr: int) -> Any:
     return handle
 
 
-def required_checks(repo: str, base: str) -> set[str]:
+def required_checks(repo: str, base: str) -> dict[str, set[int]]:
     """Required check names for the base branch, from rulesets and classic branch
-    protection. Knowing them up front means a required check that has not started
+    protection, each with the ids of the GitHub Apps it is bound to (empty: any
+    publisher). Knowing them up front means a required check that has not started
     yet counts as pending, instead of green by omission."""
     sources = (
         (
             f"repos/{repo}/rules/branches/{base}",
-            '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[].context',
+            '.[] | select(.type == "required_status_checks") | .parameters.required_status_checks[]'
+            " | [.context, .integration_id] | @json",
         ),
-        (f"repos/{repo}/branches/{base}/protection/required_status_checks", ".contexts[]?, .checks[]?.context"),
+        (
+            f"repos/{repo}/branches/{base}/protection/required_status_checks",
+            "(.contexts[]? | [., null]), (.checks[]? | [.context, .app_id]) | @json",
+        ),
     )
-    names: set[str] = set()
+    required: dict[str, set[int]] = {}
     for path, jq in sources:
         try:
-            names.update(gh_lines(["api", path, "--jq", jq]))
+            lines = gh_lines(["api", path, "--jq", jq])
         except GhError as error:
             if "HTTP 404" not in str(error):  # 404 means no protection, which is normal
                 # An unread source may require more checks, so a partial answer is no answer.
                 raise GhError(f"could not read required checks from {path}: {error}", error.transient) from error
-    return names
+            continue
+        for line in lines:
+            try:
+                name, app = json.loads(line)
+            except (ValueError, TypeError) as error:
+                raise GhError(f"could not read required checks from {path}: unexpected entry {line[:80]!r}", False) from error
+            if not isinstance(name, str) or not (app is None or isinstance(app, int)):
+                raise GhError(f"could not read required checks from {path}: unexpected entry {line[:80]!r}", False)
+            # GitHub enforces each binding, so an app-bound rule wins over an unbound one
+            # for the same name. -1 is GitHub's explicit "any app".
+            apps = required.setdefault(name, set())
+            if app is not None and app != -1:
+                apps.add(app)
+    return required
 
 
 class Watcher:
@@ -357,6 +379,9 @@ class Watcher:
         self.printed: set[str] = set()
         self.events = 0
         self.required: set[str] | None = None
+        # Required checks bound to GitHub Apps: only a result from one of those apps counts.
+        self.bound: dict[str, set[int]] = {}
+        self.app_ids: dict[str, int | None] = {}
         self.jobs: dict[int, bool] = {}
         self.incomplete_reads = 0
         self.prev_snapshot: list[tuple[str, str]] | None = None
@@ -421,11 +446,12 @@ class Watcher:
                 checks[row["name"]] = row
         return checks
 
-    def rollup(self, head: str) -> tuple[set[str], set[str], dict[str, set[str | None]], set[str]] | None:
+    def rollup(self, head: str) -> tuple[set[str], set[str], dict[str, set[str | None]], set[str], dict[str, list[Json]]] | None:
         """Read on every poll, since a re-run changes the answer without moving the head:
         failed checks GitHub never started for billing reasons; those of them with another
         run of the same name still going; the bots that report each check name (None for
-        anything else); and every check with a run still going. None when the read is
+        anything else); every check with a run still going; and each name's results with
+        the id of the app that published them (None when unknown). None when the read is
         incomplete: it could hide the real failure or the running run that decides a name."""
         nodes: list[Json] = []
         cursor: str | None = None
@@ -458,7 +484,9 @@ class Watcher:
             log(f"could not read every check on {head[:7]} ({error}): excusing none, no gating bot done")
             return None
 
-    def classify(self, nodes: list[Json]) -> tuple[set[str], set[str], dict[str, set[str | None]], set[str]]:
+    def classify(
+        self, nodes: list[Json]
+    ) -> tuple[set[str], set[str], dict[str, set[str | None]], set[str], dict[str, list[Json]]]:
         """The rollup's answer from a complete read. Raises on any entry that is not a
         CheckRun with a name or a StatusContext with a context, since skipping one could
         hide a failure; and with GhError when the Actions API cannot say whether a
@@ -467,18 +495,36 @@ class Watcher:
         failed: set[str] = set()
         running: set[str] = set()
         owners: dict[str, set[str | None]] = {}
+        published: dict[str, list[Json]] = {}
         for node in nodes:
             if node.get("__typename") == "StatusContext":
                 if not isinstance(node.get("context"), str):
                     raise TypeError("a status context is malformed")
                 login, is_bot = who({"author": node.get("creator")})
                 owners.setdefault(node["context"], set()).add(bot_name(login) if is_bot else None)
+                if node["context"] in self.bound:
+                    # A status carries no app id; an app's bot login is its slug.
+                    published.setdefault(node["context"], []).append({
+                        "app": self.app_id(login) if is_bot else None, "order": 0,
+                        "bucket": STATUS_BUCKET.get(node.get("state"), "pending"), "link": node.get("targetUrl")})
                 continue
             if node.get("__typename") != "CheckRun" or not isinstance(node.get("name"), str):
                 raise TypeError("a check entry is malformed")
             # A job's name is the PR author's to choose; the reporting app is not.
-            app = ((node.get("checkSuite") or {}).get("app") or {}).get("slug")
+            suite_app = (node.get("checkSuite") or {}).get("app") or {}
+            app = suite_app.get("slug")
             owners.setdefault(node["name"], set()).add(bot_name(app) if app != "github-actions" else None)
+            if node["name"] in self.bound:
+                app_id = suite_app.get("databaseId")
+                run = (node.get("checkSuite") or {}).get("workflowRun") or {}
+                published.setdefault(node["name"], []).append({
+                    "app": app_id if isinstance(app_id, int) else None,
+                    # A re-run adds a newer attempt of the same check; like `gh pr checks`, only the
+                    # latest attempt per app, workflow and event counts. Check run ids grow with
+                    # creation, so the highest id is the newest attempt, started or not.
+                    "attempt": (app_id, (run.get("workflow") or {}).get("name"), run.get("event")),
+                    "order": node["databaseId"] if isinstance(node.get("databaseId"), int) else -1,
+                    "bucket": RUN_BUCKET.get(node.get("conclusion"), "pending"), "link": node.get("detailsUrl")})
             if node.get("conclusion") is None:
                 running.add(node["name"])
             if node.get("conclusion") not in RUN_FAILED:
@@ -497,7 +543,19 @@ class Watcher:
         # of any run keeps the name failed, whatever its other runs say; a run still
         # going keeps it pending.
         names = blocked - failed
-        return names - running, names & running, owners, running
+        return names - running, names & running, owners, running, published
+
+    def app_id(self, slug: str) -> int | None:
+        """The id of the GitHub App whose bot posts as `slug`, None when no app has that
+        slug (HTTP 404). Any other failure raises GhError: the read is incomplete."""
+        if slug not in self.app_ids:
+            proc = gh(["api", f"apps/{slug}", "--jq", ".id"], allow=(0, 1))
+            if proc.returncode != 0 and "HTTP 404" not in proc.stderr:
+                lines = proc.stderr.strip().splitlines()
+                raise GhError(f"app {slug}: {lines[-1] if lines else 'gh exited 1'}", False)
+            text = proc.stdout.strip()
+            self.app_ids[slug] = int(text) if proc.returncode == 0 and text.isdigit() else None
+        return self.app_ids[slug]
 
     def is_job(self, run_id: object) -> bool:
         """A job's id is its check run's id. A check run created through the Checks API,
@@ -547,8 +605,13 @@ class Watcher:
 
         base = pr["baseRefName"]
         if self.required is None:
-            self.required = required_checks(self.repo, base)
-            gate = ", ".join(sorted(self.required)) or "none set, so every CI check gates"
+            required = required_checks(self.repo, base)
+            self.required = set(required)
+            self.bound = {name: apps for name, apps in required.items() if apps}
+            gate = ", ".join(
+                f"{name} (app {', '.join(map(str, sorted(required[name])))})" if required[name] else name
+                for name in sorted(required)
+            ) or "none set, so every CI check gates"
             log(f"watching {self.repo}#{self.pr} until {self.until}; required checks: {gate}")
         checks = self.fetch_checks()
         head = pr["headRefOid"]
@@ -563,7 +626,30 @@ class Watcher:
         self.events = 0
 
         read = self.rollup(head)
-        billing, rerunning, owners, running = read or (set(), set(), {}, set())
+        billing, rerunning, owners, running, published = read or (set(), set(), {}, set(), {})
+        # A required check bound to an app counts only that app's results; `gh pr checks`
+        # merges every publisher of a name, so a status anyone can post would pass it.
+        for name, apps in self.bound.items():
+            latest: dict[object, Json] = {}
+            for index, r in enumerate(published.get(name, [])):
+                if r["app"] not in apps:
+                    continue
+                key = r.get("attempt", ("status", index))  # statuses: GitHub keeps one per context
+                if key not in latest or r["order"] >= latest[key]["order"]:
+                    latest[key] = r
+            results = list(latest.values())
+            if read is not None and published.get(name) and not results:
+                line = (f"required check {snippet(name, 200)} reported only by an app other than the one "
+                        "the base branch requires; not counted")
+                # A first run reports no events, so say it on stderr too, or the wait looks hung.
+                if f"publisher:{head}:{name}" not in self.reported:
+                    log(line)
+                self.emit(f"publisher:{head}:{name}", line)
+            # GitHub enforces every rule that binds the name, so each bound app must report;
+            # one that has not is pending. Worst result first, as for duplicate names.
+            silent = [{"bucket": "pending", "link": ""} for app in apps if all(r["app"] != app for r in results)]
+            worst = max(results + silent, key=lambda r: RANK.get(r["bucket"], 2))
+            checks[name] = {"name": name, "bucket": worst["bucket"], "link": worst.get("link") or "", "description": ""}
         # An incomplete read keeps every gating bot pending, so `ready` could never come.
         self.incomplete_reads = 0 if read is not None else self.incomplete_reads + 1
         # A check is a bot's only when that bot alone reports it; a job of the same name keeps it gating.
