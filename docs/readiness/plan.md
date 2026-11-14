@@ -4,12 +4,12 @@
 > skills into `docs/sre-guides/`. Where it names the seven-file skill manifest or the follow-up,
 > it describes the candidate as it was then; it was not re-run on the guides-only candidate.
 
-Source: [ledger.md](ledger.md), final 1.51.1 binding assessment at
-`577bff4b63f3768ae309c95c1df910e6872feda4`, merged to production as `e0b3776ae4ec261180684f998cfa86a70b2d1298`;
-its dispositions equal those of the 1.51.0 assessment at `7e1b7d406932e3f35e8f670da8448c0d3d7b85b9`.
+Source: [ledger.md](ledger.md), final 1.51.2 binding assessment at
+`6c83b0f6d17497ebe094ef57690d12498d333ffd`, merged to production as `704904c00502098b397c16ab3490d072d502861c`;
+its dispositions equal those of the 1.51.1 assessment at `577bff4b63f3768ae309c95c1df910e6872feda4`.
 The current ledger covers the whole unit, including local SQLite and AI tools. Its 26 historical
 waivers leave the underlying gaps open. Sixteen were candidate-only approvals for 1.46.0 and,
-conditionally, each release from 1.46.1 to 1.51.1; the ledger records each owner, expiry and scope. The final binding assessment, rather
+conditionally, each release from 1.46.1 to 1.51.2; the ledger records each owner, expiry and scope. The final binding assessment, rather
 than its earlier not-ready baseline draft, owns the dispositions and effective tiers used here.
 
 Every entry is proposed work: this document authorizes no implementation or external change,
@@ -277,7 +277,7 @@ underlying gaps and distinguishes advisory work from effective blockers.
 
 ## Index
 
-The statuses below are the recorded 1.51.1 dispositions, unchanged from 1.51.0. WAIVED preserves an
+The statuses below are the recorded 1.51.2 dispositions, unchanged from 1.51.1. WAIVED preserves an
 underlying gap; candidate-only approval never carries over to another candidate. Expiry/scope is in the ledger.
 
 | Open ID | Recorded status | Effective tier | Entry |

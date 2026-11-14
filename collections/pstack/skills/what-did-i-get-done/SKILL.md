@@ -19,7 +19,7 @@ Need a short, high-signal summary of work completed in a specific time range (fo
 
 ## Guardrails
 
-- Be extremely concise and information-dense.
+- Write for a reader scanning a status update: what shipped, nothing else.
 - Prioritize substantial behavior or architecture changes.
 - Omit cosmetic-only changes (formatting, imports, minor renames).
 - Do not infer intent or motivation. Describe changes functionally.
@@ -28,4 +28,4 @@ Need a short, high-signal summary of work completed in a specific time range (fo
 
 - One short summary suitable for a status update
 - Real date range
-- Optional 2-5 bullets for major changes only
+- Optional bullets for major changes only

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.51.3] - 2026-11-14
+
+### Changed
+- **pstack**: adaptation 09 removes text written for older models. poteto-mode and no-comments
+  name the `general-purpose` fallback a skills-only install needs in place of the `pstack:*`
+  agent types it lacks; setup-pstack no longer says Claude Code has no rules mechanism;
+  thermo-nuclear-code-quality-review, recall, deslop and what-did-i-get-done lose boosters and
+  fixed numeric caps; technical-writing's "That skill" names what it refers to.
+- **mneves-fable-orchestrator**: the cornered-worker principle stays without the size-budget
+  anecdote. **mneves-teach-back-srs** drops a sentence that repeated its section's opening.
+- **Readiness ledger and plan**: fold in the 1.51.2 binding run (production cursor `704904c`,
+  dispositions unchanged from 1.51.1).
+
 ## [1.51.2] - 2026-11-14
 
 ### Security

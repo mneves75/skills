@@ -53,8 +53,6 @@ The agent's conversation context resets between sessions; the SQLite database is
 2. Report total cards, due count, and last topic when relevant to the selected mode.
 3. If due cards matter, offer review without replacing an explicit teach-back or export request.
 
-Continuity survives even though the agent has no memory of previous conversations.
-
 For scheduling explanations, read [references/sm2-algorithm.md](references/sm2-algorithm.md).
 Finish when the selected mode's requested cards, review, stats, or export have actual helper
 results. Report counts, next review date, output path, and precise failure where applicable.

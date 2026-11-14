@@ -163,9 +163,8 @@ Tell the worker it is not alone in the tree, must preserve other changes, must n
 and must not run cross-session memory. Only the session that owns a pull request watches it: a
 delegated worker or reviewer never starts a PR watcher. Pair a hard prohibition with a safe stop condition: if an
 honest attempt cannot satisfy a gate, report the exact result instead of gaming the constraint.
-A cornered worker satisfies the letter of a rule (told never to raise a size budget, one
-hand-minified identifiers and passed every gate); treat a stop-report as a successful run, the
-coordinator's decision point.
+A cornered worker satisfies the letter of a rule and defeats its purpose; treat a stop-report
+as a successful run, the coordinator's decision point.
 
 ## Accept delegated work
 
