@@ -17,9 +17,8 @@ Start from this baseline:
 > Rethink how to structure / implement the changes to meaningfully improve code quality without impacting behavior.
 > Work to improve abstractions, modularity, reduce Spaghetti code, improve succinctness and legibility.
 > Be ambitious, if there is a clear path to improving the implementation that involves restructuring some of the codebase, go for it.
-> Be extremely thorough and rigorous. Measure twice, cut once.
 
-## Non-Negotiable Additional Standards
+## Additional standards
 
 Apply the baseline prompt above, plus these explicit review rules:
 
@@ -138,7 +137,7 @@ Do not be rude, but do not soften major maintainability issues into mild suggest
 If the code is making the codebase messier, say so clearly.
 If the implementation missed an opportunity for a dramatic simplification, say that clearly too.
 
-Good phrases:
+Illustrative phrasings for inline comments. Vary them; the written report stays in prose paragraphs, per Report Format:
 
 - `this pushes the file past 1k lines. can we decompose this first?`
 - `this adds another special-case branch into an already busy flow. can we move this behind its own abstraction?`

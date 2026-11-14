@@ -19,4 +19,4 @@ Check the diff against main and remove AI-generated slop introduced in the branc
 
 - Keep behavior unchanged unless fixing a clear bug.
 - Prefer minimal, focused edits over broad rewrites.
-- Keep the final summary concise (1-3 sentences).
+- End with a short summary of what you removed and why.
