@@ -5,23 +5,20 @@ Deploy artifact: `site/`, published to GitHub Pages by `.github/workflows/static
 Profile: hosted ui (static Pages artifact); distributed db, ai, user-input, external-calls and local-persistence; unit flags ui/db/ai. Unit . includes the shipped SQLite SRS and AI tools, not only site/. Stake/customer-data applicability needs owner determination; the final 1.46.0 and 1.46.1 assessments conservatively treated affected controls as blockers. Hosted stake: false is descriptive only and does not downgrade the whole unit.
 Regulated: none established; no operator-specific data, market or contract determination is invented. Local privacy copies remain applicable. The UX-07 contract gate is inactive; this is not a legal exemption claim.
 Contracts: none
-Cursors: production e0b3776ae4ec261180684f998cfa86a70b2d1298 (2026-11-14 UTC; v1.51.1, original audit `577bff4b63f3768ae309c95c1df910e6872feda4`, identical tree `3cbed26f246185eeae1bdfc43c56ddc5fc8bdb94`; previous cursor 2ecd2d05504ca832c730e30453fa41cbdcd836ec, v1.51.0)
+Cursors: production 704904c00502098b397c16ab3490d072d502861c (2026-11-14 UTC; v1.51.2, original audit `6c83b0f6d17497ebe094ef57690d12498d333ffd`, identical tree `b6db05cd884ac0fd16db9a7962f06b0a1d884112`; previous cursor e0b3776ae4ec261180684f998cfa86a70b2d1298, v1.51.1)
 Baseline: 2026-11-05 at 24f387652c70c3507af5fc310d3eae5cd9c49896 (full-unit source assessment; maximum age 90 days; expires 2027-02-03T23:21:54Z). Final dispositions below come from binding-assessment.json, not the earlier not-ready baseline draft.
-Binding run for production: 2026-11-14T00:27:25Z at e0b3776ae4ec261180684f998cfa86a70b2d1298 (v1.51.1; original audit `577bff4b63f3768ae309c95c1df910e6872feda4`, identical tree `3cbed26f246185eeae1bdfc43c56ddc5fc8bdb94`) · verdict ready · 0 open blockers · independent acceptance pass · 26 WAIVED · historical record `.scratch/readiness/e0b3776ae4ec261180684f998cfa86a70b2d1298/production.json`, valid_until 2026-11-14T23:59:59Z. Earlier binding runs remain in Gate history.
+Binding run for production: 2026-11-14T03:17:47Z at 704904c00502098b397c16ab3490d072d502861c (v1.51.2; original audit `6c83b0f6d17497ebe094ef57690d12498d333ffd`, identical tree `b6db05cd884ac0fd16db9a7962f06b0a1d884112`) · verdict ready · 0 open blockers · independent acceptance pass · 26 WAIVED · historical record `.scratch/readiness/704904c00502098b397c16ab3490d072d502861c/production.json`, valid_until 2026-11-15T03:03:18Z. Earlier binding runs remain in Gate history.
 Owners: proposed roles only, none accepted · review proposed: maintainer · data proposed: maintainer · delivery and cost proposed: maintainer · on-call proposed: maintainer, backup unassigned · security patching proposed: maintainer · compliance proposed: maintainer · testing proposed: maintainer · scope proposed: maintainer · architecture proposed: maintainer · memory proposed: maintainer
 
-## Recorded 1.51.1 binding result
+## Recorded 1.51.2 binding result
 
-The table records the full-unit assessment for audit `577bff4b63f3768ae309c95c1df910e6872feda4`
-(assessed 2026-11-13T22:58:44Z, accepted 2026-11-14T00:05:12Z), merged to production as
-`e0b3776ae4ec261180684f998cfa86a70b2d1298` (identical tree `3cbed26f246185eeae1bdfc43c56ddc5fc8bdb94`).
-Every control kept the status and effective tier of the 1.51.0 assessment (`7e1b7d4`). AI-01 stayed
-PASS on a fresh live routing-eval run (210 of 210 samples, on text equal to this candidate's) and a
-baseline control on 1.51.0 in which only the new case O14 failed. The security gate confirmed two
-pre-existing Low findings, ROOT-H02 (`pr-wait` counted a required check from any publisher) and
-TOOLS-H01 (the site's HTML guard accepted markup left unfinished at the end of `HOWTO.md`); the
-owner kept both open for 1.51.1 and fixed them in 1.51.2. Per-control
-evidence lives in `.scratch/readiness/577bff4b63f3768ae309c95c1df910e6872feda4/binding-assessment.json`;
+The table records the full-unit assessment for audit `6c83b0f6d17497ebe094ef57690d12498d333ffd`,
+merged to production as `704904c00502098b397c16ab3490d072d502861c` (identical tree `b6db05cd884ac0fd16db9a7962f06b0a1d884112`).
+Every control kept the status and effective tier of the 1.51.1 assessment (`577bff4`). AI-01 stayed
+PASS on a fresh live routing-eval run (210 of 210 samples, revision 10, on text equal to this
+candidate's); no case was marked changed, so no baseline ran. The security gate's ROOT-H02 and
+TOOLS-H01, kept open as Low in 1.51.1, are fixed in this candidate. Per-control
+evidence lives in `.scratch/readiness/6c83b0f6d17497ebe094ef57690d12498d333ffd/binding-assessment.json`;
 the merge record above binds the ready verdict, zero open blockers and independent acceptance.
 These records are private. The source baseline is provenance for that assessment, not its final
 verdict. Effective tiers, including conservative blocker treatment while stake is unresolved,
@@ -32,12 +29,12 @@ The 26 waivers preserve their underlying gaps and owner `@mneves75`:
   ASY-02, OPS-04) expire 2027-01-25T23:59:59Z; any later reuse still needs a fresh exact-candidate gate.
 - Sixteen candidate-only controls (AI-02, DM-04, BR-01, BR-02, BR-03, BR-04, DEL-05, CST-02,
   OBS-02, OBS-03, OBS-04, OBS-07, TST-04, MNT-02, OPS-05 and OPS-06) were approved for 1.46.0,
-  and again, conditionally on unchanged gaps, for each release from 1.46.1 to 1.51.1
-  (`.scratch/security-gate/577bff4b63f3768ae309c95c1df910e6872feda4/owner-approval.json`), to
-  2026-11-14T23:59:59Z. This bookkeeping renews none of them; a later candidate needs
+  and again, conditionally on unchanged gaps, for each release from 1.46.1 to 1.51.2
+  (`.scratch/security-gate/6c83b0f6d17497ebe094ef57690d12498d333ffd/owner-approval.json`), to
+  2026-11-21T23:59:59Z. This bookkeeping renews none of them; a later candidate needs
   its own approval.
 
-The 1.51.2 binding result belongs in its own private exact-candidate records and annotated release
+The 1.51.3 binding result belongs in its own private exact-candidate records and annotated release
 tag; this historical ready verdict does not admit a different tree.
 
 ## Earlier assessment context
@@ -109,142 +106,142 @@ Totals: 136 rows · NOT APPLICABLE 66 · PASS 20 · FAIL 4 · NOT TESTED 20 · B
 
 | ID | Status | Tier | Evidence (scope, date, commit) | Owner | Next action or waiver |
 |---|---|---|---|---|---|
-| DM-01 | PASS | blocker | 1.51.1: source, local, audit `577bff4`; private `binding-assessment.json`, control `DM-01` | proposed: maintainer | — |
-| DM-02 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DM-02` | proposed: maintainer | — |
-| DM-03 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DM-03` | proposed: maintainer | — |
-| DM-04 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DM-04` | @mneves75 | Plan entry 11; underlying FAIL; waiver @mneves75 to 2026-11-14T23:59:59Z; candidate-only: 1.46.0 to 1.51.0, then 1.51.1 by conditional owner approval |
-| DM-05 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DM-05` | proposed: maintainer | — |
-| DM-06 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DM-06` | proposed: maintainer | — |
-| DM-07 | PASS | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DM-07` | proposed: maintainer | — |
-| BR-01 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `BR-01` | @mneves75 | Plan entry 11; underlying NOT TESTED; waiver @mneves75 to 2026-11-14T23:59:59Z; candidate-only: 1.46.0 to 1.51.0, then 1.51.1 by conditional owner approval |
-| BR-02 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `BR-02` | @mneves75 | Plan entry 11; underlying NOT TESTED; waiver @mneves75 to 2026-11-14T23:59:59Z; candidate-only: 1.46.0 to 1.51.0, then 1.51.1 by conditional owner approval |
-| BR-03 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `BR-03` | @mneves75 | Plan entry 11; underlying NOT TESTED; waiver @mneves75 to 2026-11-14T23:59:59Z; candidate-only: 1.46.0 to 1.51.0, then 1.51.1 by conditional owner approval |
-| BR-04 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `BR-04` | @mneves75 | Plan entry 6; underlying BLOCKED; waiver @mneves75 to 2026-11-14T23:59:59Z; candidate-only: 1.46.0 to 1.51.0, then 1.51.1 by conditional owner approval |
-| BR-05 | NOT APPLICABLE | contract | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `BR-05` | proposed: maintainer | — |
-| DC-01 | PASS | blocker | 1.51.1: source, local, audit `577bff4`; private `binding-assessment.json`, control `DC-01` | proposed: maintainer | — |
-| DC-02 | PASS | blocker | 1.51.1: source, local, audit `577bff4`; private `binding-assessment.json`, control `DC-02` | proposed: maintainer | — |
-| DC-03 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DC-03` | proposed: maintainer | — |
-| DC-04 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DC-04` | proposed: maintainer | — |
-| DC-05 | PASS | blocker | 1.51.1: source, local, audit `577bff4`; private `binding-assessment.json`, control `DC-05` | proposed: maintainer | — |
-| DC-06 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DC-06` | proposed: maintainer | — |
-| DC-07 | FAIL | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DC-07` | proposed: maintainer | Plan entry 11 |
-| DC-08 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DC-08` | proposed: maintainer | — |
-| DC-09 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DC-09` | proposed: maintainer | — |
-| DC-10 | NOT APPLICABLE | contract | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DC-10` | proposed: maintainer | — |
-| DEL-01 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DEL-01` | proposed: maintainer | — |
-| DEL-02 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DEL-02` | proposed: maintainer | Plan entry 9 |
-| DEL-03 | PASS | blocker | 1.51.1: source, local, audit `577bff4`; private `binding-assessment.json`, control `DEL-03` | proposed: maintainer | — |
-| DEL-04 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DEL-04` | @mneves75 | Plan entry 5; underlying NOT TESTED; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
-| DEL-05 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DEL-05` | @mneves75 | Plan entry 12; underlying BLOCKED; waiver @mneves75 to 2026-11-14T23:59:59Z; candidate-only: 1.46.0 to 1.51.0, then 1.51.1 by conditional owner approval |
-| DEL-06 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DEL-06` | proposed: maintainer | — |
-| DEL-07 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DEL-07` | proposed: maintainer | Advisory, not planned |
-| DEL-08 | FAIL | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DEL-08` | proposed: maintainer | Plan entry 9 |
-| DEL-09 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `DEL-09` | @mneves75 | Plan entry 3; underlying NOT TESTED; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
-| ASY-01 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `ASY-01` | proposed: maintainer | — |
-| ASY-02 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `ASY-02` | @mneves75 | Plan entry 10; underlying FAIL; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
-| ASY-03 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `ASY-03` | proposed: maintainer | — |
-| ASY-04 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `ASY-04` | proposed: maintainer | — |
-| ASY-05 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `ASY-05` | proposed: maintainer | — |
-| ASY-06 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `ASY-06` | proposed: maintainer | — |
-| ASY-07 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `ASY-07` | proposed: maintainer | — |
-| ASY-08 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `ASY-08` | proposed: maintainer | Advisory, not planned |
-| ASY-09 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `ASY-09` | proposed: maintainer | — |
-| EML-01 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `EML-01` | proposed: maintainer | — |
-| EML-02 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `EML-02` | proposed: maintainer | — |
-| EML-03 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `EML-03` | proposed: maintainer | — |
-| EML-04 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `EML-04` | proposed: maintainer | — |
-| CST-01 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `CST-01` | proposed: maintainer | Advisory, not planned |
-| CST-02 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `CST-02` | @mneves75 | Plan entry 12; underlying BLOCKED; waiver @mneves75 to 2026-11-14T23:59:59Z; candidate-only: 1.46.0 to 1.51.0, then 1.51.1 by conditional owner approval |
-| CST-03 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `CST-03` | proposed: maintainer | — |
-| OBS-01 | FAIL | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `OBS-01` | proposed: maintainer | Advisory, not planned |
-| OBS-02 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `OBS-02` | @mneves75 | Plan entry 12; underlying BLOCKED; waiver @mneves75 to 2026-11-14T23:59:59Z; candidate-only: 1.46.0 to 1.51.0, then 1.51.1 by conditional owner approval |
-| OBS-03 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `OBS-03` | @mneves75 | Plan entry 12; underlying BLOCKED; waiver @mneves75 to 2026-11-14T23:59:59Z; candidate-only: 1.46.0 to 1.51.0, then 1.51.1 by conditional owner approval |
-| OBS-04 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `OBS-04` | @mneves75 | Plan entry 12; underlying BLOCKED; waiver @mneves75 to 2026-11-14T23:59:59Z; candidate-only: 1.46.0 to 1.51.0, then 1.51.1 by conditional owner approval |
-| OBS-05 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `OBS-05` | proposed: maintainer | Advisory, not planned |
-| OBS-06 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `OBS-06` | proposed: maintainer | — |
-| OBS-07 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `OBS-07` | @mneves75 | Plan entry 6; underlying BLOCKED; waiver @mneves75 to 2026-11-14T23:59:59Z; candidate-only: 1.46.0 to 1.51.0, then 1.51.1 by conditional owner approval |
-| OBS-08 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `OBS-08` | proposed: maintainer | Advisory, not planned |
-| OBS-09 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `OBS-09` | proposed: maintainer | Advisory, not planned |
-| OBS-10 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `OBS-10` | proposed: maintainer | Advisory, not planned |
-| TST-01 | PASS | advisory | 1.51.1: source, local, audit `577bff4`; private `binding-assessment.json`, control `TST-01` | proposed: maintainer | — |
-| TST-02 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `TST-02` | proposed: maintainer | Advisory, not planned |
-| TST-03 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `TST-03` | proposed: maintainer | — |
-| TST-04 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `TST-04` | @mneves75 | Plan entry 12; underlying BLOCKED; waiver @mneves75 to 2026-11-14T23:59:59Z; candidate-only: 1.46.0 to 1.51.0, then 1.51.1 by conditional owner approval |
-| TST-05 | PASS | blocker | 1.51.1: source, local, audit `577bff4`; private `binding-assessment.json`, control `TST-05` | proposed: maintainer | — |
-| TST-06 | PASS | advisory | 1.51.1: source, local, audit `577bff4`; private `binding-assessment.json`, control `TST-06` | proposed: maintainer | — |
-| TST-07 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `TST-07` | proposed: maintainer | Advisory, not planned |
-| BIL-01 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `BIL-01` | proposed: maintainer | — |
-| BIL-02 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `BIL-02` | proposed: maintainer | — |
-| BIL-03 | NOT APPLICABLE | contract | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `BIL-03` | proposed: maintainer | — |
-| BIL-04 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `BIL-04` | proposed: maintainer | — |
-| BIL-05 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `BIL-05` | proposed: maintainer | — |
-| BIL-06 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `BIL-06` | proposed: maintainer | — |
-| BIL-07 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `BIL-07` | proposed: maintainer | — |
-| BIL-08 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `BIL-08` | proposed: maintainer | — |
-| API-01 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `API-01` | proposed: maintainer | — |
-| API-02 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `API-02` | proposed: maintainer | — |
-| API-03 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `API-03` | proposed: maintainer | — |
-| API-04 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `API-04` | proposed: maintainer | — |
-| AI-01 | PASS | blocker | 1.51.1: source, local, audit `577bff4`; private `binding-assessment.json`, control `AI-01` | proposed: maintainer | — |
-| AI-02 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `AI-02` | @mneves75 | Plan entry 10; underlying FAIL; waiver @mneves75 to 2026-11-14T23:59:59Z for 1.51.0 (1.50.0's ran to the same date, 1.49.0's and 1.48.0's to 2026-11-12T23:59:59Z, 1.47.0's to 2026-11-10T23:59:59Z, 1.46.1's to 2026-11-06T23:59:59Z, 1.46.0's to 2027-01-25T23:59:59Z); candidate-only |
-| AI-03 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `AI-03` | proposed: maintainer | Advisory, not planned |
-| UX-01 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `UX-01` | proposed: maintainer | Advisory, not planned |
-| UX-02 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `UX-02` | proposed: maintainer | Plan entry 8 |
-| UX-03 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `UX-03` | proposed: maintainer | Plan entry 8 |
-| UX-04 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `UX-04` | proposed: maintainer | — |
-| UX-05 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `UX-05` | proposed: maintainer | — |
-| UX-06 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `UX-06` | proposed: maintainer | Plan entry 8 |
-| UX-07 | NOT APPLICABLE | contract | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `UX-07` | proposed: maintainer | — |
-| UX-08 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `UX-08` | proposed: maintainer | — |
-| UX-09 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `UX-09` | proposed: maintainer | Plan entry 8 |
-| MNT-01 | PASS | advisory | 1.51.1: source, local, audit `577bff4`; private `binding-assessment.json`, control `MNT-01` | proposed: maintainer | — |
-| MNT-02 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `MNT-02` | @mneves75 | Plan entry 4; underlying BLOCKED; waiver @mneves75 to 2026-11-14T23:59:59Z; candidate-only: 1.46.0 to 1.51.0, then 1.51.1 by conditional owner approval |
-| MNT-03 | PASS | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `MNT-03` | proposed: maintainer | — |
-| MNT-04 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `MNT-04` | proposed: maintainer | Advisory, not planned |
-| MNT-05 | PASS | blocker | 1.51.1: source, current-vendor-source-imported, audit `577bff4`; private `binding-assessment.json`, control `MNT-05` | proposed: maintainer | — |
-| MNT-06 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `MNT-06` | proposed: maintainer | Advisory, not planned |
-| MNT-07 | FAIL | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `MNT-07` | proposed: maintainer | Advisory, not planned |
-| MNT-08 | PASS | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `MNT-08` | proposed: maintainer | — |
-| MNT-09 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `MNT-09` | proposed: maintainer | Advisory, not planned |
-| MNT-10 | NOT TESTED | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `MNT-10` | proposed: maintainer | Plan entry 7 |
-| OPS-01 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `OPS-01` | proposed: maintainer | — |
-| OPS-02 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `OPS-02` | proposed: maintainer | — |
-| OPS-03 | PASS | advisory | 1.51.1: source, local, audit `577bff4`; private `binding-assessment.json`, control `OPS-03` | proposed: maintainer | — |
-| OPS-04 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `OPS-04` | @mneves75 | Plan entry 2; underlying FAIL; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
-| OPS-05 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `OPS-05` | @mneves75 | Plan entry 6; underlying BLOCKED; waiver @mneves75 to 2026-11-14T23:59:59Z; candidate-only: 1.46.0 to 1.51.0, then 1.51.1 by conditional owner approval |
-| OPS-06 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `OPS-06` | @mneves75 | Plan entry 6; underlying BLOCKED; waiver @mneves75 to 2026-11-14T23:59:59Z; candidate-only: 1.46.0 to 1.51.0, then 1.51.1 by conditional owner approval |
-| SEC-01 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `SEC-01`; imported security disposition, details restricted | proposed: maintainer | — |
-| SEC-02 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `SEC-02`; imported security disposition, details restricted | proposed: maintainer | — |
-| SEC-03 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `SEC-03`; imported security disposition, details restricted | proposed: maintainer | — |
-| SEC-04 | NOT APPLICABLE | contract | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `SEC-04`; imported security disposition, details restricted | proposed: maintainer | — |
-| SEC-05 | NOT APPLICABLE | contract | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `SEC-05`; imported security disposition, details restricted | proposed: maintainer | — |
-| SEC-06 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `SEC-06`; imported security disposition, details restricted | proposed: maintainer | — |
-| SEC-07 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `SEC-07`; imported security disposition, details restricted | proposed: maintainer | — |
-| SEC-08 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `SEC-08`; imported security disposition, details restricted | proposed: maintainer | — |
-| SEC-09 | NOT APPLICABLE | advisory | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `SEC-09`; imported security disposition, details restricted | proposed: maintainer | — |
-| SEC-10 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `SEC-10`; imported security disposition, details restricted | proposed: maintainer | — |
-| SEC-11 | PASS | blocker | 1.51.1: source, local, audit `577bff4`; private `binding-assessment.json`, control `SEC-11`; imported security disposition, details restricted | proposed: maintainer | — |
-| SEC-12 | PASS | blocker | 1.51.1: source, local, audit `577bff4`; private `binding-assessment.json`, control `SEC-12`; imported security disposition, details restricted | proposed: maintainer | — |
-| SEC-13 | PASS | blocker | 1.51.1: source, local, audit `577bff4`; private `binding-assessment.json`, control `SEC-13`; imported security disposition, details restricted | proposed: maintainer | — |
-| SEC-14 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `SEC-14`; imported security disposition, details restricted | proposed: maintainer | — |
-| SEC-15 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `SEC-15`; imported security disposition, details restricted | @mneves75 | Plan entry 1; underlying FAIL; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
-| SEC-16 | PASS | blocker | 1.51.1: source, production-imported, audit `577bff4`; private `binding-assessment.json`, control `SEC-16`; imported security disposition, details restricted | proposed: maintainer | — |
-| SEC-17 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `SEC-17`; imported security disposition, details restricted | @mneves75 | Plan entry 1; underlying NOT TESTED; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
-| SEC-18 | PASS | blocker | 1.51.1: source, local, audit `577bff4`; private `binding-assessment.json`, control `SEC-18`; imported security disposition, details restricted | proposed: maintainer | — |
-| SEC-19 | NOT APPLICABLE | contract | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `SEC-19`; imported security disposition, details restricted | proposed: maintainer | — |
-| SEC-20 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `SEC-20`; imported security disposition, details restricted | @mneves75 | Plan entry 1; underlying FAIL; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
-| SEC-21 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `SEC-21`; imported security disposition, details restricted | @mneves75 | Plan entry 1; underlying NOT TESTED; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
-| SEC-22 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `SEC-22`; imported security disposition, details restricted | proposed: maintainer | — |
-| SEC-23 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `SEC-23`; imported security disposition, details restricted | @mneves75 | Plan entry 1; underlying NOT TESTED; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
-| CMP-01 | NOT APPLICABLE | contract | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `CMP-01`; imported security disposition, details restricted | proposed: maintainer | — |
-| CMP-02 | NOT APPLICABLE | contract | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `CMP-02`; imported security disposition, details restricted | proposed: maintainer | — |
-| CMP-03 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `CMP-03`; imported security disposition, details restricted | proposed: maintainer | — |
-| CMP-04 | NOT APPLICABLE | contract | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `CMP-04`; imported security disposition, details restricted | proposed: maintainer | — |
-| CMP-05 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `CMP-05`; imported security disposition, details restricted | proposed: maintainer | — |
-| CMP-06 | WAIVED | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `CMP-06`; imported security disposition, details restricted | @mneves75 | Plan entry 1; underlying NOT TESTED; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
-| CMP-07 | NOT APPLICABLE | contract | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `CMP-07`; imported security disposition, details restricted | proposed: maintainer | — |
-| CMP-08 | NOT APPLICABLE | contract | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `CMP-08`; imported security disposition, details restricted | proposed: maintainer | — |
-| CMP-09 | NOT APPLICABLE | blocker | 1.51.1: source, audit `577bff4`; private `binding-assessment.json`, control `CMP-09`; imported security disposition, details restricted | proposed: maintainer | — |
+| DM-01 | PASS | blocker | 1.51.2: source, local, audit `6c83b0f`; private `binding-assessment.json`, control `DM-01` | proposed: maintainer | — |
+| DM-02 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DM-02` | proposed: maintainer | — |
+| DM-03 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DM-03` | proposed: maintainer | — |
+| DM-04 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DM-04` | @mneves75 | Plan entry 11; underlying FAIL; waiver @mneves75 to 2026-11-21T23:59:59Z; candidate-only: 1.46.0 to 1.51.1, then 1.51.2 by conditional owner approval |
+| DM-05 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DM-05` | proposed: maintainer | — |
+| DM-06 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DM-06` | proposed: maintainer | — |
+| DM-07 | PASS | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DM-07` | proposed: maintainer | — |
+| BR-01 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `BR-01` | @mneves75 | Plan entry 11; underlying NOT TESTED; waiver @mneves75 to 2026-11-21T23:59:59Z; candidate-only: 1.46.0 to 1.51.1, then 1.51.2 by conditional owner approval |
+| BR-02 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `BR-02` | @mneves75 | Plan entry 11; underlying NOT TESTED; waiver @mneves75 to 2026-11-21T23:59:59Z; candidate-only: 1.46.0 to 1.51.1, then 1.51.2 by conditional owner approval |
+| BR-03 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `BR-03` | @mneves75 | Plan entry 11; underlying NOT TESTED; waiver @mneves75 to 2026-11-21T23:59:59Z; candidate-only: 1.46.0 to 1.51.1, then 1.51.2 by conditional owner approval |
+| BR-04 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `BR-04` | @mneves75 | Plan entry 6; underlying BLOCKED; waiver @mneves75 to 2026-11-21T23:59:59Z; candidate-only: 1.46.0 to 1.51.1, then 1.51.2 by conditional owner approval |
+| BR-05 | NOT APPLICABLE | contract | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `BR-05` | proposed: maintainer | — |
+| DC-01 | PASS | blocker | 1.51.2: source, local, audit `6c83b0f`; private `binding-assessment.json`, control `DC-01` | proposed: maintainer | — |
+| DC-02 | PASS | blocker | 1.51.2: source, local, audit `6c83b0f`; private `binding-assessment.json`, control `DC-02` | proposed: maintainer | — |
+| DC-03 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DC-03` | proposed: maintainer | — |
+| DC-04 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DC-04` | proposed: maintainer | — |
+| DC-05 | PASS | blocker | 1.51.2: source, local, audit `6c83b0f`; private `binding-assessment.json`, control `DC-05` | proposed: maintainer | — |
+| DC-06 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DC-06` | proposed: maintainer | — |
+| DC-07 | FAIL | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DC-07` | proposed: maintainer | Plan entry 11 |
+| DC-08 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DC-08` | proposed: maintainer | — |
+| DC-09 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DC-09` | proposed: maintainer | — |
+| DC-10 | NOT APPLICABLE | contract | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DC-10` | proposed: maintainer | — |
+| DEL-01 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DEL-01` | proposed: maintainer | — |
+| DEL-02 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DEL-02` | proposed: maintainer | Plan entry 9 |
+| DEL-03 | PASS | blocker | 1.51.2: source, local, audit `6c83b0f`; private `binding-assessment.json`, control `DEL-03` | proposed: maintainer | — |
+| DEL-04 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DEL-04` | @mneves75 | Plan entry 5; underlying NOT TESTED; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
+| DEL-05 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DEL-05` | @mneves75 | Plan entry 12; underlying BLOCKED; waiver @mneves75 to 2026-11-21T23:59:59Z; candidate-only: 1.46.0 to 1.51.1, then 1.51.2 by conditional owner approval |
+| DEL-06 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DEL-06` | proposed: maintainer | — |
+| DEL-07 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DEL-07` | proposed: maintainer | Advisory, not planned |
+| DEL-08 | FAIL | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DEL-08` | proposed: maintainer | Plan entry 9 |
+| DEL-09 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `DEL-09` | @mneves75 | Plan entry 3; underlying NOT TESTED; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
+| ASY-01 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `ASY-01` | proposed: maintainer | — |
+| ASY-02 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `ASY-02` | @mneves75 | Plan entry 10; underlying FAIL; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
+| ASY-03 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `ASY-03` | proposed: maintainer | — |
+| ASY-04 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `ASY-04` | proposed: maintainer | — |
+| ASY-05 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `ASY-05` | proposed: maintainer | — |
+| ASY-06 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `ASY-06` | proposed: maintainer | — |
+| ASY-07 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `ASY-07` | proposed: maintainer | — |
+| ASY-08 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `ASY-08` | proposed: maintainer | Advisory, not planned |
+| ASY-09 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `ASY-09` | proposed: maintainer | — |
+| EML-01 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `EML-01` | proposed: maintainer | — |
+| EML-02 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `EML-02` | proposed: maintainer | — |
+| EML-03 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `EML-03` | proposed: maintainer | — |
+| EML-04 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `EML-04` | proposed: maintainer | — |
+| CST-01 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `CST-01` | proposed: maintainer | Advisory, not planned |
+| CST-02 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `CST-02` | @mneves75 | Plan entry 12; underlying BLOCKED; waiver @mneves75 to 2026-11-21T23:59:59Z; candidate-only: 1.46.0 to 1.51.1, then 1.51.2 by conditional owner approval |
+| CST-03 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `CST-03` | proposed: maintainer | — |
+| OBS-01 | FAIL | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `OBS-01` | proposed: maintainer | Advisory, not planned |
+| OBS-02 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `OBS-02` | @mneves75 | Plan entry 12; underlying BLOCKED; waiver @mneves75 to 2026-11-21T23:59:59Z; candidate-only: 1.46.0 to 1.51.1, then 1.51.2 by conditional owner approval |
+| OBS-03 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `OBS-03` | @mneves75 | Plan entry 12; underlying BLOCKED; waiver @mneves75 to 2026-11-21T23:59:59Z; candidate-only: 1.46.0 to 1.51.1, then 1.51.2 by conditional owner approval |
+| OBS-04 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `OBS-04` | @mneves75 | Plan entry 12; underlying BLOCKED; waiver @mneves75 to 2026-11-21T23:59:59Z; candidate-only: 1.46.0 to 1.51.1, then 1.51.2 by conditional owner approval |
+| OBS-05 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `OBS-05` | proposed: maintainer | Advisory, not planned |
+| OBS-06 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `OBS-06` | proposed: maintainer | — |
+| OBS-07 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `OBS-07` | @mneves75 | Plan entry 6; underlying BLOCKED; waiver @mneves75 to 2026-11-21T23:59:59Z; candidate-only: 1.46.0 to 1.51.1, then 1.51.2 by conditional owner approval |
+| OBS-08 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `OBS-08` | proposed: maintainer | Advisory, not planned |
+| OBS-09 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `OBS-09` | proposed: maintainer | Advisory, not planned |
+| OBS-10 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `OBS-10` | proposed: maintainer | Advisory, not planned |
+| TST-01 | PASS | advisory | 1.51.2: source, local, audit `6c83b0f`; private `binding-assessment.json`, control `TST-01` | proposed: maintainer | — |
+| TST-02 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `TST-02` | proposed: maintainer | Advisory, not planned |
+| TST-03 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `TST-03` | proposed: maintainer | — |
+| TST-04 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `TST-04` | @mneves75 | Plan entry 12; underlying BLOCKED; waiver @mneves75 to 2026-11-21T23:59:59Z; candidate-only: 1.46.0 to 1.51.1, then 1.51.2 by conditional owner approval |
+| TST-05 | PASS | blocker | 1.51.2: source, local, audit `6c83b0f`; private `binding-assessment.json`, control `TST-05` | proposed: maintainer | — |
+| TST-06 | PASS | advisory | 1.51.2: source, local, audit `6c83b0f`; private `binding-assessment.json`, control `TST-06` | proposed: maintainer | — |
+| TST-07 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `TST-07` | proposed: maintainer | Advisory, not planned |
+| BIL-01 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `BIL-01` | proposed: maintainer | — |
+| BIL-02 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `BIL-02` | proposed: maintainer | — |
+| BIL-03 | NOT APPLICABLE | contract | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `BIL-03` | proposed: maintainer | — |
+| BIL-04 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `BIL-04` | proposed: maintainer | — |
+| BIL-05 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `BIL-05` | proposed: maintainer | — |
+| BIL-06 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `BIL-06` | proposed: maintainer | — |
+| BIL-07 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `BIL-07` | proposed: maintainer | — |
+| BIL-08 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `BIL-08` | proposed: maintainer | — |
+| API-01 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `API-01` | proposed: maintainer | — |
+| API-02 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `API-02` | proposed: maintainer | — |
+| API-03 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `API-03` | proposed: maintainer | — |
+| API-04 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `API-04` | proposed: maintainer | — |
+| AI-01 | PASS | blocker | 1.51.2: source, local, audit `6c83b0f`; private `binding-assessment.json`, control `AI-01` | proposed: maintainer | — |
+| AI-02 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `AI-02` | @mneves75 | Plan entry 10; underlying FAIL; waiver @mneves75 to 2026-11-21T23:59:59Z for 1.51.2 (1.51.1's, 1.51.0's and 1.50.0's ran to 2026-11-14T23:59:59Z, 1.49.0's and 1.48.0's to 2026-11-12T23:59:59Z, 1.47.0's to 2026-11-10T23:59:59Z, 1.46.1's to 2026-11-06T23:59:59Z, 1.46.0's to 2027-01-25T23:59:59Z); candidate-only |
+| AI-03 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `AI-03` | proposed: maintainer | Advisory, not planned |
+| UX-01 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `UX-01` | proposed: maintainer | Advisory, not planned |
+| UX-02 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `UX-02` | proposed: maintainer | Plan entry 8 |
+| UX-03 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `UX-03` | proposed: maintainer | Plan entry 8 |
+| UX-04 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `UX-04` | proposed: maintainer | — |
+| UX-05 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `UX-05` | proposed: maintainer | — |
+| UX-06 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `UX-06` | proposed: maintainer | Plan entry 8 |
+| UX-07 | NOT APPLICABLE | contract | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `UX-07` | proposed: maintainer | — |
+| UX-08 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `UX-08` | proposed: maintainer | — |
+| UX-09 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `UX-09` | proposed: maintainer | Plan entry 8 |
+| MNT-01 | PASS | advisory | 1.51.2: source, local, audit `6c83b0f`; private `binding-assessment.json`, control `MNT-01` | proposed: maintainer | — |
+| MNT-02 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `MNT-02` | @mneves75 | Plan entry 4; underlying BLOCKED; waiver @mneves75 to 2026-11-21T23:59:59Z; candidate-only: 1.46.0 to 1.51.1, then 1.51.2 by conditional owner approval |
+| MNT-03 | PASS | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `MNT-03` | proposed: maintainer | — |
+| MNT-04 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `MNT-04` | proposed: maintainer | Advisory, not planned |
+| MNT-05 | PASS | blocker | 1.51.2: source, current-vendor-source-imported, audit `6c83b0f`; private `binding-assessment.json`, control `MNT-05` | proposed: maintainer | — |
+| MNT-06 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `MNT-06` | proposed: maintainer | Advisory, not planned |
+| MNT-07 | FAIL | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `MNT-07` | proposed: maintainer | Advisory, not planned |
+| MNT-08 | PASS | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `MNT-08` | proposed: maintainer | — |
+| MNT-09 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `MNT-09` | proposed: maintainer | Advisory, not planned |
+| MNT-10 | NOT TESTED | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `MNT-10` | proposed: maintainer | Plan entry 7 |
+| OPS-01 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `OPS-01` | proposed: maintainer | — |
+| OPS-02 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `OPS-02` | proposed: maintainer | — |
+| OPS-03 | PASS | advisory | 1.51.2: source, local, audit `6c83b0f`; private `binding-assessment.json`, control `OPS-03` | proposed: maintainer | — |
+| OPS-04 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `OPS-04` | @mneves75 | Plan entry 2; underlying FAIL; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
+| OPS-05 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `OPS-05` | @mneves75 | Plan entry 6; underlying BLOCKED; waiver @mneves75 to 2026-11-21T23:59:59Z; candidate-only: 1.46.0 to 1.51.1, then 1.51.2 by conditional owner approval |
+| OPS-06 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `OPS-06` | @mneves75 | Plan entry 6; underlying BLOCKED; waiver @mneves75 to 2026-11-21T23:59:59Z; candidate-only: 1.46.0 to 1.51.1, then 1.51.2 by conditional owner approval |
+| SEC-01 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-01`; imported security disposition, details restricted | proposed: maintainer | — |
+| SEC-02 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-02`; imported security disposition, details restricted | proposed: maintainer | — |
+| SEC-03 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-03`; imported security disposition, details restricted | proposed: maintainer | — |
+| SEC-04 | NOT APPLICABLE | contract | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-04`; imported security disposition, details restricted | proposed: maintainer | — |
+| SEC-05 | NOT APPLICABLE | contract | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-05`; imported security disposition, details restricted | proposed: maintainer | — |
+| SEC-06 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-06`; imported security disposition, details restricted | proposed: maintainer | — |
+| SEC-07 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-07`; imported security disposition, details restricted | proposed: maintainer | — |
+| SEC-08 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-08`; imported security disposition, details restricted | proposed: maintainer | — |
+| SEC-09 | NOT APPLICABLE | advisory | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-09`; imported security disposition, details restricted | proposed: maintainer | — |
+| SEC-10 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-10`; imported security disposition, details restricted | proposed: maintainer | — |
+| SEC-11 | PASS | blocker | 1.51.2: source, local, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-11`; imported security disposition, details restricted | proposed: maintainer | — |
+| SEC-12 | PASS | blocker | 1.51.2: source, local, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-12`; imported security disposition, details restricted | proposed: maintainer | — |
+| SEC-13 | PASS | blocker | 1.51.2: source, local, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-13`; imported security disposition, details restricted | proposed: maintainer | — |
+| SEC-14 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-14`; imported security disposition, details restricted | proposed: maintainer | — |
+| SEC-15 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-15`; imported security disposition, details restricted | @mneves75 | Plan entry 1; underlying FAIL; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
+| SEC-16 | PASS | blocker | 1.51.2: source, production-imported, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-16`; imported security disposition, details restricted | proposed: maintainer | — |
+| SEC-17 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-17`; imported security disposition, details restricted | @mneves75 | Plan entry 1; underlying NOT TESTED; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
+| SEC-18 | PASS | blocker | 1.51.2: source, local, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-18`; imported security disposition, details restricted | proposed: maintainer | — |
+| SEC-19 | NOT APPLICABLE | contract | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-19`; imported security disposition, details restricted | proposed: maintainer | — |
+| SEC-20 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-20`; imported security disposition, details restricted | @mneves75 | Plan entry 1; underlying FAIL; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
+| SEC-21 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-21`; imported security disposition, details restricted | @mneves75 | Plan entry 1; underlying NOT TESTED; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
+| SEC-22 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-22`; imported security disposition, details restricted | proposed: maintainer | — |
+| SEC-23 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `SEC-23`; imported security disposition, details restricted | @mneves75 | Plan entry 1; underlying NOT TESTED; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
+| CMP-01 | NOT APPLICABLE | contract | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `CMP-01`; imported security disposition, details restricted | proposed: maintainer | — |
+| CMP-02 | NOT APPLICABLE | contract | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `CMP-02`; imported security disposition, details restricted | proposed: maintainer | — |
+| CMP-03 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `CMP-03`; imported security disposition, details restricted | proposed: maintainer | — |
+| CMP-04 | NOT APPLICABLE | contract | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `CMP-04`; imported security disposition, details restricted | proposed: maintainer | — |
+| CMP-05 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `CMP-05`; imported security disposition, details restricted | proposed: maintainer | — |
+| CMP-06 | WAIVED | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `CMP-06`; imported security disposition, details restricted | @mneves75 | Plan entry 1; underlying NOT TESTED; waiver @mneves75 to 2027-01-25T23:59:59Z; historical existing waiver; fresh gate required for later reuse |
+| CMP-07 | NOT APPLICABLE | contract | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `CMP-07`; imported security disposition, details restricted | proposed: maintainer | — |
+| CMP-08 | NOT APPLICABLE | contract | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `CMP-08`; imported security disposition, details restricted | proposed: maintainer | — |
+| CMP-09 | NOT APPLICABLE | blocker | 1.51.2: source, audit `6c83b0f`; private `binding-assessment.json`, control `CMP-09`; imported security disposition, details restricted | proposed: maintainer | — |
 
 ## Gate history
 
@@ -272,3 +269,4 @@ Totals: 136 rows · NOT APPLICABLE 66 · PASS 20 · FAIL 4 · NOT TESTED 20 · B
 | 2026-11-11 | production | 0c1b638af6ef0a56638c2538f7bfc20196f771e0 | ready (v1.50.0; original audit `59d08af`, same tree) | 0 | SEC-15 SEC-17 SEC-20 SEC-21 SEC-23 CMP-06 DEL-04 DEL-09 ASY-02 OPS-04 AI-02 DM-04 BR-01 BR-02 BR-03 BR-04 DEL-05 CST-02 OBS-02 OBS-03 OBS-04 OBS-07 TST-04 MNT-02 OPS-05 OPS-06 |
 | 2026-11-13 | production | 2ecd2d05504ca832c730e30453fa41cbdcd836ec | ready (v1.51.0; original audit `7e1b7d4`, same tree) | 0 | SEC-15 SEC-17 SEC-20 SEC-21 SEC-23 CMP-06 DEL-04 DEL-09 ASY-02 OPS-04 AI-02 DM-04 BR-01 BR-02 BR-03 BR-04 DEL-05 CST-02 OBS-02 OBS-03 OBS-04 OBS-07 TST-04 MNT-02 OPS-05 OPS-06 |
 | 2026-11-14 | production | e0b3776ae4ec261180684f998cfa86a70b2d1298 | ready (v1.51.1; original audit `577bff4`, same tree) | 0 | SEC-15 SEC-17 SEC-20 SEC-21 SEC-23 CMP-06 DEL-04 DEL-09 ASY-02 OPS-04 AI-02 DM-04 BR-01 BR-02 BR-03 BR-04 DEL-05 CST-02 OBS-02 OBS-03 OBS-04 OBS-07 TST-04 MNT-02 OPS-05 OPS-06 |
+| 2026-11-14 | production | 704904c00502098b397c16ab3490d072d502861c | ready (v1.51.2; original audit `6c83b0f`, same tree) | 0 | SEC-15 SEC-17 SEC-20 SEC-21 SEC-23 CMP-06 DEL-04 DEL-09 ASY-02 OPS-04 AI-02 DM-04 BR-01 BR-02 BR-03 BR-04 DEL-05 CST-02 OBS-02 OBS-03 OBS-04 OBS-07 TST-04 MNT-02 OPS-05 OPS-06 |
