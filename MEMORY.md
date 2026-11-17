@@ -14,9 +14,11 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
-- **1.51.4 candidate**: the orchestrator's delegation brief tells workers not to call an advisor
-  tool and to read files with bounded reads; the Defaults block is re-verified against the vendor
-  model lists. Folds the 1.51.3 binding run into the readiness ledger and plan (cursor `9d90d4a`).
+- **1.51.5 candidate** (1.51.4 folded in, never released): Sol and Astra routes move to
+  `gpt-6.2-sol` and `gpt-6.2-astra` at reasoning high (Pi rows stay on 6.1 until Pi lists 6.2);
+  ROOT-B-H01 fixed (SRS output neutralizes terminal control bytes); the delegation brief tells
+  workers not to call an advisor tool and to read files with bounded reads. Folds the 1.51.3
+  binding run into the readiness ledger and plan (cursor `9d90d4a`).
 - **1.51.3** (2026-11-14 UTC closeout): the Opus 5.5 prompt-audit edits: pstack adaptation 09 (the
   `general-purpose` fallback for `pstack:*` agent types, setup-pstack's rules claim, boosters and
   fixed caps) and the orchestrator and teach-back-srs cleanups. Merged as `9d90d4a` (PR #61, audit
