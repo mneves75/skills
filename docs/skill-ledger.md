@@ -13,11 +13,11 @@ the skill; every collection skill is generated from the pinned sources in
 [`sources.json`](../collections/pstack/sources.json) and passes the Agent Skills reference
 validator inside the sync.
 
-The current root catalog has 25 skills: the 23 recorded in the refresh plus the
-`untangle-codebase` adoption in 1.46.0 and the `mneves-socratic-tutor` adoption in 1.47.0 below. The opening counts describe the historical
+The current root catalog has 26 skills: the 23 recorded in the refresh plus the
+`untangle-codebase` adoption in 1.46.0, the `mneves-socratic-tutor` adoption in 1.47.0 and the `prune-tests` adoption in 1.52.0 below. The opening counts describe the historical
 refresh inventory.
 
-## Root skills (25)
+## Root skills (26)
 
 | Skill | Disposition | Reason and kept controls |
 |---|---|---|
@@ -43,6 +43,7 @@ refresh inventory.
 | `mneves-teach-back-srs` | retained | Opt-in quiz and spaced repetition; its SRS helper is unchanged. |
 | `mneves-verify` | retained | Independent verdict required by the security and release paths. |
 | `modernize` | retained | Rebasing an aging PR is its explicit job; it already decides whether the PR should exist first. |
+| `prune-tests` | added | 1.52.0: adapted from caldoai/skills at `bd73b2ea5eb854ab8f0553fb41f77c8786f28f82`, MIT, Copyright (c) 2026 Maze. Owns deleting or rewriting tests that guard no behavior: the past, nothing, or the implementation. Keeps standing absence guards, needs a named scope (or the user's confirmation of a candidate list), a baseline run, a planted regression for each rewrite, a caller search before deleting production code, and a per-test report. Distinct from `untangle-codebase`, whose test cleanup is an opt-in inside a refactor, from pstack `tdd`, which writes tests, and from pstack `deslop`, which cleans production code. |
 | `security-audit` | retained | Owns the six-phase source methodology, the coverage and findings schemas and their Node validators; already says it never claims a deploy gate. Validators unchanged. |
 | `takeover` | retained | Finishing someone else's work with credit kept; no overlap. |
 | `untangle-codebase` | added | 1.46.0: adapted from caldoai/skills at `442c29918339cc8dbf09ae27aaf17b05745465a3`, MIT, Copyright (c) 2026 Maze. Owns bounded structural refactoring using change-together evidence, a dependency graph, Git history and a problem-to-fix log. Bare invocation diagnoses and plans; explicit refactoring requests authorize scoped edits. Protects contracts and safety mechanisms, requires observed baseline and regression proof, makes comment/test cleanup separate opt-ins with assertion preservation, and marks unavailable independent review/acceptance BLOCKED. Distinct from fixed-diff review and broad audit; no mandatory sibling or new executable. |
