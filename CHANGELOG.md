@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.51.4] - 2026-11-17
+
+### Changed
+- **mneves-fable-orchestrator**: the delegation brief tells a worker not to call an advisor tool
+  where the host has one (open questions go in its result) and to read files with bounded reads,
+  never a whole large file; a 30-day cost scan found both among the largest delegated costs.
+- **mneves-fable-orchestrator**: every id in the Defaults block re-verified against the vendors'
+  current model lists; only the verified-on date moves.
+- **Readiness ledger and plan**: fold in the 1.51.3 binding run (production cursor `9d90d4a`,
+  dispositions unchanged from 1.51.2).
+
 ## [1.51.3] - 2026-11-14
 
 ### Changed
