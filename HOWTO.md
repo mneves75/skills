@@ -1120,7 +1120,7 @@ $ python3 scripts/srs_db.py stats
 ```
 
 `export --format csv --output cards.csv` writes an Anki-importable file with the text as
-stored and never replaces an existing file. Export printed to the terminal shows control
+stored, except that a cell starting with `=`, `+`, `-`, `@`, a tab or a carriage return gets a leading `'` so a spreadsheet shows it as text. It never replaces an existing file. Export printed to the terminal shows control
 characters as `\xNN`, so do not redirect it into a file for import.
 
 **Tips.**

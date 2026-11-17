@@ -16,7 +16,7 @@ Usage:
     python srs_db.py stats                         # Show learning statistics
     python srs_db.py cards [--topic T] [--session-id N]  # List cards with filters
     python srs_db.py sessions                      # List all teach-back sessions
-    python srs_db.py export [--format md|csv] [--output FILE]  # Export cards; FILE keeps text as stored
+    python srs_db.py export [--format md|csv] [--output FILE]  # Export cards; FILE keeps controls (formula-cell ' stays)
 """
 
 import argparse
@@ -420,7 +420,7 @@ def main():
 
     p_export = sub.add_parser("export", help="Export cards")
     p_export.add_argument("--format", default="md", choices=["md", "csv"], dest="fmt")
-    p_export.add_argument("--output", help="new file for the export, text as stored (stdout escapes controls)")
+    p_export.add_argument("--output", help="new file for the export; keeps control characters (stdout escapes them)")
 
     args = parser.parse_args()
 

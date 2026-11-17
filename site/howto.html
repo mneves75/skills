@@ -1169,7 +1169,7 @@ $ python3 scripts/srs_db.py stats
 {&quot;total_cards&quot;: 1, &quot;due_now&quot;: 0, &quot;mastered&quot;: 0, &quot;struggling&quot;: 0, &quot;sessions&quot;: 1, &quot;total_reviews&quot;: 1, &quot;today_reviews&quot;: 1, &quot;upcoming_7d&quot;: 1, &quot;avg_ease_factor&quot;: 2.5, &quot;next_scheduled&quot;: &quot;2026-08-27 19:14:48&quot;}
 </code></pre>
 <p><code>export --format csv --output cards.csv</code> writes an Anki-importable file with the text as
-stored and never replaces an existing file. Export printed to the terminal shows control
+stored, except that a cell starting with <code>=</code>, <code>+</code>, <code>-</code>, <code>@</code>, a tab or a carriage return gets a leading <code>&#39;</code> so a spreadsheet shows it as text. It never replaces an existing file. Export printed to the terminal shows control
 characters as <code>\xNN</code>, so do not redirect it into a file for import.</p>
 <p><strong>Tips.</strong></p>
 <ul>

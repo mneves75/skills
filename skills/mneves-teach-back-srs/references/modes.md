@@ -82,5 +82,6 @@ python3 "$SRS_SCRIPT" export --format csv --output cards.csv
 ```
 
 CSV format is compatible with Anki import (question, answer columns). Import the file written
-by `--output`: it keeps text as stored and never replaces an existing file. Export printed to
+by `--output`: it keeps text as stored, except that a cell starting with `=`, `+`, `-`, `@`, a tab or a carriage return gets a leading `'` so a spreadsheet shows it as text, and it
+never replaces an existing file. Export printed to
 the terminal shows control characters as `\xNN`, so do not import it.
