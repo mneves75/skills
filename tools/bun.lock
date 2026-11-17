@@ -5,7 +5,7 @@
     "": {
       "name": "skills-tools",
       "devDependencies": {
-        "@ast-grep/cli": "0.45.2",
+        "@ast-grep/cli": "0.51.2",
         "@biomejs/biome": "^2.6.4",
         "bun-types": "^1.3.5",
         "marked": "18.0.13",
@@ -14,21 +14,25 @@
     },
   },
   "packages": {
-    "@ast-grep/cli": ["@ast-grep/cli@0.45.2", "", { "dependencies": { "detect-libc": "2.1.2" }, "optionalDependencies": { "@ast-grep/cli-darwin-arm64": "0.45.2", "@ast-grep/cli-darwin-x64": "0.45.2", "@ast-grep/cli-linux-arm64-gnu": "0.45.2", "@ast-grep/cli-linux-x64-gnu": "0.45.2", "@ast-grep/cli-win32-arm64-msvc": "0.45.2", "@ast-grep/cli-win32-ia32-msvc": "0.45.2", "@ast-grep/cli-win32-x64-msvc": "0.45.2" }, "bin": { "sg": "sg", "ast-grep": "ast-grep" } }, "sha512-euUPqWTyWt6Ma9WBRCMM12UZXkdQAoUVyXFWnPXtFfIuiF3oJUhEWpzlcSaliiFcXLfzSuMu4rAhhtlGrTEaZA=="],
+    "@ast-grep/cli": ["@ast-grep/cli@0.51.2", "", { "dependencies": { "detect-libc": "2.1.2" }, "optionalDependencies": { "@ast-grep/cli-darwin-arm64": "0.51.2", "@ast-grep/cli-darwin-x64": "0.51.2", "@ast-grep/cli-linux-arm64-gnu": "0.51.2", "@ast-grep/cli-linux-arm64-musl": "0.51.2", "@ast-grep/cli-linux-x64-gnu": "0.51.2", "@ast-grep/cli-linux-x64-musl": "0.51.2", "@ast-grep/cli-win32-arm64-msvc": "0.51.2", "@ast-grep/cli-win32-ia32-msvc": "0.51.2", "@ast-grep/cli-win32-x64-msvc": "0.51.2" }, "bin": { "sg": "sg", "ast-grep": "ast-grep" } }, "sha512-iAtkqUeMwgmVUXy9XH5Bck0oe0Lo+1aN7MLKiNu0MoeifePo0kPe9zWtH7x8QgGfEHOdO3aBE0OtH4GzsChnqA=="],
 
-    "@ast-grep/cli-darwin-arm64": ["@ast-grep/cli-darwin-arm64@0.45.2", "", { "os": "darwin", "cpu": "arm64" }, "sha512-UeLO9dAyWVesDII8m545LEzooNLRmNigbv6Qo7bACkB3jYTqoVbLH96+PZFFbJcQRcabqiwOiDlxhodkCMkP5A=="],
+    "@ast-grep/cli-darwin-arm64": ["@ast-grep/cli-darwin-arm64@0.51.2", "", { "os": "darwin", "cpu": "arm64" }, "sha512-KGvO4opuCvREiNOl8W/ZmG97rEfbUidoAgmj0+bgibQzJQ4hpLtdTeGWfD/4rdqeIDESv7yBaHbAaEY7SNdR/Q=="],
 
-    "@ast-grep/cli-darwin-x64": ["@ast-grep/cli-darwin-x64@0.45.2", "", { "os": "darwin", "cpu": "x64" }, "sha512-Y9sUYEGx/jE/1e9bq8E11AIRDSTMj7ZCzfK862TVM2yc+jKWif+IcqPkDNX4rpz+erTxK+IsSVwoEXduB+zSPg=="],
+    "@ast-grep/cli-darwin-x64": ["@ast-grep/cli-darwin-x64@0.51.2", "", { "os": "darwin", "cpu": "x64" }, "sha512-XwUi5mwn1pu8vZCPHC9tdJqJcHSeZ/EUi0Mnz0g0MIQk9puiXHb/VyY21GzHa7pWJZ5oyT2KE7JzZxTQwKmIDA=="],
 
-    "@ast-grep/cli-linux-arm64-gnu": ["@ast-grep/cli-linux-arm64-gnu@0.45.2", "", { "os": "linux", "cpu": "arm64" }, "sha512-hfxdLxxCcGobue++cWNf7O/VC+Ctj9FeFqgTkKUxxZbPjMawHLNvd2+uXbTimgOOZrAZqm2VsZ9CRxw8zrADIA=="],
+    "@ast-grep/cli-linux-arm64-gnu": ["@ast-grep/cli-linux-arm64-gnu@0.51.2", "", { "os": "linux", "cpu": "arm64" }, "sha512-T9otX6zk58rN5F9SIvGSM4QXVHmVb2N62L5L4ZpVY1f93FqzaS3y7OIQTSPrTpfvZuth3dyoL9kZXTVGcllkWg=="],
 
-    "@ast-grep/cli-linux-x64-gnu": ["@ast-grep/cli-linux-x64-gnu@0.45.2", "", { "os": "linux", "cpu": "x64" }, "sha512-Fh/evRRyJaH0Dctk+JMN4o7dz0tI5Pj3XJUDlp/aAwvXnZ0kuOsAMpO4tlYYq3By0/6GbKCr2Qau1t9cx1rMVQ=="],
+    "@ast-grep/cli-linux-arm64-musl": ["@ast-grep/cli-linux-arm64-musl@0.51.2", "", { "os": "linux", "cpu": "arm64" }, "sha512-NxLmXQWHGxJp8j+Tlb0Vz/kOmVgQZAOJBYBmg3euhEtmZ4k/pc+3/GiRK4kYC9ryzdc0TuqREcn9CCo92/v2rQ=="],
 
-    "@ast-grep/cli-win32-arm64-msvc": ["@ast-grep/cli-win32-arm64-msvc@0.45.2", "", { "os": "win32", "cpu": "arm64" }, "sha512-wzlAX2K9255DNrHMpK9EpM+61ITYpTL14P47eZ4or2jYGUpB0bl1r7FjTC+eDXcwHLJozvu1b6f42iy0505JvA=="],
+    "@ast-grep/cli-linux-x64-gnu": ["@ast-grep/cli-linux-x64-gnu@0.51.2", "", { "os": "linux", "cpu": "x64" }, "sha512-1ToEMb1m/tzjyQNEOhPjRZ3xIUfvY1adR2uP76ZQTmtCPwFWdZdFjIFKiigbzTaH48XoZYUN9L2E7lKbRBZzBw=="],
 
-    "@ast-grep/cli-win32-ia32-msvc": ["@ast-grep/cli-win32-ia32-msvc@0.45.2", "", { "os": "win32", "cpu": "ia32" }, "sha512-hgRpvkX2n8ih3Fywj6dn6ekLmKI0ytC2HdDlLvAQBDzxYzxVMpb6mydF+eR4lqPEGTSuGXmN7lsbDzRRFX7qqQ=="],
+    "@ast-grep/cli-linux-x64-musl": ["@ast-grep/cli-linux-x64-musl@0.51.2", "", { "os": "linux", "cpu": "x64" }, "sha512-XuTizC8JqsbPOwcyXmIf9TMETQAy83uEm77uyzZY8GcvBj9PcSkcEykLFa4dHErKK2jnh7Ts9SUtEpppLSdrAw=="],
 
-    "@ast-grep/cli-win32-x64-msvc": ["@ast-grep/cli-win32-x64-msvc@0.45.2", "", { "os": "win32", "cpu": "x64" }, "sha512-IFV/nygDDDOecuyqaaHIRwhEgVu8+42jm9UIiiZ/P9zUxDMZa34Z440FFGqqRvf4Mnm+1X0jRsNRxGyWPpzPog=="],
+    "@ast-grep/cli-win32-arm64-msvc": ["@ast-grep/cli-win32-arm64-msvc@0.51.2", "", { "os": "win32", "cpu": "arm64" }, "sha512-7SfwFvS9sJqoFcisxMh+mGKS9fixg0eCa7PhZZWLKB4MhGZydnoLJreVCg0ffHVZQJlYJItOUMzkuTb33kBbSQ=="],
+
+    "@ast-grep/cli-win32-ia32-msvc": ["@ast-grep/cli-win32-ia32-msvc@0.51.2", "", { "os": "win32", "cpu": "ia32" }, "sha512-ih2meRyYNSfYyJIQHtEnRnY+obt96xNlOfTxbSZGEj6veU68BdpXhQKB/O5V9VTw7ip+IdRK5MKZPWikMocXIw=="],
+
+    "@ast-grep/cli-win32-x64-msvc": ["@ast-grep/cli-win32-x64-msvc@0.51.2", "", { "os": "win32", "cpu": "x64" }, "sha512-YzSajn4h8XNOfpf8QD4wYlGSzqlIahwUSp+k/WA9UM8p1QRNbokm1WTI+FvK9dmocgHogQaAmvcDWKiEPabhBg=="],
 
     "@biomejs/biome": ["@biomejs/biome@2.6.4", "", { "optionalDependencies": { "@biomejs/cli-android-arm64": "2.6.4", "@biomejs/cli-android-x64": "2.6.4", "@biomejs/cli-darwin-arm64": "2.6.4", "@biomejs/cli-darwin-x64": "2.6.4", "@biomejs/cli-linux-arm64": "2.6.4", "@biomejs/cli-linux-arm64-musl": "2.6.4", "@biomejs/cli-linux-x64": "2.6.4", "@biomejs/cli-linux-x64-musl": "2.6.4", "@biomejs/cli-win32-arm64": "2.6.4", "@biomejs/cli-win32-x64": "2.6.4" }, "bin": { "biome": "bin/biome" } }, "sha512-8sKKwaNW4ot22awZ3lBjwWLHnUFXgXnrBPYS2gNlBAXRbDC++7kqjK2H7dR/FgCDtPvO1xfKpgEhJkGxAKYkxA=="],
 
