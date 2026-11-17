@@ -12,14 +12,17 @@ Prune every test in scope that guards no behavior.
 
 - Scope is the path the user named. With no path, list candidates across the repository and
   prune only after the user confirms that list; never prune a whole repository unasked.
-- Run the suite in scope first and record the result. A test that already fails, is skipped
-  or is flaky is not a prune candidate: report it and leave it for its own fix.
+- Run the suite in scope first and record the result. A test that already fails or is known
+  to be flaky (marked, quarantined or seen failing intermittently) is not a prune candidate:
+  report it and leave it for its own fix. A skipped test is a candidate only under "The past".
 
 **1. Find what each test depends on**
 
 Keep a test only if it depends on the intended behavior: it should change only when that behavior changes, and fail only when it regresses.
 
-If another test already guards the same behavior, prune the copy. Name the test that stays.
+If another test already guards the same behavior, prune the copy. Name the test that stays,
+and confirm it fails on the regression the copy would catch: plant it, or show the two use the
+same inputs and assertion.
 
 Prune tests that depend on:
 
@@ -32,7 +35,9 @@ For example:
 
 Absence is not always the past. A test that asserts something is refused, rejected or must not
 come back as a standing rule (a security regression test, an invariant guard, a planted-violation
-control for a checker) guards behavior: keep it.
+control for a checker) guards behavior: keep it. It is a standing rule when a spec, ADR,
+advisory, issue or comment names it as a requirement, or live code could bring it back; when
+unsure, list it as a candidate and ask.
 
 **Nothing:** no change to the code can make it fail, so it has no reason of its own to change.
 
@@ -54,21 +59,25 @@ For example:
 - Delete every test that isn't anchored to intended behavior.
 - Where one also covers behavior something relies on, rewrite it against that behavior instead.
   Prove each rewrite: break that behavior on purpose, watch the rewritten test fail on its own
-  assertion, then restore the code.
+  assertion, then revert only your planted edit and check the file matches its prior diff.
 - Delete production code that only existed for the tests you removed. Search for every caller
-  first; an exported or documented interface stays unless the user agrees to remove it.
+  first, counting dynamic use (string imports, reflection, registries, config, fixtures). A
+  public interface (package entry point, documented API) stays unless the user agrees; a
+  test-only hook with no other caller is not one.
 
 **3. Report**
 
 For each deleted or rewritten test, give its name, the category above, and for a duplicate the
-test that stays. Run the suite again and give both results; a test that newly fails means a
-pruned test was guarding behavior, so restore it.
+test that stays. Run the suite again and give both results; when production code was deleted,
+run the full suite, or every test that reaches the touched module. A test that newly fails means
+deleted code or shared state was still in use: restore it and investigate. A passing re-run does
+not prove a pruned test was redundant; the categories above do.
 
 **What done looks like**
 
 - Every test left is anchored to intended behavior.
 - Each one would fail on a regression, and only on a regression.
-- No test asserts code that no longer exists.
+- No test asserts code that no longer exists, except a standing absence guard.
 - No two tests guard the same behavior.
 - No production code exists only for tests.
 - The suite passes as it did at the baseline, minus the pruned tests.
@@ -105,7 +114,7 @@ pruned test was guarding behavior, so restore it.
 -});
 --- a/session.test.ts
 +++ b/session.test.ts
-@@ deleted, with the production code that only existed for it @@
+@@ deleted, with the test-only hooks that had no other caller @@
 -test("clears the cache", () => {
 -  _resetCacheForTests();
 -  expect(_getCacheSize()).toBe(0);
