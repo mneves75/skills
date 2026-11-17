@@ -42,7 +42,7 @@ collection does not automatically change those instructions in other projects.
 |---|---|---|
 | [`autoreview`](#autoreview) | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
 | [`untangle-codebase`](#untangle-codebase) | diagnose structural coupling or implement an explicitly scoped refactor | "refactor duplicated tax logic in src/checkout/, preserving public entrypoints" |
-| [`prune-tests`](#prune-tests) | delete or rewrite tests that guard no behavior | "prune the tests in src/cart/" |
+| [`mneves-prune-tests`](#mneves-prune-tests) | delete or rewrite tests that guard no behavior | "prune the tests in src/cart/" |
 | [`council`](#council) | get independent members to argue with a plan before you commit to it | "convene the council on this migration plan, two rounds" |
 | [`full-stop`](#full-stop) | take a change unattended to a proven, reviewed PR ready for you to merge, never merged (explicit request only) | "/full-stop" or "run full-stop" |
 | [`takeover`](#takeover) | finish someone else's PR, branch or agent thread while keeping their credit | "take over this PR" |
@@ -122,7 +122,7 @@ Source and adaptations: [UPSTREAM.md](skills/untangle-codebase/UPSTREAM.md).
 
 ---
 
-## prune-tests
+## mneves-prune-tests
 
 **What it does.** Removes tests that guard no behavior. A test stays only if it changes when
 the intended behavior changes and fails only when that behavior regresses. It prunes tests of
@@ -152,8 +152,8 @@ Prune the tests in src/cart/.
 3. For each rewrite it breaks the behavior on purpose, sees the new test fail, and restores it.
 4. It reports each deleted or rewritten test with its reason, then runs the suite again.
 
-Procedure: [SKILL.md](skills/prune-tests/SKILL.md).
-Source and adaptations: [UPSTREAM.md](skills/prune-tests/UPSTREAM.md).
+Procedure: [SKILL.md](skills/mneves-prune-tests/SKILL.md).
+Source and adaptations: [UPSTREAM.md](skills/mneves-prune-tests/UPSTREAM.md).
 
 ---
 

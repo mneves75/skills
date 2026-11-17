@@ -4,7 +4,8 @@
 - Commit: `bd73b2ea5eb854ab8f0553fb41f77c8786f28f82`.
 - Original procedure: [SKILL.md](https://github.com/caldoai/skills/blob/bd73b2ea5eb854ab8f0553fb41f77c8786f28f82/skills/prune-tests/SKILL.md).
 - License: [upstream MIT License](https://github.com/caldoai/skills/blob/bd73b2ea5eb854ab8f0553fb41f77c8786f28f82/LICENSE), preserved verbatim in [LICENSE](LICENSE), Copyright (c) 2026 Maze.
-- Adapted on: 2026-11-17. The upstream skill name is retained.
+- Adapted on: 2026-11-17. The upstream name is `prune-tests`; the `mneves-` prefix is the
+  owner's choice.
 
 ## Adaptations
 
