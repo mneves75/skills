@@ -78,7 +78,9 @@ Present the JSON output in a readable format:
 
 ```bash
 python3 "$SRS_SCRIPT" export --format md
-python3 "$SRS_SCRIPT" export --format csv
+python3 "$SRS_SCRIPT" export --format csv --output cards.csv
 ```
 
-CSV format is compatible with Anki import (question, answer columns).
+CSV format is compatible with Anki import (question, answer columns). Import the file written
+by `--output`: it keeps text as stored and never replaces an existing file. Export printed to
+the terminal shows control characters as `\xNN`, so do not import it.

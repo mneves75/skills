@@ -16,7 +16,7 @@ Usage:
     python srs_db.py stats                         # Show learning statistics
     python srs_db.py cards [--topic T] [--session-id N]  # List cards with filters
     python srs_db.py sessions                      # List all teach-back sessions
-    python srs_db.py export [--format md|csv]      # Export cards
+    python srs_db.py export [--format md|csv] [--output FILE]  # Export cards; FILE keeps text as stored
 """
 
 import argparse
@@ -420,6 +420,7 @@ def main():
 
     p_export = sub.add_parser("export", help="Export cards")
     p_export.add_argument("--format", default="md", choices=["md", "csv"], dest="fmt")
+    p_export.add_argument("--output", help="new file for the export, text as stored (stdout escapes controls)")
 
     args = parser.parse_args()
 
@@ -462,7 +463,16 @@ def main():
             for s in sessions:
                 show(f"  #{s['id']} {s['topic']} ({s['gaps_found']} gaps, {s['cards_generated']} cards)")
     elif args.command == "export":
-        show(export_cards(args.fmt))
+        text = export_cards(args.fmt)
+        if args.output is None:
+            show(text)
+        else:
+            try:
+                with open(args.output, "x", encoding="utf-8", newline="") as f:
+                    f.write(text + "\n")
+            except OSError as error:
+                raise SrsError(f"Cannot write export: {error.strerror}") from None
+            show(f"Exported to {args.output}")
     else:
         parser.print_help()
 

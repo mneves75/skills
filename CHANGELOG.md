@@ -12,7 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Security
 - **mneves-teach-back-srs**: `srs_db.py` prints stored card and session text with C0 and C1
   control characters, ESC included, shown as visible `\xNN` escapes; newline and tab stay.
-  Stored data is unchanged. Found by the 1.51.4 security gate (ROOT-B-H01).
+  Stored data is unchanged. Found by the 1.51.4 security gate (ROOT-B-H01). `export --output FILE`
+  writes the export to a new file with text as stored, so an Anki import keeps carriage
+  returns and other controls; it never replaces an existing file (1.51.5 gate, ROOT-A-R01).
 
 ### Changed
 - **GPT-6.2 routes at high**: every Codex Sol seat in the orchestrator's Defaults block runs

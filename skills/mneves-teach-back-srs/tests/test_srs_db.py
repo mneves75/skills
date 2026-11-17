@@ -180,6 +180,27 @@ class TerminalOutput(unittest.TestCase):
                 self.assert_inert(self.cli(*argv))
         self.assertIn("line one\n\tline two", self.cli("export"))
 
+    def test_export_to_a_file_keeps_text_as_stored(self):
+        import csv
+        self.cli("add-card", "--question", "a\rb", "--answer", "=1+1")
+        reply = self.cli("export", "--format", "csv", "--output", "cards.csv")
+        self.assertIn("cards.csv", reply)
+        with open(os.path.join(self.tmp, "cards.csv"), encoding="utf-8", newline="") as f:
+            row = next(csv.DictReader(f))
+        self.assertEqual((row["question"], row["answer"]), ("a\rb", "'=1+1"))
+        self.assertIn("\\x0d", self.cli("export", "--format", "csv"))
+
+    def test_export_never_overwrites_a_file(self):
+        self.cli("add-card", "--question", "Q", "--answer", "A")
+        path = os.path.join(self.tmp, "kept.csv")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("mine")
+        done = subprocess.run([sys.executable, str(SCRIPT), "export", "--output", "kept.csv"], cwd=self.tmp,
+                              capture_output=True)
+        self.assertEqual(done.returncode, 1)
+        with open(path, encoding="utf-8") as f:
+            self.assertEqual(f.read(), "mine")
+
     def test_ordinary_text_is_unchanged(self):
         self.cli("add-card", "--question", "Ação é tão útil?", "--answer", "Sim")
         self.assertIn("Ação é tão útil?", self.cli("cards"))
