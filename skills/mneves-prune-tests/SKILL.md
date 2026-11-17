@@ -1,5 +1,5 @@
 ---
-name: prune-tests
+name: mneves-prune-tests
 description: Delete or rewrite tests that guard no behavior, with evidence for each change. Use when asked to prune, trim or de-duplicate a test suite.
 license: MIT
 ---

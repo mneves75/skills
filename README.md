@@ -25,7 +25,7 @@ artifacts.
 |-------|-------------|
 | [autoreview](skills/autoreview/) | Structured, isolated code review of a fixed Git target; ships its helper, security tests, and its own engine defaults |
 | [untangle-codebase](skills/untangle-codebase/) | Diagnose structural coupling and plan a bounded refactor; implement when explicitly authorized, preserving contracts and safety mechanisms with observed baselines and independent acceptance |
-| [prune-tests](skills/prune-tests/) | Delete or rewrite tests that guard no behavior (the past, nothing, the implementation), with a baseline run, a planted regression for each rewrite and a per-test report |
+| [mneves-prune-tests](skills/mneves-prune-tests/) | Delete or rewrite tests that guard no behavior (the past, nothing, the implementation), with a baseline run, a planted regression for each rewrite and a per-test report |
 | [council](skills/council/) | Bounded independent deliberation over a plan, or a scored review of a change: each available member CLI (Claude, Codex, pi) answers without seeing the others; plan mode runs exactly the requested rounds, review mode stops when every member answers SHIP IT or the cap ends; advisory, never verification |
 | [full-stop](skills/full-stop/) | Take a change unattended to a proven, reviewed PR that is ready for you to merge: proof, a bounded review by a model that did not build it, a problem-first PR, CI and review bots watched to the merge gate; never merges |
 | [takeover](skills/takeover/) | Finish someone else's PR, branch or agent thread toward its original goal while keeping the original contributors' credit |
@@ -174,7 +174,7 @@ from CI and merge approval; their current tracked assessment is in [the readines
 
 Original work in this repository is Apache-2.0. The adapted skills (`autoreview`, `babysit-pr`,
 `council`, `full-stop`, `imagegen-frontend-mobile`, `leaving-pr-comments`, `mneves-handoff`,
-`mneves-socratic-tutor`, `modernize`, `prune-tests`, `security-audit`, `takeover` and
+`mneves-prune-tests`, `mneves-socratic-tutor`, `modernize`, `security-audit`, `takeover` and
 `untangle-codebase`) and the [`pstack`](collections/pstack/) collection
 retain their upstream MIT licenses and copyrights; see the `LICENSE` file in each directory and
 [`NOTICE`](NOTICE).

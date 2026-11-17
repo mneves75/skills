@@ -22,7 +22,6 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── modernize/                 # Rebase an aging PR and decide whether it should exist (MIT, adapted)
 │   ├── takeover/                  # Finish someone else's PR with their credit kept (MIT, adapted)
 │   ├── untangle-codebase/          # Bounded structural refactoring, diagnosis first (MIT, adapted)
-│   ├── prune-tests/               # Delete or rewrite tests that guard no behavior (MIT, adapted)
 │   ├── security-audit/            # Six-phase source audit + Node validators (MIT, adapted)
 │   ├── imagegen-frontend-mobile/   # Mobile screen/flow image generation (MIT)
 │   ├── mneves-agent-readiness/    # Codebase readiness assessment (pairs with tools/)
@@ -33,6 +32,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── mneves-render/             # Project-local Markdown -> HTML, editable DOCX and PDF
 │   ├── mneves-motion-film/        # Product film from a brief: facts, music, Remotion, checks (+ scripts/, tests/)
 │   ├── mneves-production-readiness/ # Deploy gate: readiness ledger, verdict per target, fix plan (+ references/)
+│   ├── mneves-prune-tests/        # Delete or rewrite tests that guard no behavior (MIT, adapted)
 │   ├── mneves-security/           # Security/privacy audit, pre-deploy gate, safe fixes and evidence (+ references/)
 │   ├── mneves-fable-orchestrator/ # Model routing; Codex reference + tools/codex-lane (+ its test)
 │   ├── mneves-superaudit/         # Bounded audit-and-ship pass (+ references/)

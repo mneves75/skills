@@ -66,7 +66,7 @@ blockquote{margin:0 0 1rem;padding:.25rem 1rem;border-left:3px solid var(--rule)
 <nav class="toc toc-side" aria-label="Guide contents"><p class="toc-title">Contents</p><ol>
 <li><a href="#install-once">Install once</a></li>
 <li><a href="#untangle-codebase">untangle-codebase</a></li>
-<li><a href="#prune-tests">prune-tests</a></li>
+<li><a href="#mneves-prune-tests">mneves-prune-tests</a></li>
 <li><a href="#mneves-security">mneves-security</a></li>
 <li><a href="#security-audit">security-audit</a></li>
 <li><a href="#mneves-production-readiness">mneves-production-readiness</a></li>
@@ -97,7 +97,7 @@ blockquote{margin:0 0 1rem;padding:.25rem 1rem;border-left:3px solid var(--rule)
 <nav class="toc toc-inline" aria-label="Guide contents"><details><summary>Contents</summary><ol>
 <li><a href="#install-once">Install once</a></li>
 <li><a href="#untangle-codebase">untangle-codebase</a></li>
-<li><a href="#prune-tests">prune-tests</a></li>
+<li><a href="#mneves-prune-tests">mneves-prune-tests</a></li>
 <li><a href="#mneves-security">mneves-security</a></li>
 <li><a href="#security-audit">security-audit</a></li>
 <li><a href="#mneves-production-readiness">mneves-production-readiness</a></li>
@@ -175,7 +175,7 @@ collection does not automatically change those instructions in other projects.</
 <td>&quot;refactor duplicated tax logic in src/checkout/, preserving public entrypoints&quot;</td>
 </tr>
 <tr>
-<td><a href="#prune-tests"><code>prune-tests</code></a></td>
+<td><a href="#mneves-prune-tests"><code>mneves-prune-tests</code></a></td>
 <td>delete or rewrite tests that guard no behavior</td>
 <td>&quot;prune the tests in src/cart/&quot;</td>
 </tr>
@@ -339,7 +339,7 @@ must be checked separately when evaluating adoption.</p>
 <p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/untangle-codebase/SKILL.md">SKILL.md</a>.
 Source and adaptations: <a href="https://github.com/mneves75/skills/blob/main/skills/untangle-codebase/UPSTREAM.md">UPSTREAM.md</a>.</p>
 <hr>
-<h2 id="prune-tests">prune-tests</h2>
+<h2 id="mneves-prune-tests">mneves-prune-tests</h2>
 <p><strong>What it does.</strong> Removes tests that guard no behavior. A test stays only if it changes when
 the intended behavior changes and fails only when that behavior regresses. It prunes tests of
 code that no longer exists, tests no code change can make fail (a mocked unit under test, a
@@ -363,8 +363,8 @@ reported and left alone.</li>
 <li>For each rewrite it breaks the behavior on purpose, sees the new test fail, and restores it.</li>
 <li>It reports each deleted or rewritten test with its reason, then runs the suite again.</li>
 </ol>
-<p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/prune-tests/SKILL.md">SKILL.md</a>.
-Source and adaptations: <a href="https://github.com/mneves75/skills/blob/main/skills/prune-tests/UPSTREAM.md">UPSTREAM.md</a>.</p>
+<p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-prune-tests/SKILL.md">SKILL.md</a>.
+Source and adaptations: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-prune-tests/UPSTREAM.md">UPSTREAM.md</a>.</p>
 <hr>
 <h2 id="mneves-security">mneves-security</h2>
 <p><strong>What it does.</strong> Inspects the actual source and trust boundaries, checks current official

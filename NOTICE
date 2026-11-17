@@ -69,13 +69,13 @@ baselines, caller/behavior evidence, contract and safety preservation, opt-in co
 cleanup with assertion-level replacement proof, and independent review/acceptance gates.
 The upstream pin and adaptation details are recorded in skills/untangle-codebase/UPSTREAM.md.
 
-The prune-tests skill is adapted from caldoai/skills:
+The mneves-prune-tests skill is adapted from caldoai/skills (upstream name prune-tests):
 https://github.com/caldoai/skills/tree/bd73b2ea5eb854ab8f0553fb41f77c8786f28f82/skills/prune-tests
 Copyright (c) 2026 Maze. Distributed under the MIT License preserved in that skill's directory.
 Local modifications include portable metadata, an explicit scope and baseline, keeping standing
 absence guards, a planted-regression proof for each rewrite, a caller search before deleting
 production code, and a per-test report.
-The upstream pin and adaptation details are recorded in skills/prune-tests/UPSTREAM.md.
+The upstream pin and adaptation details are recorded in skills/mneves-prune-tests/UPSTREAM.md.
 
 The mneves-socratic-tutor skill is adapted from janestreet/agent_skills (upstream name socratic-tutor):
 https://github.com/janestreet/agent_skills/tree/7c6715c29548a3b39d4a9545c698ee4fd17a7213/socratic-tutor
