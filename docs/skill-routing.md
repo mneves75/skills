@@ -27,7 +27,7 @@ action described inside it.
 | Stress-test a decision | `mneves-expert-review` | Code-diff review belongs to a code-review skill |
 | Review a fixed Git target | `autoreview` | Review is not independent outcome verification |
 | Diagnose structural coupling or refactor an explicitly scoped code area | `untangle-codebase` | Naming it alone yields diagnosis and a plan awaiting edit approval; explicit refactoring authorizes in-scope implementation. Missing or invalid scope never expands to the whole repo; comment/test cleanup needs separate opt-in |
-| Remove or rewrite tests that guard no behavior | `prune-tests` | Without a named path it lists candidates and waits for confirmation; failing or known-flaky tests and standing absence guards stay |
+| Remove or rewrite tests that guard no behavior | `mneves-prune-tests` | Without a named path it lists candidates and waits for confirmation; failing or known-flaky tests and standing absence guards stay |
 | Prove a completed change works | `mneves-verify` | Fresh evidence and its independence rules still apply |
 | Audit security or fix authorized vulnerabilities | `mneves-security` | A full coverage-led source audit can use `security-audit`; it does not replace the deploy gate |
 | Deploy to an explicitly authorized environment | `mneves-ship-deploy` | Security and readiness gates apply before deployment |
