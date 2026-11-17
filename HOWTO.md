@@ -1119,7 +1119,9 @@ $ python3 scripts/srs_db.py stats
 {"total_cards": 1, "due_now": 0, "mastered": 0, "struggling": 0, "sessions": 1, "total_reviews": 1, "today_reviews": 1, "upcoming_7d": 1, "avg_ease_factor": 2.5, "next_scheduled": "2026-08-27 19:14:48"}
 ```
 
-`export --format csv > cards.csv` writes an Anki-importable file.
+`export --format csv --output cards.csv` writes an Anki-importable file with the text as
+stored and never replaces an existing file. Export printed to the terminal shows control
+characters as `\xNN`, so do not redirect it into a file for import.
 
 **Tips.**
 - Scope a session to one subsystem or one data flow. "The whole backend" produces vague cards.
