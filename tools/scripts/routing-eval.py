@@ -51,7 +51,7 @@ CASES_SCHEMA = "routing-eval-5"
 
 # Consumers under test: the only place this tool names models. Update on a model release.
 CLAUDE_MODEL, CLAUDE_EFFORT = "claude-opus-5-5", "medium"
-CODEX_MODEL, CODEX_EFFORT = "gpt-6.1-sol", "high"
+CODEX_MODEL, CODEX_EFFORT = "gpt-6.2-sol", "high"
 
 EFFORTS = ["low", "medium", "high", "xhigh", "max", "none"]
 HOWS = ["dispatch-parameter", "agent-definition-model-field", "not-applicable"]
