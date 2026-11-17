@@ -10,7 +10,8 @@
   "7: P19 failed 2 of 24 Codex samples across eight runs of the unchanged 1.47.0 to 1.48.0 text, by applying the Opus `medium` rule to a model Codex substitutes. Adaptation 08 says in codex-tools.md that the rule does not apply to those substitutes. P19's expectation is unchanged and it is marked clarified.",
   "8: 1.51.0 moves the Claude main session to Opus 5.5 at reasoning medium (owner, 2026-11-11). O1 now expects claude-opus-5-5 at medium and stays changed; O8's anchor follows the same Defaults line and its expectation (gpt-6.1-sol, high) is unchanged.",
   "9: 1.51.1 names a reviewer fallback for when no Codex account can run (owner, 2026-11-12). O3 and O4 follow the edited reviewer row with unchanged expectations; new O14 expects that fallback (claude-fable-5-2 at high) and is changed. O1 is no longer marked changed: 1.51.0 already sets its expectation, so the 1.51.0 baseline must pass it.",
-  "10: 1.51.2 changes no routing text; only the Defaults block's verified-on date moves, so every case runs again on the candidate. O14 is no longer marked changed: 1.51.1 already sets its expectation, so the 1.51.1 baseline must pass it. No expectation changed."
+  "10: 1.51.2 changes no routing text; only the Defaults block's verified-on date moves, so every case runs again on the candidate. O14 is no longer marked changed: 1.51.1 already sets its expectation, so the 1.51.1 baseline must pass it. No expectation changed.",
+  "11: 1.52.0 moves every Codex Sol seat to gpt-6.2-sol at high and the Astra planning seats to gpt-6.2-astra at high (owner, 2026-11-17), in the orchestrator's Defaults block and in pstack's codex-tools.md (adaptations 01 and 08). O4, O8 and P19 now expect gpt-6.2-sol (P19 at high, was xhigh) and are changed; O3's scenario and known failure name gpt-6.2-sol with its expectation unchanged; anchors follow the edited lines. Pi's mapping keeps gpt-6.1-sol because Pi's model catalog has no 6.2 id, so P6 is unchanged."
  ],
  "purpose": "Expected-outcome eval of the routing text: does an agent reading the shipped skill text dispatch the expected model and reasoning effort for each seat? Expectations come from the owner's rules and the orchestrator's Defaults block, frozen before any run.",
  "threshold": "Candidate: every sample of every case passes on both consumers. Baseline control (the previous release's text, run with --baseline): every case marked changed fails on every sample, and every unchanged case passes, and no sample errors; a changed case that passes on the baseline does not discriminate: the control fails until the case is replaced or no longer marked changed. A case marked changed \"clarified\" had its source reworded to remove an ambiguity without changing its expected answer: a candidate run judges it like any case, and a baseline run records its counts in clarified_on_baseline and fails it only on an errored sample. Only a full run (every case on both consumers) can meet either threshold.",
@@ -57,7 +58,7 @@
     "skills/mneves-fable-orchestrator/SKILL.md"
    ],
    "changed": false,
-   "scenario": "A Codex worker running gpt-6.1-sol built a change. Following this skill, you dispatch the review of that change. Report the reviewer's model and reasoning effort.",
+   "scenario": "A Codex worker running gpt-6.2-sol built a change. Following this skill, you dispatch the review of that change. Report the reviewer's model and reasoning effort.",
    "expected": {
     "model": [
      "opus",
@@ -67,18 +68,18 @@
      "medium"
     ]
    },
-   "known_failure": "Opus reviewer at high (the 1.46.1 value), or a self-review on gpt-6.1-sol."
+   "known_failure": "Opus reviewer at high (the 1.46.1 value), or a self-review on gpt-6.2-sol."
   },
   {
    "id": "O4-reviewer-of-claude-build",
    "sources": [
     "skills/mneves-fable-orchestrator/SKILL.md"
    ],
-   "changed": false,
+   "changed": true,
    "scenario": "A Claude ordinary worker (Opus) built a change. Following this skill, you dispatch the review of that change. Report the reviewer's model and reasoning effort.",
    "expected": {
     "model": [
-     "gpt-6.1-sol"
+     "gpt-6.2-sol"
     ],
     "effort": [
      "high"
@@ -160,11 +161,11 @@
    "sources": [
     "skills/mneves-fable-orchestrator/SKILL.md"
    ],
-   "changed": false,
+   "changed": true,
    "scenario": "You are the Codex orchestrator main session working under this skill. Report the model and reasoning effort this skill sets for your own session; `model` is the exact alias or model id the text gives for it, not the seat's description; `how` is not-applicable.",
    "expected": {
     "model": [
-     "gpt-6.1-sol"
+     "gpt-6.2-sol"
     ],
     "effort": [
      "high"
@@ -607,7 +608,7 @@
   },
   {
    "id": "P19-codex-runtime-opus-alias",
-   "changed": "clarified",
+   "changed": true,
    "sources": [
     "collections/pstack/skills/thermos/SKILL.md",
     "collections/pstack/skills/poteto-mode/SKILL.md",
@@ -616,13 +617,13 @@
    "scenario": "Runtime: Codex; the Codex platform mapping in codex-tools.md applies. The pstack override sheet contains exactly these role lines: `thermos reviewers: opus` and `default effort: xhigh`. You dispatch one thermos reviewer. Treat this job as needing no per-job raise or lower of the reasoning level. Report in `model` the model the child actually runs on, and the `effort` it runs at (`none` if none is passed).",
    "expected": {
     "model": [
-     "gpt-6.1-sol"
+     "gpt-6.2-sol"
     ],
     "effort": [
-     "xhigh"
+     "high"
     ]
    },
-   "known_failure": "Medium forced onto an `opus` alias that Codex maps to gpt-6.1-sol."
+   "known_failure": "Medium forced onto an `opus` alias that Codex maps to gpt-6.2-sol."
   },
   {
    "id": "O13-economy-executor",
@@ -646,19 +647,19 @@
   "O1-main-session-claude": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "main session      = Opus, latest release (Claude alias `claude-opus-5-5`), reasoning medium | gpt-6.1-sol, reasoning high (Codex orchestrator)"
+    "text": "main session      = Opus, latest release (Claude alias `claude-opus-5-5`), reasoning medium | gpt-6.2-sol, reasoning high (Codex orchestrator)"
    }
   ],
   "O2-advisor-claude": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "plan advisor      = Fable, latest release (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6-astra, reasoning xhigh (advice and plan review)"
+    "text": "plan advisor      = Fable, latest release (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (advice and plan review)"
    }
   ],
   "O3-reviewer-of-codex-build": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol --thinking high`); when no Codex account can run: Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high"
+    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (autoreview `--model gpt-6.2-sol --thinking high`); when no Codex account can run: Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high"
    },
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
@@ -668,7 +669,7 @@
   "O4-reviewer-of-claude-build": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol --thinking high`); when no Codex account can run: Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high"
+    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (autoreview `--model gpt-6.2-sol --thinking high`); when no Codex account can run: Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high"
    },
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
@@ -678,19 +679,19 @@
   "O5-planner-claude": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "planner           = Fable, latest release (Claude subagent alias `claude-fable-5-2`) | gpt-6-astra, reasoning xhigh (planning)"
+    "text": "planner           = Fable, latest release (Claude subagent alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (planning)"
    }
   ],
   "O6-heavy-executor-claude": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "heavy executor    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (Codex worker)"
+    "text": "heavy executor    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (Codex worker)"
    }
   ],
   "O7-short-alias-dispatch-tool": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "planner           = Fable, latest release (Claude subagent alias `claude-fable-5-2`) | gpt-6-astra, reasoning xhigh (planning)"
+    "text": "planner           = Fable, latest release (Claude subagent alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (planning)"
    },
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
@@ -700,7 +701,7 @@
   "O8-main-session-codex": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "main session      = Opus, latest release (Claude alias `claude-opus-5-5`), reasoning medium | gpt-6.1-sol, reasoning high (Codex orchestrator)"
+    "text": "main session      = Opus, latest release (Claude alias `claude-opus-5-5`), reasoning medium | gpt-6.2-sol, reasoning high (Codex orchestrator)"
    }
   ],
   "P1-opus-with-default-line": [
@@ -908,25 +909,25 @@
   "O9-frontend-subagent-claude": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "frontend subagent = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (Codex worker)"
+    "text": "frontend subagent = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (Codex worker)"
    }
   ],
   "O10-ordinary-worker-claude": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "ordinary worker   = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (Codex worker)"
+    "text": "ordinary worker   = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (Codex worker)"
    }
   ],
   "O11-bounded-worker-claude": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "bounded worker    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (bounded Codex task)"
+    "text": "bounded worker    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (bounded Codex task)"
    }
   ],
   "O12-plan-advisor-claude": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "plan advisor      = Fable, latest release (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6-astra, reasoning xhigh (advice and plan review)"
+    "text": "plan advisor      = Fable, latest release (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (advice and plan review)"
    }
   ],
   "S1-setup-default-for-opus-role": [
@@ -1074,7 +1075,7 @@
    },
    {
     "path": "collections/pstack/skills/poteto-mode/references/codex-tools.md",
-    "text": "- Single-model execution roles: `gpt-6.1-sol` at `xhigh` reasoning."
+    "text": "- Single-model execution roles: `gpt-6.2-sol` at `high` reasoning."
    },
    {
     "path": "collections/pstack/skills/poteto-mode/references/codex-tools.md",
@@ -1090,7 +1091,7 @@
   "O14-reviewer-fallback-no-codex": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol --thinking high`); when no Codex account can run: Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high"
+    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (autoreview `--model gpt-6.2-sol --thinking high`); when no Codex account can run: Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high"
    },
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",

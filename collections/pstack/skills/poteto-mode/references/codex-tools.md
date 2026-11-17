@@ -49,10 +49,10 @@ poteto-mode's Subagents section sets Claude-specific defaults (`subagent_type: "
 
 Skills name Claude defaults (a single-role default for code/prose/judgment, a worker model for feature and refactoring code, plus a panel; each model-consuming skill lists its own in a Models section). These slugs do not resolve on Codex. Substitute your configured Codex models:
 
-- Single-model execution roles: `gpt-6.1-sol` at `xhigh` reasoning.
-- Roles that default to the Claude worker model (`feature, refactoring`): `gpt-6.1-sol` at `xhigh` reasoning.
-- Roles that default to the strongest Claude model (`strongest judgment`): `gpt-6.1-sol` at `xhigh` reasoning.
-- Execution and review panels (`arena`, `interrogate`, `how` critics, `reflect`): use `gpt-6.1-sol` at `xhigh` reasoning. Note reduced model diversity when every participant uses the same model; independent contexts do not provide cross-model independence.
+- Single-model execution roles: `gpt-6.2-sol` at `high` reasoning.
+- Roles that default to the Claude worker model (`feature, refactoring`): `gpt-6.2-sol` at `high` reasoning.
+- Roles that default to the strongest Claude model (`strongest judgment`): `gpt-6.2-sol` at `high` reasoning.
+- Execution and review panels (`arena`, `interrogate`, `how` critics, `reflect`): use `gpt-6.2-sol` at `high` reasoning. Note reduced model diversity when every participant uses the same model; independent contexts do not provide cross-model independence.
 - Planning (`architect`) and read-only advice: select the host's dedicated planning/advisor route and its effort, rather than an execution alias. Never use that route for implementation or code review.
 
 These substitutes are not Opus models, so the `medium` rule for a value that resolves to an Opus model does not apply to them on Codex.

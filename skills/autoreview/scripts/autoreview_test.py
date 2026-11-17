@@ -1268,17 +1268,18 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(sys, "argv", argv):
                     reviewer = AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())[0]
                 self.assertEqual(reviewer.model, "gpt-6-astra")
-                self.assertEqual(reviewer.thinking, effort or "xhigh")
+                self.assertEqual(reviewer.thinking, effort or "high")
                 # An explicit specialist route must not silently change models.
                 self.assertIsNone(reviewer.fallback_model)
 
     def test_explicit_astra_rejects_unsupported_effort(self) -> None:
-        for effort in ("none", "minimal"):
-            with self.subTest(effort=effort), mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
-                sys, "argv", ["autoreview", "--engine", "codex", "--model", "gpt-6-astra", "--thinking", effort],
-            ):
-                with self.assertRaisesRegex(SystemExit, f"invalid thinking level for codex model gpt-6-astra: {effort}"):
-                    AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())
+        for model in ("gpt-6-astra", "gpt-6.2-astra"):
+            for effort in ("none", "minimal"):
+                with self.subTest(model=model, effort=effort), mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
+                    sys, "argv", ["autoreview", "--engine", "codex", "--model", model, "--thinking", effort],
+                ):
+                    with self.assertRaisesRegex(SystemExit, f"invalid thinking level for codex model {model}: {effort}"):
+                        AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())
 
     def test_claude_opus_reviews_default_to_medium_effort(self) -> None:
         cases = (
@@ -1519,8 +1520,8 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
 
     def test_codex_defaults_and_overrides(self) -> None:
         for options, model, thinking, fallback in (
-            ([], "gpt-6.1-sol", "xhigh", None),
-            (["--thinking", "medium"], "gpt-6.1-sol", "medium", None),
+            ([], "gpt-6.2-sol", "high", None),
+            (["--thinking", "medium"], "gpt-6.2-sol", "medium", None),
             (["--model", "custom-model", "--thinking", "low"], "custom-model", "low", None),
         ):
             with self.subTest(options=options), mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
@@ -1568,7 +1569,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                     self.assertEqual(kwargs["input_text"], prompt)
                     model = command[command.index("--model") + 1]
                     events.append(model)
-                    effort = "xhigh"
+                    effort = AUTOREVIEW.DEFAULT_CODEX_ACCESS_FALLBACK_THINKING if model == "gpt-6.1-sol" else "xhigh"
                     self.assertIn(f'model_reasoning_effort="{effort}"', command)
                     if model == "gpt-6-astra":
                         if failure == "missing":

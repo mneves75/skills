@@ -40,12 +40,14 @@ index 7318e044016c8a43fa797ad96f2a874ed9286cb2..10e969a8eea19a4ed289eb74698368a9
 @@ -31,30 +31,24 @@
    ],
    "codex": {
-     "default": "gpt-6.1-sol",
+-    "default": "gpt-6.1-sol",
 -    "strongest": "gpt-6-astra",
-+    "strongest": "gpt-6.1-sol",
-     "worker": "gpt-6.1-sol",
+-    "worker": "gpt-6.1-sol",
 -    "panel": ["gpt-6-astra", "gpt-6.1-sol", "gpt-6.1-terra", "gpt-6-luna"]
-+    "panel": ["gpt-6.1-sol"]
++    "default": "gpt-6.2-sol",
++    "strongest": "gpt-6.2-sol",
++    "worker": "gpt-6.2-sol",
++    "panel": ["gpt-6.2-sol"]
    },
    "pi": {
      "fallback": "anthropic",

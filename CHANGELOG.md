@@ -15,6 +15,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tests, proves each rewrite against a planted regression, and searches for callers before
   deleting production code.
 
+### Changed
+- **mneves-fable-orchestrator**: every Codex Sol seat moves to `gpt-6.2-sol` at reasoning high and
+  the Astra planner and plan-advisor seats to `gpt-6.2-astra` at reasoning high (owner,
+  2026-11-17; was `gpt-6-astra` at xhigh). Both ids verified in the Codex model list and by a
+  live call at high on 2026-11-17.
+- **autoreview**: the Codex default reviewer is `gpt-6.2-sol` at high (was `gpt-6.1-sol` at
+  xhigh), and the Astra effort check covers `gpt-6.2-astra`. The Amp default keeps its id,
+  which Amp's catalog has not been checked for.
+- **pstack**: adaptations 01 and 08 map Codex roles to `gpt-6.2-sol` at high. Pi's mapping keeps
+  `gpt-6.1-sol`, because Pi's model catalog has no 6.2 id yet.
+- **Routing eval**: revision 11; O4, O8 and P19 expect `gpt-6.2-sol` and are marked changed.
+
 ## [1.51.4] - 2026-11-17
 
 ### Changed
