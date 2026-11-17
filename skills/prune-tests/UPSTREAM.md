@@ -8,14 +8,17 @@
 
 ## Adaptations
 
-Keeps the upstream procedure, its three categories (the past, nothing, the implementation),
-its done criteria and its example unchanged. Replaces the host-specific `argument-hint` key
-with portable Agent Skills frontmatter and a trigger line in `description`.
+Keeps the upstream procedure, its three categories (the past, nothing, the implementation)
+and its example; the done criteria gain a baseline line and the standing-guard exception.
+Replaces the host-specific `argument-hint` key with portable Agent Skills frontmatter, a
+trigger line in `description` and a title.
 
 Adds a scope rule (no named path lists candidates and waits for the user's confirmation), a
-recorded baseline run, and excludes failing, skipped or flaky tests from pruning. Keeps
-standing absence guards (security regressions, invariant guards, planted-violation controls),
-which the "assert it's gone" example could otherwise remove. Requires each rewrite to fail
-on a deliberately planted regression, a caller search before deleting production code, no
-removal of an exported or documented interface without the user, and a per-test report with
-before and after suite results. No executables, dependencies or sibling skills are introduced.
+recorded baseline run, and excludes failing or known-flaky tests from pruning. Keeps standing
+absence guards (security regressions, invariant guards, planted-violation controls), which the
+"assert it's gone" example could otherwise remove, and says how to recognize one. Requires a
+planted regression for each rewrite and proof that a kept duplicate catches what the pruned
+copy did, a caller search that counts dynamic use before deleting production code, no removal
+of a public interface without the user, a full-suite re-run when production code is deleted,
+and a per-test report with before and after suite results. No executables, dependencies or
+sibling skills are introduced.

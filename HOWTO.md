@@ -145,7 +145,7 @@ pin, dependency or sibling skill.
 Prune the tests in src/cart/.
 ```
 
-1. It runs the suite in `src/cart/` and records the result. Failing, skipped or flaky tests are
+1. It runs the suite in `src/cart/` and records the result. Failing or known-flaky tests are
    reported and left alone.
 2. It rewrites a `cart._items.length` check against `cart.total()`, removes a tax test that
    `checkout.test.ts` already covers, and keeps a test that a refused coupon stays refused.
