@@ -21,12 +21,15 @@ Usage:
 
 import argparse
 import json
+import re
 import sqlite3
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 DB_DIR = ".ai-learn"
+# C0 except tab and newline, DEL, and C1: a terminal may act on them (ESC, CSI, OSC, BEL).
+TERMINAL_CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")
 DB_NAME = "srs.db"
 
 SCHEMA = """
@@ -68,6 +71,11 @@ CREATE INDEX IF NOT EXISTS idx_cards_next_review ON cards(next_review)
 CREATE INDEX IF NOT EXISTS idx_cards_session ON cards(session_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_card ON reviews(card_id);
 """
+
+
+def show(text: str) -> None:
+    """Print text that may hold stored card or session data, with control characters made visible."""
+    print(TERMINAL_CONTROL.sub(lambda m: f"\\x{ord(m.group()):02x}", text))
 
 
 def get_db_path() -> Path:
@@ -155,7 +163,7 @@ def add_session(topic: str, summary: str = "", gaps: int = 0, cards: int = 0) ->
     conn.commit()
     session_id = cur.lastrowid
     conn.close()
-    print(f"Session #{session_id} recorded: {topic}")
+    show(f"Session #{session_id} recorded: {topic}")
     return session_id
 
 
@@ -177,7 +185,7 @@ def add_card(
     conn.commit()
     card_id = cur.lastrowid
     conn.close()
-    print(f"Card #{card_id} added: {question[:60]}...")
+    show(f"Card #{card_id} added: {question[:60]}...")
     return card_id
 
 
@@ -431,7 +439,7 @@ def main():
         else:
             print(f"{len(cards)} card(s) due:\n")
             for c in cards:
-                print(f"  #{c['id']} [{c['difficulty']}] {c['question'][:80]}")
+                show(f"  #{c['id']} [{c['difficulty']}] {c['question'][:80]}")
                 print(f"    EF={c['ease_factor']:.2f} | interval={c['interval_days']}d | reps={c['repetitions']}")
     elif args.command == "review":
         result = record_review(args.card_id, args.quality)
@@ -445,16 +453,16 @@ def main():
             print("No cards found.")
         else:
             for c in cards:
-                print(f"  #{c['id']} [{c['difficulty']}] {c['question'][:80]}")
+                show(f"  #{c['id']} [{c['difficulty']}] {c['question'][:80]}")
     elif args.command == "sessions":
         sessions = list_sessions()
         if not sessions:
             print("No sessions recorded.")
         else:
             for s in sessions:
-                print(f"  #{s['id']} {s['topic']} ({s['gaps_found']} gaps, {s['cards_generated']} cards)")
+                show(f"  #{s['id']} {s['topic']} ({s['gaps_found']} gaps, {s['cards_generated']} cards)")
     elif args.command == "export":
-        print(export_cards(args.fmt))
+        show(export_cards(args.fmt))
     else:
         parser.print_help()
 
