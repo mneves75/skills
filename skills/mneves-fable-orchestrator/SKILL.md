@@ -160,7 +160,9 @@ Every executor starts with zero private session context. Include:
 5. Exact proof commands and expected output.
 
 Tell the worker it is not alone in the tree, must preserve other changes, must not spawn agents,
-and must not run cross-session memory. Only the session that owns a pull request watches it: a
+and must not run cross-session memory. Tell it not to call an advisor tool where the host has one
+(open questions go in its result), and to read files with bounded reads (offset and limit, or a
+line-numbered search), never a whole large file. Only the session that owns a pull request watches it: a
 delegated worker or reviewer never starts a PR watcher. Pair a hard prohibition with a safe stop condition: if an
 honest attempt cannot satisfy a gate, report the exact result instead of gaming the constraint.
 A cornered worker satisfies the letter of a rule and defeats its purpose; treat a stop-report
