@@ -156,7 +156,8 @@ Every executor starts with zero private session context. Include:
 1. Goal and falsifiable acceptance criteria.
 2. Repository and exact paths.
 3. Relevant behavior, evidence, and errors.
-4. Constraints, non-goals, ownership, and behavior to preserve.
+4. Ownership, constraints, existing callers and behavior to preserve. Identify decisions the
+   worker can make and the condition that requires it to return to the coordinator.
 5. Exact proof commands and expected output.
 
 Tell the worker it is not alone in the tree, must preserve other changes, must not spawn agents,

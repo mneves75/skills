@@ -18,10 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **GPT-6.2 routes at high**: every Codex Sol seat in the orchestrator's Defaults block runs
   `gpt-6.2-sol` at reasoning high, and the Codex planner and plan advisor run `gpt-6.2-astra` at
   reasoning high (from `gpt-6-astra` at xhigh). autoreview's Codex default is `gpt-6.2-sol` at
-  `high`, and it rejects `none` and `minimal` for `gpt-6.2-astra` as it does for `gpt-6-astra`.
+  `high`. Autoreview accepts `low` through `ultra` for both GPT-6.2 models and rejects
+  `none` and `minimal` before starting a review.
   pstack's Codex mapping names `gpt-6.2-sol` at `high`, and that level takes the place of the
   sheet's `default effort` line on Codex. The routing eval's Codex consumer is `gpt-6.2-sol` at
   high; cases O4, O8 and P19 and the new O15 are marked changed.
+- **Codex prompts**: updated the project instructions, skill launch prompts, review and handoff
+  templates, and pstack's shared Codex guidance. Prompts identify the reader, the evidence
+  needed for the result, and the decisions delegated to a worker.
 - **Pi and Amp stay on 6.1**: pstack's Pi table keeps `gpt-6.1-sol` until Pi lists a 6.2 model
   (Pi 1.5.2 lists none under `openai-codex` or `openrouter`); autoreview's `amp` default keeps
   `openai/gpt-6.1-sol` until Amp is shown to accept `openai/gpt-6.2-sol`.

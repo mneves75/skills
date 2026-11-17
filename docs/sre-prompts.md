@@ -145,7 +145,8 @@ Constraints: Do not downgrade to "no impact" without evidence of who and what wa
 Change no files. A safeguard the sources do not mention is unknown, not missing; assert a
 missing check or alert only from a source whose coverage shows it. Claim no test, lookup or
 review without its observed result.
-Delivery: As for an incident review.
+Delivery: Lead with numbered owner actions and the proof needed for each. Describe what
+was exposed, what stopped the failure, and which facts the available evidence leaves open.
 Target: <review document path>
 ```
 

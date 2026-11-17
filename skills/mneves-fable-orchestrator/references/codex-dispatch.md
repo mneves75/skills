@@ -28,6 +28,11 @@ Pass long follow-up material on stdin (`codex-lane next <lane> - < build.log`). 
 review findings, and gate failures through `next`. A lane records its working directory and
 launch arguments; do not try to change model, sandbox, or cwd mid-lane.
 
+Append a changed requirement or a new test result as a follow-up. Identify which earlier
+assumption it supersedes. Editing prior messages or tool history can cause the API to discard
+reasoning items. Resume provides continuity, not a guarantee of a cache hit.
+See [OpenAI's guide to conversation history](https://developers.openai.com/api/docs/guides/keep-prefix-unchanged).
+
 A new objective is a new thread. A thread saturated by a long job misreads a fresh work order as
 configuration and no-ops ("Understood…"); start a new `codex exec` or lane for it instead of
 resuming the old one. A worker that stopped under its spec's escape hatch is not saturated:

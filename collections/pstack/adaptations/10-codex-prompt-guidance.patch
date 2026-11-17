@@ -1,0 +1,92 @@
+Adaptation 10-codex-prompt-guidance
+
+Adapt OpenAI's GPT-6.2 prompting guidance for pstack's Codex dispatches, prompt authoring,
+and synthesis templates while preserving each workflow's scope and evidence contract.
+Source: https://developers.openai.com/api/docs/guides/latest-model#prompting-best-practices
+
+Applies to the port's plugins/pstack/skills tree after the patches numbered before it.
+
+diff --git a/poteto-mode/references/codex-tools.md b/poteto-mode/references/codex-tools.md
+--- a/poteto-mode/references/codex-tools.md
++++ b/poteto-mode/references/codex-tools.md
+@@ -19,5 +19,5 @@
+ | Free a finished subagent slot | `close_agent`, when the session exposes it. Some Codex hosts don't. |
+ | Track tasks (the todolist; `TaskCreate` / `TaskUpdate`, or `TodoWrite` on Claude Code) | `update_plan` |
+-| Ask the human a fixed-choice question (`AskUserQuestion`) | Ask in plain text and let the user answer. Codex has no structured-choice tool. |
++| Ask the human a fixed-choice question (`AskUserQuestion`) | Use the host's question tool when exposed. Otherwise ask in plain text. If the question can remain pending, keep working on independent steps. |
+
+ Subagent dispatch needs `multi_agent` enabled. Add to `~/.codex/config.toml`:
+@@ -44,7 +44,22 @@
+ - There are no `thermo-nuclear-review-subagent` or `thermo-nuclear-code-quality-review-subagent` types. The **thermos** skill spawns both on Claude Code; on Codex dispatch two `spawn_agent` calls whose instructions tell each to read the `thermo-nuclear-review` or `thermo-nuclear-code-quality-review` skill in full first and review only the diff and file contents in its prompt.
+ - Claude Code runs every subagent on this machine, so the **swarm** skill's workers and the fan-out playbooks (`orchestrate`, `autopilot-full`, `autopilot-stack`) isolate writers with worktrees. The same holds on Codex.
+ - Keep the rest of the policy unchanged. Pass file pointers not inlined context, give each worker its own worktree or branch when they write, review every subagent's diff yourself.
+
++## Prompting on Codex
++
++Write a standalone brief with the outcome, exact scope, relevant evidence pointers, required checks,
++and stop conditions. Name who will use the result and what they need to know or do with it.
++Include the project conventions that affect the task and the behavior callers rely on. For UI work,
++name the reference or design system, specify imagery and typography, and ask for a rendered check.
++
++For authorized implementation, tell the worker to carry reversible assumptions forward and
++disclose them, complete independent work while blocked, and verify the requested outcome before
++returning. Keep the calling skill's review and approval boundaries.
++
++On an authorized follow-up in the same Codex thread, append the new direction or evidence to the
++existing conversation. If you manage Responses API history yourself, preserve the prior prefix
++to retain reasoning continuity. See [OpenAI's prefix guidance](https://developers.openai.com/api/docs/guides/keep-prefix-unchanged).
++
+ ## Model names
+
+ Skills name Claude defaults (a single-role default for code/prose/judgment, a worker model for feature and refactoring code, plus a panel; each model-consuming skill lists its own in a Models section). These slugs do not resolve on Codex. Substitute your configured Codex models:
+diff --git a/poteto-help/references/prompting.md b/poteto-help/references/prompting.md
+--- a/poteto-help/references/prompting.md
++++ b/poteto-help/references/prompting.md
+@@ -8,6 +8,7 @@
+ - The done check. It can pass or fail. "Make it better" and a duration are not checks.
+ - The proof to show. Ask for the real command output, a video of the flow, the stored value, or a before and after number.
+ - What the user already knows. A symptom, a repro step, a log, or a link saves the agent a search.
+ - The real constraints. "repro first", "don't change any code yet", "zero behavior change", and "let me review before proceeding" each change what the agent does.
++- The audience for the deliverable. Name what they already know and what they need to do with it.
+
+ ## Leave out
+@@ -33,13 +34,13 @@
+ ## Follow up short
+
+ - "do it", "continue", and "keep going until done" are whole prompts once the chat holds the task.
+-- Start with "new task" when the subject changes. Otherwise the mode treats the message as the next step.
++- Add revised instructions as a new message for the same task. Start with "new task" or open a fresh chat when the subject changes.
+
+ ## Before stepping away
+
+-- Say "im going to bed" or "im stepping away" so the agent stops asking.
++- Allow reversible assumptions within scope and ask the agent to report them. Name decisions that need your approval and ask it to continue independent work while waiting.
+ - Write done as checks every iteration can run, and give `/loop` that predicate.
+ - Ask for a fresh worktree off a named base.
+ - Pre-answer what the agent would stop for, such as "don't ask me before committing".
+ - Ask for a decision log to audit later.
+ - Give an exit: "if you're truly stuck after a few hours, stop and write up why".
+diff --git a/how/references/explainer-prompt.md b/how/references/explainer-prompt.md
+--- a/how/references/explainer-prompt.md
++++ b/how/references/explainer-prompt.md
+@@ -19,5 +19,6 @@
+ The explorers each investigated a different angle of the same subsystem. Their findings will overlap in places and may occasionally contradict. Reconcile them. Merge overlapping descriptions, resolve contradictions by checking the code yourself, and combine the separate slices into a unified picture.
+
+-Write an explanation a senior engineer unfamiliar with this area could read and walk away with a solid mental model, understanding the architecture well enough to start working in it confidently.
++Write a standalone explanation for a senior engineer unfamiliar with this area. Use the codebase's terminology and define the concepts they need to start working in it.
++Before returning, check that you answered the original question and identified any material gaps in the evidence.
+
+ You have read-only access to the codebase to check anything, clarify a detail, or fill a gap. Use Read, Grep, and Glob as needed. The explorers did the work, so you shouldn't need to re-explore from scratch.
+diff --git a/why/references/synthesizer-prompt.md b/why/references/synthesizer-prompt.md
+--- a/why/references/synthesizer-prompt.md
++++ b/why/references/synthesizer-prompt.md
+@@ -46,7 +46,8 @@
+ 7. **Don't overreach.** The user will act on this. Leave an open question open rather than fill it with a confident guess.
+
+ ## Output Format
+
+-Write for the user, in this exact structure:
++Write for the user as if this is their first look at the investigation. Give the context they need
++to understand the evidence and use this exact structure.
+
+ ---

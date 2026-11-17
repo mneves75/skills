@@ -18,7 +18,7 @@ pstack skills are written in Claude Code tool language (the `Skill` tool, the `A
 | Wait for a subagent result | `wait_agent` |
 | Free a finished subagent slot | `close_agent`, when the session exposes it. Some Codex hosts don't. |
 | Track tasks (the todolist; `TaskCreate` / `TaskUpdate`, or `TodoWrite` on Claude Code) | `update_plan` |
-| Ask the human a fixed-choice question (`AskUserQuestion`) | Ask in plain text and let the user answer. Codex has no structured-choice tool. |
+| Ask the human a fixed-choice question (`AskUserQuestion`) | Use the host's question tool when exposed. Otherwise ask in plain text. If the question can remain pending, keep working on independent steps. |
 
 Subagent dispatch needs `multi_agent` enabled. Add to `~/.codex/config.toml`:
 
@@ -44,6 +44,21 @@ poteto-mode's Subagents section sets Claude-specific defaults (`subagent_type: "
 - There are no `thermo-nuclear-review-subagent` or `thermo-nuclear-code-quality-review-subagent` types. The **thermos** skill spawns both on Claude Code; on Codex dispatch two `spawn_agent` calls whose instructions tell each to read the `thermo-nuclear-review` or `thermo-nuclear-code-quality-review` skill in full first and review only the diff and file contents in its prompt.
 - Claude Code runs every subagent on this machine, so the **swarm** skill's workers and the fan-out playbooks (`orchestrate`, `autopilot-full`, `autopilot-stack`) isolate writers with worktrees. The same holds on Codex.
 - Keep the rest of the policy unchanged. Pass file pointers not inlined context, give each worker its own worktree or branch when they write, review every subagent's diff yourself.
+
+## Prompting on Codex
+
+Write a standalone brief with the outcome, exact scope, relevant evidence pointers, required checks,
+and stop conditions. Name who will use the result and what they need to know or do with it.
+Include the project conventions that affect the task and the behavior callers rely on. For UI work,
+name the reference or design system, specify imagery and typography, and ask for a rendered check.
+
+For authorized implementation, tell the worker to carry reversible assumptions forward and
+disclose them, complete independent work while blocked, and verify the requested outcome before
+returning. Keep the calling skill's review and approval boundaries.
+
+On an authorized follow-up in the same Codex thread, append the new direction or evidence to the
+existing conversation. If you manage Responses API history yourself, preserve the prior prefix
+to retain reasoning continuity. See [OpenAI's prefix guidance](https://developers.openai.com/api/docs/guides/keep-prefix-unchanged).
 
 ## Model names
 

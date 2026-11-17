@@ -25,8 +25,7 @@ User-requested multi-phase work needs a driver that survives context loss: a lan
 
 The expensive mistake in agentic delegation isn't picking the wrong model. It's throwing
 away what the executor already worked out. A bare `codex exec` starts a fresh thread every
-time, so round 2 of a job loses round 1's private reasoning and re-pays the full
-instruction preamble uncached.
+time. Round 2 needs the relevant decisions and evidence from round 1 supplied again.
 
 OpenAI measured the same effect on ARC-AGI-3: a harness that discarded reasoning between
 actions and used rolling truncation scored 13.3% RHAE; retaining reasoning and enabling
@@ -35,7 +34,7 @@ compaction scored **38.3% with 6× fewer output tokens**
 
 So the skill's hard rule is: **one round is an exec, two rounds is a lane.**
 `tools/codex-lane` is a small wrapper that names a Codex thread and resumes it, so
-follow-ups continue the executor's thinking instead of restarting it.
+follow-ups can use its prior messages and tool results.
 
 ```bash
 spec=$(mktemp)                    # private spec file, not a shared /tmp path

@@ -37,6 +37,16 @@ Machine-readable results: [tests.json](tests.json).
   was not run, because it needs the adapted tree (it fails on the `unslop` row that adaptation 02
   removes).
 
+## Codex prompt update
+
+The prompt update on top of `ed07e22` uses the
+[OpenAI migration and prompting guide](https://developers.openai.com/api/docs/guides/latest-model).
+The existing Codex seats keep their selected effort. Both GPT-6.2 routes now validate
+explicit effort overrides against the advertised levels in autoreview. The provider prompt,
+four Codex skill launch prompts, delegated briefs, and pstack synthesis prompts also changed.
+The collection was regenerated from its existing pins. The checks for this working-tree
+update are recorded separately in tests.json so the earlier suite result keeps its revision.
+
 ## Routing eval
 
 - Revision 11. Changed against the 1.51.3 baseline: O4, O8, P19 (no longer clarified) and new

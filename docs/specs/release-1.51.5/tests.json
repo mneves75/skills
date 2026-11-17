@@ -26,5 +26,20 @@
   {"name": "Defaults ids against vendor lists", "result": "pass", "observed": "OpenAI models page and GPT-6.2 guide; Codex models cache (Codex CLI 0.169.0); Anthropic ids unchanged from 1.51.4; pi --list-models has no 6.2"},
   {"name": "security deploy gate", "result": "not_run", "evidence_scope": "runs after this preparation on the exact candidate"},
   {"name": "production-readiness binding gate", "result": "not_run", "evidence_scope": "runs after this preparation on the exact candidate"}
- ]
+ ],
+ "codex_prompt_update": {
+  "base": "ed07e22",
+  "target": "local working tree",
+  "checks": [
+   {"name": "Agent Skills reference validator", "result": "pass", "observed": "25 standalone skills and 42 pstack skills"},
+   {"name": "Codex launcher metadata", "result": "pass", "observed": "parsed four YAML files and checked each default prompt invokes its own skill"},
+   {"name": "SRE prompt structure", "result": "pass", "observed": "all eight retain task, acceptance, constraints, delivery and target"},
+   {"name": "routing structure and runner", "result": "pass", "observed": "36 cases, 98 anchors and 38 runner tests"},
+   {"name": "pstack regeneration and sync fixtures", "result": "pass", "observed": "42 skills regenerated from existing pins, 64 fixture checks passed"},
+   {"name": "defaults guard and controls, codex-lane fixtures and generated site tests", "result": "pass"},
+   {"name": "autoreview suite on prompt update", "command": "python3 skills/autoreview/scripts/run-tests.py </dev/null", "result": "fail", "exit": 1, "observed": "414 test methods: 411 passed, one skipped, two affected by sandbox restrictions. The four failing subtests reported three errors creating /var/tmp fixtures and one failed assertion after sandbox-exec returned 71."},
+   {"name": "independent review", "result": "pass_after_correction", "observed": "PR comment launcher preserves conditional posting authority. Reviewer ran 32 focused autoreview tests."},
+   {"name": "live prompt behavior and authenticated provider effort acceptance", "result": "not_run"}
+  ]
+ }
 }
