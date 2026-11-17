@@ -1,0 +1,30 @@
+{
+ "updated": "2026-11-17",
+ "scope": "release 1.51.5 candidate preparation (carries the unreleased 1.51.4)",
+ "status": "candidate_prepared_gates_pending",
+ "checks": [
+  {"name": "defaults block guard", "command": "tools/scripts/check-defaults-block.sh", "result": "pass", "exit": 0, "observed": "release 1.51.5 verified 2026-11-17"},
+  {"name": "defaults block guard controls", "command": "bash tools/scripts/check-defaults-block.test", "result": "pass", "exit": 0},
+  {"name": "autoreview suite", "command": "python3 skills/autoreview/scripts/run-tests.py", "result": "pass", "exit": 0, "observed": "356 tests, 1 skipped; updated assertions failed before the source change (21 failures); stdin closed, because a fake kimi reads it"},
+  {"name": "teach-back-srs tests", "command": "python3 skills/mneves-teach-back-srs/tests/test_srs_db.py", "result": "pass", "exit": 0, "observed": "8 tests; TerminalOutput failed before the fix"},
+  {"name": "pstack sync", "command": "tools/scripts/sync-pstack.sh <port-clone> <official-clone>", "result": "pass", "exit": 0, "observed": "42 skills; only codex-tools.md and UPSTREAM hashes changed"},
+  {"name": "pstack sync test", "command": "bash tools/scripts/sync-pstack.test", "result": "pass", "exit": 0, "observed": "64 checks"},
+  {"name": "pstack tooling policy patch applies", "command": "git apply --check adaptations/tooling/port-models-policy.patch (pinned port commit)", "result": "pass", "exit": 0, "evidence_scope": "generator not run: it needs the adapted tree"},
+  {"name": "routing-eval structure", "command": "python3 tools/scripts/routing-eval.py check", "result": "pass", "exit": 0, "observed": "36 cases and 98 anchors hold"},
+  {"name": "routing-eval tests", "command": "python3 tools/scripts/routing-eval.test.py", "result": "pass", "exit": 0, "observed": "38 tests"},
+  {"name": "routing-eval live run on candidate", "command": "python3 tools/scripts/routing-eval.py run", "result": "not_run", "evidence_scope": "required in the binding gate; Codex accounts out of quota until 2026-11-19"},
+  {"name": "routing-eval baseline run on 9d90d4a", "command": "python3 tools/scripts/routing-eval.py run 9d90d4a --baseline", "result": "not_run", "evidence_scope": "required: O4, O8, P19 and O15 are marked changed; run from this candidate's script"},
+  {"name": "site build", "command": "tools/scripts/build-site.sh", "result": "pass", "exit": 0},
+  {"name": "site build test", "command": "bash tools/scripts/build-site.test", "result": "pass", "exit": 0},
+  {"name": "pre-commit hook test", "command": "bash .githooks/pre-commit.test", "result": "pass", "exit": 0},
+  {"name": "ast-grep guard", "command": "ast-grep scan --config sgconfig.yml .", "result": "pass", "exit": 0},
+  {"name": "tools typecheck", "command": "cd tools && bun run typecheck", "result": "pass", "exit": 0},
+  {"name": "tools lint", "command": "cd tools && bun run lint", "result": "pass", "exit": 0, "observed": "37 files, 23 infos"},
+  {"name": "tools tests", "command": "cd tools && bun test", "result": "pass", "exit": 0, "observed": "107 pass, 0 fail"},
+  {"name": "Agent Skills spec", "command": ".scratch/skills-ref/bin/agentskills validate skills/{mneves-fable-orchestrator,autoreview,mneves-teach-back-srs}", "result": "pass", "exit": 0},
+  {"name": "skills CLI discovery", "command": "npx skills@latest add . --list | grep -c mneves-", "result": "pass", "exit": 0, "observed": "17 lines, as in 1.51.4"},
+  {"name": "Defaults ids against vendor lists", "result": "pass", "observed": "OpenAI models page and GPT-6.2 guide; Codex models cache (Codex CLI 0.169.0); Anthropic ids unchanged from 1.51.4; pi --list-models has no 6.2"},
+  {"name": "security deploy gate", "result": "not_run", "evidence_scope": "runs after this preparation on the exact candidate"},
+  {"name": "production-readiness binding gate", "result": "not_run", "evidence_scope": "runs after this preparation on the exact candidate"}
+ ]
+}

@@ -1,8 +1,8 @@
 # Release 1.51.4 — run notes
 
-Updated: 2026-11-17. Status: candidate prepared on `release/1.51.4` (from `main` at `9d90d4a`);
-gates not yet run. The binding gate result will live in the private gate records and the
-`v1.51.4` tag message.
+Updated: 2026-11-17. Status: not released. The owner folded this candidate into
+[1.51.5](../release-1.51.5/progress.md) on 2026-11-17; no `v1.51.4` tag is made. The notes
+below describe the `8cbfeb0` candidate.
 Machine-readable results: [tests.json](tests.json).
 
 ## Scope

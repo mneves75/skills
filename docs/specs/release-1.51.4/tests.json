@@ -1,7 +1,7 @@
 {
  "updated": "2026-11-17",
  "scope": "release 1.51.4 candidate preparation",
- "status": "candidate_prepared_gates_pending",
+ "status": "not_released_folded_into_1.51.5",
  "checks": [
   {"name": "defaults block guard", "command": "tools/scripts/check-defaults-block.sh", "result": "pass", "exit": 0, "observed": "release 1.51.4 verified 2026-11-17"},
   {"name": "defaults block guard controls", "command": "bash tools/scripts/check-defaults-block.test", "result": "pass", "exit": 0},
