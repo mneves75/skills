@@ -5,14 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.51.4] - 2026-11-17
+## [1.51.5] - 2026-11-17
+
+1.51.4 was never released; its changes ship here.
+
+### Security
+- **mneves-teach-back-srs**: `srs_db.py` prints stored card and session text with C0 and C1
+  control characters, ESC included, shown as visible `\xNN` escapes; newline and tab stay.
+  Stored data is unchanged. Found by the 1.51.4 security gate (ROOT-B-H01).
 
 ### Changed
+- **GPT-6.2 routes at high**: every Codex Sol seat in the orchestrator's Defaults block runs
+  `gpt-6.2-sol` at reasoning high, and the Codex planner and plan advisor run `gpt-6.2-astra` at
+  reasoning high (from `gpt-6-astra` at xhigh). autoreview's Codex default is `gpt-6.2-sol` at
+  `high`, and it rejects `none` and `minimal` for `gpt-6.2-astra` as it does for `gpt-6-astra`.
+  pstack's Codex mapping names `gpt-6.2-sol` at `high`, and that level takes the place of the
+  sheet's `default effort` line on Codex. The routing eval's Codex consumer is `gpt-6.2-sol` at
+  high; cases O4, O8 and P19 and the new O15 are marked changed.
+- **Pi and Amp stay on 6.1**: pstack's Pi table keeps `gpt-6.1-sol` until Pi lists a 6.2 model
+  (Pi 1.5.2 lists none under `openai-codex` or `openrouter`); autoreview's `amp` default keeps
+  `openai/gpt-6.1-sol` until Amp is shown to accept `openai/gpt-6.2-sol`.
 - **mneves-fable-orchestrator**: the delegation brief tells a worker not to call an advisor tool
   where the host has one (open questions go in its result) and to read files with bounded reads,
   never a whole large file; a 30-day cost scan found both among the largest delegated costs.
 - **mneves-fable-orchestrator**: every id in the Defaults block re-verified against the vendors'
-  current model lists; only the verified-on date moves.
+  current model lists on 2026-11-17.
 - **Readiness ledger and plan**: fold in the 1.51.3 binding run (production cursor `9d90d4a`,
   dispositions unchanged from 1.51.2).
 
