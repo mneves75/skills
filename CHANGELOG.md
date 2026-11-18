@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **mneves-teach-back-srs**: `srs_db.py` prints stored card and session text with C0 and C1
   control characters, ESC included, shown as visible `\xNN` escapes; newline and tab stay.
   Stored data is unchanged. Found by the 1.51.4 security gate (ROOT-B-H01). `export --output FILE`
-  writes the export to a new file with text as stored, so an Anki import keeps carriage
+  writes the export to a new owner-only (`0600`) file, `.ai-learn/cards.csv` in the examples so git ignores it, with text as stored, so an Anki import keeps carriage
   returns and other controls inside a cell; a cell that starts with a formula character, a tab or
   a carriage return still gets the leading `'` it had before. It never replaces an existing file
   (1.51.5 gate, ROOT-A-R01).

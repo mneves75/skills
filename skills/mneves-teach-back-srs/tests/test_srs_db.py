@@ -201,6 +201,15 @@ class TerminalOutput(unittest.TestCase):
         with open(path, encoding="utf-8") as f:
             self.assertEqual(f.read(), "mine")
 
+    def test_export_file_is_private_to_its_owner(self):
+        self.cli("add-card", "--question", "Q", "--answer", "A")
+        old = os.umask(0o022)
+        try:
+            self.cli("export", "--output", "cards.csv")
+        finally:
+            os.umask(old)
+        self.assertEqual(os.stat(os.path.join(self.tmp, "cards.csv")).st_mode & 0o777, 0o600)
+
     def test_ordinary_text_is_unchanged(self):
         self.cli("add-card", "--question", "Ação é tão útil?", "--answer", "Sim")
         self.assertIn("Ação é tão útil?", self.cli("cards"))

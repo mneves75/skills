@@ -78,10 +78,10 @@ Present the JSON output in a readable format:
 
 ```bash
 python3 "$SRS_SCRIPT" export --format md
-python3 "$SRS_SCRIPT" export --format csv --output cards.csv
+python3 "$SRS_SCRIPT" export --format csv --output .ai-learn/cards.csv
 ```
 
 CSV format is compatible with Anki import (question, answer columns). Import the file written
-by `--output`: it keeps text as stored, except that a cell starting with `=`, `+`, `-`, `@`, a tab or a carriage return gets a leading `'` so a spreadsheet shows it as text, and it
+by `--output` (created readable only by you; inside `.ai-learn/` git ignores it): it keeps text as stored, except that a cell starting with `=`, `+`, `-`, `@`, a tab or a carriage return gets a leading `'` so a spreadsheet shows it as text, and it
 never replaces an existing file. Export printed to
 the terminal shows control characters as `\xNN`, so do not import it.

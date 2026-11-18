@@ -21,6 +21,7 @@ Usage:
 
 import argparse
 import json
+import os
 import re
 import sqlite3
 import sys
@@ -468,7 +469,9 @@ def main():
             show(text)
         else:
             try:
-                with open(args.output, "x", encoding="utf-8", newline="") as f:
+                # Owner-only and never replacing: an export copies card text out of the ignored .ai-learn/.
+                fd = os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                with open(fd, "w", encoding="utf-8", newline="") as f:
                     f.write(text + "\n")
             except OSError as error:
                 raise SrsError(f"Cannot write export: {error.strerror}") from None

@@ -1119,7 +1119,8 @@ $ python3 scripts/srs_db.py stats
 {"total_cards": 1, "due_now": 0, "mastered": 0, "struggling": 0, "sessions": 1, "total_reviews": 1, "today_reviews": 1, "upcoming_7d": 1, "avg_ease_factor": 2.5, "next_scheduled": "2026-08-27 19:14:48"}
 ```
 
-`export --format csv --output cards.csv` writes an Anki-importable file with the text as
+`export --format csv --output .ai-learn/cards.csv` writes an Anki-importable file, readable only by you
+and kept out of git with the database, with the text as
 stored, except that a cell starting with `=`, `+`, `-`, `@`, a tab or a carriage return gets a leading `'` so a spreadsheet shows it as text. It never replaces an existing file. Export printed to the terminal shows control
 characters as `\xNN`, so do not redirect it into a file for import.
 
