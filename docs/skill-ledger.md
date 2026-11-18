@@ -13,11 +13,11 @@ the skill; every collection skill is generated from the pinned sources in
 [`sources.json`](../collections/pstack/sources.json) and passes the Agent Skills reference
 validator inside the sync.
 
-The current root catalog has 25 skills: the 23 recorded in the refresh plus the
-`untangle-codebase` adoption in 1.46.0 and the `mneves-socratic-tutor` adoption in 1.47.0 below. The opening counts describe the historical
+The current root catalog has 26 skills: the 23 recorded in the refresh plus the
+`untangle-codebase` adoption in 1.46.0, the `mneves-socratic-tutor` adoption in 1.47.0 and the `mneves-prune-tests` adoption in 1.52.0 below. The opening counts describe the historical
 refresh inventory.
 
-## Root skills (25)
+## Root skills (26)
 
 | Skill | Disposition | Reason and kept controls |
 |---|---|---|
@@ -35,6 +35,7 @@ refresh inventory.
 | `mneves-handoff` | retained | Writes context for another agent; pstack's `recall` rebuilds your own. Different jobs. |
 | `mneves-motion-film` | retained | Distinct media pipeline with its own checks and tests; its scripts were hardened in 1.45.0 (H-M2 to H-M6), outside the pstack refresh. |
 | `mneves-production-readiness` | retained | Readiness gate; imports its security rows from `mneves-security` rather than re-auditing. |
+| `mneves-prune-tests` | added | 1.52.0: adapted from caldoai/skills `prune-tests` at `bd73b2ea5eb854ab8f0553fb41f77c8786f28f82`, MIT, Copyright (c) 2026 Maze. Owns deleting or rewriting tests that guard no behavior: the past, nothing, or the implementation. Keeps standing absence guards, needs a named scope (or the user's confirmation of a candidate list), a baseline run, a planted regression for each rewrite, a caller search before deleting production code, and a per-test report. Distinct from `untangle-codebase`, whose test cleanup is an opt-in inside a refactor, from pstack `tdd`, which writes tests, and from pstack `deslop`, which cleans production code. |
 | `mneves-render` | retained | Distinct Markdown export pipeline with Pandoc acceptance tests. |
 | `mneves-security` | retained | Owns remediation, privacy/OWASP launch readiness and the exact-candidate deploy verdict; routes a requested deep source audit to `security-audit` and treats its records as candidate evidence, never as a gate. |
 | `mneves-ship-deploy` | retained | Release sequence and contract checks; requires the security gate first. |

@@ -42,6 +42,7 @@ collection does not automatically change those instructions in other projects.
 |---|---|---|
 | [`autoreview`](#autoreview) | review a fixed Git target with an isolated AI reviewer | "use autoreview on my local changes, including P3 findings" |
 | [`untangle-codebase`](#untangle-codebase) | diagnose structural coupling or implement an explicitly scoped refactor | "refactor duplicated tax logic in src/checkout/, preserving public entrypoints" |
+| [`mneves-prune-tests`](#mneves-prune-tests) | delete or rewrite tests that guard no behavior | "prune the tests in src/cart/" |
 | [`council`](#council) | get independent members to argue with a plan before you commit to it | "convene the council on this migration plan, two rounds" |
 | [`full-stop`](#full-stop) | take a change unattended to a proven, reviewed PR ready for you to merge, never merged (explicit request only) | "/full-stop" or "run full-stop" |
 | [`takeover`](#takeover) | finish someone else's PR, branch or agent thread while keeping their credit | "take over this PR" |
@@ -118,6 +119,45 @@ must be checked separately when evaluating adoption.
 
 Procedure: [SKILL.md](skills/untangle-codebase/SKILL.md).
 Source and adaptations: [UPSTREAM.md](skills/untangle-codebase/UPSTREAM.md).
+
+---
+
+## mneves-prune-tests
+
+**What it does.** Removes tests that guard no behavior. A test stays only if it changes when
+the intended behavior changes and fails only when that behavior regresses. It prunes tests of
+code that no longer exists, tests no code change can make fail (a mocked unit under test, a
+type the compiler already checks), tests tied to the implementation (private state, call
+order, an expected value computed with the code's own logic) and duplicates. A test that
+also covers behavior something relies on is rewritten against that behavior instead, and
+production code that existed only for the pruned tests goes with them: inside the named scope
+directly, outside it only after you confirm each item.
+
+**When to use it.** A suite is slow to change because tests break on refactors that change no
+behavior, or it carries copies and leftovers from removed features. Name a path to prune it;
+with no path the skill lists candidates across the repository and waits for your confirmation.
+
+**Prerequisites.** The project's own test runner, in a repository you trust or an isolated
+environment, since running the suite executes the project's code. Markdown only: no helper
+executable, model pin, dependency or sibling skill.
+
+**Example** (illustrative; not an observed run).
+
+```text
+Prune the tests in src/cart/.
+```
+
+1. In a disposable copy of the repository, it runs the suite in `src/cart/` and records the
+   result. Failing or known-flaky tests are
+   reported and left alone.
+2. It rewrites a `cart._items.length` check against `cart.total()`, removes a tax test that
+   `checkout.test.ts` already covers, and keeps a test that a refused coupon stays refused.
+3. For each rewrite it breaks the behavior on purpose inside `src/cart/`, sees the new test fail,
+   and restores it before the next change.
+4. It reports each deleted or rewritten test with its reason, then runs the suite again.
+
+Procedure: [SKILL.md](skills/mneves-prune-tests/SKILL.md).
+Source and adaptations: [UPSTREAM.md](skills/mneves-prune-tests/UPSTREAM.md).
 
 ---
 

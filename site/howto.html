@@ -66,6 +66,7 @@ blockquote{margin:0 0 1rem;padding:.25rem 1rem;border-left:3px solid var(--rule)
 <nav class="toc toc-side" aria-label="Guide contents"><p class="toc-title">Contents</p><ol>
 <li><a href="#install-once">Install once</a></li>
 <li><a href="#untangle-codebase">untangle-codebase</a></li>
+<li><a href="#mneves-prune-tests">mneves-prune-tests</a></li>
 <li><a href="#mneves-security">mneves-security</a></li>
 <li><a href="#security-audit">security-audit</a></li>
 <li><a href="#mneves-production-readiness">mneves-production-readiness</a></li>
@@ -96,6 +97,7 @@ blockquote{margin:0 0 1rem;padding:.25rem 1rem;border-left:3px solid var(--rule)
 <nav class="toc toc-inline" aria-label="Guide contents"><details><summary>Contents</summary><ol>
 <li><a href="#install-once">Install once</a></li>
 <li><a href="#untangle-codebase">untangle-codebase</a></li>
+<li><a href="#mneves-prune-tests">mneves-prune-tests</a></li>
 <li><a href="#mneves-security">mneves-security</a></li>
 <li><a href="#security-audit">security-audit</a></li>
 <li><a href="#mneves-production-readiness">mneves-production-readiness</a></li>
@@ -171,6 +173,11 @@ collection does not automatically change those instructions in other projects.</
 <td><a href="#untangle-codebase"><code>untangle-codebase</code></a></td>
 <td>diagnose structural coupling or implement an explicitly scoped refactor</td>
 <td>&quot;refactor duplicated tax logic in src/checkout/, preserving public entrypoints&quot;</td>
+</tr>
+<tr>
+<td><a href="#mneves-prune-tests"><code>mneves-prune-tests</code></a></td>
+<td>delete or rewrite tests that guard no behavior</td>
+<td>&quot;prune the tests in src/cart/&quot;</td>
 </tr>
 <tr>
 <td><a href="#council"><code>council</code></a></td>
@@ -331,6 +338,37 @@ Likewise, local flow checks are not deployed proof. Install discovery and behavi
 must be checked separately when evaluating adoption.</p>
 <p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/untangle-codebase/SKILL.md">SKILL.md</a>.
 Source and adaptations: <a href="https://github.com/mneves75/skills/blob/main/skills/untangle-codebase/UPSTREAM.md">UPSTREAM.md</a>.</p>
+<hr>
+<h2 id="mneves-prune-tests">mneves-prune-tests</h2>
+<p><strong>What it does.</strong> Removes tests that guard no behavior. A test stays only if it changes when
+the intended behavior changes and fails only when that behavior regresses. It prunes tests of
+code that no longer exists, tests no code change can make fail (a mocked unit under test, a
+type the compiler already checks), tests tied to the implementation (private state, call
+order, an expected value computed with the code&#39;s own logic) and duplicates. A test that
+also covers behavior something relies on is rewritten against that behavior instead, and
+production code that existed only for the pruned tests goes with them: inside the named scope
+directly, outside it only after you confirm each item.</p>
+<p><strong>When to use it.</strong> A suite is slow to change because tests break on refactors that change no
+behavior, or it carries copies and leftovers from removed features. Name a path to prune it;
+with no path the skill lists candidates across the repository and waits for your confirmation.</p>
+<p><strong>Prerequisites.</strong> The project&#39;s own test runner, in a repository you trust or an isolated
+environment, since running the suite executes the project&#39;s code. Markdown only: no helper
+executable, model pin, dependency or sibling skill.</p>
+<p><strong>Example</strong> (illustrative; not an observed run).</p>
+<pre tabindex="0"><code class="language-text">Prune the tests in src/cart/.
+</code></pre>
+<ol>
+<li>In a disposable copy of the repository, it runs the suite in <code>src/cart/</code> and records the
+result. Failing or known-flaky tests are
+reported and left alone.</li>
+<li>It rewrites a <code>cart._items.length</code> check against <code>cart.total()</code>, removes a tax test that
+<code>checkout.test.ts</code> already covers, and keeps a test that a refused coupon stays refused.</li>
+<li>For each rewrite it breaks the behavior on purpose inside <code>src/cart/</code>, sees the new test fail,
+and restores it before the next change.</li>
+<li>It reports each deleted or rewritten test with its reason, then runs the suite again.</li>
+</ol>
+<p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-prune-tests/SKILL.md">SKILL.md</a>.
+Source and adaptations: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-prune-tests/UPSTREAM.md">UPSTREAM.md</a>.</p>
 <hr>
 <h2 id="mneves-security">mneves-security</h2>
 <p><strong>What it does.</strong> Inspects the actual source and trust boundaries, checks current official
