@@ -420,7 +420,7 @@ def main():
 
     p_export = sub.add_parser("export", help="Export cards")
     p_export.add_argument("--format", default="md", choices=["md", "csv"], dest="fmt")
-    p_export.add_argument("--output", help="new file for the export; keeps control characters (stdout escapes them)")
+    p_export.add_argument("--output", help="new file for the export; keeps control characters, prefixes ' to a formula-like CSV cell (stdout escapes controls)")
 
     args = parser.parse_args()
 

@@ -83,7 +83,7 @@ python3 $SCRIPT stats                             # Learning statistics
 python3 $SCRIPT cards --topic "auth"              # Filter cards
 python3 $SCRIPT cards --session-id 3              # Cards from session
 python3 $SCRIPT sessions                          # List sessions
-python3 $SCRIPT export --format csv               # Anki-compatible export
+python3 $SCRIPT export --format csv --output cards.csv  # Anki-importable file (terminal output escapes controls)
 ```
 
 In CSV, a text cell that starts with `=`, `+`, `-`, `@`, a tab or a carriage return gets a leading
