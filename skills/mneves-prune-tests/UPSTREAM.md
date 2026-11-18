@@ -21,7 +21,9 @@ absence guards (security regressions, invariant guards, planted-violation contro
 "assert it's gone" example could otherwise remove, and says how to recognize one. Requires a
 planted regression for each rewrite and proof that a kept duplicate catches what the pruned
 copy did (the duplicate shortcut needs the same inputs, setup, layer and assertion; a copy at
-another layer is kept unless the plant shows the survivor catches it), production code deleted
+another layer is kept unless a plant in that boundary itself, not a shared helper, makes the
+survivor fail), planted edits that stay inside the scope, one at a time, and are reverted before
+the next step or after an interruption, a kept test whenever its proof cannot be run, production code deleted
 only inside the scope or, outside it, item by item after the user confirms, a caller search that counts dynamic use before deleting production code, no removal
 of a public interface without the user, a full-suite re-run when production code is deleted,
 and a per-test report with before and after suite results. No executables, dependencies or

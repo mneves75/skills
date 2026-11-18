@@ -26,8 +26,9 @@ Keep a test only if it depends on the intended behavior: it should change only w
 If another test already guards the same behavior, prune the copy. Name the test that stays,
 and confirm it fails on the regression the copy would catch: plant it, or show the two use the
 same inputs, setup, layer (unit, integration, end to end) and assertion. A copy that runs at
-another layer or through another boundary guards that boundary too: keep it unless the plant shows
-the survivor catches the same regression.
+another layer or through another boundary guards that boundary too: keep it unless a plant in that
+boundary itself (its route, wiring, configuration or adapter, not a helper both tests share) makes
+the survivor fail.
 
 Prune tests that depend on:
 
@@ -65,6 +66,11 @@ For example:
 - Where one also covers behavior something relies on, rewrite it against that behavior instead.
   Prove each rewrite: break that behavior on purpose, watch the rewritten test fail on its own
   assertion, then revert only your planted edit and check the file matches its prior diff.
+  Every planted edit, for a rewrite or a duplicate, is temporary: keep it inside the scope (outside
+  it only after the user confirms), plant one at a time, and revert it before the next step. If a
+  run is interrupted, restore every planted file before anything else. When the proof a prune or
+  rewrite needs cannot be run (an unconfirmed edit outside the scope, a boundary you cannot reach),
+  keep the test unchanged and report why.
 - Delete production code that only existed for the tests you removed, only inside the scope
   from step 0; production code outside it (a test's named path does not cover its source module)
   is deleted only after the user confirms each item. Search for every caller

@@ -151,7 +151,8 @@ Prune the tests in src/cart/.
    reported and left alone.
 2. It rewrites a `cart._items.length` check against `cart.total()`, removes a tax test that
    `checkout.test.ts` already covers, and keeps a test that a refused coupon stays refused.
-3. For each rewrite it breaks the behavior on purpose, sees the new test fail, and restores it.
+3. For each rewrite it breaks the behavior on purpose inside `src/cart/`, sees the new test fail,
+   and restores it before the next change.
 4. It reports each deleted or rewritten test with its reason, then runs the suite again.
 
 Procedure: [SKILL.md](skills/mneves-prune-tests/SKILL.md).

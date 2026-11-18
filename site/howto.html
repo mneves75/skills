@@ -362,7 +362,8 @@ executable, model pin, dependency or sibling skill.</p>
 reported and left alone.</li>
 <li>It rewrites a <code>cart._items.length</code> check against <code>cart.total()</code>, removes a tax test that
 <code>checkout.test.ts</code> already covers, and keeps a test that a refused coupon stays refused.</li>
-<li>For each rewrite it breaks the behavior on purpose, sees the new test fail, and restores it.</li>
+<li>For each rewrite it breaks the behavior on purpose inside <code>src/cart/</code>, sees the new test fail,
+and restores it before the next change.</li>
 <li>It reports each deleted or rewritten test with its reason, then runs the suite again.</li>
 </ol>
 <p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-prune-tests/SKILL.md">SKILL.md</a>.
