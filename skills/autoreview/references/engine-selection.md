@@ -14,6 +14,12 @@ An explicitly selected model other than the default has no automatic Codex fallb
 Check the startup engine/model/thinking lines; shell configuration may override defaults.
 Reasoning levels are validated per model before preparation; an explicitly selected model
 may reject some levels (`--help` lists them), and a model other than the default never falls back.
+For GPT-6.2 Codex routes, use `low` when migrating an explicit `none` or `minimal`
+setting. Use `ultra` only with a client and route that advertise it. The OpenAI guide's
+`medium` starting point applies to new API integrations. Autoreview has its own default
+for its established CLI review workflow.
+[OpenAI model migration guide](https://developers.openai.com/api/docs/guides/latest-model#migration-quickstart) ·
+[Codex configuration reference](https://developers.openai.com/codex/config-reference/)
 
 ## Defaults and fallback
 

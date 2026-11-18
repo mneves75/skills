@@ -19,6 +19,10 @@ Open when the assessment finds the context-file pillar weak. Works as `CLAUDE.md
 
 ## Key Decisions
 - [Decision]: [Why]
+
+## Working on this project
+[Name the caller or public behavior a change must preserve, how to exercise it, and
+which actions require an owner's decision. Use the project's actual commands above.]
 ```
 
 **Requirements**: concise (under 300 lines), and every command in it still runs. The commands

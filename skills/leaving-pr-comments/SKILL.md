@@ -36,7 +36,7 @@ the user explicitly asked to post verbatim without attribution.
 Write the comment itself in a direct style:
 
 - Lead with the conclusion.
-- Cite the relevant code, behavior, check, or reproduction.
+- Identify the code or check a PR reader can inspect and explain the effect on the caller.
 - Keep it concise and avoid filler, canned thanks, or status narration.
 - Distinguish verified facts from judgment.
 - Claim only checks and proof you observed in this session; name what you did not run.

@@ -18,7 +18,7 @@ pstack skills are written in Claude Code tool language (the `Skill` tool, the `A
 | Wait for a subagent result | `wait_agent` |
 | Free a finished subagent slot | `close_agent`, when the session exposes it. Some Codex hosts don't. |
 | Track tasks (the todolist; `TaskCreate` / `TaskUpdate`, or `TodoWrite` on Claude Code) | `update_plan` |
-| Ask the human a fixed-choice question (`AskUserQuestion`) | Ask in plain text and let the user answer. Codex has no structured-choice tool. |
+| Ask the human a fixed-choice question (`AskUserQuestion`) | Use the host's question tool when exposed. Otherwise ask in plain text. If the question can remain pending, keep working on independent steps. |
 
 Subagent dispatch needs `multi_agent` enabled. Add to `~/.codex/config.toml`:
 
@@ -45,17 +45,32 @@ poteto-mode's Subagents section sets Claude-specific defaults (`subagent_type: "
 - Claude Code runs every subagent on this machine, so the **swarm** skill's workers and the fan-out playbooks (`orchestrate`, `autopilot-full`, `autopilot-stack`) isolate writers with worktrees. The same holds on Codex.
 - Keep the rest of the policy unchanged. Pass file pointers not inlined context, give each worker its own worktree or branch when they write, review every subagent's diff yourself.
 
+## Prompting on Codex
+
+Write a standalone brief with the outcome, exact scope, relevant evidence pointers, required checks,
+and stop conditions. Name who will use the result and what they need to know or do with it.
+Include the project conventions that affect the task and the behavior callers rely on. For UI work,
+name the reference or design system, specify imagery and typography, and ask for a rendered check.
+
+For authorized implementation, tell the worker to carry reversible assumptions forward and
+disclose them, complete independent work while blocked, and verify the requested outcome before
+returning. Keep the calling skill's review and approval boundaries.
+
+On an authorized follow-up in the same Codex thread, append the new direction or evidence to the
+existing conversation. If you manage Responses API history yourself, preserve the prior prefix
+to retain reasoning continuity. See [OpenAI's prefix guidance](https://developers.openai.com/api/docs/guides/keep-prefix-unchanged).
+
 ## Model names
 
 Skills name Claude defaults (a single-role default for code/prose/judgment, a worker model for feature and refactoring code, plus a panel; each model-consuming skill lists its own in a Models section). These slugs do not resolve on Codex. Substitute your configured Codex models:
 
-- Single-model execution roles: `gpt-6.1-sol` at `xhigh` reasoning.
-- Roles that default to the Claude worker model (`feature, refactoring`): `gpt-6.1-sol` at `xhigh` reasoning.
-- Roles that default to the strongest Claude model (`strongest judgment`): `gpt-6.1-sol` at `xhigh` reasoning.
-- Execution and review panels (`arena`, `interrogate`, `how` critics, `reflect`): use `gpt-6.1-sol` at `xhigh` reasoning. Note reduced model diversity when every participant uses the same model; independent contexts do not provide cross-model independence.
+- Single-model execution roles: `gpt-6.2-sol` at `high` reasoning.
+- Roles that default to the Claude worker model (`feature, refactoring`): `gpt-6.2-sol` at `high` reasoning.
+- Roles that default to the strongest Claude model (`strongest judgment`): `gpt-6.2-sol` at `high` reasoning.
+- Execution and review panels (`arena`, `interrogate`, `how` critics, `reflect`): use `gpt-6.2-sol` at `high` reasoning. Note reduced model diversity when every participant uses the same model; independent contexts do not provide cross-model independence.
 - Planning (`architect`) and read-only advice: select the host's dedicated planning/advisor route and its effort, rather than an execution alias. Never use that route for implementation or code review.
 
-These substitutes are not Opus models, so the `medium` rule for a value that resolves to an Opus model does not apply to them on Codex.
+These substitutes are not Opus models, so the `medium` rule for a value that resolves to an Opus model does not apply to them on Codex. On Codex the level listed above for each substitute takes the place of the sheet's `default effort` line; a level the role value names with `@` still applies.
 
 `/setup-pstack` writes the configured model list. On Codex, set it to your Codex model slugs.
 

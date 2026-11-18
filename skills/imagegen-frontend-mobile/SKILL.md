@@ -49,11 +49,12 @@ For each image, tell the image tool:
 
 1. the screen's product purpose, user state, and place in the flow;
 2. the visible content and primary action;
-3. the shared design system and platform conventions;
+3. the shared typeface or type style, image treatment, and platform conventions;
 4. the hierarchy, composition, imagery, texture, and framing;
 5. the required output count, aspect ratio, and whether screens appear separately or together.
 
-Keep copy short enough to render legibly. Favor content over chrome. Avoid the usual synthetic UI
+Keep required labels, instructions and state feedback legible. Omit copy that only repeats a
+heading or labels a decoration. Avoid the usual synthetic UI
 defaults unless the product calls for them: indiscriminate cards and pills, decorative
 charts, random gradients, excessive glass effects, tiny labels, empty luxury styling, or a phone-sized
 website.

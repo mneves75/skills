@@ -104,8 +104,10 @@ operating-system updates.
   process list while the review runs, so `--engine kimi` refuses to start without
   `--allow-kimi-argv-prompt`.
 - `mneves-teach-back-srs` keeps sessions and cards in `.ai-learn/srs.db` inside your project;
-  delete that file to erase them. Its CSV export keeps text as written, for Anki; check
-  formulas before opening an export of untrusted text in a spreadsheet.
+  delete that file and any export to erase them. Its CSV export to a file (`export --output`, created owner-only `0600`; the examples write it
+  inside the ignored `.ai-learn/`) keeps text as
+  written, for Anki, except that a cell starting with `=`, `+`, `-`, `@`, a tab or a carriage return gets a leading `'`, and output printed to the terminal shows control characters as `\xNN`;
+  check formulas before opening an export of untrusted text in a spreadsheet.
 - `codex-lane` (in `mneves-fable-orchestrator`) keeps each lane's state and full model
   transcripts in `$CODEX_LANE_DIR` (default `~/.codex/lanes`, mode 700) and never prunes
   them. A lane owns `<lane>.json` and, per run, `<lane>.<UTC stamp>.<pid>.jsonl`, `.last.txt`

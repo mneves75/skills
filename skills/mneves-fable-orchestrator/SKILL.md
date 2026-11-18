@@ -39,15 +39,15 @@ before it can perform ordinary implementation.
 The only place this skill names models. Edit this block on a model release; nothing else.
 
 ```
-main session      = Opus, latest release (Claude alias `claude-opus-5-5`), reasoning medium | gpt-6.1-sol, reasoning high (Codex orchestrator)
-frontend subagent = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (Codex worker)
-ordinary worker   = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (Codex worker)
-bounded worker    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (bounded Codex task)
-heavy executor    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (Codex worker)
-reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.1-sol, reasoning high (autoreview `--model gpt-6.1-sol --thinking high`); when no Codex account can run: Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high
-planner           = Fable, latest release (Claude subagent alias `claude-fable-5-2`) | gpt-6-astra, reasoning xhigh (planning)
-plan advisor      = Fable, latest release (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6-astra, reasoning xhigh (advice and plan review)
-specialist        = gpt-6.1-sol, reasoning high (specialist execution; a specialist review takes the reviewer seat)
+main session      = Opus, latest release (Claude alias `claude-opus-5-5`), reasoning medium | gpt-6.2-sol, reasoning high (Codex orchestrator)
+frontend subagent = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (Codex worker)
+ordinary worker   = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (Codex worker)
+bounded worker    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (bounded Codex task)
+heavy executor    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (Codex worker)
+reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (autoreview `--model gpt-6.2-sol --thinking high`); when no Codex account can run: Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high
+planner           = Fable, latest release (Claude subagent alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (planning)
+plan advisor      = Fable, latest release (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (advice and plan review)
+specialist        = gpt-6.2-sol, reasoning high (specialist execution; a specialist review takes the reviewer seat)
 economy executor  = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the only substitute when no Claude or Codex seat for that role can run)
 ```
 
@@ -64,7 +64,7 @@ blocked, and the economy executor does not take that review. Planning and
 plan advice run only on their own seats. Crossing means the change leaves for the other column's
 provider: authorize that disclosure as you would for any review provider before dispatching it.
 
-Verified against the vendor model lists on 2026-11-14; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-11-17; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file). A seat that names a versioned alias stays on that release
 when the host's short alias moves; check what each short alias resolves to on every release.
@@ -156,11 +156,14 @@ Every executor starts with zero private session context. Include:
 1. Goal and falsifiable acceptance criteria.
 2. Repository and exact paths.
 3. Relevant behavior, evidence, and errors.
-4. Constraints, non-goals, ownership, and behavior to preserve.
+4. Ownership, constraints, existing callers and behavior to preserve. Identify decisions the
+   worker can make and the condition that requires it to return to the coordinator.
 5. Exact proof commands and expected output.
 
 Tell the worker it is not alone in the tree, must preserve other changes, must not spawn agents,
-and must not run cross-session memory. Only the session that owns a pull request watches it: a
+and must not run cross-session memory. Tell it not to call an advisor tool where the host has one
+(open questions go in its result), and to read files with bounded reads (offset and limit, or a
+line-numbered search), never a whole large file. Only the session that owns a pull request watches it: a
 delegated worker or reviewer never starts a PR watcher. Pair a hard prohibition with a safe stop condition: if an
 honest attempt cannot satisfy a gate, report the exact result instead of gaming the constraint.
 A cornered worker satisfies the letter of a rule and defeats its purpose; treat a stop-report

@@ -14,13 +14,20 @@ Use a compact task contract:
 Task: <specific problem or module>.
 Acceptance: <observable success, failure behavior, required checks and evidence>.
 Constraints: <scope, ownership, behavior to preserve, existing authority>.
-Delivery: Complete the authorized work and verification; report results and precise blockers.
+Delivery: Complete and check each requested outcome within the stated authority. Report what
+the reader can use, what you verified, and any assumption or blocker that affects the result.
 Target: <discussion, local patch, PR, or authorized external destination>.
 ```
 
 Infer fields already established in the session. Link accessible large logs or source identities
 instead of pasting transcripts. A discussion-first handoff preserves its assessment boundary;
 an approved implementation continues without repeated permission for the same action.
+
+Send changed requirements and new observations as follow-up messages. Editing earlier
+instructions or tool history can discard reasoning items and reduce cache reuse in the
+Responses API. Tool calls in an API integration with this model family use Responses.
+Codex CLI skills pass prompts through the CLI and use the effort selected by the host.
+See [OpenAI's migration guide](https://developers.openai.com/api/docs/guides/latest-model#migration-quickstart).
 
 | Skill | Avoidable repeated work removed or bounded |
 |---|---|

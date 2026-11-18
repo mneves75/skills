@@ -1,0 +1,26 @@
+{
+ "updated": "2026-11-17",
+ "scope": "release 1.51.4 candidate preparation",
+ "status": "not_released_folded_into_1.51.5",
+ "checks": [
+  {"name": "defaults block guard", "command": "tools/scripts/check-defaults-block.sh", "result": "pass", "exit": 0, "observed": "release 1.51.4 verified 2026-11-17"},
+  {"name": "defaults block guard controls", "command": "bash tools/scripts/check-defaults-block.test", "result": "pass", "exit": 0},
+  {"name": "readiness catalog and ledger consistency", "command": "python3 tools/scripts/check-readiness-catalog.py", "result": "pass", "exit": 0, "observed": "136 controls, 160 preserved items, ledger consistent"},
+  {"name": "readiness catalog guard controls", "command": "bash tools/scripts/check-readiness-catalog.test", "result": "pass", "exit": 0, "observed": "29 planted violations, 3 valid variants"},
+  {"name": "ledger pairs equal binding assessment", "artifact": ".scratch/readiness/8ff1b754de81bba6ed352e59f7ead526e71ed9b9/binding-assessment.json", "result": "pass", "observed": "136 of 136 status/tier pairs equal"},
+  {"name": "routing-eval structure", "command": "python3 tools/scripts/routing-eval.py check", "result": "pass", "exit": 0, "observed": "35 cases and 96 anchors hold; no anchor in the Delegation brief"},
+  {"name": "routing-eval live run on candidate", "command": "python3 tools/scripts/routing-eval.py run", "result": "not_run", "evidence_scope": "required in the binding gate: a hashed source changed"},
+  {"name": "site build", "command": "tools/scripts/build-site.sh", "result": "pass", "exit": 0},
+  {"name": "site build test", "command": "bash tools/scripts/build-site.test", "result": "pass", "exit": 0},
+  {"name": "pre-commit hook test", "command": "bash .githooks/pre-commit.test", "result": "pass", "exit": 0},
+  {"name": "ast-grep guard", "command": "ast-grep scan --config sgconfig.yml .", "result": "pass", "exit": 0},
+  {"name": "tools typecheck", "command": "cd tools && bun run typecheck", "result": "pass", "exit": 0},
+  {"name": "tools lint", "command": "cd tools && bun run lint", "result": "pass", "exit": 0, "observed": "37 files, 23 infos"},
+  {"name": "tools tests", "command": "cd tools && bun test", "result": "pass", "exit": 0, "observed": "107 pass, 0 fail"},
+  {"name": "Agent Skills spec", "command": ".scratch/skills-ref/bin/agentskills validate skills/mneves-fable-orchestrator", "result": "pass", "exit": 0},
+  {"name": "skills CLI discovery", "command": "npx skills@latest add . --list | grep -c mneves-", "result": "pass", "observed": "17 lines: 15 mneves-* skills, the source path line and one description naming mneves-security"},
+  {"name": "Defaults ids against vendor lists", "result": "pass", "observed": "Anthropic models overview, Claude Code model-config, Codex models cache via codex-auto, pi --list-models; every id present"},
+  {"name": "security deploy gate", "result": "not_run", "evidence_scope": "runs after this preparation on the exact candidate"},
+  {"name": "production-readiness binding gate", "result": "not_run", "evidence_scope": "runs after this preparation on the exact candidate"}
+ ]
+}

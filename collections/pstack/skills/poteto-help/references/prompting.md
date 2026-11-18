@@ -9,6 +9,7 @@ A prompt states the intent and the check for done. The playbook supplies the ste
 - The proof to show. Ask for the real command output, a video of the flow, the stored value, or a before and after number.
 - What the user already knows. A symptom, a repro step, a log, or a link saves the agent a search.
 - The real constraints. "repro first", "don't change any code yet", "zero behavior change", and "let me review before proceeding" each change what the agent does.
+- The audience for the deliverable. Name what they already know and what they need to do with it.
 
 ## Leave out
 
@@ -33,11 +34,11 @@ A prompt states the intent and the check for done. The playbook supplies the ste
 ## Follow up short
 
 - "do it", "continue", and "keep going until done" are whole prompts once the chat holds the task.
-- Start with "new task" when the subject changes. Otherwise the mode treats the message as the next step.
+- Add revised instructions as a new message for the same task. Start with "new task" or open a fresh chat when the subject changes.
 
 ## Before stepping away
 
-- Say "im going to bed" or "im stepping away" so the agent stops asking.
+- Allow reversible assumptions within scope and ask the agent to report them. Name decisions that need your approval and ask it to continue independent work while waiting.
 - Write done as checks every iteration can run, and give `/loop` that predicate.
 - Ask for a fresh worktree off a named base.
 - Pre-answer what the agent would stop for, such as "don't ask me before committing".

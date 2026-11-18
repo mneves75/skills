@@ -409,15 +409,23 @@ PROVIDER_CREDENTIAL_PATH_ENV_KEYS = {
 }
 DEFAULT_MODEL_BY_ENGINE = {
     "amp": "openai/gpt-6.1-sol",
-    "codex": "gpt-6.1-sol",
+    "codex": "gpt-6.2-sol",
     "claude": "claude-opus-5-5",
 }
 DEFAULT_CODEX_ACCESS_FALLBACK_MODEL = None
-DEFAULT_CODEX_ACCESS_FALLBACK_THINKING = "xhigh"
+DEFAULT_CODEX_ACCESS_FALLBACK_THINKING = "high"
 AMP_THINKING_VALUES = frozenset({"none", "low", "medium", "high", "xhigh", "max"})
 DEFAULT_THINKING_BY_ENGINE = {
     "amp": "xhigh",
-    "codex": "xhigh",
+    "codex": "high",
+}
+# GPT-6.2 Codex tiers come from the model catalog. Keep the legacy Astra contract.
+CODEX_ASTRA_LEVELS = frozenset({"low", "medium", "high", "xhigh", "max"})
+CODEX_GPT_6_2_LEVELS = CODEX_ASTRA_LEVELS | {"ultra"}
+CODEX_THINKING_LEVELS_BY_MODEL = {
+    "gpt-6-astra": CODEX_ASTRA_LEVELS,
+    "gpt-6.2-astra": CODEX_GPT_6_2_LEVELS,
+    "gpt-6.2-sol": CODEX_GPT_6_2_LEVELS,
 }
 # An Opus reviewer runs at medium effort unless an effort is given; other Claude models keep
 # the CLI's own default.
@@ -3889,6 +3897,9 @@ def render_review_prompt(
         If you defer judgment or leave the assessment unfinished, set it to incomplete.
 
         Return one JSON object matching this schema, without Markdown fences.
+        Make the report understandable on its own. Use repository terms and explain
+        the main reason for the verdict in overall_explanation. For each finding,
+        identify the affected behavior and the conditions under which it fails.
         Pin each finding to the smallest file/line location that demonstrates it.
         If no actionable defects meet the requested threshold, return no findings and mark the patch correct.
         {json.dumps(PROVIDER_SCHEMA)}
@@ -6845,9 +6856,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--model",
         action="append",
-        help="Model override or engine=model. Repeatable. Defaults: codex=gpt-6.1-sol (xhigh reasoning; no model fallback), claude=claude-opus-5-5 (medium effort), amp=openai/gpt-6.1-sol (xhigh reasoning).",
+        help="Model override or engine=model. Repeatable. Defaults: codex=gpt-6.2-sol (high reasoning; no model fallback), claude=claude-opus-5-5 (medium effort), amp=openai/gpt-6.1-sol (xhigh reasoning).",
     )
-    parser.add_argument("--thinking", action="append", help="Thinking/effort override or engine=level. Repeatable. Codex: none, minimal, low, medium, high, xhigh, max; gpt-6-astra requires low through max. Claude: low, medium, high, xhigh, max. Amp: none, low, medium, high, xhigh, max. Pi: off, minimal, low, medium, high, xhigh. Kimi: off, on.")
+    parser.add_argument(
+        "--thinking", action="append",
+        help="Thinking/effort override or engine=level. Repeatable. "
+        "Codex: none, minimal, low, medium, high, xhigh, max. "
+        "gpt-6-astra requires low through max. gpt-6.2-astra and gpt-6.2-sol support low through ultra. "
+        "Claude: low, medium, high, xhigh, max. Amp: none, low, medium, high, xhigh, max. "
+        "Pi: off, minimal, low, medium, high, xhigh. Kimi: off, on.",
+    )
     parser.add_argument(
         "--fallback-model",
         action="append",
@@ -7066,8 +7084,8 @@ def reviewer_args(args: argparse.Namespace) -> list[argparse.Namespace]:
         fallback_model = None
     thinking_levels = THINKING_LEVELS_BY_ENGINE[engine]
     thinking_target = engine
-    if engine == "codex" and model == "gpt-6-astra":
-        thinking_levels = thinking_levels - {"none", "minimal"}
+    if engine == "codex" and model in CODEX_THINKING_LEVELS_BY_MODEL:
+        thinking_levels = CODEX_THINKING_LEVELS_BY_MODEL[model]
         thinking_target = f"{engine} model {model}"
     if thinking and thinking not in thinking_levels:
         valid = ", ".join(sorted(thinking_levels)) or "none"

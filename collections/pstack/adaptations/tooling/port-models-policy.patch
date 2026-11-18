@@ -40,12 +40,14 @@ index 7318e044016c8a43fa797ad96f2a874ed9286cb2..10e969a8eea19a4ed289eb74698368a9
 @@ -31,30 +31,24 @@
    ],
    "codex": {
-     "default": "gpt-6.1-sol",
+-    "default": "gpt-6.1-sol",
 -    "strongest": "gpt-6-astra",
-+    "strongest": "gpt-6.1-sol",
-     "worker": "gpt-6.1-sol",
+-    "worker": "gpt-6.1-sol",
 -    "panel": ["gpt-6-astra", "gpt-6.1-sol", "gpt-6.1-terra", "gpt-6-luna"]
-+    "panel": ["gpt-6.1-sol"]
++    "default": "gpt-6.2-sol",
++    "strongest": "gpt-6.2-sol",
++    "worker": "gpt-6.2-sol",
++    "panel": ["gpt-6.2-sol"]
    },
    "pi": {
      "fallback": "anthropic",
@@ -106,7 +108,7 @@ index 381f2bc44b31e3cdc5cabb4c0cf91c96af3e6d61..7ef89a69ca48531b5d21c6aaaaf384b7
  }
  
 +// LOCAL-OVERRIDES §1: Codex execution and review run on the configured
-+// execution model at the default effort; planning and advice take the host's
++// execution model at high effort, apart from the Claude default; planning and advice take the host's
 +// dedicated advisor route. Muse keeps upstream's tier wording.
  export function codexModelNamesSection(models) {
 -  return tierModelNamesSection(models, {
@@ -119,7 +121,7 @@ index 381f2bc44b31e3cdc5cabb4c0cf91c96af3e6d61..7ef89a69ca48531b5d21c6aaaaf384b7
 -    ids: "Codex model slugs",
 -  });
 +  const block = models.codex;
-+  const at = `at ${code(models.defaultEffort)} reasoning`;
++  const at = `at ${code("high")} reasoning`;
 +  return (
 +    "Skills name Claude defaults (a single-role default for code/prose/judgment, a worker model for " +
 +    "feature and refactoring code, plus a panel; each model-consuming skill lists its own in a Models section). " +

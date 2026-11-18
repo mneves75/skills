@@ -47,7 +47,8 @@ You MUST follow `references/epistemics.md`. Read it in full before writing. The 
 
 ## Output Format
 
-Write for the user, in this exact structure:
+Write for the user as if this is their first look at the investigation. Give the context they need
+to understand the evidence and use this exact structure.
 
 ---
 

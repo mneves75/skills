@@ -14,10 +14,17 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
-- **1.51.3 candidate**: the Opus 5.5 prompt-audit edits: pstack adaptation 09 (the
+- **1.51.5 candidate** (1.51.4 folded in, never released): Sol and Astra routes move to
+  `gpt-6.2-sol` and `gpt-6.2-astra` at reasoning high (Pi rows stay on 6.1 until Pi lists 6.2);
+  ROOT-B-H01 fixed (SRS output neutralizes terminal control bytes); the delegation brief tells
+  workers not to call an advisor tool and to read files with bounded reads. Folds the 1.51.3
+  binding run into the readiness ledger and plan (cursor `9d90d4a`).
+- **1.51.3** (2026-11-14 UTC closeout): the Opus 5.5 prompt-audit edits: pstack adaptation 09 (the
   `general-purpose` fallback for `pstack:*` agent types, setup-pstack's rules claim, boosters and
-  fixed caps) and the orchestrator and teach-back-srs cleanups. Folds the 1.51.2 binding run into
-  the readiness ledger and plan (cursor `704904c`).
+  fixed caps) and the orchestrator and teach-back-srs cleanups. Merged as `9d90d4a` (PR #61, audit
+  `8ff1b75`, identical tree `921e828`), tagged `v1.51.3` after CI run 43615807076 and Pages run
+  43617123788 succeeded and the served files matched. Security WAIVED six standing controls;
+  readiness ready with 26 waivers; independent acceptance passed on the third attempt.
 - **1.51.2** (2026-11-14 UTC closeout): `pr-wait` counts a required check bound to a GitHub App
   only from that app (ROOT-H02), and the site's HTML guard rejects markup left unfinished at the
   end of `HOWTO.md` (TOOLS-H01); both were confirmed Low by the 1.51.1 gate. Routing-eval

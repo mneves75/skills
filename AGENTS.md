@@ -170,6 +170,19 @@ collection skills or host-installed third-party skills to add this policy.
 
 ## Agent skills
 
+### Writing instructions and prompts for Codex
+
+Specify the requested outcome, the decisions the agent may make and the evidence a reader
+can use to check the result. For implementation, name the entry point, callers and behavior
+to preserve. Let the agent resolve reversible details and continue independent work while
+it waits for a consequential decision. Preserve any explicit teaching, discussion, review
+or approval stop. Write the final answer for someone opening it without the progress messages.
+
+Put stable rules in their existing owner. In a continuing conversation, send corrections
+and new evidence in the next message. A standalone skill must carry the task-specific
+constraints its caller needs even when installed outside this repository.
+See [OpenAI's model guidance](https://developers.openai.com/api/docs/guides/latest-model).
+
 ### Situation routing
 
 At each task start, identify the goal, constraints and phase. Honor explicitly requested

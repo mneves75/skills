@@ -149,5 +149,71 @@ class CsvExport(unittest.TestCase):
                          ('What is "SM-2"?', "A schedule, with commas", "line one\nline two", "srs"))
 
 
+class TerminalOutput(unittest.TestCase):
+    """Stored text reaches the terminal without C0/C1 control characters; newline and tab stay."""
+
+    # Arguments cannot carry NUL; the rest of C0, DEL and C1 (CSI) are covered.
+    HOSTILE = "Q\x1b]52;c;aGk=\x07 \x9b31m\rend\x01\x7f"
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = tmp.name
+        self.cli("init")
+
+    def cli(self, *argv):
+        done = subprocess.run([sys.executable, str(SCRIPT), *argv], cwd=self.tmp, capture_output=True,
+                              check=True, env={**os.environ, "PYTHONIOENCODING": "utf-8"})
+        return done.stdout.decode("utf-8")
+
+    def assert_inert(self, output):
+        controls = [c for c in output if (ord(c) < 0x20 and c not in "\n\t") or 0x7F <= ord(c) <= 0x9F]
+        self.assertEqual(controls, [], repr(output))
+        self.assertIn("\\x1b", output)
+
+    def test_every_output_of_stored_text_is_inert(self):
+        self.assert_inert(self.cli("add-session", "--topic", self.HOSTILE))
+        self.assert_inert(self.cli("add-card", "--question", self.HOSTILE, "--answer", self.HOSTILE,
+                                   "--context", "line one\n\tline two", "--tags", self.HOSTILE))
+        for argv in (["due"], ["cards"], ["sessions"], ["export"], ["export", "--format", "csv"]):
+            with self.subTest(argv=argv):
+                self.assert_inert(self.cli(*argv))
+        self.assertIn("line one\n\tline two", self.cli("export"))
+
+    def test_export_to_a_file_keeps_text_as_stored(self):
+        import csv
+        self.cli("add-card", "--question", "a\rb", "--answer", "=1+1")
+        reply = self.cli("export", "--format", "csv", "--output", "cards.csv")
+        self.assertIn("cards.csv", reply)
+        with open(os.path.join(self.tmp, "cards.csv"), encoding="utf-8", newline="") as f:
+            row = next(csv.DictReader(f))
+        self.assertEqual((row["question"], row["answer"]), ("a\rb", "'=1+1"))
+        self.assertIn("\\x0d", self.cli("export", "--format", "csv"))
+
+    def test_export_never_overwrites_a_file(self):
+        self.cli("add-card", "--question", "Q", "--answer", "A")
+        path = os.path.join(self.tmp, "kept.csv")
+        with open(path, "w", encoding="utf-8") as f:
+            f.write("mine")
+        done = subprocess.run([sys.executable, str(SCRIPT), "export", "--output", "kept.csv"], cwd=self.tmp,
+                              capture_output=True)
+        self.assertEqual(done.returncode, 1)
+        with open(path, encoding="utf-8") as f:
+            self.assertEqual(f.read(), "mine")
+
+    def test_export_file_is_private_to_its_owner(self):
+        self.cli("add-card", "--question", "Q", "--answer", "A")
+        old = os.umask(0o022)
+        try:
+            self.cli("export", "--output", "cards.csv")
+        finally:
+            os.umask(old)
+        self.assertEqual(os.stat(os.path.join(self.tmp, "cards.csv")).st_mode & 0o777, 0o600)
+
+    def test_ordinary_text_is_unchanged(self):
+        self.cli("add-card", "--question", "Ação é tão útil?", "--answer", "Sim")
+        self.assertIn("Ação é tão útil?", self.cli("cards"))
+
+
 if __name__ == "__main__":
     unittest.main()

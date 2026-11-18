@@ -13,7 +13,9 @@ Delivery: Find the repository and read its instructions. Inspect affected code, 
 tests, and relevant live issue/CI state. Assess whether the problem is real, already solved,
 or better addressed another way. Start with findings and a recommendation; propose the
 smallest supported next step. Preserve a discussion-only request. If implementation is
-already authorized, complete that scope and report exact verification and remaining gaps.
+already authorized, continue through verification. Make reversible choices within that scope.
+In the final response, identify the result, the checks actually run and any material assumption
+or open decision so the recipient can act without reading the earlier conversation.
 Target: <discussion, local patch, or explicitly authorized external action/destination>.
 Do not push, merge, close or label issues/PRs, or post comments beyond that authority.
 ```

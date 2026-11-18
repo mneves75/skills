@@ -16,17 +16,21 @@ Usage:
     python srs_db.py stats                         # Show learning statistics
     python srs_db.py cards [--topic T] [--session-id N]  # List cards with filters
     python srs_db.py sessions                      # List all teach-back sessions
-    python srs_db.py export [--format md|csv]      # Export cards
+    python srs_db.py export [--format md|csv] [--output FILE]  # Export cards; FILE keeps controls (formula-cell ' stays)
 """
 
 import argparse
 import json
+import os
+import re
 import sqlite3
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 DB_DIR = ".ai-learn"
+# C0 except tab and newline, DEL, and C1: a terminal may act on them (ESC, CSI, OSC, BEL).
+TERMINAL_CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f-\x9f]")
 DB_NAME = "srs.db"
 
 SCHEMA = """
@@ -68,6 +72,11 @@ CREATE INDEX IF NOT EXISTS idx_cards_next_review ON cards(next_review)
 CREATE INDEX IF NOT EXISTS idx_cards_session ON cards(session_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_card ON reviews(card_id);
 """
+
+
+def show(text: str) -> None:
+    """Print text that may hold stored card or session data, with control characters made visible."""
+    print(TERMINAL_CONTROL.sub(lambda m: f"\\x{ord(m.group()):02x}", text))
 
 
 def get_db_path() -> Path:
@@ -155,7 +164,7 @@ def add_session(topic: str, summary: str = "", gaps: int = 0, cards: int = 0) ->
     conn.commit()
     session_id = cur.lastrowid
     conn.close()
-    print(f"Session #{session_id} recorded: {topic}")
+    show(f"Session #{session_id} recorded: {topic}")
     return session_id
 
 
@@ -177,7 +186,7 @@ def add_card(
     conn.commit()
     card_id = cur.lastrowid
     conn.close()
-    print(f"Card #{card_id} added: {question[:60]}...")
+    show(f"Card #{card_id} added: {question[:60]}...")
     return card_id
 
 
@@ -412,6 +421,7 @@ def main():
 
     p_export = sub.add_parser("export", help="Export cards")
     p_export.add_argument("--format", default="md", choices=["md", "csv"], dest="fmt")
+    p_export.add_argument("--output", help="new file for the export; keeps control characters, prefixes ' to a formula-like CSV cell (stdout escapes controls)")
 
     args = parser.parse_args()
 
@@ -431,7 +441,7 @@ def main():
         else:
             print(f"{len(cards)} card(s) due:\n")
             for c in cards:
-                print(f"  #{c['id']} [{c['difficulty']}] {c['question'][:80]}")
+                show(f"  #{c['id']} [{c['difficulty']}] {c['question'][:80]}")
                 print(f"    EF={c['ease_factor']:.2f} | interval={c['interval_days']}d | reps={c['repetitions']}")
     elif args.command == "review":
         result = record_review(args.card_id, args.quality)
@@ -445,16 +455,27 @@ def main():
             print("No cards found.")
         else:
             for c in cards:
-                print(f"  #{c['id']} [{c['difficulty']}] {c['question'][:80]}")
+                show(f"  #{c['id']} [{c['difficulty']}] {c['question'][:80]}")
     elif args.command == "sessions":
         sessions = list_sessions()
         if not sessions:
             print("No sessions recorded.")
         else:
             for s in sessions:
-                print(f"  #{s['id']} {s['topic']} ({s['gaps_found']} gaps, {s['cards_generated']} cards)")
+                show(f"  #{s['id']} {s['topic']} ({s['gaps_found']} gaps, {s['cards_generated']} cards)")
     elif args.command == "export":
-        print(export_cards(args.fmt))
+        text = export_cards(args.fmt)
+        if args.output is None:
+            show(text)
+        else:
+            try:
+                # Owner-only and never replacing: an export copies card text out of the ignored .ai-learn/.
+                fd = os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                with open(fd, "w", encoding="utf-8", newline="") as f:
+                    f.write(text + "\n")
+            except OSError as error:
+                raise SrsError(f"Cannot write export: {error.strerror}") from None
+            show(f"Exported to {args.output}")
     else:
         parser.print_help()
 
