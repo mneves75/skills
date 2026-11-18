@@ -12,6 +12,9 @@ Prune every test in scope that guards no behavior.
 
 - Scope is the path the user named. With no path, list candidates across the repository and
   prune only after the user confirms that list; never prune a whole repository unasked.
+- Running a suite executes the repository's code. Run it only in a repository the user trusts
+  or in an isolated environment (no secrets, no network, writes confined); otherwise ask first.
+  With no named path, run nothing until the user confirms the candidate list.
 - Run the suite in scope first and record the result. A test that already fails or is known
   to be flaky (marked, quarantined or seen failing intermittently) is not a prune candidate:
   report it and leave it for its own fix. A skipped test is a candidate only under "The past".
@@ -22,7 +25,9 @@ Keep a test only if it depends on the intended behavior: it should change only w
 
 If another test already guards the same behavior, prune the copy. Name the test that stays,
 and confirm it fails on the regression the copy would catch: plant it, or show the two use the
-same inputs and assertion.
+same inputs, setup, layer (unit, integration, end to end) and assertion. A copy that runs at
+another layer or through another boundary guards that boundary too: keep it unless the plant shows
+the survivor catches the same regression.
 
 Prune tests that depend on:
 
@@ -60,7 +65,9 @@ For example:
 - Where one also covers behavior something relies on, rewrite it against that behavior instead.
   Prove each rewrite: break that behavior on purpose, watch the rewritten test fail on its own
   assertion, then revert only your planted edit and check the file matches its prior diff.
-- Delete production code that only existed for the tests you removed. Search for every caller
+- Delete production code that only existed for the tests you removed, only inside the scope
+  from step 0; production code outside it (a test's named path does not cover its source module)
+  is deleted only after the user confirms each item. Search for every caller
   first, counting dynamic use (string imports, reflection, registries, config, fixtures). A
   public interface (package entry point, documented API) stays unless the user agrees; a
   test-only hook with no other caller is not one.
@@ -114,7 +121,7 @@ not prove a pruned test was redundant; the categories above do.
 -});
 --- a/session.test.ts
 +++ b/session.test.ts
-@@ deleted, with the test-only hooks that had no other caller @@
+@@ deleted; the user confirmed removing the test-only hooks, which had no other caller @@
 -test("clears the cache", () => {
 -  _resetCacheForTests();
 -  expect(_getCacheSize()).toBe(0);

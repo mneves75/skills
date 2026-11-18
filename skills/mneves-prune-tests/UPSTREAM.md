@@ -15,11 +15,14 @@ Replaces the host-specific `argument-hint` key with portable Agent Skills frontm
 trigger line in `description` and a title.
 
 Adds a scope rule (no named path lists candidates and waits for the user's confirmation), a
-recorded baseline run, and excludes failing or known-flaky tests from pruning. Keeps standing
+trust rule before any suite run (a trusted repository or an isolated environment, otherwise ask;
+nothing runs before an unnamed scope is confirmed), a recorded baseline run, and excludes failing or known-flaky tests from pruning. Keeps standing
 absence guards (security regressions, invariant guards, planted-violation controls), which the
 "assert it's gone" example could otherwise remove, and says how to recognize one. Requires a
 planted regression for each rewrite and proof that a kept duplicate catches what the pruned
-copy did, a caller search that counts dynamic use before deleting production code, no removal
+copy did (the duplicate shortcut needs the same inputs, setup, layer and assertion; a copy at
+another layer is kept unless the plant shows the survivor catches it), production code deleted
+only inside the scope or, outside it, item by item after the user confirms, a caller search that counts dynamic use before deleting production code, no removal
 of a public interface without the user, a full-suite re-run when production code is deleted,
 and a per-test report with before and after suite results. No executables, dependencies or
 sibling skills are introduced.

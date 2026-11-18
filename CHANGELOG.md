@@ -11,9 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **mneves-prune-tests**: delete or rewrite tests that guard no behavior: tests of removed code, tests
   no change can make fail, tests tied to the implementation, and duplicates. Adapted from
   caldoai/skills `prune-tests` (MIT, Copyright (c) 2026 Maze) at `bd73b2e`. Adds a named scope or a confirmed
-  candidate list, a baseline run, keeps standing absence guards such as security regression
-  tests, proves each rewrite against a planted regression, and searches for callers before
-  deleting production code.
+  candidate list, a trusted repository or isolated environment before running any suite, a
+  baseline run, keeps standing absence guards such as security regression tests, proves each
+  rewrite against a planted regression, treats a copy at another layer as a duplicate only when
+  a plant proves it, and deletes production code only inside the scope (outside it, item by item
+  after the user confirms) after searching for callers.
 
 ## [1.51.5] - 2026-11-17
 

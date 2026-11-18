@@ -130,14 +130,16 @@ code that no longer exists, tests no code change can make fail (a mocked unit un
 type the compiler already checks), tests tied to the implementation (private state, call
 order, an expected value computed with the code's own logic) and duplicates. A test that
 also covers behavior something relies on is rewritten against that behavior instead, and
-production code that existed only for the pruned tests goes with them.
+production code that existed only for the pruned tests goes with them: inside the named scope
+directly, outside it only after you confirm each item.
 
 **When to use it.** A suite is slow to change because tests break on refactors that change no
 behavior, or it carries copies and leftovers from removed features. Name a path to prune it;
 with no path the skill lists candidates across the repository and waits for your confirmation.
 
-**Prerequisites.** The project's own test runner. Markdown only: no helper executable, model
-pin, dependency or sibling skill.
+**Prerequisites.** The project's own test runner, in a repository you trust or an isolated
+environment, since running the suite executes the project's code. Markdown only: no helper
+executable, model pin, dependency or sibling skill.
 
 **Example** (illustrative; not an observed run).
 
