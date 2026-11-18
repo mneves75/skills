@@ -17,9 +17,11 @@ trigger line in `description` and a title.
 Adds a scope rule (no named path lists candidates and waits for the user's confirmation), a
 trust rule before any suite, setup or discovery run (a trusted repository or an isolated
 environment; otherwise a static candidate list and no pruning; nothing runs before an unnamed
-scope is confirmed), all edits and runs in a disposable, hook-free copy discarded on interruption, a
-patch checked against the approved paths before it is applied back, runs that count only when
-they executed the tests in question, a recorded baseline run, and excludes failing or known-flaky tests from pruning. Keeps standing
+scope is confirmed), all edits and runs in a disposable, hook-free copy discarded on interruption, that
+carries only the in-scope uncommitted edits and is committed as the patch base, recorded edits
+with every unrecorded change discarded after each run, a patch that must equal the recorded edits
+and the approved paths before it is applied back, runs that count only when the runner's
+per-test output shows each test and case executed, a recorded baseline run, and excludes failing or known-flaky tests from pruning. Keeps standing
 absence guards (security regressions, invariant guards, planted-violation controls), which the
 "assert it's gone" example could otherwise remove, and says how to recognize one. Requires a
 planted regression for each rewrite and proof that a kept duplicate catches what the pruned

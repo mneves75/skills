@@ -17,14 +17,19 @@ Prune every test in scope that guards no behavior.
   network, writes confined). Without either, run nothing: list candidates from a static reading
   and prune nothing, since no baseline or proof can run. With no named path, run nothing until
   the user confirms the candidate list.
-- Work in a disposable copy, never in the user's tree: a fresh clone at the same commit plus the
-  user's uncommitted edits, made inside that isolation with repository hooks and filters disabled
-  and no writable state shared with the user's tree. Every planted edit and every file a run
-  writes stays there. If work is interrupted, discard the copy and start from a new one.
-- Run the suite in scope first and record the result. A run counts only if it executed the tests
-  in question (check the runner's per-test output or count); a test whose run cannot be shown is
-  kept. A test that already fails or is known to be flaky (marked, quarantined or seen failing
-  intermittently) is not a prune candidate: report it and leave it for its own fix. A skipped test is a candidate only under "The past".
+- Work in a disposable copy, never in the user's tree: a fresh clone at the same commit, made
+  inside that isolation with repository hooks and filters disabled and no writable state shared
+  with the user's tree. Bring over only the user's uncommitted edits inside the scope (ask before
+  any other), then commit that state in the copy as its base; the patch is the diff from that
+  base. If work is interrupted, discard the copy and start from a new one.
+- Make every intended edit yourself and record it. After each run, discard in the copy every
+  change you did not record (files a run wrote, a planted edit already reverted) before the next
+  step.
+- Run the suite in scope first and record the result. A run counts only if the runner's per-test
+  output names each test and case in question as executed, not skipped or deselected; a total
+  count is not proof. A test whose run cannot be shown is kept. A test that already fails or is known to be flaky (marked, quarantined or seen failing
+  intermittently) is not a prune candidate: report it and leave it for its own fix. A skipped
+  test is a candidate only under "The past".
 
 **1. Find what each test depends on**
 
@@ -100,9 +105,10 @@ run the full suite, or every test that reaches the touched module. A test that n
 deleted code or shared state was still in use: restore it and investigate. A passing re-run does
 not prove a pruned test was redundant; the categories above do.
 
-Before applying the result, check that every path in the patch is one the user approved and none
-is a planted edit or generated output. If the user's tree changed since the copy was made, stop
-and ask. Apply the patch whole, for the user to review.
+Before applying the result, check that the patch from the copy's base equals your recorded edits
+exactly, that every path in it is one the user approved, and that none is a planted edit or
+generated output; any other difference stops the work. If the user's tree changed since the copy
+was made, stop and ask. Apply the patch whole, for the user to review.
 
 **What done looks like**
 

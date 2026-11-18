@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   no change can make fail, tests tied to the implementation, and duplicates. Adapted from
   caldoai/skills `prune-tests` (MIT, Copyright (c) 2026 Maze) at `bd73b2e`. Adds a named scope or a confirmed
   candidate list, a trusted repository or isolated environment before running any suite (otherwise
-  only a static candidate list), all edits and runs in a disposable copy, a baseline run, keeps standing absence guards such as security regression tests, proves each
+  only a static candidate list), all edits and runs in a disposable copy whose patch must equal the recorded edits, a baseline run, keeps standing absence guards such as security regression tests, proves each
   rewrite against a planted regression, treats a copy at another layer as a duplicate only when
   a plant in that boundary itself makes the survivor fail, keeps every planted edit temporary and
   inside the scope, and deletes production code only inside the scope (outside it, item by item
