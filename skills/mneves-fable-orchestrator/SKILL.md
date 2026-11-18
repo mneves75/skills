@@ -33,16 +33,18 @@ whole skill.
 The user's current instruction beats this routing. Preserve explicit caller overrides and
 specialist selections. The heavy executor is an executor: do not insert an advisor-only handoff
 before it can perform ordinary implementation.
+Keep simple plans in the main session. Use the planner for difficult plans that need dedicated
+analysis.
 
 ### Defaults
 
 The only place this skill names models. Edit this block on a model release; nothing else.
 
 ```
-main session      = Opus, latest release (Claude alias `claude-opus-5-5`), reasoning medium | gpt-6.2-sol, reasoning high (Codex orchestrator)
+main session      = Opus, latest release (Claude alias `claude-opus-5-5`), reasoning medium | gpt-6.2-sol, reasoning medium (Codex orchestrator)
 frontend subagent = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (Codex worker)
-ordinary worker   = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (Codex worker)
-bounded worker    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (bounded Codex task)
+ordinary worker   = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning medium (Codex worker)
+bounded worker    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning medium (bounded Codex task)
 heavy executor    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (Codex worker)
 reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (autoreview `--model gpt-6.2-sol --thinking high`); when no Codex account can run: Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high
 planner           = Fable, latest release (Claude subagent alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (planning)
