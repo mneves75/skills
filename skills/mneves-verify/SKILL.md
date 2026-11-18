@@ -1,6 +1,6 @@
 ---
 name: mneves-verify
-description: Independently verify a checkable outcome. Use for requested proof, high-risk work, or completion claims; a verdict, not a review.
+description: Return an independent acceptance verdict for requested proof, substantial completed work or a required gate.
 license: Apache-2.0
 ---
 

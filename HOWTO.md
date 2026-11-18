@@ -574,9 +574,9 @@ reply, which is what keeps the answers from converging on the first opinion. You
 plan plus a faithful account of the objections, failures and skipped members.
 
 Ask it to review a change instead and it runs **review mode**: each member reviews the current
-implementation independently and scores it out of 10, the lead fixes what it agrees with between
-rounds, and the run stops when every member answers SHIP IT or the round cap (default three)
-ends. The score table goes into the PR description. Reaching the cap is not approval.
+implementation independently and scores it out of 10. The lead only applies fixes with edit
+authority. A review-only request leaves the target fixed. The default round cap is three.
+Include scores in the final reply, or in the PR description when authorized.
 
 Council is advice, not evidence. Agreement between members is not correctness, a test suite, an
 independent verifier, or a deploy gate.
@@ -857,8 +857,9 @@ and treats unavailable timing or usage as unknown.
 `codex-lane` keeps one Codex thread alive across rounds so
 follow-ups reuse the executor's reasoning instead of restarting from a fresh spec.
 
-**Triggers.** "delegate", "orchestrate", "use codex", "heavy task", "long-running task", or
-any non-trivial task where the agent has to decide who executes.
+**Triggers.** A request to delegate, dispatch Codex, or coordinate substantial workstreams
+that can advance and be checked independently. Keep simple lookups and dependent steps in the
+main session.
 
 **Prerequisites.** The [Codex CLI](https://github.com/openai/codex) logged in, `python3` on
 `PATH` (lane state is JSON), and `codex-lane` on your `PATH`:
@@ -968,9 +969,8 @@ authority and requested stops. It grants no authority: commit, push, tag, releas
 PR merge require the main session's authorization for that action and target; already authorized
 steps continue without asking again.
 
-**Triggers.** "superaudit", "audit the codebase and clean it up", "hunt for performance wins",
-"find slop", "audit open PRs", or an end-to-end review → fix → verify → release pass. Not for a
-single bug fix or a one-file change.
+**Triggers.** "superaudit" or a request to audit several selected repository areas. Use
+the relevant specialist for a single security audit, fixed-diff review or deployment.
 
 **Example** (illustrative). You point it at a repo and pick two items:
 

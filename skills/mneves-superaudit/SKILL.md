@@ -1,6 +1,6 @@
 ---
 name: mneves-superaudit
-description: Bounded delegated audit-and-ship pass over a repo — slop, performance, agent DX, PR triage. Use for a repo-wide cleanup pass.
+description: Audit multiple selected repository areas and prioritize findings for cleanup, performance, agent experience or PR triage.
 license: Apache-2.0
 ---
 

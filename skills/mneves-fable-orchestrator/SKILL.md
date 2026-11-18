@@ -1,15 +1,13 @@
 ---
 name: mneves-fable-orchestrator
-description: Route non-trivial work across agents. Use for delegation, parallel work, Codex dispatch, or long-running implementation.
+description: Delegate substantial, independent work and choose executor, review or Codex dispatch roles.
 license: Apache-2.0
 compatibility: Codex dispatch needs the Codex CLI (`codex`) logged in, bash, and python3 on PATH; put `tools/codex-lane` on PATH (symlink or alias) for lane commands. Without Codex the routing rules still apply to your harness's own subagents.
 ---
 
 # Fable Orchestrator
 
-The main session plans, advises and reviews. Its tokens go where judgment matters: requirements,
-architecture, the spec, integration, reading what comes back, and final acceptance. Implementation
-goes to an executor with a written spec when it is substantial, independent and checkable; the main session does the rest and may keep the hardest part.
+The main session owns framing, product and architecture decisions, integration and final acceptance.
 
 ## Roles
 
@@ -113,21 +111,15 @@ nobody considered, optimism that saved effort. Give each its trigger, its cost a
 experiment that would show it early. Say whether a simpler route reaches the same goal. End with
 one verdict: ship, run this experiment first, or stop.
 
-Keep work in the main session when it is a trivial edit, depends on session-only tools or
-credentials, changes authorization, or requires a product/architecture decision. The main session
-may also keep the hardest part of a task, where writing the spec would cost more than the work.
+Delegate substantial questions or deliverables that can advance independently and be checked
+on their own. Keep simple lookups, dependent steps and session-only work in the main session.
+For parallel implementation, assign disjoint ownership and isolate writes when needed. Preserve
+other sessions' changes and give each worker a self-contained brief.
 
-Dispatch implementation only when it is substantial, independent and objectively verifiable, with
-disjoint file ownership: write the spec first, then send it to an executor; otherwise the main
-session does it. Parallelize only independent workstreams. Do not delegate a few direct reads or
-duplicate work already assigned. Never stash, switch, rebase, or reset someone else's dirty work
-merely to begin a dispatch; give parallel workers their own worktrees instead.
-
-Select the cheapest configured role that can satisfy the task and its proof; escalate on
-requirements or demonstrated difficulty. Host routing and explicit caller choices override
-these portable defaults. Configure the spawned model/effort in the actual dispatch, not prose.
-Use fresh context and a self-contained brief for an independent worker; continue the same
-worker for corrections to its task.
+Pick the lowest-cost configured role that can meet the acceptance criteria. Use the main seat
+for quick surveys and simple plans. Escalate for cross-system investigation or when competing
+explanations require deeper analysis. Host routing and explicit caller choices override these
+portable defaults. Apply the model and effort in the dispatch.
 
 Use the reviewer only when the user, repository, or risk requires independent review. A
 different-model requirement needs an explicitly selected reviewer allowed by the host policy;
@@ -173,22 +165,10 @@ as a successful run, the coordinator's decision point.
 
 ## Accept delegated work
 
-Inspect the actual diff and merged surface. Run the focused proof yourself or verify captured
-output. A worker's "tests pass" is a claim; proof is what you observed in this session, and
-green mocked tests do not prove user-visible behavior. Review guard, budget, fixture, and test-helper edits closely because they can weaken the
-check rather than fix the behavior; a commit message you did not commission is a lead. Check the brief's assumptions and production rules; test
-existence is not a substitute for the required behavior.
-
-Read the diff for shape as well as behavior: fewer, deeper modules with smaller interfaces; input
-checked once where it enters and trusted after; one-off logic written where it is used, not split
-into a function ahead of a second caller.
-
-Bind each claim to the right task, project/session and source revision before accepting it.
-Inspect the cited artifact and reconcile the strongest counterexample; a missing record or
-an unused instruction is not proof of a workflow defect. Check the format and coverage of a
-collector before making absence claims. Label measured facts, estimates and unknowns; do not
-infer savings from instruction size or attribute total session usage to one task without proof.
-Retrieve bounded relevant excerpts, keeping full critical output locally when needed.
+Inspect the integrated diff and check acceptance evidence against the actual revision. Check
+whether any change weakens a test or gate. Verify the strongest counterexample and state
+evidence limits, including when proof uses mocks or incomplete records. Report usage savings
+only when measured on comparable runs.
 
 Use an independent fresh-context review when risk, the repository, or the user requires it; it
 runs on the reviewer role. `autoreview` is a sibling skill in this repository, not shipped with

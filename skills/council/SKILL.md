@@ -9,7 +9,7 @@ license: MIT
 Convene a small council of independent coding-agent CLIs. It has two modes:
 
 - **Plan mode** (the default): before finalizing a plan, the lead drafts it, each available member answers independently, and the lead revises for the requested number of rounds. The result is an advisory transcript and a final plan. Do not implement unless the user explicitly asked for execution after planning.
-- **Review mode**: when the user asks the council to review a change (a diff, a branch or a PR), each member reviews it independently and scores it out of 10; the lead fixes what it agrees with and asks for a fresh round, until every member is satisfied or the round cap is reached. See [Review mode](#review-mode).
+- **Review mode**: when the user asks the council to review a change (a diff, a branch or a PR), each member independently scores the change. A review-only request returns findings on the fixed target. When fixes are authorized, the lead makes scoped corrections between rounds. See [Review mode](#review-mode).
 
 Either way the result is advice, not proof of correctness, security, coverage, or verification.
 
@@ -72,9 +72,9 @@ Return the final plan and a faithful conversation summary. Include every member'
 Review mode keeps every boundary above (disclosure, private sessions, supervised members, the
 member invocations) and changes what is deliberated: a change instead of a plan.
 
-1. **Bring the change up to date first.** Address outstanding PR comments, fix known issues and
-   run the relevant checks before round 1, so members review the current implementation, not
-   one with known defects. Skip fixes to code the user wants discarded.
+1. **Check the requested target.** Run relevant checks within the granted authority. For
+   review-only requests, keep the target fixed and report known defects alongside new findings.
+   Address existing comments or issues before round 1 only when the user authorized fixes.
 2. **Freeze the target.** Record the repository, the base commit and the diff command every
    round will use, and write its output to `diff-vR.patch` each round: the `claude` and `pi`
    members have no shell, so the prompt carries the diff itself. That is repository content:
@@ -87,20 +87,17 @@ member invocations) and changes what is deliberated: a change instead of a plan.
 3. **Deliberate each round** with the review prompt below, in parallel, under the plan-mode
    rules: each member sees the frozen brief, after round 1 the lead's change log, and only its
    own previous reply. A missed reply is recorded, never counted as approval.
-4. **Answer the findings.** Verify each one against the code. Fix what you agree with, with the
-   smallest change; prefer deleting or narrowing code. Decline the rest with a reason. Another
-   code path, a rare case or a small cost is a nit whatever severity it came with. Repeated
-   reviews grow a change one cheap-looking fix at a time: fight to keep the scope the user asked
-   for, and cut first if review grew the diff. Re-run the checks after fixing. Members stay
-   read-only; the lead's edits stay within the user's authorization.
-5. **Stop** when every member that replied answers SHIP IT, or when round `X` ends. Reaching the
-   cap is not approval: report each open disagreement, both sides in two or three lines, for
-   the user to decide.
+4. **Answer the findings.** Verify each one against the code. Apply the smallest agreed fixes
+   only with edit authority, then rerun affected checks. Assess severity from the impact and
+   evidence. Keep unrelated corrections in the report.
+5. **Stop** at the round cap or when every member that replied answers SHIP IT. Without fixes,
+   use a further round only to resolve a material disagreement or when the user requested it.
+   Report open disagreements and what would settle them.
 
 Record one score per member per round, out of 10. A member that gives none gets `no score`;
 never invent one. Count each full review pass as one round. When the work ends in a pull request
-the lead may edit, put the table in the PR description (edit the body; do not post a comment),
-before any closing model-and-harness line. With no PR, put it in the final reply.
+the user authorized the lead to update, put the table in the PR description before any closing
+model-and-harness line. Otherwise put it in the final reply.
 
 ```markdown
 ## Council review

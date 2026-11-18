@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Use Sol at medium for the orchestrator's portable main, ordinary and bounded Codex
+  routes. Delegate substantial, independently checkable work and keep direct lookups local.
+- Narrow overlapping audit, review and verification triggers. Council review stays
+  read-only unless edits are authorized; expert review no longer repeats code-review guidance.
+- Document selective installation and how to avoid duplicate pstack entrypoints.
+
 ## [1.51.5] - 2026-11-17
 
 1.51.4 was never released; its changes ship here.

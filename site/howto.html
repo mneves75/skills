@@ -698,9 +698,9 @@ other&#39;s replies; after round one each is shown only the lead&#39;s changes a
 reply, which is what keeps the answers from converging on the first opinion. You get the final
 plan plus a faithful account of the objections, failures and skipped members.</p>
 <p>Ask it to review a change instead and it runs <strong>review mode</strong>: each member reviews the current
-implementation independently and scores it out of 10, the lead fixes what it agrees with between
-rounds, and the run stops when every member answers SHIP IT or the round cap (default three)
-ends. The score table goes into the PR description. Reaching the cap is not approval.</p>
+implementation independently and scores it out of 10. The lead only applies fixes with edit
+authority. A review-only request leaves the target fixed. The default round cap is three.
+Include scores in the final reply, or in the PR description when authorized.</p>
 <p>Council is advice, not evidence. Agreement between members is not correctness, a test suite, an
 independent verifier, or a deploy gate.</p>
 <p><strong>Triggers.</strong> &quot;council&quot;, &quot;convene the council&quot;, &quot;two rounds of deliberation on this plan&quot;, &quot;get
@@ -924,8 +924,9 @@ counterexamples. The guide&#39;s optional one-task receipt reuses the final repo
 and treats unavailable timing or usage as unknown.
 <code>codex-lane</code> keeps one Codex thread alive across rounds so
 follow-ups reuse the executor&#39;s reasoning instead of restarting from a fresh spec.</p>
-<p><strong>Triggers.</strong> &quot;delegate&quot;, &quot;orchestrate&quot;, &quot;use codex&quot;, &quot;heavy task&quot;, &quot;long-running task&quot;, or
-any non-trivial task where the agent has to decide who executes.</p>
+<p><strong>Triggers.</strong> A request to delegate, dispatch Codex, or coordinate substantial workstreams
+that can advance and be checked independently. Keep simple lookups and dependent steps in the
+main session.</p>
 <p><strong>Prerequisites.</strong> The <a href="https://github.com/openai/codex">Codex CLI</a> logged in, <code>python3</code> on
 <code>PATH</code> (lane state is JSON), and <code>codex-lane</code> on your <code>PATH</code>:</p>
 <pre tabindex="0"><code class="language-bash">ln -s ~/.agents/skills/mneves-fable-orchestrator/tools/codex-lane ~/bin/codex-lane
@@ -1016,9 +1017,8 @@ triage — each ending on a falsifiable condition, run through five phases that 
 authority and requested stops. It grants no authority: commit, push, tag, release, deploy and
 PR merge require the main session&#39;s authorization for that action and target; already authorized
 steps continue without asking again.</p>
-<p><strong>Triggers.</strong> &quot;superaudit&quot;, &quot;audit the codebase and clean it up&quot;, &quot;hunt for performance wins&quot;,
-&quot;find slop&quot;, &quot;audit open PRs&quot;, or an end-to-end review → fix → verify → release pass. Not for a
-single bug fix or a one-file change.</p>
+<p><strong>Triggers.</strong> &quot;superaudit&quot; or a request to audit several selected repository areas. Use
+the relevant specialist for a single security audit, fixed-diff review or deployment.</p>
 <p><strong>Example</strong> (illustrative). You point it at a repo and pick two items:</p>
 <pre tabindex="0"><code>superaudit /path/to/myapp — items 1,2 only
 </code></pre>

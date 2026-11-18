@@ -6,7 +6,7 @@ Council is an attributed adaptation of [Kitze's Council](https://github.com/kitz
 
 Ask for `council`, `second opinion`, or `N turns of deliberation` before a plan. The lead writes an honest plan, invokes each supported available member once per round, and revises for exactly the requested number of rounds (default one, maximum ten). Members are never shown another member's reply; after round one they see only the lead's changes and their own previous reply. The final response contains the conversation summary, objections and failures, and the final plan.
 
-Ask the council to *review* a change (a diff, a branch or a PR) and it runs review mode instead: members review the current implementation independently and score it out of 10 each round, the lead fixes what it agrees with between rounds, and the run stops when every member answers SHIP IT or the round cap (default three, maximum ten) ends. The score table goes into the PR description, or the final reply without a PR. Reaching the cap is not approval.
+Ask the council to *review* a change (a diff, a branch or a PR) and it runs review mode instead: members review the current implementation independently and score it out of 10 each round, the lead applies agreed fixes only with edit authority, and the round cap is three by default and ten at most. Review-only requests leave the target unchanged. Include scores in the final reply or in the PR description when the user authorized that update. Reaching the cap is not approval.
 
 Council is advisory. It is not an accuracy guarantee, a test suite, an independent verifier, or a security/deploy gate. `mneves-expert-review` provides one combined challenge; `mneves-fable-orchestrator` routes ordinary delegation; neither is required for Council to work.
 

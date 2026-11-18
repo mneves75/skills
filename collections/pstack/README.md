@@ -17,7 +17,7 @@ the agent (see [Support by agent](#support-by-agent)).
 The sync refuses a port whose upstream pins have fallen behind the official commit:
 [`UPSTREAM`](UPSTREAM) records each port component (`pstack` at `c742dd6`, `cursor-team-kit`,
 `thermos`) as identical, on the paths the port takes, to that official commit. On top of the
-port, the sync applies the eight patches in [`adaptations/`](adaptations/), in name order; each
+port, the sync applies the patches in [`adaptations/`](adaptations/), in name order; each
 patch opens with what it changes and where it came from. `UPSTREAM` records each patch's
 SHA-256.
 
@@ -28,7 +28,15 @@ SHA-256.
 ## Install
 
 This collection sits outside `skills/`, so a plain `npx skills add mneves75/skills` does not
-install it. Choose one:
+install it. For a smaller catalog, install individual skills for the workflows you use.
+
+If your client already enables a pstack plugin, check its active skill list before adding
+standalone copies under the same names. Keep one automatic route per workflow and preserve
+any plugin-only agents or automations you use. For ordinary PR monitoring, choose
+`babysit-pr` from the root catalog or `babysit` from pstack. The stack-aware watcher in
+`poteto-mode` serves its own playbook.
+
+Choose one:
 
 ```bash
 # All 42 pstack skills, interactive agent choice

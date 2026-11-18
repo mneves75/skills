@@ -7,7 +7,8 @@ dispatch the model and reasoning effort each seat is meant to run at? Cases live
 ## What it covers
 
 - The orchestrator's Defaults block: every Claude seat, the Codex main session, the crossed
-  reviewer rule and the short-alias dispatch rule (cases O1 to O12).
+  reviewer rule, short-alias dispatch, economy executor, Codex plan advisor and routine
+  Codex workers (cases O1 to O17).
 - pstack's model and effort text on Claude Code, Pi and Codex: the Reasoning effort paragraph in
   every skill that has one, poteto-mode's per-job adjustment, the Pi alias table and panel line,
   and setup-pstack's defaults (cases P1 to P19, S1 and S2).

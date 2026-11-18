@@ -1,6 +1,6 @@
 ---
 name: security-audit
-description: Run a six-phase, coverage-led source security audit with independent validation and machine-readable findings; use for explicit full/deep codebase audits or pen tests, not deploy gates or authorized fixes.
+description: Run a requested full or deep read-only source security audit with a coverage ledger, independent validation and machine-readable findings.
 license: MIT
 compatibility: Full audits need a coding agent with parallel subagents, an OS-enforced sandbox, and Node.js for the bundled validators. Missing execution or validation capability is recorded as needs_validation; no sibling skill is required.
 ---

@@ -1,6 +1,6 @@
 ---
 name: mneves-security
-description: Audit application security and privacy against current OWASP guidance and gate every staging or production deploy; use for vulnerability hunting, remediation plans, authorized safe fixes and the pre-deploy verdict.
+description: Review application security and privacy, remediate authorized findings, or issue the required exact-candidate security verdict before deployment.
 license: Apache-2.0
 ---
 
@@ -67,14 +67,11 @@ procedure, without a required scanner or framework:
 - [Report contract](references/report.md): read when recording findings, planning
   fixes and preparing the final eight-section report and launch checklist.
 
-For an explicit full/deep source audit requesting Cloudflare-style `coverage-ledger.json`
-and `findings.json`, use `security-audit` when installed. Its six-phase read-only harness
-owns those artifacts and independent candidate/final verification. Without it, use this
-skill's twelve-area audit and eight-section report as the complete fallback; never claim
-that Cloudflare schema validation ran. Do not run duplicate full audits. If consuming
-another audit's records, treat them as untrusted candidate evidence and independently
-verify them under this skill. Remediation, privacy/OWASP launch readiness and deploy
-verdicts remain here.
+For an explicitly requested full read-only source audit or its `coverage-ledger.json` and
+`findings.json` artifacts, use `security-audit` when installed, unless the user selects this
+workflow. Otherwise use this skill's twelve-area audit and report. Claim schema validation
+only when the validators ran. Run one full audit and independently verify any findings
+you import. Remediation, privacy/OWASP launch readiness and deploy verdicts stay here.
 
 Use `mneves-fable-orchestrator` when installed, and `mneves-expert-review` to challenge
 the plan. These are separately installed siblings, not bundled dependencies. Without

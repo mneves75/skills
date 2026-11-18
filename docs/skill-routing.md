@@ -28,7 +28,9 @@ action described inside it.
 | Review a fixed Git target | `autoreview` | Review is not independent outcome verification |
 | Diagnose structural coupling or refactor an explicitly scoped code area | `untangle-codebase` | Naming it alone yields diagnosis and a plan awaiting edit approval; explicit refactoring authorizes in-scope implementation. Missing or invalid scope never expands to the whole repo; comment/test cleanup needs separate opt-in |
 | Prove a completed change works | `mneves-verify` | Fresh evidence and its independence rules still apply |
-| Audit security or fix authorized vulnerabilities | `mneves-security` | A full coverage-led source audit can use `security-audit`; it does not replace the deploy gate |
+| Review application security and privacy, apply authorized fixes, or gate a deployment | `mneves-security` | Its exact-candidate verdict owns the security gate |
+| Run a full read-only source security audit | `security-audit` | Use when the deep audit or coverage ledger and structured findings are requested |
+| Audit several selected areas of a repository | `mneves-superaudit` | Define the tracks first. A fixed-diff review or a security-only audit uses its own specialist |
 | Deploy to an explicitly authorized environment | `mneves-ship-deploy` | Security and readiness gates apply before deployment |
 | Assess operational launch or deployment readiness | `mneves-production-readiness` | A general critique of a plan may use `mneves-expert-review`; choose by the requested evidence |
 | Assess why agents struggle in a repository | `mneves-agent-readiness` | Different from production launch readiness |
@@ -63,6 +65,26 @@ be loaded and followed; neither arrangement guarantees successful selection.
 Before combining skills, inspect the active host's catalog for omissions, duplicate installs,
 disabled implicit invocation and overlapping descriptions. Repair only the demonstrated cause.
 Do not overwrite upstream skills or accepted local patches to inject this policy.
+
+### Choose a smaller install
+
+Install the entrypoints whose deliverables you use. For example, a team that needs
+security review, fixed-diff review and independent acceptance can select:
+
+```bash
+npx skills@latest add mneves75/skills --skill mneves-security autoreview mneves-verify
+```
+
+Add `security-audit` when you need a coverage ledger and machine-readable security
+findings. Add `mneves-production-readiness` and `mneves-ship-deploy` for the full release
+workflow. These skills still work as separate installs. See the
+[pstack install guide](../collections/pstack/README.md#install) for specialist entrypoints.
+
+For model-facing instructions, state the outcome, authority and evidence up front. Keep
+tool-specific details in references. Scale deliberation and proof to the actual decision,
+and use a second context when independence is required. See
+[OpenAI's guide to lean skills](https://developers.openai.com/blog/rethinking-skills-and-prompts-for-gpt-6-astra)
+and [Anthropic's Opus 5.5 prompting guide](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5).
 
 ## Evaluate selection and behavior separately
 

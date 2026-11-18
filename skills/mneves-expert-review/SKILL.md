@@ -1,6 +1,6 @@
 ---
 name: mneves-expert-review
-description: Stress-test a high-stakes draft or decision. Use for rigorous review, alternatives, evidence, and trade-offs; not for code diffs.
+description: Stress-test a consequential draft or decision against evidence, trade-offs and credible objections.
 license: Apache-2.0
 ---
 
@@ -43,20 +43,13 @@ Read the draft — or the request, if no draft exists yet — fully before start
    when absent, use an equivalent fresh read-only verifier. Report missing required capability
    as blocked. Fold verified findings back into the solution.
 
-   For code, challenge the weakest assumption adversarially and use installed `cccc` on
-   supported changed source as a comprehension signal. The separately installed `autoreview`
-   skill owns detailed complexity guidance. Without it, preserve target config, run
-   `cccc --no-cache --min 0` on focused source, record version/status/diagnostics, and reconcile
-   expected files and parse errors. Missing tooling or unsupported/partial scans are reported;
-   scores never establish correctness or justify a mechanical refactor.
+   For a fixed Git diff, use the separately installed `autoreview` skill or a focused
+   code review if unavailable.
 
-5. **Compare meaningful alternatives.** Start with a conservative option, a minimal option,
-   and one that challenges the premise. Merge equivalent options. Add another only if evidence
-   exposes a materially different trade-off. Compare against the decision criteria; use a
-   weighted score only when the weights and scores can be justified. Reject extra complexity
-   whose benefit is not proportional.
-   Pick the strongest or synthesize the best elements, and state the decisive trade-offs in
-   plain sentences.
+5. **Compare meaningful alternatives.** When a viable alternative materially changes the
+   outcome or trade-off, compare it against the decision criteria and explain what decides
+   the choice. Consider whether narrowing the scope or challenging the premise solves the
+   problem more simply.
 
 6. **Improve, then audit once, then deliver.** Rewrite the deliverable with the findings
    applied. Check accuracy, material completeness, relevance, simplicity, failure behavior,
@@ -72,6 +65,4 @@ Read the draft — or the request, if no draft exists yet — fully before start
   that change the deliverable's scope are proposed, not silently built.
 - Never fabricate research, sources, test results, or expert opinions to fill a step. A step
   with nothing genuine to add is stated as such in one line and skipped.
-- The challenge-the-premise alternative (step 5) is reported even when rejected; it is the one
-  the user cannot see for themselves.
 - Language follows the user.
