@@ -12,23 +12,32 @@ Prune every test in scope that guards no behavior.
 
 - Scope is the path the user named. With no path, list candidates across the repository and
   prune only after the user confirms that list; never prune a whole repository unasked.
-- Running a suite executes the repository's code. Run it only in a repository the user trusts
-  or in an isolated environment (no secrets, no network, writes confined); otherwise ask first.
-  With no named path, run nothing until the user confirms the candidate list.
-- Run the suite in scope first and record the result. A test that already fails or is known
-  to be flaky (marked, quarantined or seen failing intermittently) is not a prune candidate:
-  report it and leave it for its own fix. A skipped test is a candidate only under "The past".
+- Running a suite, its setup or its discovery executes the repository's code. Run any of them
+  only in a repository the user says they trust or in an isolated environment (no secrets, no
+  network, writes confined). Without either, run nothing: list candidates from a static reading
+  and prune nothing, since no baseline or proof can run. With no named path, run nothing until
+  the user confirms the candidate list.
+- Work in a disposable copy, never in the user's tree: a fresh clone at the same commit plus the
+  user's uncommitted edits, made inside that isolation with repository hooks and filters disabled
+  and no writable state shared with the user's tree. Every planted edit and every file a run
+  writes stays there. If work is interrupted, discard the copy and start from a new one.
+- Run the suite in scope first and record the result. A run counts only if it executed the tests
+  in question (check the runner's per-test output or count); a test whose run cannot be shown is
+  kept. A test that already fails or is known to be flaky (marked, quarantined or seen failing
+  intermittently) is not a prune candidate: report it and leave it for its own fix. A skipped test is a candidate only under "The past".
 
 **1. Find what each test depends on**
 
 Keep a test only if it depends on the intended behavior: it should change only when that behavior changes, and fail only when it regresses.
 
 If another test already guards the same behavior, prune the copy. Name the test that stays,
-and confirm it fails on the regression the copy would catch: plant it, or show the two use the
-same inputs, setup, layer (unit, integration, end to end) and assertion. A copy that runs at
-another layer or through another boundary guards that boundary too: keep it unless a plant in that
-boundary itself (its route, wiring, configuration or adapter, not a helper both tests share) makes
-the survivor fail.
+and confirm it fails, on the intended assertion, on every regression the copy would catch: plant
+one per case and per distinct setup the copy covers, or show the two use the same inputs, setup,
+layer (unit, integration, end to end) and assertion for each case. The test that stays must remain
+in the final patch and be seen running in the re-run; two deletions never name each other. A copy
+that runs at another layer or through another boundary guards that boundary too: keep it unless a
+plant in that boundary itself (its route, wiring, configuration or adapter, not a helper both
+tests share) makes the survivor fail.
 
 Prune tests that depend on:
 
@@ -60,17 +69,22 @@ For example:
 - The expected value is derived from the same logic as the code, so a wrong result still passes.
 - It asserts private state, internal call order, or which helper was invoked.
 
+In every category, a test that may be the only guard of a required rule (authorization before a
+write, audit logging, ordering that protects data, a removed path that must not return) stays
+unless a replacement is proven to fail on the same regression or the user confirms the rule is
+obsolete.
+
 **2. Prune**
 
 - Delete every test that isn't anchored to intended behavior.
 - Where one also covers behavior something relies on, rewrite it against that behavior instead.
   Prove each rewrite: break that behavior on purpose, watch the rewritten test fail on its own
   assertion, then revert only your planted edit and check the file matches its prior diff.
-  Every planted edit, for a rewrite or a duplicate, is temporary: keep it inside the scope (outside
-  it only after the user confirms), plant one at a time, and revert it before the next step. If a
-  run is interrupted, restore every planted file before anything else. When the proof a prune or
-  rewrite needs cannot be run (an unconfirmed edit outside the scope, a boundary you cannot reach),
-  keep the test unchanged and report why.
+  Every planted edit, for a rewrite or a duplicate, is temporary and made only in the disposable
+  copy: keep it inside the scope (outside it only after the user confirms), plant one at a time,
+  and revert it before the next step. When the proof a prune or rewrite needs cannot be run (an
+  unconfirmed edit outside the scope, a boundary you cannot reach), keep the test unchanged and
+  report why.
 - Delete production code that only existed for the tests you removed, only inside the scope
   from step 0; production code outside it (a test's named path does not cover its source module)
   is deleted only after the user confirms each item. Search for every caller
@@ -85,6 +99,10 @@ test that stays. Run the suite again and give both results; when production code
 run the full suite, or every test that reaches the touched module. A test that newly fails means
 deleted code or shared state was still in use: restore it and investigate. A passing re-run does
 not prove a pruned test was redundant; the categories above do.
+
+Before applying the result, check that every path in the patch is one the user approved and none
+is a planted edit or generated output. If the user's tree changed since the copy was made, stop
+and ask. Apply the patch whole, for the user to review.
 
 **What done looks like**
 

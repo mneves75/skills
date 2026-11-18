@@ -358,7 +358,8 @@ executable, model pin, dependency or sibling skill.</p>
 <pre tabindex="0"><code class="language-text">Prune the tests in src/cart/.
 </code></pre>
 <ol>
-<li>It runs the suite in <code>src/cart/</code> and records the result. Failing or known-flaky tests are
+<li>In a disposable copy of the repository, it runs the suite in <code>src/cart/</code> and records the
+result. Failing or known-flaky tests are
 reported and left alone.</li>
 <li>It rewrites a <code>cart._items.length</code> check against <code>cart.total()</code>, removes a tax test that
 <code>checkout.test.ts</code> already covers, and keeps a test that a refused coupon stays refused.</li>
