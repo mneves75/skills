@@ -1906,12 +1906,35 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             (gw_home / ".gemini" / "antigravity-cli" / "settings.json").write_text(
                 json.dumps({"gateway": {"address": "https://gateway.corp.example"}}), encoding="utf-8",
             )
-            with self.subTest(label="enterprise gateway settings.json"), mock.patch.dict(
+            with self.subTest(label="enterprise gateway cli settings.json"), mock.patch.dict(
                 os.environ, {"HOME": str(gw_home), "USERPROFILE": str(gw_home)}, clear=True,
             ):
                 with self.assertRaises(SystemExit) as cm:
                     AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
             self.assertIn("enterprise gateway settings", str(cm.exception))
+
+            agy_dir_home = root / "agy-dir-home"
+            (agy_dir_home / ".antigravity").mkdir(parents=True)
+            (agy_dir_home / ".antigravity" / "settings.json").write_text(
+                json.dumps({"gateway": {"address": "https://gateway.corp.example"}}), encoding="utf-8",
+            )
+            with self.subTest(label="enterprise gateway ~/.antigravity/settings.json"), mock.patch.dict(
+                os.environ, {"HOME": str(agy_dir_home), "USERPROFILE": str(agy_dir_home)}, clear=True,
+            ):
+                with self.assertRaises(SystemExit) as cm:
+                    AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
+            self.assertIn("enterprise gateway settings", str(cm.exception))
+
+            in_repo_gac = repo / "adc.json"
+            in_repo_gac.write_text('{"type":"service_account"}', encoding="utf-8")
+            with self.subTest(label="in-repo GOOGLE_APPLICATION_CREDENTIALS under AGY_ADC_AUTH"), mock.patch.dict(
+                os.environ,
+                {"AGY_ADC_AUTH": "true", "GOOGLE_APPLICATION_CREDENTIALS": str(in_repo_gac)},
+                clear=True,
+            ):
+                with self.assertRaises(SystemExit) as cm:
+                    AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
+            self.assertIn("GOOGLE_APPLICATION_CREDENTIALS cannot be preserved", str(cm.exception))
 
     def test_agy_stream_parser_preserves_unicode_line_separators_inside_json(self) -> None:
         report_with_nel = dict(FINAL_REPORT)

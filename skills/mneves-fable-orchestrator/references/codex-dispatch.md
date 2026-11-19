@@ -181,12 +181,14 @@ run_agy_coding_fallback() {
 ### Read-only review fallback
 
 Run the first read-only review fallback through the sibling `autoreview` skill (**not shipped with
-this skill**):
+this skill**), preserving the original review's exact Git target and priority flags (`--mode`,
+`--base`, `--commit`, `--max-priority`, `--prompt-file`, `--dataset`) so the fallback changes only
+the reviewer engine and model:
 
 ```bash
 python3 /path/to/autoreview/scripts/autoreview \
-  --mode branch --base origin/main \
-  --engine agy --model gemini-4-neon-xhigh --max-priority P3
+  <original --mode / --base / --commit / --max-priority args> \
+  --engine agy --model gemini-4-neon-xhigh
 ```
 
 `autoreview --engine agy` handles the full isolation boundary: TruffleHog secret scanning, isolated
