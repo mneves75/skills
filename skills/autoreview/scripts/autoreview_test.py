@@ -1681,7 +1681,8 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
         self.assertNotIn("--effort", command)
         self.assertNotIn("--disable-slash-commands", command)
         self.assertEqual(observed["settings"], {"allowNonWorkspaceAccess": False})
-        self.assertEqual(observed["settings_mode"], 0o600)
+        if os.name != "nt":
+            self.assertEqual(observed["settings_mode"], 0o600)
         self.assertEqual(observed["workspace"], [])
 
     def test_agy_error_status_is_unavailable(self) -> None:
