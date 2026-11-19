@@ -20,12 +20,11 @@ measure whether a *target* codebase is ready for agents.
   `--disable-slash-commands`, `--sandbox`, session-only `--settings` enforcing Default mode
   `agentMode: ""`, `toolPermission: "strict"`, deny-all rules, `allowNonWorkspaceAccess: false`,
   `enableTerminalSandbox: true`, `--json-schema`, stream permission/tool verification, narrowed env
-  allowlist preserving `AGY_ADC_AUTH`, word-boundary `--help` flag probes), configures
-  `gemini-4-neon-xhigh` as the coding fallback (host-local dedicated worktree via Default-mode
-  `agy --sandbox` with `proceed-in-sandbox`, or `agy-yolo` strictly inside an enclosing
-  container/VM sandbox when explicitly authorized) and first read-only review fallback
-  (`autoreview --engine agy` or clean-cwd non-Git isolated-`HOME`/`USERPROFILE` strict
-  non-skip-permissions `agy` reading brief via stdin) after `gpt-6.2-sol` in
+  allowlist preserving `AGY_ADC_AUTH` and ADC region/project env, word-boundary `--help` flag
+  probes), configures `gemini-4-neon-xhigh` as the coding fallback (unattended `agy-yolo` strictly
+  inside an enclosing container/VM sandbox when explicitly authorized; interactive approval or
+  blocked otherwise) and first read-only review fallback (`autoreview --engine agy` or clean-cwd
+  non-Git isolated-`HOME`/`USERPROFILE` strict non-skip-permissions `agy` reading brief via stdin) after `gpt-6.2-sol` in
   `mneves-fable-orchestrator` and pstack adaptation 11 (skipping client, personal, regulated, or
   unapproved-provider repos), moves routine Codex seats to `medium` reasoning, and updates
   `tools/routing-eval/cases.json` (`O8`, `O14`, plus `O16`, `O17`, `O18`). Binding results live in

@@ -139,103 +139,41 @@ fallback.
 
 ### Coding fallback
 
-Run inside a dedicated worktree with `--sandbox` and session-only `--settings` restricting writes
-and terminal execution to that workspace. Containment depends on both host support and account
-type:
+Unattended coding fallback with `agy-yolo` (`agy --dangerously-skip-permissions`) must run inside
+a dedicated worktree **within an enclosing external sandbox (container or VM)** that bounds the
+filesystem, credentials, lifecycle hooks, plugins, and workspace MCP servers, and only when the
+owner or host policy explicitly authorizes unattended execution (never widening permissions beyond
+the authorized Codex seat). Why an enclosing container or VM is required for unattended coding:
 
-- On hosts without OS sandbox support (for example, Linux hosts with unprivileged user namespaces
-  disabled), `--sandbox` degrades to a no-op and `allowNonWorkspaceAccess: false` restricts only
-  agent file tools.
-- On personal accounts, Antigravity ignores `unsandboxed(*)` deny rules, so `agy-yolo`
-  (`--dangerously-skip-permissions`) can still auto-approve an agent retry outside the terminal
-  sandbox unless an enclosing external sandbox bounds the process.
-- Lifecycle hooks (`PreInvocation`, `SessionStart`, `PreToolUse`, etc.) run outside the agent's
-  terminal sandbox with host privileges. Host-local runs must isolate `HOME`/`USERPROFILE` (no
-  global or plugin hooks) and refuse to start if the checkout defines repository hooks
-  (`.agents/hooks.json`, `.agent/hooks.json`, `_agents/hooks.json`, `_agent/hooks.json`) — repos
-  with active project hooks require an enclosing container/VM sandbox.
+- On hosts without OS sandbox support (such as Linux without unprivileged user namespaces),
+  `--sandbox` degrades to a no-op; on personal accounts, Antigravity ignores `unsandboxed(*)` deny
+  rules and defaults to Auto mode (since 1.5.7) unless forced to Default mode (`"agentMode": ""`).
+- Lifecycle hooks (`PreInvocation`, `SessionStart`, etc.) and workspace MCP servers
+  (`.agents/mcp_config.json`) execute outside the agent's terminal sandbox with host privileges.
 
-Therefore, choose only one of two safe execution modes, or **block dispatch**:
+Without an enclosing container or VM, **do not** run unattended auto-approved coding commands:
+either run interactively with explicit per-action human approval
+(`agy --sandbox --settings '{"agentMode":"","allowNonWorkspaceAccess":false,"enableTerminalSandbox":true}' --model gemini-4-neon-xhigh`)
+or report the coding fallback blocked.
 
-1. **Host-local dedicated worktree (no enclosing container/VM)**: verify active OS containment
-   (macOS Seatbelt or Linux `unshare -Ur true`), confirm the worktree has no repository
-   `hooks.json` (or move to an enclosing container/VM), stage an isolated auth-only
-   `HOME`/`USERPROFILE` (blocking global/plugin hooks), omit `--dangerously-skip-permissions` (do
-   not use `agy-yolo`), force Default mode via `"agentMode": ""` (since Agy 1.5.7, supported
-   personal accounts without a saved mode default to Auto even in headless runs, and Auto can
-   approve commands outside the terminal sandbox), and set `toolPermission: "proceed-in-sandbox"`
-   so sandboxed commands run automatically while out-of-sandbox requests are soft-denied in
-   headless print mode, even on personal accounts.
-2. **Enclosing external container/VM sandbox**: when the entire agent process (including any
-   lifecycle hooks) runs inside an external sandbox enforcing the authorized boundary and the owner
-   or host policy explicitly authorizes unattended execution, `agy-yolo`
-   (`--dangerously-skip-permissions`) may be used with `--sandbox` and
-   `permissions.deny: ["unsandboxed(*)"]`.
-
-Write the brief to a mode-`0600` file, send it on stdin via `stream-json` (never argv), clean up
-temporary files even under `set -e` while preserving the CLI and `jq` exit status, and verify
-`.result.status == "SUCCESS"` before accepting `.result.response`:
+Inside an authorized enclosing container/VM sandbox, pass the brief from a mode-`0600` file over
+stdin `stream-json` (never argv), clean up temporary files even under `set -e` while preserving
+the exit status, and verify `.result.status == "SUCCESS"` before accepting `.result.response`:
 
 ```bash
-# Shared auth-only staging helper (macOS Keychains link, file OAuth token, or default gcloud ADC;
-# never copies ~/.gemini/config, hooks.json, plugins, or user settings):
-stage_agy_auth_home() {
-  local dst="$1" adc_src=""
-  if [ "$(uname -s)" = "Darwin" ] && [ -d "$HOME/Library/Keychains" ]; then
-    mkdir -p "$dst/Library" && ln -s "$HOME/Library/Keychains" "$dst/Library/Keychains"
-  elif [ -f "$HOME/.gemini/antigravity-cli/antigravity-oauth-token" ]; then
-    mkdir -p "$dst/.gemini/antigravity-cli" \
-      && install -m 600 "$HOME/.gemini/antigravity-cli/antigravity-oauth-token" \
-        "$dst/.gemini/antigravity-cli/antigravity-oauth-token"
-  fi || return 1
-  case "${AGY_ADC_AUTH:-}" in
-    1|[Tt][Rr][Uu][Ee]|[Yy][Ee][Ss])
-      if [ -z "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]; then
-        adc_src="${XDG_CONFIG_HOME:-$HOME/.config}/gcloud/application_default_credentials.json"
-        if [ -f "$adc_src" ]; then
-          mkdir -p "$dst/.config/gcloud" \
-            && install -m 600 "$adc_src" "$dst/.config/gcloud/application_default_credentials.json" || return 1
-        fi
-      fi
-      ;;
-  esac
-}
-
-# Default safe host-local form (POSIX/Unix; run from the dedicated worktree after verifying active
-# OS sandbox, e.g. macOS Seatbelt or Linux `unshare -Ur true`). Switch `agy` to `agy-yolo` ONLY
-# inside an enclosing container/VM sandbox with explicit owner/host authorization:
+# Run ONLY inside an enclosing container/VM sandbox with explicit owner/host authorization:
 run_agy_coding_fallback() {
-  local brief_file="$1" isolated_home="" settings_file="" out="" status=0 dir="" root="" hook_dir
-  root=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
-  dir=$(pwd)
-  while :; do
-    for hook_dir in .agents .agent _agents _agent; do
-      if [ -e "$dir/$hook_dir/hooks.json" ] || [ -e "$dir/$hook_dir/plugins.json" ] || [ -d "$dir/$hook_dir/plugins" ]; then
-        echo "error: repo defines $dir/$hook_dir hooks/plugins; require an enclosing container/VM sandbox" >&2
-        return 1
-      fi
-    done
-    [ "$dir" = "$root" ] || [ "$dir" = "/" ] && break
-    dir=$(dirname "$dir")
-  done
-  isolated_home=$(TMPDIR=/tmp mktemp -d) || return $?
-  settings_file=$(TMPDIR=/tmp mktemp) || { rm -rf -- "$isolated_home"; return 1; }
-  chmod 700 "$isolated_home" && chmod 600 "$settings_file" \
-    || { rm -rf -- "$isolated_home" "$settings_file"; return 1; }
-  stage_agy_auth_home "$isolated_home" || { rm -rf -- "$isolated_home" "$settings_file"; return 1; }
-  printf '{"agentMode":"","allowNonWorkspaceAccess":false,"enableTerminalSandbox":true,"toolPermission":"proceed-in-sandbox","permissions":{"deny":["unsandboxed(*)"]}}\n' > "$settings_file" \
-    || { rm -rf -- "$isolated_home" "$settings_file"; return 1; }
+  local brief_file="$1" settings_file="" out="" status=0
+  settings_file=$(mktemp) || return $?
+  chmod 600 "$settings_file" || { rm -f -- "$settings_file"; return 1; }
+  printf '{"agentMode":"","allowNonWorkspaceAccess":false,"enableTerminalSandbox":true,"permissions":{"deny":["unsandboxed(*)"]}}\n' > "$settings_file" \
+    || { rm -f -- "$settings_file"; return 1; }
 
-  out=$(
-    set -o pipefail
-    export HOME="$isolated_home" USERPROFILE="$isolated_home" \
-      XDG_CONFIG_HOME="$isolated_home/.config" XDG_DATA_HOME="$isolated_home/.local/share"
-    jq -Rsc '{event:"user",message:{content:.}}' < "$brief_file" \
-      | agy --sandbox --settings "$settings_file" \
-          --input-format stream-json --output-format stream-json \
-          --model gemini-4-neon-xhigh --print "" --print-timeout 10m
-  ) || status=$?
-  rm -rf -- "$isolated_home" "$settings_file"
+  out=$(set -o pipefail; jq -Rsc '{event:"user",message:{content:.}}' < "$brief_file" \
+    | agy-yolo --sandbox --settings "$settings_file" \
+        --input-format stream-json --output-format stream-json \
+        --model gemini-4-neon-xhigh --print "" --print-timeout 10m) || status=$?
+  rm -f -- "$settings_file"
   [ "$status" -eq 0 ] || return "$status"
   jq -re 'select(.event == "result" and .result.status == "SUCCESS") | .result.response' <<< "$out"
 }
@@ -251,19 +189,19 @@ in an empty temporary workspace outside any Git checkout with `--disable-slash-c
 and Default-mode strict deny-all `--settings`, never passes `--dangerously-skip-permissions`, and
 verifies `permission_mode == "strict"` and tool outcomes before accepting structured output.
 
-When `autoreview` is not installed, use this minimal standalone POSIX/Unix fallback after
+When `autoreview` is not installed, use this self-contained standalone POSIX/Unix fallback after
 scanning/sanitizing the review brief into a mode-`0600` file (never pass the brief on `jq` or
 `agy` argv). Create the launch directory outside any Git checkout (override `TMPDIR` and verify
 `git rev-parse` fails so parent `.agents/hooks.json` cannot be discovered), stage an isolated
-`HOME` / `USERPROFILE` holding only authentication material (OAuth or default gcloud ADC; or set
-`GOOGLE_APPLICATION_CREDENTIALS` explicitly), run plain `agy` (never `agy-yolo` or
-`--dangerously-skip-permissions`), clean up the temporary directories and staged credentials even
-under `set -e` while preserving exit status, and verify both `permission_mode == "strict"` and
-`.result.status == "SUCCESS"`:
+`HOME` / `USERPROFILE` holding only authentication material (macOS Keychains link, file OAuth
+token, and default gcloud ADC staged independently; or set `GOOGLE_APPLICATION_CREDENTIALS`
+explicitly), run plain `agy` (never `agy-yolo` or `--dangerously-skip-permissions`), clean up the
+temporary directories and staged credentials even under `set -e` while preserving exit status, and
+verify both `permission_mode == "strict"` and `.result.status == "SUCCESS"`:
 
 ```bash
 run_agy_review_fallback() {
-  local brief_file="$1" review_dir="" isolated_home="" settings_file="" out="" status=0
+  local brief_file="$1" review_dir="" isolated_home="" settings_file="" adc_src="" out="" status=0
   review_dir=$(TMPDIR=/tmp mktemp -d) || return $?
   isolated_home=$(TMPDIR=/tmp mktemp -d) || { rm -rf -- "$review_dir"; return 1; }
   settings_file=$(TMPDIR=/tmp mktemp) || { rm -rf -- "$review_dir" "$isolated_home"; return 1; }
@@ -275,7 +213,34 @@ run_agy_review_fallback() {
     rm -rf -- "$review_dir" "$isolated_home" "$settings_file"
     return 1
   fi
-  stage_agy_auth_home "$isolated_home" || { rm -rf -- "$review_dir" "$isolated_home" "$settings_file"; return 1; }
+  # Stage auth only (independently, never ~/.gemini/config, hooks, plugins, or settings):
+  if [ "$(uname -s)" = "Darwin" ] && [ -d "$HOME/Library/Keychains" ]; then
+    mkdir -p "$isolated_home/Library" && ln -s "$HOME/Library/Keychains" "$isolated_home/Library/Keychains" \
+      || { rm -rf -- "$review_dir" "$isolated_home" "$settings_file"; return 1; }
+  fi
+  if [ -f "$HOME/.gemini/antigravity-cli/antigravity-oauth-token" ]; then
+    mkdir -p "$isolated_home/.gemini/antigravity-cli" \
+      && install -m 600 "$HOME/.gemini/antigravity-cli/antigravity-oauth-token" \
+        "$isolated_home/.gemini/antigravity-cli/antigravity-oauth-token" \
+      || { rm -rf -- "$review_dir" "$isolated_home" "$settings_file"; return 1; }
+  fi
+  case "${AGY_ADC_AUTH:-}" in
+    1|[Tt][Rr][Uu][Ee]|[Yy][Ee][Ss])
+      if [ -z "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]; then
+        for adc_src in \
+          "${CLOUDSDK_CONFIG:-}/application_default_credentials.json" \
+          "${XDG_CONFIG_HOME:-$HOME/.config}/gcloud/application_default_credentials.json" \
+          "$HOME/.config/gcloud/application_default_credentials.json"; do
+          if [ -f "$adc_src" ]; then
+            mkdir -p "$isolated_home/.config/gcloud" \
+              && install -m 600 "$adc_src" "$isolated_home/.config/gcloud/application_default_credentials.json" \
+              || { rm -rf -- "$review_dir" "$isolated_home" "$settings_file"; return 1; }
+            break
+          fi
+        done
+      fi
+      ;;
+  esac
   cat > "$settings_file" <<'EOF' || { rm -rf -- "$review_dir" "$isolated_home" "$settings_file"; return 1; }
 {"agentMode":"","allowNonWorkspaceAccess":false,"enableTerminalSandbox":true,"toolPermission":"strict","permissions":{"allow":[],"deny":["command(*)","write_file(*)","read_file(*)","read_url(*)","mcp(*)","unsandboxed(*)"]}}
 EOF

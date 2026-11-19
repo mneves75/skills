@@ -20,15 +20,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   outcomes in the stream, rejecting `--no-tools` and `--no-web-search`, filtering environment
   variables cleanly (`AGY_CREDENTIAL_PATH_ENV_KEYS`), and supporting `--agy-bin` / `AGY_BIN`;
   covered by unit and end-to-end hardening tests.
-- **mneves-fable-orchestrator**: added `gemini-4-neon-xhigh` as the coding fallback (host-local
-  dedicated worktree via Default-mode `agy --sandbox` with `toolPermission: "proceed-in-sandbox"`
-  and `unsandboxed(*)` denied, or `agy-yolo` strictly inside an enclosing container/VM sandbox
-  when explicitly authorized) and first read-only review fallback (`autoreview --engine agy
-  --model gemini-4-neon-xhigh`, or isolated strict non-skip-permissions `agy` from a clean empty
-  temporary directory verified outside any Git checkout) after `gpt-6.2-sol` (never for
-  repositories declaring client, personal, or regulated data, or where the owner has not approved
-  that provider, where review falls through to `claude-fable-5-2` at reasoning high); added
-  `O16-reviewer-fallback-regulated-no-codex`, `O17-coding-fallback-no-codex`, and
+- **mneves-fable-orchestrator**: added `gemini-4-neon-xhigh` as the coding fallback (unattended
+  `agy-yolo` strictly inside an enclosing container/VM sandbox when explicitly authorized;
+  interactive approval or blocked otherwise) and first read-only review fallback (`autoreview
+  --engine agy --model gemini-4-neon-xhigh`, or isolated strict non-skip-permissions `agy` from a
+  clean empty temporary directory verified outside any Git checkout) after `gpt-6.2-sol` (never
+  for repositories declaring client, personal, or regulated data, or where the owner has not
+  approved that provider, where review falls through to `claude-fable-5-2` at reasoning high);
+  added `O16-reviewer-fallback-regulated-no-codex`, `O17-coding-fallback-no-codex`, and
   `O18-reviewer-fallback-unapproved-provider` to `tools/routing-eval/cases.json`.
 - **collections/pstack**: added `adaptations/11-agy-yolo-fallback.patch` documenting the
   `gemini-4-neon-xhigh` coding and isolated read-only review fallback after `gpt-6.2-sol`
