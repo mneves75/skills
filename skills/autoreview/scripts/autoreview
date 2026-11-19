@@ -6408,46 +6408,52 @@ def agy_adc_auth_enabled() -> bool:
 
 
 def agy_user_home_dirs(repo: Path) -> list[Path]:
-    """Return verified external home director(ies) for Agy gateway/auth checks.
+    """Return verified external home directories for Agy auth and gateway checks.
 
-    Fails closed when a configured HOME/USERPROFILE resolves inside the
-    reviewed repository (for example, reviewing $HOME itself) or when no home
-    directory can be determined outside the repository, so enterprise gateway
-    settings cannot be skipped silently.
+    Index 0 is always the platform's active home directory (`USERPROFILE` on
+    Windows, `HOME` on POSIX, or `Path.home()` when that variable is absent),
+    used for `modelProvider` opt-in and auth staging. Any distinct secondary
+    profile variable (`HOME` on Windows, `USERPROFILE` on POSIX) is appended
+    solely for enterprise gateway inspection. Fails closed when either home
+    cannot be verified outside the reviewed repository.
     """
-    keys = ("USERPROFILE", "HOME") if sys.platform == "win32" else ("HOME", "USERPROFILE")
-    homes: list[Path] = []
-    seen: set[Path] = set()
-    any_configured = False
-    for key in keys:
-        if key not in os.environ:
-            continue
-        any_configured = True
-        raw = os.environ[key].strip()
-        if not raw or not external_env_path(repo, raw):
+    primary_key = "USERPROFILE" if sys.platform == "win32" else "HOME"
+    secondary_key = "HOME" if sys.platform == "win32" else "USERPROFILE"
+    if primary_key in os.environ:
+        raw_primary = os.environ[primary_key].strip()
+        if not raw_primary or not external_env_path(repo, raw_primary):
             raise SystemExit(
-                f"agy engine refused: {key} cannot be verified outside the reviewed "
+                f"agy engine refused: {primary_key} cannot be verified outside the reviewed "
                 "repository to check enterprise gateway settings; set a valid home "
                 "directory outside the repository or choose another engine"
             )
-        resolved = Path(raw).expanduser().resolve()
-        if resolved not in seen:
-            seen.add(resolved)
-            homes.append(Path(raw).expanduser())
-    if not any_configured:
+        active_home = Path(raw_primary).expanduser()
+    else:
         try:
-            fallback_home = Path.home()
+            active_home = Path.home()
         except (OSError, RuntimeError) as exc:
             raise SystemExit(
                 "agy engine refused: user home directory could not be determined to "
                 f"verify enterprise gateway settings ({exc})"
             ) from exc
-        if not external_env_path(repo, str(fallback_home)):
+        if not external_env_path(repo, str(active_home)):
             raise SystemExit(
                 "agy engine refused: user home directory cannot be verified outside "
                 "the reviewed repository to check enterprise gateway settings"
             )
-        homes.append(fallback_home)
+    homes: list[Path] = [active_home]
+    seen: set[Path] = {active_home.resolve()}
+    if secondary_key in os.environ:
+        raw_secondary = os.environ[secondary_key].strip()
+        if not raw_secondary or not external_env_path(repo, raw_secondary):
+            raise SystemExit(
+                f"agy engine refused: {secondary_key} cannot be verified outside the reviewed "
+                "repository to check enterprise gateway settings; set a valid home "
+                "directory outside the repository or choose another engine"
+            )
+        secondary_home = Path(raw_secondary).expanduser()
+        if secondary_home.resolve() not in seen:
+            homes.append(secondary_home)
     return homes
 
 

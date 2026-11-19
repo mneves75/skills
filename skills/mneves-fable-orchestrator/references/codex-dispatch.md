@@ -158,14 +158,17 @@ an uncontained worktree session.
 Inside an authorized enclosing container/VM sandbox, complete two preflight checks before
 launching `agy-yolo`:
 
-1. **Trusted workspace customizations only**: inspect all Antigravity workspace discovery paths —
-   `.agents/`, `.agent/`, `_agents/`, `_agent/`, `.gemini/`, `.antigravity/` (including
-   `hooks.json`, `plugins/`, and `mcp_config.json`), any configured `personal_customization_dir`,
-   **and resolve every Antigravity workspace discovery/plugin manifest to its target paths** (even
-   when a manifest points outside those directories). Refuse any untrusted hooks (`SessionStart`,
-   `PreInvocation`, etc.), plugins, or workspace MCP servers — or remove the untrusted files and
-   any manifest references to out-of-workspace targets in a clean scratch copy — because they run
-   before the model sees the brief and outside Agy's terminal sandbox.
+1. **Trusted workspace and container-home customizations only**: inspect all Antigravity workspace
+   discovery paths — `.agents/`, `.agent/`, `_agents/`, `_agent/`, `.gemini/`, `.antigravity/`
+   (including `hooks.json`, `plugins/`, and `mcp_config.json`), any configured
+   `personal_customization_dir`, **and resolve every workspace discovery/plugin manifest to its
+   target paths** (even when a manifest points outside those directories). Also use an auth-only
+   container `HOME` (staging only OAuth/ADC credentials) or inspect global Agy hooks and installed
+   plugins under the container's `HOME` (`~/.gemini/`, `~/.antigravity/`, `~/.agents/`, and
+   installed plugin manifests). Refuse any untrusted hooks (`SessionStart`, `PreInvocation`, etc.),
+   plugins, or workspace MCP servers — or remove the untrusted files and any manifest references to
+   out-of-workspace targets in a clean scratch copy — because they run before the model sees the
+   brief and outside Agy's terminal sandbox.
 2. **Verify effective provider and endpoint**: check `admin_settings.json`, user `settings.json`,
    `AGY_LLM_GATEWAY_*`, `GOOGLE_GEMINI_BASE_URL`, `GEMINI_API_KEY`, `AGY_ADC_AUTH`, and
    `GOOGLE_APPLICATION_CREDENTIALS` inside the container so repository contents are sent only to
@@ -194,9 +197,9 @@ run_agy_coding_fallback() {
   jq -se '
     (any(.[]; .event == "step_update" and (
       .step_update.state == "DENIED"
-      or ((.step_update.tool_info.error.message // .step_update.error.message // "")
-          | ascii_downcase | gsub("^\\s+"; "")
-          | (startswith("permission check failed") and contains("permission denied")))
+      or ([(.step_update.tool_info.error.message // ""), (.step_update.error.message // "")]
+          | any(.[]; ascii_downcase | gsub("^\\s+"; "")
+            | (contains("permission check failed") and contains("permission denied"))))
     )) | not)
     and ([.[] | select(.event == "result")] as $r
       | ($r | length) == 1

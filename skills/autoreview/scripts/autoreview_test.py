@@ -2065,6 +2065,20 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 ):
                     self.assertFalse(AUTOREVIEW.agy_explicit_gemini_api_provider(repo))
 
+                with mock.patch.dict(
+                    os.environ,
+                    {
+                        "USERPROFILE": str(other_profile),
+                        "GEMINI_API_KEY": "test-key-123",
+                    },
+                    clear=True,
+                ), mock.patch.object(AUTOREVIEW.sys, "platform", "linux"), mock.patch.object(
+                    AUTOREVIEW.Path, "home", return_value=posix_home,
+                ), mock.patch.object(
+                    AUTOREVIEW, "agy_admin_settings_path", return_value=root / "missing-admin.json",
+                ):
+                    self.assertFalse(AUTOREVIEW.agy_explicit_gemini_api_provider(repo))
+
             with self.subTest(label="non-exact saved modelProvider refuses"):
                 bad_case_home = root / "bad-case-home"
                 (bad_case_home / ".gemini" / "antigravity-cli").mkdir(parents=True)
