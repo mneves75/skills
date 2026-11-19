@@ -161,9 +161,10 @@ launching `agy-yolo`:
 1. **Trusted workspace customizations only**: inspect `.agents/` (including `.agents/hooks.json`,
    `.agents/plugins/`, and `.agents/mcp_config.json`), `.gemini/`, and `.antigravity/`, **and
    resolve every Antigravity workspace discovery/plugin manifest to its target paths** (even when a
-   manifest points outside those directories). Refuse — or strip in a clean scratch copy — any
-   untrusted hooks (`SessionStart`, `PreInvocation`, etc.), plugins, or workspace MCP servers,
-   because they run before the model sees the brief and outside Agy's terminal sandbox.
+   manifest points outside those directories). Refuse any untrusted hooks (`SessionStart`,
+   `PreInvocation`, etc.), plugins, or workspace MCP servers — or remove the untrusted files and
+   any manifest references to out-of-workspace targets in a clean scratch copy — because they run
+   before the model sees the brief and outside Agy's terminal sandbox.
 2. **Verify effective provider and endpoint**: check `admin_settings.json`, user `settings.json`,
    `AGY_LLM_GATEWAY_*`, `GOOGLE_GEMINI_BASE_URL`, `GEMINI_API_KEY`, `AGY_ADC_AUTH`, and
    `GOOGLE_APPLICATION_CREDENTIALS` inside the container so repository contents are sent only to
@@ -201,10 +202,12 @@ flags (`--mode`, `--base`, `--commit`, `--max-priority`, `--prompt-file`, `--dat
 changes only the reviewer engine and model:
 
 - **Committed branch/commit targets (`--mode branch` / `--mode commit`)**: freeze `BASE_SHA` and
-  `HEAD_SHA` before launching the primary reviewer and pass the same frozen SHAs to both reviewers.
-  For `--mode commit`, pass `--commit "$HEAD_SHA"` directly. For `--mode branch`, run the fallback
-  inside a `--detach --no-checkout` worktree pinned to `HEAD_SHA` so live branch movement cannot
-  shift the diff and zero files are checked out (no Git smudge, process, or LFS filters run):
+  `HEAD_SHA` before launching the primary reviewer and run both reviewers against those exact SHAs
+  (confirming `HEAD` still equals `HEAD_SHA` if the primary runs in the live checkout). For
+  `--mode commit`, pass `--commit "$HEAD_SHA"` directly. For `--mode branch`, `autoreview` builds
+  its diff bundle solely from Git objects and launches the reviewer in an empty non-Git workspace,
+  so running inside a `--detach --no-checkout` worktree pinned to `HEAD_SHA` produces the identical
+  bundle without checking out files (no Git smudge, process, or LFS filters run):
 
 ```bash
 # Freeze exact endpoints BEFORE launching the primary reviewer (reuse them for both reviewers):
@@ -212,21 +215,21 @@ BASE_SHA=$(git rev-parse --verify 'origin/main^{commit}') || exit 1
 HEAD_SHA=$(git rev-parse --verify 'HEAD^{commit}') || exit 1
 ORIGINAL_REVIEW_ARGS=(--mode branch --base "$BASE_SHA" --max-priority P3)
 
-run_agy_branch_review_fallback() {
-  local wt="" rc=0
-  wt=$(mktemp -d) || return $?
-  cleanup() {
-    trap - RETURN INT TERM
+run_agy_branch_review_fallback() (
+  wt=$(mktemp -d) || exit $?
+  _cleanup_agy_wt() {
     git worktree remove --force "$wt" 2>/dev/null || rm -rf -- "$wt"
-    git worktree prune 2>/dev/null || true
   }
-  trap cleanup RETURN INT TERM
+  trap '_cleanup_agy_wt; exit 130' INT
+  trap '_cleanup_agy_wt; exit 143' TERM
   git -c core.hooksPath=/dev/null worktree add --detach --no-checkout "$wt" "$HEAD_SHA" \
-    || return 1
+    || { _cleanup_agy_wt; exit 1; }
+  rc=0
   (cd "$wt" && python3 /path/to/autoreview/scripts/autoreview \
     "${ORIGINAL_REVIEW_ARGS[@]}" --engine agy --model gemini-4-neon-xhigh) || rc=$?
-  return "$rc"
-}
+  _cleanup_agy_wt
+  exit "$rc"
+)
 
 run_agy_branch_review_fallback
 ```
@@ -234,8 +237,9 @@ run_agy_branch_review_fallback
 - **Local/uncommitted targets (`--mode local` / `--mode uncommitted`)**: do **not** use a clean
   detached worktree (which would omit staged, unstaged, and untracked changes). Run
   `autoreview --engine agy --model gemini-4-neon-xhigh` directly in the original checkout with the
-  original flags (pinning `--base "$BASE_SHA"` if `--base` was passed) and confirm the working tree
-  and index have not changed between reviewers before accepting the report.
+  original flags (pinning `--base "$BASE_SHA"` if `--base` was passed), and compare a hash of
+  `git status --porcelain=v2` plus `git diff HEAD` (and untracked file hashes) before and after
+  to confirm the local snapshot did not change between reviewers.
 
 If the original review restricted tools or web search (`--no-tools` or `--no-web-search`), pass
 those flags unchanged: `autoreview --engine agy` refuses before launch because Agy's built-in

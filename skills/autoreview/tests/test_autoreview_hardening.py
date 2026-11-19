@@ -7422,9 +7422,30 @@ os.execv(target, [str(target), *sys.argv[1:]])
             record = root / "agy-record.json"
             fake_home = root / "fake-home"
             fake_home.mkdir()
-            env = os.environ.copy()
+            if sys.platform == "darwin":
+                host_admin_settings = Path("/Library/Application Support/Antigravity/admin_settings.json")
+            elif sys.platform == "win32":
+                host_admin_settings = None
+            else:
+                host_admin_settings = Path("/etc/antigravity/admin_settings.json")
+            if host_admin_settings is not None and (host_admin_settings.exists() or host_admin_settings.is_symlink()):
+                self.skipTest(f"host has machine-wide {host_admin_settings}")
+            env = {
+                key: value
+                for key, value in os.environ.items()
+                if not key.startswith("AGY_LLM_GATEWAY_")
+                and key not in {
+                    "AGY_ADC_AUTH",
+                    "AUTOREVIEW_AGY_MODEL_PROVIDER",
+                    "GEMINI_API_KEY",
+                    "GOOGLE_APPLICATION_CREDENTIALS",
+                    "GOOGLE_GEMINI_BASE_URL",
+                }
+            }
             env["HOME"] = str(fake_home)
             env["USERPROFILE"] = str(fake_home)
+            if sys.platform == "win32":
+                env["ProgramData"] = str(root / "fake-programdata")
             add_fake_trufflehog(self.helper, root, env)
             env["AUTOREVIEW_FAKE_RECORD"] = str(record)
 
