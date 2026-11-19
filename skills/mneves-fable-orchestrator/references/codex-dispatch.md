@@ -155,9 +155,21 @@ the authorized Codex seat). Why an enclosing container or VM is required:
 Without an enclosing container or VM, **report the coding fallback blocked** rather than launching
 an uncontained worktree session.
 
-Inside an authorized enclosing container/VM sandbox, pass the brief from a mode-`0600` file over
-stdin `stream-json` (never argv), clean up temporary files even under `set -e` while preserving
-the exit status, and verify `.result.status == "SUCCESS"` before accepting `.result.response`:
+Inside an authorized enclosing container/VM sandbox, complete two preflight checks before
+launching `agy-yolo`:
+
+1. **Trusted workspace customizations only**: inspect the worktree and refuse (or strip in a clean
+   scratch copy) untrusted workspace lifecycle hooks, plugins, or workspace MCP configs
+   (`.gemini/`, `.antigravity/`, `.agents/mcp_config.json`) — workspace hooks such as
+   `SessionStart` and `PreInvocation` run before the model sees the brief and outside Agy's
+   terminal sandbox.
+2. **Verify effective provider and endpoint**: check `admin_settings.json`, user `settings.json`,
+   `AGY_LLM_GATEWAY_*`, `GOOGLE_GEMINI_BASE_URL`, `GEMINI_API_KEY`, and `AGY_ADC_AUTH` inside the
+   container so repository contents are sent only to the owner-approved provider and endpoint.
+
+Then pass the brief from a mode-`0600` file over stdin `stream-json` (never argv), clean up
+temporary files even under `set -e` while preserving the exit status, and verify
+`.result.status == "SUCCESS"` before accepting `.result.response`:
 
 ```bash
 # Run ONLY inside an enclosing container/VM sandbox with explicit owner/host authorization:
@@ -181,16 +193,22 @@ run_agy_coding_fallback() {
 ### Read-only review fallback
 
 Run the first read-only review fallback through the sibling `autoreview` skill (**not shipped with
-this skill**), preserving the original review's exact Git target, priority, prompt, and restriction
-flags (`--mode`, `--base`, `--commit`, `--max-priority`, `--prompt-file`, `--dataset`,
+this skill**), freezing the resolved Git target SHAs (`BASE_SHA` and `HEAD_SHA`) before the first
+reviewer runs and preserving the original review's exact target, priority, prompt, and restriction
+flags (`--mode`, `--base "$BASE_SHA"`, `--commit`, `--max-priority`, `--prompt-file`, `--dataset`,
 `--no-tools`, `--no-web-search`) so the fallback changes only the reviewer engine and model:
 
 ```bash
-# Example: preserve every original target, priority, prompt, and restriction flag unchanged:
-ORIGINAL_REVIEW_ARGS=(--mode branch --base origin/main --max-priority P3)
+# Freeze the exact candidate before the first reviewer runs so a concurrent fetch or branch
+# move cannot cause the fallback to review a different diff:
+BASE_SHA=$(git rev-parse origin/main)
+HEAD_SHA=$(git rev-parse HEAD)
+ORIGINAL_REVIEW_ARGS=(--mode branch --base "$BASE_SHA" --max-priority P3)
+
 python3 /path/to/autoreview/scripts/autoreview \
   "${ORIGINAL_REVIEW_ARGS[@]}" \
   --engine agy --model gemini-4-neon-xhigh
+[ "$(git rev-parse HEAD)" = "$HEAD_SHA" ] || { echo "HEAD moved during fallback review" >&2; exit 1; }
 ```
 
 If the original review restricted tools or web search (`--no-tools` or `--no-web-search`), pass

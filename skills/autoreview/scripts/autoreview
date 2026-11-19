@@ -6465,16 +6465,16 @@ def agy_admin_settings_path() -> Path:
     return Path("/etc/antigravity/admin_settings.json")
 
 
-def agy_gateway_value_enabled(gw_val: Any) -> bool:
-    """Return True if a saved gateway setting is active, honoring explicit enabled=False."""
+def agy_gateway_value_state(gw_val: Any) -> str | None:
+    """Return 'enabled', 'disabled', or None for a saved gateway setting."""
     if isinstance(gw_val, dict):
         if "enabled" in gw_val:
             enabled = gw_val["enabled"]
             if isinstance(enabled, bool):
-                return enabled
-            return True
-        return any(gw_val.values())
-    return bool(gw_val)
+                return "enabled" if enabled else "disabled"
+            return "enabled"
+        return "enabled" if any(gw_val.values()) else None
+    return "enabled" if gw_val else None
 
 
 def resolve_agy_default_adc_path(repo: Path, real_home: Path) -> Path | None:
@@ -6538,17 +6538,6 @@ def agy_explicit_gemini_api_provider(repo: Path) -> bool:
       and refuses GOOGLE_GEMINI_BASE_URL when direct Gemini API routing is
       enabled.
     """
-    gateway_env_keys = sorted(
-        key for key, value in os.environ.items()
-        if key.startswith("AGY_LLM_GATEWAY_") and value.strip()
-    )
-    if gateway_env_keys:
-        joined = ", ".join(gateway_env_keys)
-        raise SystemExit(
-            f"agy engine refused: enterprise gateway configuration ({joined}) "
-            "cannot be preserved under isolated autoreview; choose another engine "
-            "or unset gateway variables only if direct routing is authorized"
-        )
     home_dirs = agy_user_home_dirs(repo)
     if agy_adc_auth_enabled():
         raw_gac = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "").strip()
@@ -6559,17 +6548,17 @@ def agy_explicit_gemini_api_provider(repo: Path) -> bool:
                 "credentials file outside the repository before running autoreview"
             )
         resolve_agy_default_adc_path(repo, home_dirs[0])
-    settings_to_inspect: list[tuple[Path, bool]] = [(agy_admin_settings_path(), False)]
-    for home_path in home_dirs:
-        settings_to_inspect.extend((
-            (home_path / ".gemini" / "antigravity-cli" / "settings.json", True),
-            (home_path / ".antigravity" / "settings.json", False),
-            (home_path / ".gemini" / "config" / "config.json", False),
-        ))
-    cli_settings_parsed: dict[str, Any] | None = None
-    for settings_path, is_cli_settings in settings_to_inspect:
-        if not (settings_path.exists() or settings_path.is_symlink()):
-            continue
+
+    def load_agy_settings_file(settings_path: Path) -> dict[str, Any] | None:
+        try:
+            present = settings_path.exists() or settings_path.is_symlink()
+        except OSError as exc:
+            raise SystemExit(
+                f"agy engine refused: could not inspect configuration path "
+                f"{settings_path.name} ({exc})"
+            ) from exc
+        if not present:
+            return None
         if not settings_path.is_file() or not external_env_path(repo, str(settings_path)):
             raise SystemExit(
                 f"agy engine refused: configuration path {settings_path.name} "
@@ -6586,13 +6575,59 @@ def agy_explicit_gemini_api_provider(repo: Path) -> bool:
             raise SystemExit(
                 f"agy engine refused: unexpected JSON shape in {settings_path.name}"
             )
+        return loaded
+
+    # Evaluate enterprise gateway precedence:
+    # 1. Machine-wide admin_settings.json (highest precedence; explicit enabled=False
+    #    overrides lower-priority env vars and user settings).
+    # 2. AGY_LLM_GATEWAY_* environment variables.
+    # 3. User settings files under HOME/USERPROFILE.
+    admin_path = agy_admin_settings_path()
+    admin_loaded = load_agy_settings_file(admin_path)
+    admin_gateway_disabled = False
+    if admin_loaded is not None:
         for gw_key in ("gateway", "llmGateway", "enterpriseGateway"):
-            if agy_gateway_value_enabled(loaded.get(gw_key)):
+            gw_state = agy_gateway_value_state(admin_loaded.get(gw_key))
+            if gw_state == "enabled":
                 raise SystemExit(
                     f"agy engine refused: enterprise gateway settings ({gw_key}) in "
-                    f"{settings_path.name} cannot be verified/preserved under isolated "
+                    f"{admin_path.name} cannot be verified/preserved under isolated "
                     "autoreview; choose another engine"
                 )
+            if gw_state == "disabled":
+                admin_gateway_disabled = True
+    if not admin_gateway_disabled:
+        gateway_env_keys = sorted(
+            key for key, value in os.environ.items()
+            if key.startswith("AGY_LLM_GATEWAY_") and value.strip()
+        )
+        if gateway_env_keys:
+            joined = ", ".join(gateway_env_keys)
+            raise SystemExit(
+                f"agy engine refused: enterprise gateway configuration ({joined}) "
+                "cannot be preserved under isolated autoreview; choose another engine "
+                "or unset gateway variables only if direct routing is authorized"
+            )
+    user_settings_to_inspect: list[tuple[Path, bool]] = []
+    for home_path in home_dirs:
+        user_settings_to_inspect.extend((
+            (home_path / ".gemini" / "antigravity-cli" / "settings.json", True),
+            (home_path / ".antigravity" / "settings.json", False),
+            (home_path / ".gemini" / "config" / "config.json", False),
+        ))
+    cli_settings_parsed: dict[str, Any] | None = None
+    for settings_path, is_cli_settings in user_settings_to_inspect:
+        loaded = load_agy_settings_file(settings_path)
+        if loaded is None:
+            continue
+        if not admin_gateway_disabled:
+            for gw_key in ("gateway", "llmGateway", "enterpriseGateway"):
+                if agy_gateway_value_state(loaded.get(gw_key)) == "enabled":
+                    raise SystemExit(
+                        f"agy engine refused: enterprise gateway settings ({gw_key}) in "
+                        f"{settings_path.name} cannot be verified/preserved under isolated "
+                        "autoreview; choose another engine"
+                    )
         if is_cli_settings and cli_settings_parsed is None:
             cli_settings_parsed = loaded
     override = os.environ.get("AUTOREVIEW_AGY_MODEL_PROVIDER", "").strip().lower()

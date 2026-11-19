@@ -1967,7 +1967,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             ):
                 with self.assertRaises(SystemExit) as cm:
                     AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
-            self.assertIn("cannot be verified outside the reviewed repository", str(cm.exception))
+                self.assertIn("HOME cannot be verified", str(cm.exception))
 
             in_repo_gac = repo / "adc.json"
             in_repo_gac.write_text('{"type":"service_account"}', encoding="utf-8")
@@ -2006,6 +2006,25 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                     clear=True,
                 ), mock.patch.object(
                     AUTOREVIEW, "agy_admin_settings_path", return_value=root / "missing-admin.json",
+                ):
+                    self.assertFalse(AUTOREVIEW.agy_explicit_gemini_api_provider(repo))
+
+            with self.subTest(label="admin_settings.json enabled=false overrides user enabled=true"):
+                admin_disabled = root / "admin_disabled.json"
+                admin_disabled.write_text(
+                    json.dumps({"gateway": {"enabled": False, "address": "https://gateway.corp.example"}}),
+                    encoding="utf-8",
+                )
+                with mock.patch.dict(
+                    os.environ,
+                    {
+                        "HOME": str(agy_dir_home),
+                        "USERPROFILE": str(agy_dir_home),
+                        "AGY_LLM_GATEWAY_URL": "https://user-gateway.example",
+                    },
+                    clear=True,
+                ), mock.patch.object(
+                    AUTOREVIEW, "agy_admin_settings_path", return_value=admin_disabled,
                 ):
                     self.assertFalse(AUTOREVIEW.agy_explicit_gemini_api_provider(repo))
 
