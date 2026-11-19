@@ -1222,12 +1222,16 @@ def safe_engine_env(
     amp_allowed_exact = {
         "AMP_API_KEY",
     }
-    # AGY_ADC_AUTH enables headless Application Default Credentials; SSH_CONNECTION
-    # triggers Linux file-based OAuth storage (~/.gemini/antigravity-cli/
-    # antigravity-oauth-token) instead of desktop keyring migration over SSH.
+    # AGY_ADC_AUTH + GOOGLE_CLOUD_{LOCATION,PROJECT,QUOTA_PROJECT} preserve
+    # headless ADC routing and data residency; SSH_CONNECTION triggers Linux
+    # file-based OAuth storage (~/.gemini/antigravity-cli/antigravity-oauth-token)
+    # instead of desktop keyring migration over SSH.
     agy_allowed_exact = {
         "AGY_ADC_AUTH",
         "GEMINI_API_KEY",
+        "GOOGLE_CLOUD_LOCATION",
+        "GOOGLE_CLOUD_PROJECT",
+        "GOOGLE_CLOUD_QUOTA_PROJECT",
         "SSH_CONNECTION",
     }
     engine_allowed_exact = {

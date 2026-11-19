@@ -1586,6 +1586,9 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             env_vars = {
                 "AGY_ADC_AUTH": "true",
                 "GEMINI_API_KEY": "test-gemini-key",
+                "GOOGLE_CLOUD_LOCATION": "eu",
+                "GOOGLE_CLOUD_PROJECT": "demo-project",
+                "GOOGLE_CLOUD_QUOTA_PROJECT": "demo-quota-project",
                 "SSH_CONNECTION": "10.0.0.1 12345 10.0.0.2 22",
                 "SSH_CLIENT": "10.0.0.1 12345 22",
                 "SSH_TTY": "/dev/pts/0",
@@ -1598,6 +1601,9 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 filtered = AUTOREVIEW.safe_engine_env(repo, [], engine="agy")
         self.assertEqual(filtered.get("AGY_ADC_AUTH"), "true")
         self.assertEqual(filtered.get("GEMINI_API_KEY"), "test-gemini-key")
+        self.assertEqual(filtered.get("GOOGLE_CLOUD_LOCATION"), "eu")
+        self.assertEqual(filtered.get("GOOGLE_CLOUD_PROJECT"), "demo-project")
+        self.assertEqual(filtered.get("GOOGLE_CLOUD_QUOTA_PROJECT"), "demo-quota-project")
         self.assertEqual(filtered.get("SSH_CONNECTION"), "10.0.0.1 12345 10.0.0.2 22")
         self.assertEqual(Path(str(filtered.get("GOOGLE_APPLICATION_CREDENTIALS"))).resolve(), gcp_creds.resolve())
         for forbidden in ("SSH_CLIENT", "SSH_TTY", "AWS_SHARED_CREDENTIALS_FILE", "AWS_CONFIG_FILE", "OPENAI_API_KEY"):
