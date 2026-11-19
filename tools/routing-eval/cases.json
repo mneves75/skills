@@ -92,17 +92,17 @@
    "sources": [
     "skills/mneves-fable-orchestrator/SKILL.md"
    ],
-   "changed": false,
+   "changed": true,
    "scenario": "A Claude ordinary worker (Opus) built a change that needs review. Codex is installed, but every Codex account returns an out-of-quota error. Following this skill, you dispatch the review of that change. Report the reviewer's model (the exact alias or id the text gives) and reasoning effort.",
    "expected": {
     "model": [
-     "claude-fable-5-2"
+     "gemini-4-neon-xhigh"
     ],
     "effort": [
-     "high"
+     "xhigh"
     ]
    },
-   "known_failure": "Reporting the gate blocked (the 1.51.0 text), an Opus self-review, or the economy executor."
+   "known_failure": "claude-fable-5-2 on an ordinary repo (the 1.51.5 first fallback), reporting blocked, an Opus self-review, or the economy executor."
   },
   {
    "id": "O5-planner-claude",
@@ -168,10 +168,10 @@
      "gpt-6.2-sol"
     ],
     "effort": [
-     "high"
+     "medium"
     ]
    },
-   "known_failure": "gpt-6.1-sol (the 1.51.3 value); the Opus medium rule leaking onto a Codex seat."
+   "known_failure": "gpt-6.1-sol (the 1.51.3 value); stale high effort on the Codex orchestrator seat."
   },
   {
    "id": "P1-opus-with-default-line",
@@ -658,13 +658,47 @@
     ]
    },
    "known_failure": "gpt-6-astra at xhigh (the 1.51.3 value), the Claude column's Fable, or an execution seat's gpt-6.2-sol."
+  },
+  {
+   "id": "O16-reviewer-fallback-regulated-no-codex",
+   "sources": [
+    "skills/mneves-fable-orchestrator/SKILL.md"
+   ],
+   "changed": true,
+   "scenario": "A Claude ordinary worker (Opus) built a change in a repository whose AGENTS.md declares client and regulated data. Codex is installed, but every Codex account returns an out-of-quota error. Following this skill, you dispatch the review of that change. Report the reviewer's model (the exact alias or id the text gives) and reasoning effort.",
+   "expected": {
+    "model": [
+     "claude-fable-5-2"
+    ],
+    "effort": [
+     "high"
+    ]
+   },
+   "known_failure": "Sending regulated data to gemini-4-neon-xhigh, reporting blocked, or an Opus self-review."
+  },
+  {
+   "id": "O17-coding-fallback-no-codex",
+   "sources": [
+    "skills/mneves-fable-orchestrator/SKILL.md"
+   ],
+   "changed": true,
+   "scenario": "You need to dispatch a Codex coding seat on an ordinary open-source repository (no client, personal or regulated data), and every Codex account returns an out-of-quota error. Following this skill, you dispatch the coding fallback in its place. Report its model (the exact alias or id the text gives) and reasoning effort.",
+   "expected": {
+    "model": [
+     "gemini-4-neon-xhigh"
+    ],
+    "effort": [
+     "xhigh"
+    ]
+   },
+   "known_failure": "Skipping directly to the economy executor or failing without trying the coding fallback."
   }
  ],
  "anchors": {
   "O1-main-session-claude": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "main session      = Opus, latest release (Claude alias `claude-opus-5-5`), reasoning medium | gpt-6.2-sol, reasoning high (Codex orchestrator)"
+    "text": "main session      = Opus, latest release (Claude alias `claude-opus-5-5`), reasoning medium | gpt-6.2-sol, reasoning medium (Codex orchestrator)"
    }
   ],
   "O2-advisor-claude": [
@@ -676,7 +710,7 @@
   "O3-reviewer-of-codex-build": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (autoreview `--model gpt-6.2-sol --thinking high`); when no Codex account can run: Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high"
+    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (autoreview `--model gpt-6.2-sol --thinking high`); when no Codex account can run: gemini-4-neon-xhigh, reasoning xhigh (via `agy-yolo --mode plan --model gemini-4-neon-xhigh`), then Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high"
    },
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
@@ -686,7 +720,7 @@
   "O4-reviewer-of-claude-build": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (autoreview `--model gpt-6.2-sol --thinking high`); when no Codex account can run: Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high"
+    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (autoreview `--model gpt-6.2-sol --thinking high`); when no Codex account can run: gemini-4-neon-xhigh, reasoning xhigh (via `agy-yolo --mode plan --model gemini-4-neon-xhigh`), then Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high"
    },
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
@@ -718,7 +752,7 @@
   "O8-main-session-codex": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "main session      = Opus, latest release (Claude alias `claude-opus-5-5`), reasoning medium | gpt-6.2-sol, reasoning high (Codex orchestrator)"
+    "text": "main session      = Opus, latest release (Claude alias `claude-opus-5-5`), reasoning medium | gpt-6.2-sol, reasoning medium (Codex orchestrator)"
    }
   ],
   "P1-opus-with-default-line": [
@@ -932,13 +966,13 @@
   "O10-ordinary-worker-claude": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "ordinary worker   = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (Codex worker)"
+    "text": "ordinary worker   = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning medium (Codex worker)"
    }
   ],
   "O11-bounded-worker-claude": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "bounded worker    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (bounded Codex task)"
+    "text": "bounded worker    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning medium (bounded Codex task)"
    }
   ],
   "O12-plan-advisor-claude": [
@@ -1106,23 +1140,43 @@
   "O13-economy-executor": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "economy executor  = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the only substitute when no Claude or Codex seat for that role can run)"
+    "text": "economy executor  = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the only substitute when no Claude, Codex, or coding fallback seat for that role can run)"
    }
   ],
   "O14-reviewer-fallback-no-codex": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (autoreview `--model gpt-6.2-sol --thinking high`); when no Codex account can run: Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high"
+    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (autoreview `--model gpt-6.2-sol --thinking high`); when no Codex account can run: gemini-4-neon-xhigh, reasoning xhigh (via `agy-yolo --mode plan --model gemini-4-neon-xhigh`), then Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high"
    },
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "fallback reviews in its place, in a fresh context, gates and security acceptance included."
+    "text": "the reviewer row's first fallback reviews in its place, in a fresh\nread-only context, gates and security acceptance included"
    }
   ],
   "O15-plan-advisor-codex": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
     "text": "plan advisor      = Fable, latest release (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (advice and plan review)"
+   }
+  ],
+  "O16-reviewer-fallback-regulated-no-codex": [
+   {
+    "path": "skills/mneves-fable-orchestrator/SKILL.md",
+    "text": "reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (autoreview `--model gpt-6.2-sol --thinking high`); when no Codex account can run: gemini-4-neon-xhigh, reasoning xhigh (via `agy-yolo --mode plan --model gemini-4-neon-xhigh`), then Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high"
+   },
+   {
+    "path": "skills/mneves-fable-orchestrator/SKILL.md",
+    "text": "When that first fallback is unavailable or disallowed by that\ndata policy, the reviewer row's second fallback reviews in its place, in a fresh context, gates\nand security acceptance included."
+   }
+  ],
+  "O17-coding-fallback-no-codex": [
+   {
+    "path": "skills/mneves-fable-orchestrator/SKILL.md",
+    "text": "coding fallback   = gemini-4-neon-xhigh, reasoning xhigh (after gpt-6.2-sol, via `agy-yolo --model gemini-4-neon-xhigh`)"
+   },
+   {
+    "path": "skills/mneves-fable-orchestrator/SKILL.md",
+    "text": "the coding fallback runs in its\nplace through the fallback CLI"
    }
   ]
  }

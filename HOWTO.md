@@ -845,8 +845,9 @@ reviewing run on different seats: code review runs on the other host's reviewer 
 Claude-built work, Claude reviews Codex-built work), so the model that built a change never
 reviews it. The concrete
 models and reasoning tiers live only in the skill's Defaults block.
-Codex review has no automatic model fallback: when no Codex account can run, the skill names one
-deliberate fallback reviewer, records why, and never lets it review a change its own model built.
+When no Codex account can run, the skill's Defaults block names an explicit coding fallback and an
+ordered review fallback (skipping the first fallback on client, personal or regulated data), records
+why each skipped seat could not run, and never lets a fallback review a change its own model built.
 The portable defaults do not change a running
 harness's main-session model. Caller overrides and actual host
 configuration take precedence; the skill's Defaults block owns its portable defaults.

@@ -4,7 +4,7 @@ Read this before the first `codex exec` or `codex-lane` command issued from anot
 harness. The orchestrator skill owns role selection; this file owns launcher mechanics.
 
 Contents: where Codex finds skills · one round or a lane · flags, resume, and fork · diagnose
-before retrying · optional account-aware launcher (not shipped) · acceptance.
+before retrying · optional account-aware launcher (not shipped) · coding and review fallback CLI (not shipped) · acceptance.
 
 ## Where Codex finds skills
 
@@ -121,6 +121,29 @@ can resume under another account. Its live quota probe runs the executor model a
 an isolated read-only directory with user instructions and skills disabled. Automatic account
 selection and an explicit profile must produce the same model policy; environment overrides such
 as `CODEX_AUTO_MODEL` are deliberate exceptions, checked in the session header.
+
+## Coding and review fallback CLI (not shipped)
+
+When no Codex account can run (not installed, out of quota, not signed in, or refused by host
+policy), the orchestrator's Defaults block routes coding and review after `gpt-6.2-sol` to
+`gemini-4-neon-xhigh` through `agy-yolo` — a personal wrapper/alias for
+`agy --dangerously-skip-permissions` (**not shipped with this skill**; substitute
+`agy --dangerously-skip-permissions` if you do not have the alias).
+
+```bash
+# Coding fallback (workspace writes allowed inside the authorized repo):
+agy-yolo -p '<self-contained brief>' --model gemini-4-neon-xhigh \
+  --output-format json --print-timeout 10m | jq -r .response
+
+# Read-only review fallback (--mode plan keeps the run read-only):
+agy-yolo --mode plan -p '<self-contained review brief>' --model gemini-4-neon-xhigh \
+  --output-format json --print-timeout 10m | jq -r .response
+```
+
+Do not pass `--disable-slash-commands` with `--mode plan`: the CLI warns that `--mode plan` has
+no effect while slash command expansion is disabled. Never send a repository that declares
+client, personal, or regulated data to this fallback; skip it explicitly and, for review, fall
+through to the reviewer row's second fallback.
 
 ## Acceptance
 
