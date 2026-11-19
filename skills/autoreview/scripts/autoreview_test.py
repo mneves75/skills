@@ -1709,10 +1709,19 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             ("not-a-version\n", full_help, "could not parse --version"),
         )
         with tempfile.TemporaryDirectory(prefix="autoreview-agy-probe-test.") as tmpdir:
-            repo = Path(tmpdir) / "repo"
+            root = Path(tmpdir)
+            repo = root / "repo"
             repo.mkdir()
+            clean_home = root / "clean-home"
+            clean_home.mkdir()
+            clean_env = {"HOME": str(clean_home), "USERPROFILE": str(clean_home)}
+            missing_admin = root / "missing-admin.json"
             for version_out, help_out, expected in cases:
-                with self.subTest(expected=expected), mock.patch.object(
+                with self.subTest(expected=expected), mock.patch.dict(
+                    os.environ, clean_env, clear=True,
+                ), mock.patch.object(
+                    AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
+                ), mock.patch.object(
                     AUTOREVIEW, "resolve_command", return_value="/usr/local/bin/agy",
                 ), mock.patch.object(
                     AUTOREVIEW,
@@ -1726,7 +1735,11 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                         AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
                 self.assertIn(expected, str(cm.exception))
 
-            with mock.patch.object(
+            with mock.patch.dict(
+                os.environ, clean_env, clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
+            ), mock.patch.object(
                 AUTOREVIEW, "resolve_command", return_value="/usr/local/bin/agy",
             ), mock.patch.object(
                 AUTOREVIEW,
@@ -2129,6 +2142,10 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
         )
 
         for label, bad_step in (
+            (
+                "subagent invocation executed",
+                {"step_index": 3, "step_type": "subagent", "state": "DONE", "subagent_info": {"role": "helper"}},
+            ),
             (
                 "command failed after run",
                 {"step_index": 2, "step_type": "tool", "tool_name": "run_command", "state": "ERROR", "tool_info": {"error": {"type": "TOOL_ERROR", "message": "command exited with status 1"}}},

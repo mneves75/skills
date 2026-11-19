@@ -201,12 +201,15 @@ flags (`--mode`, `--base`, `--commit`, `--max-priority`, `--prompt-file`, `--dat
 `--no-tools`, `--no-web-search`, using absolute paths for any file arguments) so the fallback
 changes only the reviewer engine and model:
 
-- **Committed branch/commit targets (`--mode branch` / `--mode commit`)**: freeze `BASE_SHA` and
-  `HEAD_SHA` before launching the primary reviewer and run both reviewers against those exact SHAs
-  (confirming `HEAD` still equals `HEAD_SHA` if the primary runs in the live checkout). For
-  `--mode commit`, pass `--commit "$HEAD_SHA"` directly. For `--mode branch`, `autoreview` builds
-  its diff bundle solely from Git objects and launches the reviewer in an empty non-Git workspace,
-  so running inside a `--detach --no-checkout` worktree pinned to `HEAD_SHA` produces the identical
+- **Committed branch/commit targets (`--mode branch` / `--mode commit`)**: freeze the exact Git
+  commit SHA(s) before launching the primary reviewer and pass the same frozen SHA(s) to both
+  reviewers. For `--mode commit`, resolve the requested `--commit` argument once
+  (`COMMIT_SHA=$(git rev-parse --verify "${ORIGINAL_COMMIT_REF}^{commit}") || exit 1`) and pass
+  `--commit "$COMMIT_SHA"` to both reviewers (never substituting `HEAD` when an earlier commit or
+  other ref was requested). For `--mode branch`, freeze `BASE_SHA` and `HEAD_SHA` (confirming
+  `HEAD` still equals `HEAD_SHA` if the primary runs in the live checkout); `autoreview` builds its
+  diff bundle solely from Git objects and launches the reviewer in an empty non-Git workspace, so
+  running inside a `--detach --no-checkout` worktree pinned to `HEAD_SHA` produces the identical
   bundle without checking out files (no Git smudge, process, or LFS filters run):
 
 ```bash

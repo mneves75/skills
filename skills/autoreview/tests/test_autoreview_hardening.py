@@ -7445,7 +7445,9 @@ os.execv(target, [str(target), *sys.argv[1:]])
             env["HOME"] = str(fake_home)
             env["USERPROFILE"] = str(fake_home)
             if sys.platform == "win32":
-                env["ProgramData"] = str(root / "fake-programdata")
+                for existing_key in [k for k in env if k.upper() == "PROGRAMDATA"]:
+                    del env[existing_key]
+                env["PROGRAMDATA"] = str(root / "fake-programdata")
             add_fake_trufflehog(self.helper, root, env)
             env["AUTOREVIEW_FAKE_RECORD"] = str(record)
 
