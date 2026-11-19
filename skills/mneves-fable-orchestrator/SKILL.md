@@ -61,9 +61,10 @@ place through the fallback CLI inside a sandboxed dedicated worktree (see
 [references/codex-dispatch.md](references/codex-dispatch.md)) — never in a repository that declares
 client, personal or regulated data, or one whose owner has not approved that provider; host-policy
 or task restrictions on a provider are not a reason to route around them, and disclosure must be
-authorized before dispatching. Unattended tool auto-approval requires explicit owner or host
-authorization and never widens permissions beyond the authorized Codex seat; if not authorized,
-report the seat blocked. Record the substitution and the error each Codex account returned.
+authorized before dispatching. Unattended tool auto-approval requires both explicit owner or host
+authorization and verified active OS or external containment, and never widens permissions beyond
+the authorized Codex seat; if either is missing, report the seat blocked. Record the substitution
+and the error each Codex account returned.
 
 When review runs, a seat never reviews what it built. That covers the workers, the heavy executor,
 the coding fallback, the economy executor, and the main session when it kept the hardest part: a

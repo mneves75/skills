@@ -45,10 +45,13 @@ passes `--allow-kimi-argv-prompt`. Pass that flag only on a machine whose other 
 the review pack; otherwise choose another engine.
 
 `--engine agy` sends the review prompt over stdin NDJSON (`--input-format stream-json
---output-format stream-json`), runs in an empty temporary workspace with `--disable-slash-commands`,
-`--sandbox`, and session-only `--settings` enforcing `toolPermission: "strict"`,
-`allowNonWorkspaceAccess: false`, `enableTerminalSandbox: true`, and explicit deny rules for
-`command(*)`, `write_file(*)`, `read_file(*)`, `read_url(*)`, `mcp(*)`, and `unsandboxed(*)`, and
-verifies `permission_mode == "strict"` plus tool events in the stream before accepting structured
-output. Because Antigravity CLI's built-in `search_web` cannot be disabled up front, `--engine agy`
+--output-format stream-json`), runs in an empty temporary workspace with an isolated `HOME`
+(staging only auth material — macOS Keychains link, file OAuth token, `GEMINI_API_KEY`, or
+`AGY_ADC_AUTH` / ADC credentials — so global/plugin hooks, plugins, user MCP servers, and global
+rules are never discovered), passes `--disable-slash-commands`, `--sandbox`, and session-only
+`--settings` enforcing `toolPermission: "strict"`, `allowNonWorkspaceAccess: false`,
+`enableTerminalSandbox: true`, and explicit deny rules for `command(*)`, `write_file(*)`,
+`read_file(*)`, `read_url(*)`, `mcp(*)`, and `unsandboxed(*)`, and verifies
+`permission_mode == "strict"` plus tool events in the stream before accepting structured output.
+Because Antigravity CLI's built-in `search_web` cannot be disabled up front, `--engine agy`
 rejects `--no-tools` and `--no-web-search`.

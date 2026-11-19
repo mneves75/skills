@@ -1220,9 +1220,11 @@ def safe_engine_env(
     amp_allowed_exact = {
         "AMP_API_KEY",
     }
-    # SSH_CONNECTION triggers Linux file-based OAuth storage (~/.gemini/antigravity-cli/
+    # AGY_ADC_AUTH enables headless Application Default Credentials; SSH_CONNECTION
+    # triggers Linux file-based OAuth storage (~/.gemini/antigravity-cli/
     # antigravity-oauth-token) instead of desktop keyring migration over SSH.
     agy_allowed_exact = {
+        "AGY_ADC_AUTH",
         "GEMINI_API_KEY",
         "SSH_CONNECTION",
     }
@@ -5086,17 +5088,26 @@ def agy_effort_arg(model: str | None, thinking: str | None) -> str | None:
 
 def ensure_agy_isolation_supported(args: argparse.Namespace, repo: Path) -> str:
     agy_bin = resolve_command(args.agy_bin, repo)
-    engine_env = safe_engine_env(
-        repo,
-        [Path(agy_bin).parent],
-        engine="agy",
-        extra={"COLUMNS": "240", "NO_COLOR": "1"},
-    )
     with tempfile.TemporaryDirectory(
         prefix="autoreview-agy-probe.",
         dir=safe_temp_root(repo),
     ) as tempdir:
         probe_cwd = Path(tempdir)
+        probe_home = probe_cwd / "home"
+        probe_home.mkdir(mode=0o700)
+        engine_env = safe_engine_env(
+            repo,
+            [Path(agy_bin).parent],
+            engine="agy",
+            extra={
+                "COLUMNS": "240",
+                "NO_COLOR": "1",
+                "HOME": str(probe_home),
+                "USERPROFILE": str(probe_home),
+                "XDG_CONFIG_HOME": str(probe_home / ".config"),
+                "XDG_DATA_HOME": str(probe_home / ".local" / "share"),
+            },
+        )
         version_result = run(
             [agy_bin, "--version"],
             probe_cwd,
@@ -6380,87 +6391,73 @@ def run_kimi(args: argparse.Namespace, repo: Path, prompt: str) -> str:
     return "\n".join(texts)
 
 
-def run_agy(args: argparse.Namespace, repo: Path, prompt: str) -> str:
-    if not getattr(args, "tools", True):
-        raise SystemExit(
-            "--no-tools is not supported by the Agy engine; "
-            "use --engine claude --no-tools for a no-tools run"
-        )
-    if not getattr(args, "web_search", True):
-        raise SystemExit(
-            "--no-web-search is not supported by the Agy engine; "
-            "use --engine codex --no-web-search or --engine claude --no-web-search"
-        )
-    agy_bin = ensure_agy_isolation_supported(args, repo)
-    effort = agy_effort_arg(args.model, args.thinking)
-    temp_root = safe_temp_root(repo)
-    with tempfile.TemporaryDirectory(
-        prefix="autoreview-agy-workspace.",
-        dir=temp_root,
-    ) as workspace_dir, tempfile.TemporaryDirectory(
-        prefix="autoreview-agy-runtime.",
-        dir=temp_root,
-    ) as runtime_dir:
-        review_root = Path(workspace_dir)
-        runtime_root = Path(runtime_dir)
-        schema_path = runtime_root / "schema.json"
-        settings_path = runtime_root / "settings.json"
-        schema_path.write_text(json.dumps(SCHEMA), encoding="utf-8")
-        settings_path.write_text(
-            json.dumps(AGY_ISOLATED_SETTINGS, separators=(",", ":")),
-            encoding="utf-8",
-        )
-        schema_path.chmod(0o600)
-        settings_path.chmod(0o600)
-        # Send the prompt over stdin NDJSON (stream-json) rather than argv, and
-        # enforce strict tool permissions + deny-all rules + terminal sandbox +
-        # disabled slash commands without ever passing --dangerously-skip-permissions.
-        cmd = [
-            agy_bin,
-            "--disable-slash-commands",
-            "--sandbox",
-            "--settings",
-            str(settings_path),
-            "--input-format",
-            "stream-json",
-            "--output-format",
-            "stream-json",
-            "--json-schema",
-            str(schema_path),
-        ]
-        if args.model:
-            cmd.extend(["--model", args.model])
-        if effort:
-            cmd.extend(["--effort", effort])
-        timeout_seconds = getattr(args, "engine_timeout_seconds", None)
-        if timeout_seconds:
-            cmd.extend(["--print-timeout", f"{int(max(1, round(timeout_seconds)))}s"])
-        cmd.extend(["--print", ""])
-        stdin_payload = (
-            json.dumps(
-                {"event": "user", "message": {"content": prompt}},
-                separators=(",", ":"),
-            )
-            + "\n"
-        )
-        result = run_with_heartbeat(
-            cmd,
-            review_root,
-            input_text=stdin_payload,
-            label="agy",
-            max_runtime_seconds=timeout_seconds,
-            stream_output=args.stream_engine_output,
-            env=safe_engine_env(
-                repo,
-                [Path(agy_bin).parent],
-                engine="agy",
-            ),
-        )
-    if result.returncode != 0:
-        raise ReviewerUnavailable(
-            f"agy engine failed ({result.returncode})\n{result.stderr or result.stdout}",
-            result=result,
-        )
+def stage_agy_isolated_home(repo: Path, runtime_root: Path) -> tuple[Path, dict[str, str]]:
+    """Create a private HOME for Agy staging only authentication material.
+
+    Isolates the subprocess from user global hooks (`~/.gemini/config/hooks.json`,
+    `~/.gemini/antigravity-cli/hooks.json`), installed plugins, MCP servers,
+    global rules, and user settings while preserving OAuth and ADC login.
+    """
+    isolated_home = runtime_root / "home"
+    isolated_home.mkdir(mode=0o700)
+    xdg_config = isolated_home / ".config"
+    xdg_data = isolated_home / ".local" / "share"
+    xdg_config.mkdir(parents=True, mode=0o700)
+    xdg_data.mkdir(parents=True, mode=0o700)
+    extra_env = {
+        "HOME": str(isolated_home),
+        "USERPROFILE": str(isolated_home),
+        "XDG_CONFIG_HOME": str(xdg_config),
+        "XDG_DATA_HOME": str(xdg_data),
+    }
+    raw_home = os.environ.get("HOME") or os.environ.get("USERPROFILE")
+    real_home = Path(raw_home).expanduser() if raw_home and external_env_path(repo, raw_home) else None
+    if real_home is None:
+        return isolated_home, extra_env
+
+    # macOS login keychain lookup reads $HOME/Library/Keychains; symlink only
+    # that directory so OAuth works without exposing any ~/.gemini config.
+    if sys.platform == "darwin":
+        keychains_src = real_home / "Library" / "Keychains"
+        if keychains_src.is_dir() and external_env_path(repo, str(keychains_src)):
+            lib_dir = isolated_home / "Library"
+            lib_dir.mkdir(mode=0o700, exist_ok=True)
+            (lib_dir / "Keychains").symlink_to(keychains_src)
+
+    # Portable file-based OAuth token (used on Linux over SSH and headless hosts).
+    oauth_src = real_home / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"
+    if oauth_src.is_file() and external_env_path(repo, str(oauth_src)):
+        oauth_dst_dir = isolated_home / ".gemini" / "antigravity-cli"
+        oauth_dst_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
+        oauth_dst = oauth_dst_dir / "antigravity-oauth-token"
+        oauth_dst.write_bytes(oauth_src.read_bytes())
+        oauth_dst.chmod(0o600)
+
+    # Default gcloud ADC file when AGY_ADC_AUTH is enabled without an explicit
+    # GOOGLE_APPLICATION_CREDENTIALS path.
+    if os.environ.get("AGY_ADC_AUTH", "").strip().lower() in {"1", "true", "yes"} and not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+        adc_candidates: list[Path] = []
+        raw_xdg = os.environ.get("XDG_CONFIG_HOME")
+        if raw_xdg and external_env_path(repo, raw_xdg):
+            adc_candidates.append(Path(raw_xdg) / "gcloud" / "application_default_credentials.json")
+        adc_candidates.append(real_home / ".config" / "gcloud" / "application_default_credentials.json")
+        raw_appdata = os.environ.get("APPDATA")
+        if raw_appdata and external_env_path(repo, raw_appdata):
+            adc_candidates.append(Path(raw_appdata) / "gcloud" / "application_default_credentials.json")
+        for adc_src in adc_candidates:
+            if adc_src.is_file() and external_env_path(repo, str(adc_src)):
+                adc_dst_dir = xdg_config / "gcloud"
+                adc_dst_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
+                adc_dst = adc_dst_dir / "application_default_credentials.json"
+                adc_dst.write_bytes(adc_src.read_bytes())
+                adc_dst.chmod(0o600)
+                extra_env["GOOGLE_APPLICATION_CREDENTIALS"] = str(adc_dst)
+                break
+
+    return isolated_home, extra_env
+
+
+def parse_agy_stream_output(result: subprocess.CompletedProcess[str]) -> str:
     if len(result.stdout) > AGY_MAX_OUTPUT_CHARS:
         raise ReviewerUnavailable(
             f"agy engine output exceeded {AGY_MAX_OUTPUT_CHARS} characters",
@@ -6547,6 +6544,93 @@ def run_agy(args: argparse.Namespace, repo: Path, prompt: str) -> str:
         reason="invalid_report",
         result=result,
     )
+
+
+def run_agy(args: argparse.Namespace, repo: Path, prompt: str) -> str:
+    if not getattr(args, "tools", True):
+        raise SystemExit(
+            "--no-tools is not supported by the Agy engine; "
+            "use --engine claude --no-tools for a no-tools run"
+        )
+    if not getattr(args, "web_search", True):
+        raise SystemExit(
+            "--no-web-search is not supported by the Agy engine; "
+            "use --engine codex --no-web-search or --engine claude --no-web-search"
+        )
+    agy_bin = ensure_agy_isolation_supported(args, repo)
+    effort = agy_effort_arg(args.model, args.thinking)
+    temp_root = safe_temp_root(repo)
+    with tempfile.TemporaryDirectory(
+        prefix="autoreview-agy-workspace.",
+        dir=temp_root,
+    ) as workspace_dir, tempfile.TemporaryDirectory(
+        prefix="autoreview-agy-runtime.",
+        dir=temp_root,
+    ) as runtime_dir:
+        review_root = Path(workspace_dir)
+        runtime_root = Path(runtime_dir)
+        _, isolated_home_env = stage_agy_isolated_home(repo, runtime_root)
+        schema_path = runtime_root / "schema.json"
+        settings_path = runtime_root / "settings.json"
+        schema_path.write_text(json.dumps(SCHEMA), encoding="utf-8")
+        settings_path.write_text(
+            json.dumps(AGY_ISOLATED_SETTINGS, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        schema_path.chmod(0o600)
+        settings_path.chmod(0o600)
+        # Send the prompt over stdin NDJSON (stream-json) in an isolated HOME
+        # staging only auth material, enforcing strict tool permissions +
+        # deny-all rules + terminal sandbox + disabled slash commands without
+        # ever passing --dangerously-skip-permissions.
+        cmd = [
+            agy_bin,
+            "--disable-slash-commands",
+            "--sandbox",
+            "--settings",
+            str(settings_path),
+            "--input-format",
+            "stream-json",
+            "--output-format",
+            "stream-json",
+            "--json-schema",
+            str(schema_path),
+        ]
+        if args.model:
+            cmd.extend(["--model", args.model])
+        if effort:
+            cmd.extend(["--effort", effort])
+        timeout_seconds = getattr(args, "engine_timeout_seconds", None)
+        if timeout_seconds:
+            cmd.extend(["--print-timeout", f"{int(max(1, round(timeout_seconds)))}s"])
+        cmd.extend(["--print", ""])
+        stdin_payload = (
+            json.dumps(
+                {"event": "user", "message": {"content": prompt}},
+                separators=(",", ":"),
+            )
+            + "\n"
+        )
+        result = run_with_heartbeat(
+            cmd,
+            review_root,
+            input_text=stdin_payload,
+            label="agy",
+            max_runtime_seconds=timeout_seconds,
+            stream_output=args.stream_engine_output,
+            env=safe_engine_env(
+                repo,
+                [Path(agy_bin).parent],
+                engine="agy",
+                extra=isolated_home_env,
+            ),
+        )
+    if result.returncode != 0:
+        raise ReviewerUnavailable(
+            f"agy engine failed ({result.returncode})\n{result.stderr or result.stdout}",
+            result=result,
+        )
+    return parse_agy_stream_output(result)
 
 
 class CodexStreamDisplay:

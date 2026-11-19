@@ -15,17 +15,19 @@ measure whether a *target* codebase is ready for agents.
 ## Where things stand
 
 - **1.52.0 candidate**: adds native `--engine agy` to `autoreview` (Antigravity CLI `>= 1.5.12`,
-  `gemini-4-neon-xhigh`, stdin NDJSON `stream-json`, `--disable-slash-commands`, `--sandbox`,
-  session-only `--settings` enforcing `toolPermission: "strict"`, deny-all rules,
-  `allowNonWorkspaceAccess: false`, `enableTerminalSandbox: true`, `--json-schema`, stream
-  permission/tool verification, narrowed env allowlist, word-boundary `--help` flag probes),
-  configures `gemini-4-neon-xhigh` as the coding fallback (sandboxed dedicated worktree via
-  `agy-yolo` when authorized) and first read-only review fallback (`autoreview --engine agy` or
-  clean-cwd strict non-skip-permissions `agy`) after `gpt-6.2-sol` in `mneves-fable-orchestrator`
-  and pstack adaptation 11 (skipping client, personal, regulated, or unapproved-provider repos),
-  moves routine Codex seats to `medium` reasoning, and updates `tools/routing-eval/cases.json`
-  (`O8`, `O14`, plus `O16`, `O17`, `O18`). Binding results live in the private exact-candidate gate
-  records and the `v1.52.0` tag message.
+  `gemini-4-neon-xhigh`, stdin NDJSON `stream-json`, isolated `HOME` staging auth only to block
+  global/plugin hooks, `--disable-slash-commands`, `--sandbox`, session-only `--settings` enforcing
+  `toolPermission: "strict"`, deny-all rules, `allowNonWorkspaceAccess: false`,
+  `enableTerminalSandbox: true`, `--json-schema`, stream permission/tool verification, narrowed env
+  allowlist preserving `AGY_ADC_AUTH`, word-boundary `--help` flag probes), configures
+  `gemini-4-neon-xhigh` as the coding fallback (dedicated worktree via `agy-yolo` only with
+  verified active OS/external containment and owner authorization) and first read-only review
+  fallback (`autoreview --engine agy` or clean-cwd isolated-`HOME` strict non-skip-permissions
+  `agy` reading brief via stdin) after `gpt-6.2-sol` in `mneves-fable-orchestrator` and pstack
+  adaptation 11 (skipping client, personal, regulated, or unapproved-provider repos), moves routine
+  Codex seats to `medium` reasoning, and updates `tools/routing-eval/cases.json` (`O8`, `O14`, plus
+  `O16`, `O17`, `O18`). Binding results live in the private exact-candidate gate records and the
+  `v1.52.0` tag message.
 - **1.51.5** (2026-11-18 UTC closeout; 1.51.4 folded in, never released): Sol and Astra routes
   moved to `gpt-6.2-sol` and `gpt-6.2-astra` at reasoning high (Pi rows stayed on 6.1);
   ROOT-B-H01 fixed (SRS output neutralizes terminal control bytes; `export --output FILE` writes

@@ -140,51 +140,89 @@ fallback.
 ### Coding fallback
 
 Run inside a dedicated worktree with `--sandbox` and session-only `--settings` restricting writes
-and terminal execution to that workspace. `agy-yolo` (`--dangerously-skip-permissions`)
-auto-approves tool requests without prompting, so use it only when the owner or host policy
-explicitly authorizes unattended execution and never to widen permissions beyond the authorized
-Codex seat; if unattended execution is not authorized, report the coding fallback blocked. Preserve
-the CLI exit code and verify `.status == "SUCCESS"` before accepting `.response`:
+and terminal execution to that workspace. Antigravity's `--sandbox` degrades to a no-op on hosts
+without OS sandbox support (for example, Linux hosts with unprivileged user namespaces disabled),
+where `allowNonWorkspaceAccess: false` restricts agent file tools while auto-approved shell
+commands can still run with the user's full filesystem permissions. Before auto-approving commands
+with `agy-yolo` (`--dangerously-skip-permissions`), verify that OS containment is active (for
+example, macOS Seatbelt or working Linux unprivileged user namespaces) or run inside an external
+container/VM sandbox enforcing the authorized boundary; if containment is unavailable or unattended
+execution is not explicitly authorized by the owner or host policy, **block dispatch** rather than
+widening permissions beyond the authorized Codex seat. Write the brief to a mode-`0600` file, send
+it on stdin via `stream-json` (never argv), preserve the CLI and `jq` exit status across cleanup,
+and verify `.result.status == "SUCCESS"` before accepting `.result.response`:
 
 ```bash
-settings_file=$(mktemp)
-chmod 600 "$settings_file"
-printf '{"allowNonWorkspaceAccess":false,"enableTerminalSandbox":true}\n' > "$settings_file"
+# Run only after confirming active OS containment (e.g., macOS Seatbelt, Linux `unshare -Ur true`,
+# or an external container/VM sandbox) and explicit owner/host authorization for unattended runs:
+run_agy_coding_fallback() {
+  local brief_file="$1" settings_file out status
+  settings_file=$(mktemp)
+  trap 'rm -f -- "$settings_file"' RETURN
+  chmod 600 "$settings_file"
+  printf '{"allowNonWorkspaceAccess":false,"enableTerminalSandbox":true}\n' > "$settings_file"
 
-out=$(agy-yolo --sandbox --settings "$settings_file" \
-  -p '<self-contained brief>' --model gemini-4-neon-xhigh \
-  --output-format json --print-timeout 10m) \
-  && jq -re 'select(.status == "SUCCESS") | .response' <<< "$out"
-rm -f "$settings_file"
+  out=$(set -o pipefail; jq -Rsc '{event:"user",message:{content:.}}' < "$brief_file" \
+    | agy-yolo --sandbox --settings "$settings_file" \
+        --input-format stream-json --output-format stream-json \
+        --model gemini-4-neon-xhigh --print "" --print-timeout 10m)
+  status=$?
+  [ "$status" -eq 0 ] || return "$status"
+  jq -re 'select(.event == "result" and .result.status == "SUCCESS") | .result.response' <<< "$out"
+}
 ```
 
 ### Read-only review fallback
 
 Prefer `autoreview --engine agy --model gemini-4-neon-xhigh` when `autoreview` is installed: it
-scans outgoing inputs with TruffleHog, sends the review pack over stdin `stream-json` (no argv
-exposure), runs in an empty temporary workspace with `--disable-slash-commands --sandbox` and
-strict deny-all `--settings`, never passes `--dangerously-skip-permissions`, and verifies
-`permission_mode == "strict"` and tool events before accepting structured output.
+scans outgoing inputs with TruffleHog, runs with an isolated `HOME` (preventing global and plugin
+`PreInvocation` hooks, plugins, and user MCP servers from seeing the brief), sends the review pack
+over stdin `stream-json` (no argv exposure), runs in an empty temporary workspace with
+`--disable-slash-commands --sandbox` and strict deny-all `--settings`, never passes
+`--dangerously-skip-permissions`, and verifies `permission_mode == "strict"` and tool events before
+accepting structured output.
 
-When `autoreview` is not installed, scan/sanitize the review brief first and run plain `agy`
-(never `agy-yolo` or `--dangerously-skip-permissions`) from a **clean empty temporary directory**
-so untrusted `.agents/hooks.json` in the reviewed checkout never runs on session start:
+When `autoreview` is not installed, write the scanned/sanitized review brief to a mode-`0600` file
+(never pass it on `jq` or `agy` argv), stage an isolated `HOME` holding only authentication
+material (so global/plugin hooks cannot run), and run plain `agy` (never `agy-yolo` or
+`--dangerously-skip-permissions`) from a **clean empty temporary directory** so untrusted
+`.agents/hooks.json` in the reviewed checkout never runs on session start. Preserve the check's
+exit status across cleanup:
 
 ```bash
-review_dir=$(mktemp -d)
-settings_file=$(mktemp)
-chmod 600 "$settings_file"
-cat > "$settings_file" <<'EOF'
+run_agy_review_fallback() {
+  local brief_file="$1" review_dir isolated_home settings_file out status
+  review_dir=$(mktemp -d)
+  isolated_home=$(mktemp -d)
+  settings_file=$(mktemp)
+  trap 'rm -rf -- "$review_dir" "$isolated_home" "$settings_file"' RETURN
+  chmod 700 "$review_dir" "$isolated_home"
+  chmod 600 "$settings_file"
+  # Stage auth only (macOS Keychains link or file OAuth token; no ~/.gemini/config or plugins):
+  if [ "$(uname -s)" = "Darwin" ] && [ -d "$HOME/Library/Keychains" ]; then
+    mkdir -p "$isolated_home/Library" && ln -s "$HOME/Library/Keychains" "$isolated_home/Library/Keychains"
+  elif [ -f "$HOME/.gemini/antigravity-cli/antigravity-oauth-token" ]; then
+    mkdir -p "$isolated_home/.gemini/antigravity-cli"
+    install -m 600 "$HOME/.gemini/antigravity-cli/antigravity-oauth-token" \
+      "$isolated_home/.gemini/antigravity-cli/antigravity-oauth-token"
+  fi
+  cat > "$settings_file" <<'EOF'
 {"allowNonWorkspaceAccess":false,"enableTerminalSandbox":true,"toolPermission":"strict","permissions":{"allow":[],"deny":["command(*)","write_file(*)","read_file(*)","read_url(*)","mcp(*)","unsandboxed(*)"]}}
 EOF
 
-out=$(cd "$review_dir" && jq -nc --arg content '<scanned self-contained review brief>' \
-  '{event:"user",message:{content:$content}}' \
-  | agy --disable-slash-commands --sandbox --settings "$settings_file" \
-      --input-format stream-json --output-format stream-json \
-      --model gemini-4-neon-xhigh --print "" --print-timeout 10m) \
-  && jq -re 'select(.event == "result" and .result.status == "SUCCESS") | .result.response' <<< "$out"
-rm -rf "$review_dir" "$settings_file"
+  out=$(
+    set -o pipefail
+    cd "$review_dir" || exit 1
+    export HOME="$isolated_home" XDG_CONFIG_HOME="$isolated_home/.config" XDG_DATA_HOME="$isolated_home/.local/share"
+    jq -Rsc '{event:"user",message:{content:.}}' < "$brief_file" \
+      | agy --disable-slash-commands --sandbox --settings "$settings_file" \
+          --input-format stream-json --output-format stream-json \
+          --model gemini-4-neon-xhigh --print "" --print-timeout 10m
+  )
+  status=$?
+  [ "$status" -eq 0 ] || return "$status"
+  jq -re 'select(.event == "result" and .result.status == "SUCCESS") | .result.response' <<< "$out"
+}
 ```
 
 If using `--mode plan` interactively instead of strict `stream-json`, never combine it with

@@ -1584,6 +1584,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             aws_creds = Path(tmpdir) / "aws-creds"
             aws_creds.write_text("[default]\n", encoding="utf-8")
             env_vars = {
+                "AGY_ADC_AUTH": "true",
                 "GEMINI_API_KEY": "test-gemini-key",
                 "SSH_CONNECTION": "10.0.0.1 12345 10.0.0.2 22",
                 "SSH_CLIENT": "10.0.0.1 12345 22",
@@ -1595,11 +1596,50 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             }
             with mock.patch.dict(os.environ, env_vars, clear=True):
                 filtered = AUTOREVIEW.safe_engine_env(repo, [], engine="agy")
+        self.assertEqual(filtered.get("AGY_ADC_AUTH"), "true")
         self.assertEqual(filtered.get("GEMINI_API_KEY"), "test-gemini-key")
         self.assertEqual(filtered.get("SSH_CONNECTION"), "10.0.0.1 12345 10.0.0.2 22")
         self.assertEqual(Path(str(filtered.get("GOOGLE_APPLICATION_CREDENTIALS"))).resolve(), gcp_creds.resolve())
         for forbidden in ("SSH_CLIENT", "SSH_TTY", "AWS_SHARED_CREDENTIALS_FILE", "AWS_CONFIG_FILE", "OPENAI_API_KEY"):
             self.assertNotIn(forbidden, filtered)
+
+    def test_agy_isolated_home_excludes_global_hooks_plugins_and_stages_auth_only(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-home-test.") as tmpdir:
+            root = Path(tmpdir)
+            repo = root / "repo"
+            repo.mkdir()
+            real_home = root / "real-home"
+            (real_home / ".gemini" / "config").mkdir(parents=True)
+            (real_home / ".gemini" / "config" / "hooks.json").write_text('{"h":{"PreInvocation":[{"command":"pwn"}]}}', encoding="utf-8")
+            (real_home / ".gemini" / "antigravity-cli" / "plugins").mkdir(parents=True)
+            (real_home / ".gemini" / "antigravity-cli" / "plugins" / "evil.json").write_text("{}", encoding="utf-8")
+            (real_home / ".gemini" / "antigravity-cli" / "settings.json").write_text('{"allowNonWorkspaceAccess":true}', encoding="utf-8")
+            (real_home / ".gemini" / "antigravity-cli" / "antigravity-oauth-token").write_text("oauth-token-bytes", encoding="utf-8")
+            (real_home / ".config" / "gcloud").mkdir(parents=True)
+            (real_home / ".config" / "gcloud" / "application_default_credentials.json").write_text('{"type":"authorized_user"}', encoding="utf-8")
+            runtime_root = root / "runtime"
+            runtime_root.mkdir()
+            with mock.patch.dict(
+                os.environ,
+                {"HOME": str(real_home), "USERPROFILE": str(real_home), "AGY_ADC_AUTH": "true"},
+                clear=True,
+            ):
+                isolated_home, extra_env = AUTOREVIEW.stage_agy_isolated_home(repo, runtime_root)
+            self.assertEqual(Path(extra_env["HOME"]), isolated_home)
+            self.assertEqual(Path(extra_env["USERPROFILE"]), isolated_home)
+            self.assertNotEqual(isolated_home.resolve(), real_home.resolve())
+            self.assertFalse((isolated_home / ".gemini" / "config").exists())
+            self.assertFalse((isolated_home / ".gemini" / "antigravity-cli" / "plugins").exists())
+            self.assertFalse((isolated_home / ".gemini" / "antigravity-cli" / "settings.json").exists())
+            staged_token = isolated_home / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"
+            self.assertTrue(staged_token.is_file())
+            self.assertEqual(staged_token.read_text(encoding="utf-8"), "oauth-token-bytes")
+            staged_adc = Path(extra_env["GOOGLE_APPLICATION_CREDENTIALS"])
+            self.assertTrue(staged_adc.is_file())
+            self.assertEqual(staged_adc.read_text(encoding="utf-8"), '{"type":"authorized_user"}')
+            if os.name != "nt":
+                self.assertEqual(staged_token.stat().st_mode & 0o777, 0o600)
+                self.assertEqual(staged_adc.stat().st_mode & 0o777, 0o600)
 
     def test_agy_tier_suffixed_model_effort_validation(self) -> None:
         self.assertIsNone(AUTOREVIEW.agy_effort_arg("gemini-4-neon-xhigh", None))

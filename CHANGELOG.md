@@ -10,7 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **autoreview**: added native `--engine agy` backend for Antigravity CLI (`>= 1.5.12`),
   defaulting to `gemini-4-neon-xhigh`, sending the prompt over stdin NDJSON
-  (`--input-format stream-json --output-format stream-json`), enforcing `--disable-slash-commands`,
+  (`--input-format stream-json --output-format stream-json`), isolating `HOME` to auth material
+  only (blocking global/plugin hooks, plugins, user MCP servers, and global rules while preserving
+  OAuth, `GEMINI_API_KEY`, and `AGY_ADC_AUTH` / ADC), enforcing `--disable-slash-commands`,
   `--sandbox`, `--json-schema`, and session-only `--settings` (`toolPermission: "strict"`,
   `allowNonWorkspaceAccess: false`, `enableTerminalSandbox: true`, explicit deny rules for
   commands/files/URLs/MCP/unsandboxed tools), verifying `permission_mode == "strict"` and tool

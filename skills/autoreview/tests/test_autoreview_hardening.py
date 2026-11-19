@@ -7404,6 +7404,7 @@ os.execv(target, [str(target), *sys.argv[1:]])
             "    pathlib.Path(record).write_text(json.dumps({\n"
             "        'argv': args,\n"
             "        'cwd': os.getcwd(),\n"
+            "        'home': os.environ.get('HOME'),\n"
             "        'stdin': json.loads(stdin_raw),\n"
             "        'settings': json.loads(pathlib.Path(settings_path).read_text(encoding='utf-8')),\n"
             "    }), encoding='utf-8')\n"
@@ -7459,6 +7460,8 @@ os.execv(target, [str(target), *sys.argv[1:]])
             self.assertTrue(recorded["settings"]["enableTerminalSandbox"])
             self.assertIn("command(*)", recorded["settings"]["permissions"]["deny"])
             self.assertNotEqual(Path(recorded["cwd"]).resolve(), repo.resolve())
+            self.assertNotEqual(Path(recorded["home"]).resolve(), Path.home().resolve())
+            self.assertFalse((Path(recorded["home"]) / ".gemini" / "config").exists())
 
     def test_dry_run_flag_exits_nonzero_when_claude_tool_not_read_only(self) -> None:
         # run_claude() computes its --tools inventory via
