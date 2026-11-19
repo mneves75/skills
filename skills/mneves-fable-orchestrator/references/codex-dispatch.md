@@ -164,9 +164,9 @@ launching `agy-yolo`:
    `personal_customization_dir`, **and resolve every workspace discovery/plugin manifest to its
    target paths** (even when a manifest points outside those directories). Also use an auth-only
    container `HOME` (staging only OAuth/ADC credentials) or inspect global Agy hooks and installed
-   plugins under the container's `HOME` (`~/.gemini/`, `~/.antigravity/`, `~/.agents/`, and
-   installed plugin manifests). Refuse any untrusted hooks (`SessionStart`, `PreInvocation`, etc.),
-   plugins, or workspace MCP servers — or remove the untrusted files and any manifest references to
+   plugins under the container's `HOME` (`~/.gemini/`, `~/.antigravity/`, `~/.agents/`, installed
+   plugin manifests, and global MCP config). Refuse any untrusted hooks (`SessionStart`,
+   `PreInvocation`, etc.), plugins, or workspace/global MCP servers — or remove the untrusted files and any manifest references to
    out-of-workspace targets in a clean scratch copy — because they run before the model sees the
    brief and outside Agy's terminal sandbox.
 2. **Verify effective provider and endpoint**: check `admin_settings.json`, user `settings.json`,
@@ -198,7 +198,7 @@ run_agy_coding_fallback() {
     (any(.[]; .event == "step_update" and (
       .step_update.state == "DENIED"
       or ([(.step_update.tool_info.error.message // ""), (.step_update.error.message // "")]
-          | any(.[]; ascii_downcase | gsub("^\\s+"; "")
+          | any(.[]; ascii_downcase
             | (contains("permission check failed") and contains("permission denied"))))
     )) | not)
     and ([.[] | select(.event == "result")] as $r
@@ -257,10 +257,13 @@ run_agy_branch_review_fallback
 - **Local/uncommitted targets (`--mode local` / `--mode uncommitted`)**: do **not** use a clean
   detached worktree (which would omit staged, unstaged, and untracked changes). Run
   `autoreview --engine agy --model gemini-4-neon-xhigh` directly in the original checkout with the
-  original flags (pinning `--base "$BASE_SHA"` if `--base` was passed), and compare a fingerprint
-  of `git status --porcelain=v2 -z`, `git diff --no-ext-diff --no-textconv --binary HEAD`, and the
-  raw contents of all modified and untracked working-tree files before and after to confirm the
-  local snapshot did not change between reviewers.
+  original flags (pinning `--base "$BASE_SHA"` if `--base` was passed). `autoreview` itself runs
+  guarded Git commands (`core.fsmonitor=false`, `core.hooksPath=/dev/null`) to verify the local
+  source snapshot before and after review; if comparing the local snapshot externally between
+  reviewers, pass `-c core.fsmonitor=false -c core.hooksPath=/dev/null` on every Git call
+  (`git -c core.fsmonitor=false --no-optional-locks status --porcelain=v2 -z --untracked-files=all`,
+  `git -c core.fsmonitor=false diff --no-ext-diff --no-textconv --binary HEAD`, and raw hashes of
+  all modified and untracked working-tree files) so tracked fsmonitor/textconv helpers never run.
 
 If the original review restricted tools or web search (`--no-tools` or `--no-web-search`), pass
 those flags unchanged: `autoreview --engine agy` refuses before launch because Agy's built-in

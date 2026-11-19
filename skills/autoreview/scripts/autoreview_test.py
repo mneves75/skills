@@ -1799,10 +1799,13 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             repo.mkdir()
             fake_home = Path(tmpdir) / "home"
             fake_home.mkdir()
+            missing_admin = Path(tmpdir) / "missing-admin.json"
             with mock.patch.dict(
                 os.environ,
                 {"HOME": str(fake_home), "USERPROFILE": str(fake_home)},
                 clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
             ), mock.patch.object(
                 AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
             ), mock.patch.object(
@@ -1845,10 +1848,13 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             repo.mkdir()
             fake_home = Path(tmpdir) / "home"
             fake_home.mkdir()
+            missing_admin = Path(tmpdir) / "missing-admin.json"
             with mock.patch.dict(
                 os.environ,
                 {"HOME": str(fake_home), "USERPROFILE": str(fake_home), "GEMINI_API_KEY": "test-key-123"},
                 clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
             ), mock.patch.object(
                 AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
             ), mock.patch.object(
@@ -1869,6 +1875,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             repo.mkdir()
             fake_home = Path(tmpdir) / "home"
             fake_home.mkdir()
+            missing_admin = Path(tmpdir) / "missing-admin.json"
             with mock.patch.dict(
                 os.environ,
                 {
@@ -1878,6 +1885,8 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                     "AUTOREVIEW_AGY_MODEL_PROVIDER": "gemini",
                 },
                 clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
             ), mock.patch.object(
                 AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
             ), mock.patch.object(
@@ -1898,6 +1907,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             repo = root / "repo"
             repo.mkdir()
             fake_home = root / "home"
+            missing_admin = root / "missing-admin.json"
             (fake_home / ".gemini" / "antigravity-cli").mkdir(parents=True)
             (fake_home / ".gemini" / "antigravity-cli" / "settings.json").write_text(
                 json.dumps({"modelProvider": "gemini"}), encoding="utf-8",
@@ -1906,6 +1916,8 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 os.environ,
                 {"HOME": str(fake_home), "USERPROFILE": str(fake_home), "GEMINI_API_KEY": "test-key-123"},
                 clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
             ), mock.patch.object(
                 AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
             ), mock.patch.object(
