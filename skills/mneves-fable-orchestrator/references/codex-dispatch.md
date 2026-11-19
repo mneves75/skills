@@ -158,10 +158,11 @@ an uncontained worktree session.
 Inside an authorized enclosing container/VM sandbox, complete two preflight checks before
 launching `agy-yolo`:
 
-1. **Trusted workspace customizations only**: inspect `.agents/` (including `.agents/hooks.json`,
-   `.agents/plugins/`, and `.agents/mcp_config.json`), `.gemini/`, and `.antigravity/`, **and
-   resolve every Antigravity workspace discovery/plugin manifest to its target paths** (even when a
-   manifest points outside those directories). Refuse any untrusted hooks (`SessionStart`,
+1. **Trusted workspace customizations only**: inspect all Antigravity workspace discovery paths —
+   `.agents/`, `.agent/`, `_agents/`, `_agent/`, `.gemini/`, `.antigravity/` (including
+   `hooks.json`, `plugins/`, and `mcp_config.json`), any configured `personal_customization_dir`,
+   **and resolve every Antigravity workspace discovery/plugin manifest to its target paths** (even
+   when a manifest points outside those directories). Refuse any untrusted hooks (`SessionStart`,
    `PreInvocation`, etc.), plugins, or workspace MCP servers — or remove the untrusted files and
    any manifest references to out-of-workspace targets in a clean scratch copy — because they run
    before the model sees the brief and outside Agy's terminal sandbox.
@@ -191,8 +192,16 @@ run_agy_coding_fallback() {
   rm -f -- "$settings_file"
   [ "$status" -eq 0 ] || return "$status"
   jq -se '
-    (any(.[]; .event == "step_update" and (.step_update.state == "DENIED" or ((.step_update.tool_info.error.message // "") | ascii_downcase | contains("permission denied")))) | not)
-    and any(.[]; .event == "result" and .result.status == "SUCCESS" and ((.result.response // "") | gsub("^\\s+|\\s+$"; "") | length > 0))
+    (any(.[]; .event == "step_update" and (
+      .step_update.state == "DENIED"
+      or ((.step_update.tool_info.error.message // .step_update.error.message // "")
+          | ascii_downcase | gsub("^\\s+"; "")
+          | (startswith("permission check failed") and contains("permission denied")))
+    )) | not)
+    and ([.[] | select(.event == "result")] as $r
+      | ($r | length) == 1
+      and $r[0].result.status == "SUCCESS"
+      and (($r[0].result.response // "") | gsub("^\\s+|\\s+$"; "") | length > 0))
   ' <<< "$out" >/dev/null || return 1
   jq -re 'select(.event == "result" and .result.status == "SUCCESS") | .result.response' <<< "$out"
 }

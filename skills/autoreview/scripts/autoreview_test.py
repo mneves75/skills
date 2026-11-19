@@ -1829,6 +1829,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             {"event": "user", "message": {"content": "review prompt"}},
         )
         self.assertEqual(observed["settings"], AUTOREVIEW.AGY_ISOLATED_SETTINGS)
+        self.assertEqual(observed["schema"], AUTOREVIEW.PROVIDER_SCHEMA)
         env_observed = observed["env"]
         assert isinstance(env_observed, dict)
         self.assertEqual(env_observed.get("AGY_CLI_DISABLE_AUTO_UPDATE"), "true")
@@ -1855,6 +1856,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             ):
                 AUTOREVIEW.run_agy(args, repo, "review prompt")
         self.assertEqual(observed["settings"], AUTOREVIEW.AGY_ISOLATED_SETTINGS)
+        self.assertEqual(observed["schema"], AUTOREVIEW.PROVIDER_SCHEMA)
         env_observed = observed["env"]
         assert isinstance(env_observed, dict)
         self.assertNotIn("GEMINI_API_KEY", env_observed)

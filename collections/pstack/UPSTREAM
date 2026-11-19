@@ -17,7 +17,7 @@ adaptation: 07-opus-medium-effort.patch sha256:af514dfe78d5b6d3fd5131c9561d93f91
 adaptation: 08-codex-substitutes-not-opus.patch sha256:efd2fc807e968473c937c0479c1450af65a423190bdd50fdffda5368ba360ecb
 adaptation: 09-opus55-prompt-audit.patch sha256:86f924c70647d69dcc7f187f50799a709cf7d38233c381261f19278b821bc9d6
 adaptation: 10-codex-prompt-guidance.patch sha256:b6e43f674f21a02fd858546c7d9632419e5dfb49f0fb1a11a52c287c92225deb
-adaptation: 11-agy-yolo-fallback.patch sha256:8463512d7fe6ce59a6f75bb7e34c21d29fa028fec5ff7ac309ac37b281c8c730
+adaptation: 11-agy-yolo-fallback.patch sha256:63e9016e163af952b3034fe82dec3c9022973bb0455cabf262802e16eaa7e8d5
 excluded: statechart/scripts/test
 retired: make-bot-ui
 retired: principle-*
