@@ -140,27 +140,29 @@ fallback.
 ### Coding fallback
 
 Run inside a dedicated worktree with `--sandbox` and session-only `--settings` restricting writes
-and terminal execution to that workspace. Antigravity's `--sandbox` degrades to a no-op on hosts
-without OS sandbox support (for example, Linux hosts with unprivileged user namespaces disabled),
-where `allowNonWorkspaceAccess: false` restricts agent file tools while auto-approved shell
-commands can still run with the user's full filesystem permissions. Before auto-approving commands
-with `agy-yolo` (`--dangerously-skip-permissions`), verify that OS containment is active (for
-example, macOS Seatbelt or working Linux unprivileged user namespaces) or run inside an external
-container/VM sandbox enforcing the authorized boundary; if containment is unavailable or unattended
-execution is not explicitly authorized by the owner or host policy, **block dispatch** rather than
-widening permissions beyond the authorized Codex seat. Write the brief to a mode-`0600` file, send
-it on stdin via `stream-json` (never argv), preserve the CLI and `jq` exit status across cleanup,
-and verify `.result.status == "SUCCESS"` before accepting `.result.response`:
+and terminal execution to that workspace **and explicitly denying `unsandboxed(*)`**. Without an
+explicit `permissions.deny: ["unsandboxed(*)"]` rule (deny rules override
+`--dangerously-skip-permissions`), an agent retry requesting execution outside the sandbox would be
+auto-approved with the user's host permissions; and on hosts without OS sandbox support (such as
+Linux hosts with unprivileged user namespaces disabled), `--sandbox` degrades to a no-op so
+`allowNonWorkspaceAccess: false` restricts only agent file tools. Therefore, before auto-approving
+commands with `agy-yolo` (`--dangerously-skip-permissions`), verify that OS containment is active
+**with `unsandboxed(*)` denied** or run inside an enclosing external container/VM sandbox enforcing
+the authorized boundary; if containment is unavailable or unattended execution is not explicitly
+authorized by the owner or host policy, **block dispatch** rather than widening permissions beyond
+the authorized Codex seat. Write the brief to a mode-`0600` file, send it on stdin via
+`stream-json` (never argv), preserve the CLI and `jq` exit status across cleanup, and verify
+`.result.status == "SUCCESS"` before accepting `.result.response`:
 
 ```bash
-# Run only after confirming active OS containment (e.g., macOS Seatbelt, Linux `unshare -Ur true`,
-# or an external container/VM sandbox) and explicit owner/host authorization for unattended runs:
+# Run only after confirming active OS containment (e.g., macOS Seatbelt or Linux `unshare -Ur true`)
+# OR an enclosing external container/VM sandbox, plus explicit owner/host authorization:
 run_agy_coding_fallback() {
   local brief_file="$1" settings_file out status
   settings_file=$(mktemp)
   trap 'rm -f -- "$settings_file"' RETURN
   chmod 600 "$settings_file"
-  printf '{"allowNonWorkspaceAccess":false,"enableTerminalSandbox":true}\n' > "$settings_file"
+  printf '{"allowNonWorkspaceAccess":false,"enableTerminalSandbox":true,"permissions":{"deny":["unsandboxed(*)"]}}\n' > "$settings_file"
 
   out=$(set -o pipefail; jq -Rsc '{event:"user",message:{content:.}}' < "$brief_file" \
     | agy-yolo --sandbox --settings "$settings_file" \
@@ -212,12 +214,13 @@ EOF
 
   out=$(
     set -o pipefail
+    exec 3< "$brief_file" || exit 1
     cd "$review_dir" || exit 1
     export HOME="$isolated_home" XDG_CONFIG_HOME="$isolated_home/.config" XDG_DATA_HOME="$isolated_home/.local/share"
-    jq -Rsc '{event:"user",message:{content:.}}' < "$brief_file" \
+    jq -Rsc '{event:"user",message:{content:.}}' <&3 \
       | agy --disable-slash-commands --sandbox --settings "$settings_file" \
           --input-format stream-json --output-format stream-json \
-          --model gemini-4-neon-xhigh --print "" --print-timeout 10m
+          --model gemini-4-neon-xhigh --print "" --print-timeout 10m 3<&-
   )
   status=$?
   [ "$status" -eq 0 ] || return "$status"

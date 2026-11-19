@@ -6464,7 +6464,7 @@ def parse_agy_stream_output(result: subprocess.CompletedProcess[str]) -> str:
             reason="invalid_report",
             result=result,
         )
-    lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    lines = [line.rstrip("\r") for line in result.stdout.split("\n") if line.strip("\r \t")]
     if not lines:
         raise ReviewerUnavailable(
             "agy engine returned empty output",
@@ -6570,11 +6570,20 @@ def run_agy(args: argparse.Namespace, repo: Path, prompt: str) -> str:
         review_root = Path(workspace_dir)
         runtime_root = Path(runtime_dir)
         _, isolated_home_env = stage_agy_isolated_home(repo, runtime_root)
+        engine_env = safe_engine_env(
+            repo,
+            [Path(agy_bin).parent],
+            engine="agy",
+            extra=isolated_home_env,
+        )
+        agy_settings = copy.deepcopy(AGY_ISOLATED_SETTINGS)
+        if engine_env.get("GEMINI_API_KEY"):
+            agy_settings["modelProvider"] = "gemini"
         schema_path = runtime_root / "schema.json"
         settings_path = runtime_root / "settings.json"
         schema_path.write_text(json.dumps(SCHEMA), encoding="utf-8")
         settings_path.write_text(
-            json.dumps(AGY_ISOLATED_SETTINGS, separators=(",", ":")),
+            json.dumps(agy_settings, separators=(",", ":")),
             encoding="utf-8",
         )
         schema_path.chmod(0o600)
@@ -6618,12 +6627,7 @@ def run_agy(args: argparse.Namespace, repo: Path, prompt: str) -> str:
             label="agy",
             max_runtime_seconds=timeout_seconds,
             stream_output=args.stream_engine_output,
-            env=safe_engine_env(
-                repo,
-                [Path(agy_bin).parent],
-                engine="agy",
-                extra=isolated_home_env,
-            ),
+            env=engine_env,
         )
     if result.returncode != 0:
         raise ReviewerUnavailable(

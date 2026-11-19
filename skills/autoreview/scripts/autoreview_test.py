@@ -1740,7 +1740,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="autoreview-agy-run-test.") as tmpdir:
             repo = Path(tmpdir) / "repo"
             repo.mkdir()
-            with mock.patch.object(
+            with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
                 AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
             ), mock.patch.object(
                 AUTOREVIEW, "run_with_heartbeat", side_effect=fake_run,
@@ -1769,6 +1769,37 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
         if os.name != "nt":
             self.assertEqual(observed["settings_mode"], 0o600)
         self.assertEqual(observed["workspace"], [])
+
+        observed.clear()
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-apikey-test.") as tmpdir:
+            repo = Path(tmpdir) / "repo"
+            repo.mkdir()
+            with mock.patch.dict(os.environ, {"GEMINI_API_KEY": "test-key-123"}, clear=True), mock.patch.object(
+                AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
+            ), mock.patch.object(
+                AUTOREVIEW, "run_with_heartbeat", side_effect=fake_run,
+            ):
+                AUTOREVIEW.run_agy(args, repo, "review prompt")
+        expected_with_provider = dict(AUTOREVIEW.AGY_ISOLATED_SETTINGS)
+        expected_with_provider["modelProvider"] = "gemini"
+        self.assertEqual(observed["settings"], expected_with_provider)
+
+    def test_agy_stream_parser_preserves_unicode_line_separators_inside_json(self) -> None:
+        report_with_nel = dict(FINAL_REPORT)
+        report_with_nel["overall_explanation"] = "line1\u0085line2\u2028line3\u2029end"
+        stream = (
+            json.dumps({"event": "init", "init": {"permission_mode": "strict"}}, ensure_ascii=False)
+            + "\n"
+            + json.dumps(
+                {"event": "result", "result": {"status": "SUCCESS", "structured_output": report_with_nel}},
+                ensure_ascii=False,
+            )
+            + "\n"
+        )
+        parsed = json.loads(
+            AUTOREVIEW.parse_agy_stream_output(subprocess.CompletedProcess(["agy"], 0, stream, ""))
+        )
+        self.assertEqual(parsed["overall_explanation"], "line1\u0085line2\u2028line3\u2029end")
 
     def test_agy_rejects_error_non_strict_disallowed_tool_and_oversized_stream(self) -> None:
         args = argparse.Namespace(
