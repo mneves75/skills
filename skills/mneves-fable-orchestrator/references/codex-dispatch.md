@@ -202,10 +202,6 @@ If `autoreview` is not installed on the host, do **not** run an ad-hoc unisolate
 untrusted code: skip the first fallback explicitly (recording that `autoreview` is not installed)
 and fall through to the reviewer row's second fallback (or install `autoreview` first).
 
-If using `--mode plan` interactively instead of strict `stream-json`, never combine it with
-`--disable-slash-commands` (the CLI disables plan mode when slash command expansion is off) and
-never combine it with `--dangerously-skip-permissions` (which overrides plan mode).
-
 ## Acceptance
 
 The caller verifies the actual diff, focused tests, and any required independent review. A model

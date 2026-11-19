@@ -1625,11 +1625,21 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             (real_home / ".config" / "gcloud" / "application_default_credentials.json").write_text('{"type":"authorized_user"}', encoding="utf-8")
             runtime_root = root / "runtime"
             runtime_root.mkdir()
+            # On POSIX, a custom XDG_CONFIG_HOME must NOT override the
+            # documented $HOME/.config/gcloud default ADC identity.
+            xdg_alt = root / "xdg-alt"
+            (xdg_alt / "gcloud").mkdir(parents=True)
+            (xdg_alt / "gcloud" / "application_default_credentials.json").write_text('{"type":"wrong_xdg"}', encoding="utf-8")
             with mock.patch.dict(
                 os.environ,
-                {"HOME": str(real_home), "USERPROFILE": str(real_home), "AGY_ADC_AUTH": "true"},
+                {
+                    "HOME": str(real_home),
+                    "USERPROFILE": str(real_home),
+                    "XDG_CONFIG_HOME": str(xdg_alt),
+                    "AGY_ADC_AUTH": "true",
+                },
                 clear=True,
-            ):
+            ), mock.patch.object(AUTOREVIEW.sys, "platform", "linux"):
                 isolated_home, extra_env = AUTOREVIEW.stage_agy_isolated_home(repo, runtime_root)
             self.assertEqual(Path(extra_env["HOME"]), isolated_home)
             self.assertEqual(Path(extra_env["USERPROFILE"]), isolated_home)
@@ -1646,6 +1656,28 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             if os.name != "nt":
                 self.assertEqual(staged_token.stat().st_mode & 0o777, 0o600)
                 self.assertEqual(staged_adc.stat().st_mode & 0o777, 0o600)
+
+            # On Windows, %APPDATA%\gcloud takes precedence over ~/.config/gcloud.
+            appdata_dir = root / "appdata"
+            (appdata_dir / "gcloud").mkdir(parents=True)
+            (appdata_dir / "gcloud" / "application_default_credentials.json").write_text('{"type":"win_appdata"}', encoding="utf-8")
+            win_runtime = root / "win-runtime"
+            win_runtime.mkdir()
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "HOME": str(real_home),
+                    "USERPROFILE": str(real_home),
+                    "APPDATA": str(appdata_dir),
+                    "AGY_ADC_AUTH": "true",
+                },
+                clear=True,
+            ), mock.patch.object(AUTOREVIEW.sys, "platform", "win32"):
+                _, win_env = AUTOREVIEW.stage_agy_isolated_home(repo, win_runtime)
+            self.assertEqual(
+                Path(win_env["GOOGLE_APPLICATION_CREDENTIALS"]).read_text(encoding="utf-8"),
+                '{"type":"win_appdata"}',
+            )
 
     def test_agy_tier_suffixed_model_effort_validation(self) -> None:
         self.assertIsNone(AUTOREVIEW.agy_effort_arg("gemini-4-neon-xhigh", None))
@@ -1840,25 +1872,46 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 AUTOREVIEW.run_agy(args, repo, "review prompt")
         self.assertEqual(observed["settings"], expected_with_provider)
 
-        # Custom Gemini endpoint (GOOGLE_GEMINI_BASE_URL) must be refused rather
-        # than silently sending the API key and review bundle to Google.
-        with tempfile.TemporaryDirectory(prefix="autoreview-agy-baseurl-test.") as tmpdir:
-            repo = Path(tmpdir) / "repo"
+        # Custom Gemini endpoint (GOOGLE_GEMINI_BASE_URL) and enterprise gateway
+        # routing (AGY_LLM_GATEWAY_URL / settings.json gateway block) must be
+        # refused fail-closed in both ensure_agy_isolation_supported (--dry-run)
+        # and run_agy rather than silently sending review bundles to Google.
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-gateway-test.") as tmpdir:
+            root = Path(tmpdir)
+            repo = root / "repo"
             repo.mkdir()
-            with mock.patch.dict(
-                os.environ,
-                {
-                    "GEMINI_API_KEY": "test-key-123",
-                    "AUTOREVIEW_AGY_MODEL_PROVIDER": "gemini",
-                    "GOOGLE_GEMINI_BASE_URL": "https://proxy.corp.example/gemini",
-                },
-                clear=True,
-            ), mock.patch.object(
-                AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
+            for label, env_map, expected_msg in (
+                (
+                    "custom gemini base url",
+                    {
+                        "GEMINI_API_KEY": "test-key-123",
+                        "AUTOREVIEW_AGY_MODEL_PROVIDER": "gemini",
+                        "GOOGLE_GEMINI_BASE_URL": "https://proxy.corp.example/gemini",
+                    },
+                    "GOOGLE_GEMINI_BASE_URL",
+                ),
+                (
+                    "enterprise gateway env",
+                    {"AGY_LLM_GATEWAY_URL": "https://gateway.corp.example"},
+                    "AGY_LLM_GATEWAY_URL",
+                ),
+            ):
+                with self.subTest(label=label), mock.patch.dict(os.environ, env_map, clear=True):
+                    with self.assertRaises(SystemExit) as cm:
+                        AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
+                self.assertIn(expected_msg, str(cm.exception))
+
+            gw_home = root / "gw-home"
+            (gw_home / ".gemini" / "antigravity-cli").mkdir(parents=True)
+            (gw_home / ".gemini" / "antigravity-cli" / "settings.json").write_text(
+                json.dumps({"gateway": {"address": "https://gateway.corp.example"}}), encoding="utf-8",
+            )
+            with self.subTest(label="enterprise gateway settings.json"), mock.patch.dict(
+                os.environ, {"HOME": str(gw_home), "USERPROFILE": str(gw_home)}, clear=True,
             ):
                 with self.assertRaises(SystemExit) as cm:
-                    AUTOREVIEW.run_agy(args, repo, "review prompt")
-            self.assertIn("GOOGLE_GEMINI_BASE_URL", str(cm.exception))
+                    AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
+            self.assertIn("enterprise gateway settings", str(cm.exception))
 
     def test_agy_stream_parser_preserves_unicode_line_separators_inside_json(self) -> None:
         report_with_nel = dict(FINAL_REPORT)

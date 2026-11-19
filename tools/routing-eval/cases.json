@@ -93,7 +93,7 @@
     "skills/mneves-fable-orchestrator/SKILL.md"
    ],
    "changed": true,
-   "scenario": "A Claude ordinary worker (Opus) built a change in an ordinary open-source repository (no client, personal or regulated data; the owner approved the fallback provider). Codex is installed, but every Codex account returns an out-of-quota error. Following this skill, you dispatch the review of that change. Report the reviewer's model (the exact alias or id the text gives) and reasoning effort.",
+   "scenario": "A Claude ordinary worker (Opus) built a change in an ordinary open-source repository (no client, personal or regulated data; the owner approved the fallback provider; autoreview and an authenticated Agy reviewer are available on this host). Codex is installed, but every Codex account returns an out-of-quota error. Following this skill, you dispatch the review of that change. Report the reviewer's model (the exact alias or id the text gives) and reasoning effort.",
    "expected": {
     "model": [
      "gemini-4-neon-xhigh"
