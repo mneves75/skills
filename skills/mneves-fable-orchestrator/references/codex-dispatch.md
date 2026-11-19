@@ -181,23 +181,31 @@ run_agy_coding_fallback() {
 ### Read-only review fallback
 
 Run the first read-only review fallback through the sibling `autoreview` skill (**not shipped with
-this skill**), preserving the original review's exact Git target and priority flags (`--mode`,
-`--base`, `--commit`, `--max-priority`, `--prompt-file`, `--dataset`) so the fallback changes only
-the reviewer engine and model:
+this skill**), preserving the original review's exact Git target, priority, prompt, and restriction
+flags (`--mode`, `--base`, `--commit`, `--max-priority`, `--prompt-file`, `--dataset`,
+`--no-tools`, `--no-web-search`) so the fallback changes only the reviewer engine and model:
 
 ```bash
+# Example: preserve every original target, priority, prompt, and restriction flag unchanged:
+ORIGINAL_REVIEW_ARGS=(--mode branch --base origin/main --max-priority P3)
 python3 /path/to/autoreview/scripts/autoreview \
-  <original --mode / --base / --commit / --max-priority args> \
+  "${ORIGINAL_REVIEW_ARGS[@]}" \
   --engine agy --model gemini-4-neon-xhigh
 ```
 
+If the original review restricted tools or web search (`--no-tools` or `--no-web-search`), pass
+those flags unchanged: `autoreview --engine agy` refuses before launch because Agy's built-in
+`search_web` cannot be disabled up front. Treat that refusal as a reason to skip Agy and move to
+the reviewer row's second fallback while preserving `--no-tools` / `--no-web-search`.
+
 `autoreview --engine agy` handles the full isolation boundary: TruffleHog secret scanning, isolated
 auth-only `HOME`/`USERPROFILE`/`XDG_*` (preventing global/plugin hooks, plugins, and user MCP
-servers from running), environment scrubbing (preserving ADC region/project vars while refusing
-unforwarded custom endpoints like `GOOGLE_GEMINI_BASE_URL` and requiring explicit opt-in for
-direct `GEMINI_API_KEY` routing), an empty non-Git launch workspace, stdin NDJSON `stream-json`
-(zero argv exposure), `--disable-slash-commands --sandbox` with Default-mode strict deny-all
-`--settings` (never passing `--dangerously-skip-permissions`), and strict stream verification of
+servers from running), `AGY_CLI_DISABLE_AUTO_UPDATE=true`, environment scrubbing (preserving ADC
+region/project vars while refusing unforwarded custom endpoints like `GOOGLE_GEMINI_BASE_URL`,
+unverified home/gateway configurations, unpreservable ADC files, and unrequested direct
+`GEMINI_API_KEY` routing), an empty non-Git launch workspace, stdin NDJSON `stream-json` (zero argv
+exposure), `--disable-slash-commands --sandbox` with Default-mode strict deny-all `--settings`
+(never passing `--dangerously-skip-permissions`), and strict stream verification of
 `permission_mode == "strict"` and tool outcomes.
 
 If `autoreview` is not installed on the host, do **not** run an ad-hoc unisolated `agy` command on

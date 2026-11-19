@@ -1600,6 +1600,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             with mock.patch.dict(os.environ, env_vars, clear=True):
                 filtered = AUTOREVIEW.safe_engine_env(repo, [], engine="agy")
         self.assertEqual(filtered.get("AGY_ADC_AUTH"), "true")
+        self.assertEqual(filtered.get("AGY_CLI_DISABLE_AUTO_UPDATE"), "true")
         self.assertEqual(filtered.get("GEMINI_API_KEY"), "test-gemini-key")
         self.assertEqual(filtered.get("GOOGLE_CLOUD_LOCATION"), "eu")
         self.assertEqual(filtered.get("GOOGLE_CLOUD_PROJECT"), "demo-project")
@@ -1779,7 +1780,13 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="autoreview-agy-run-test.") as tmpdir:
             repo = Path(tmpdir) / "repo"
             repo.mkdir()
-            with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
+            fake_home = Path(tmpdir) / "home"
+            fake_home.mkdir()
+            with mock.patch.dict(
+                os.environ,
+                {"HOME": str(fake_home), "USERPROFILE": str(fake_home)},
+                clear=True,
+            ), mock.patch.object(
                 AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
             ), mock.patch.object(
                 AUTOREVIEW, "run_with_heartbeat", side_effect=fake_run,
@@ -1805,6 +1812,9 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             {"event": "user", "message": {"content": "review prompt"}},
         )
         self.assertEqual(observed["settings"], AUTOREVIEW.AGY_ISOLATED_SETTINGS)
+        env_observed = observed["env"]
+        assert isinstance(env_observed, dict)
+        self.assertEqual(env_observed.get("AGY_CLI_DISABLE_AUTO_UPDATE"), "true")
         if os.name != "nt":
             self.assertEqual(observed["settings_mode"], 0o600)
         self.assertEqual(observed["workspace"], [])
@@ -1815,7 +1825,13 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="autoreview-agy-apikey-ambient.") as tmpdir:
             repo = Path(tmpdir) / "repo"
             repo.mkdir()
-            with mock.patch.dict(os.environ, {"GEMINI_API_KEY": "test-key-123"}, clear=True), mock.patch.object(
+            fake_home = Path(tmpdir) / "home"
+            fake_home.mkdir()
+            with mock.patch.dict(
+                os.environ,
+                {"HOME": str(fake_home), "USERPROFILE": str(fake_home), "GEMINI_API_KEY": "test-key-123"},
+                clear=True,
+            ), mock.patch.object(
                 AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
             ), mock.patch.object(
                 AUTOREVIEW, "run_with_heartbeat", side_effect=fake_run,
@@ -1832,9 +1848,16 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="autoreview-agy-apikey-explicit.") as tmpdir:
             repo = Path(tmpdir) / "repo"
             repo.mkdir()
+            fake_home = Path(tmpdir) / "home"
+            fake_home.mkdir()
             with mock.patch.dict(
                 os.environ,
-                {"GEMINI_API_KEY": "test-key-123", "AUTOREVIEW_AGY_MODEL_PROVIDER": "gemini"},
+                {
+                    "HOME": str(fake_home),
+                    "USERPROFILE": str(fake_home),
+                    "GEMINI_API_KEY": "test-key-123",
+                    "AUTOREVIEW_AGY_MODEL_PROVIDER": "gemini",
+                },
                 clear=True,
             ), mock.patch.object(
                 AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
@@ -1872,18 +1895,21 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 AUTOREVIEW.run_agy(args, repo, "review prompt")
         self.assertEqual(observed["settings"], expected_with_provider)
 
-        # Custom Gemini endpoint (GOOGLE_GEMINI_BASE_URL) and enterprise gateway
-        # routing (AGY_LLM_GATEWAY_URL / settings.json gateway block) must be
-        # refused fail-closed in both ensure_agy_isolation_supported (--dry-run)
-        # and run_agy rather than silently sending review bundles to Google.
+        # Custom Gemini endpoint (GOOGLE_GEMINI_BASE_URL), enterprise gateway
+        # routing, home-inside-repo targets, and unpreservable ADC files must
+        # fail closed in ensure_agy_isolation_supported (--dry-run) and run_agy.
         with tempfile.TemporaryDirectory(prefix="autoreview-agy-gateway-test.") as tmpdir:
             root = Path(tmpdir)
             repo = root / "repo"
             repo.mkdir()
+            clean_home = root / "clean-home"
+            clean_home.mkdir()
+            base_home_env = {"HOME": str(clean_home), "USERPROFILE": str(clean_home)}
             for label, env_map, expected_msg in (
                 (
                     "custom gemini base url",
                     {
+                        **base_home_env,
                         "GEMINI_API_KEY": "test-key-123",
                         "AUTOREVIEW_AGY_MODEL_PROVIDER": "gemini",
                         "GOOGLE_GEMINI_BASE_URL": "https://proxy.corp.example/gemini",
@@ -1892,7 +1918,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 ),
                 (
                     "enterprise gateway env",
-                    {"AGY_LLM_GATEWAY_URL": "https://gateway.corp.example"},
+                    {**base_home_env, "AGY_LLM_GATEWAY_URL": "https://gateway.corp.example"},
                     "AGY_LLM_GATEWAY_URL",
                 ),
             ):
@@ -1925,16 +1951,45 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                     AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
             self.assertIn("enterprise gateway settings", str(cm.exception))
 
+            with self.subTest(label="reviewing HOME itself refuses fail-closed"), mock.patch.dict(
+                os.environ, {"HOME": str(agy_dir_home), "USERPROFILE": str(agy_dir_home)}, clear=True,
+            ):
+                with self.assertRaises(SystemExit) as cm:
+                    AUTOREVIEW.ensure_agy_isolation_supported(args, agy_dir_home)
+            self.assertIn("cannot be verified outside the reviewed repository", str(cm.exception))
+
             in_repo_gac = repo / "adc.json"
             in_repo_gac.write_text('{"type":"service_account"}', encoding="utf-8")
             with self.subTest(label="in-repo GOOGLE_APPLICATION_CREDENTIALS under AGY_ADC_AUTH"), mock.patch.dict(
                 os.environ,
-                {"AGY_ADC_AUTH": "true", "GOOGLE_APPLICATION_CREDENTIALS": str(in_repo_gac)},
+                {**base_home_env, "AGY_ADC_AUTH": "true", "GOOGLE_APPLICATION_CREDENTIALS": str(in_repo_gac)},
                 clear=True,
             ):
                 with self.assertRaises(SystemExit) as cm:
                     AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
             self.assertIn("GOOGLE_APPLICATION_CREDENTIALS cannot be preserved", str(cm.exception))
+
+            with self.subTest(label="in-repo CLOUDSDK_CONFIG under AGY_ADC_AUTH"), mock.patch.dict(
+                os.environ,
+                {**base_home_env, "AGY_ADC_AUTH": "true", "CLOUDSDK_CONFIG": str(repo)},
+                clear=True,
+            ), mock.patch.object(AUTOREVIEW.sys, "platform", "linux"):
+                with self.assertRaises(SystemExit) as cm:
+                    AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
+            self.assertIn("CLOUDSDK_CONFIG must be outside the reviewed repository", str(cm.exception))
+
+            if os.name != "nt":
+                adc_symlink_home = root / "adc-symlink-home"
+                (adc_symlink_home / ".config" / "gcloud").mkdir(parents=True)
+                (adc_symlink_home / ".config" / "gcloud" / "application_default_credentials.json").symlink_to(in_repo_gac)
+                with self.subTest(label="default ADC symlink into repo under AGY_ADC_AUTH"), mock.patch.dict(
+                    os.environ,
+                    {"HOME": str(adc_symlink_home), "USERPROFILE": str(adc_symlink_home), "AGY_ADC_AUTH": "true"},
+                    clear=True,
+                ), mock.patch.object(AUTOREVIEW.sys, "platform", "linux"):
+                    with self.assertRaises(SystemExit) as cm:
+                        AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
+                self.assertIn("existing default ADC credentials file cannot be preserved", str(cm.exception))
 
     def test_agy_stream_parser_preserves_unicode_line_separators_inside_json(self) -> None:
         report_with_nel = dict(FINAL_REPORT)

@@ -1316,6 +1316,9 @@ def safe_engine_env(
             if normalized:
                 env[key] = normalized
     if engine == "agy":
+        # Disable Agy's background self-updater in isolated HOME processes so a
+        # fresh HOME without a debounce marker never overwrites the agy binary.
+        env["AGY_CLI_DISABLE_AUTO_UPDATE"] = "true"
         for key in AGY_CREDENTIAL_PATH_ENV_KEYS:
             value = os.environ.get(key)
             env.pop(key, None)
@@ -6401,7 +6404,94 @@ def run_kimi(args: argparse.Namespace, repo: Path, prompt: str) -> str:
 
 
 def agy_adc_auth_enabled() -> bool:
-    return os.environ.get("AGY_ADC_AUTH", "").strip().lower() in {"1", "true", "yes"}
+    return os.environ.get("AGY_ADC_AUTH", "").strip().lower() in {"1", "true", "t", "yes", "y", "on"}
+
+
+def agy_user_home_dirs(repo: Path) -> list[Path]:
+    """Return verified external home director(ies) for Agy gateway/auth checks.
+
+    Fails closed when a configured HOME/USERPROFILE resolves inside the
+    reviewed repository (for example, reviewing $HOME itself) or when no home
+    directory can be determined outside the repository, so enterprise gateway
+    settings cannot be skipped silently.
+    """
+    keys = ("USERPROFILE", "HOME") if sys.platform == "win32" else ("HOME", "USERPROFILE")
+    homes: list[Path] = []
+    seen: set[Path] = set()
+    any_configured = False
+    for key in keys:
+        raw = os.environ.get(key, "").strip()
+        if not raw:
+            continue
+        any_configured = True
+        if not external_env_path(repo, raw):
+            raise SystemExit(
+                f"agy engine refused: {key} cannot be verified outside the reviewed "
+                "repository to check enterprise gateway settings; run autoreview from "
+                "a repository outside the user home directory or choose another engine"
+            )
+        resolved = Path(raw).expanduser().resolve()
+        if resolved not in seen:
+            seen.add(resolved)
+            homes.append(Path(raw).expanduser())
+    if not any_configured:
+        try:
+            fallback_home = Path.home()
+        except (OSError, RuntimeError) as exc:
+            raise SystemExit(
+                "agy engine refused: user home directory could not be determined to "
+                f"verify enterprise gateway settings ({exc})"
+            ) from exc
+        if not external_env_path(repo, str(fallback_home)):
+            raise SystemExit(
+                "agy engine refused: user home directory cannot be verified outside "
+                "the reviewed repository to check enterprise gateway settings"
+            )
+        homes.append(fallback_home)
+    return homes
+
+
+def resolve_agy_default_adc_path(repo: Path, real_home: Path) -> Path | None:
+    """Resolve an existing platform-default ADC file under AGY_ADC_AUTH, failing closed if unpreservable."""
+    if not agy_adc_auth_enabled() or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "").strip():
+        return None
+    if sys.platform == "win32":
+        raw_appdata = os.environ.get("APPDATA", "").strip()
+        if not raw_appdata:
+            return None
+        adc_candidate = Path(raw_appdata) / "gcloud" / "application_default_credentials.json"
+        if adc_candidate.exists() or adc_candidate.is_symlink():
+            if (
+                not external_env_path(repo, raw_appdata)
+                or not adc_candidate.is_file()
+                or not external_env_path(repo, str(adc_candidate))
+            ):
+                raise SystemExit(
+                    "agy engine refused: existing default ADC credentials file cannot be "
+                    "preserved outside the reviewed repository under AGY_ADC_AUTH; "
+                    "relocate or remove it before running autoreview"
+                )
+            return adc_candidate
+        return None
+    raw_cloudsdk = os.environ.get("CLOUDSDK_CONFIG", "").strip()
+    if raw_cloudsdk:
+        if not external_env_path(repo, raw_cloudsdk):
+            raise SystemExit(
+                "agy engine refused: CLOUDSDK_CONFIG must be outside the reviewed "
+                "repository under AGY_ADC_AUTH; relocate it before running autoreview"
+            )
+        adc_candidate = Path(raw_cloudsdk) / "application_default_credentials.json"
+    else:
+        adc_candidate = real_home / ".config" / "gcloud" / "application_default_credentials.json"
+    if adc_candidate.exists() or adc_candidate.is_symlink():
+        if not adc_candidate.is_file() or not external_env_path(repo, str(adc_candidate)):
+            raise SystemExit(
+                "agy engine refused: existing default ADC credentials file cannot be "
+                "preserved outside the reviewed repository under AGY_ADC_AUTH; "
+                "relocate or remove it before running autoreview"
+            )
+        return adc_candidate
+    return None
 
 
 def agy_explicit_gemini_api_provider(repo: Path) -> bool:
@@ -6410,12 +6500,14 @@ def agy_explicit_gemini_api_provider(repo: Path) -> bool:
     - Fails closed if enterprise gateway routing (AGY_LLM_GATEWAY_* env vars or
       a `gateway` setting in `~/.gemini/antigravity-cli/settings.json`,
       `~/.antigravity/settings.json`, or `~/.gemini/config/config.json`) is
-      configured, or if an existing user settings file cannot be parsed, so
-      isolated runs never bypass an organization's gateway.
+      configured, if the user home directory cannot be verified outside the
+      reviewed repository, or if an existing user settings file cannot be parsed,
+      so isolated runs never bypass an organization's gateway.
     - Fails closed if AGY_ADC_AUTH is enabled with an explicit
-      GOOGLE_APPLICATION_CREDENTIALS (or POSIX CLOUDSDK_CONFIG) path that
-      isolation would drop (for example, inside the reviewed checkout), so ADC
-      cannot silently fall through to a runner's metadata service account.
+      GOOGLE_APPLICATION_CREDENTIALS, POSIX CLOUDSDK_CONFIG, or existing
+      default ADC file that isolation would drop (for example, inside the
+      reviewed checkout), so ADC cannot silently fall through to a runner's
+      metadata service account.
     - Prevents an unrelated exported GEMINI_API_KEY from silently diverting an
       Antigravity account review to the direct Gemini API, and refuses
       GOOGLE_GEMINI_BASE_URL when direct Gemini API routing is enabled.
@@ -6431,6 +6523,7 @@ def agy_explicit_gemini_api_provider(repo: Path) -> bool:
             "cannot be preserved under isolated autoreview; choose another engine "
             "or unset gateway variables only if direct routing is authorized"
         )
+    home_dirs = agy_user_home_dirs(repo)
     if agy_adc_auth_enabled():
         raw_gac = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "").strip()
         if raw_gac and not normalize_external_env_path_value(repo, "GOOGLE_APPLICATION_CREDENTIALS", raw_gac):
@@ -6439,24 +6532,16 @@ def agy_explicit_gemini_api_provider(repo: Path) -> bool:
                 "outside the reviewed repository under AGY_ADC_AUTH; relocate the "
                 "credentials file outside the repository before running autoreview"
             )
-        if not raw_gac and sys.platform != "win32":
-            raw_cloudsdk = os.environ.get("CLOUDSDK_CONFIG", "").strip()
-            if raw_cloudsdk and not external_env_path(repo, raw_cloudsdk):
-                raise SystemExit(
-                    "agy engine refused: CLOUDSDK_CONFIG must be outside the reviewed "
-                    "repository under AGY_ADC_AUTH; relocate it before running autoreview"
-                )
+        resolve_agy_default_adc_path(repo, home_dirs[0])
     cli_settings_parsed: dict[str, Any] | None = None
-    raw_home = os.environ.get("HOME") or os.environ.get("USERPROFILE")
-    if raw_home and external_env_path(repo, raw_home):
-        home_path = Path(raw_home).expanduser()
+    for home_path in home_dirs:
         settings_candidates = (
             (home_path / ".gemini" / "antigravity-cli" / "settings.json", True),
             (home_path / ".antigravity" / "settings.json", False),
             (home_path / ".gemini" / "config" / "config.json", False),
         )
         for settings_path, is_cli_settings in settings_candidates:
-            if not settings_path.exists():
+            if not (settings_path.exists() or settings_path.is_symlink()):
                 continue
             if not settings_path.is_file() or not external_env_path(repo, str(settings_path)):
                 raise SystemExit(
@@ -6489,7 +6574,7 @@ def agy_explicit_gemini_api_provider(repo: Path) -> bool:
                         f"{settings_path.name} cannot be preserved under isolated autoreview; "
                         "choose another engine"
                     )
-            if is_cli_settings:
+            if is_cli_settings and cli_settings_parsed is None:
                 cli_settings_parsed = loaded
     override = os.environ.get("AUTOREVIEW_AGY_MODEL_PROVIDER", "").strip().lower()
     if override:
@@ -6549,10 +6634,7 @@ def stage_agy_isolated_home(repo: Path, runtime_root: Path) -> tuple[Path, dict[
         "XDG_CONFIG_HOME": str(xdg_config),
         "XDG_DATA_HOME": str(xdg_data),
     }
-    raw_home = os.environ.get("HOME") or os.environ.get("USERPROFILE")
-    real_home = Path(raw_home).expanduser() if raw_home and external_env_path(repo, raw_home) else None
-    if real_home is None:
-        return isolated_home, extra_env
+    real_home = agy_user_home_dirs(repo)[0]
 
     # macOS login keychain lookup reads $HOME/Library/Keychains; symlink only
     # that directory so OAuth works without exposing any ~/.gemini config.
@@ -6576,25 +6658,20 @@ def stage_agy_isolated_home(repo: Path, runtime_root: Path) -> tuple[Path, dict[
     # GOOGLE_APPLICATION_CREDENTIALS path, following Google Cloud's documented
     # platform search order (%APPDATA%\gcloud on Windows; $CLOUDSDK_CONFIG or
     # $HOME/.config/gcloud on Linux/macOS, never XDG_CONFIG_HOME).
-    if os.environ.get("AGY_ADC_AUTH", "").strip().lower() in {"1", "true", "yes"} and not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
-        adc_src: Path | None = None
-        if sys.platform == "win32":
-            raw_appdata = os.environ.get("APPDATA")
-            if raw_appdata and external_env_path(repo, raw_appdata):
-                adc_src = Path(raw_appdata) / "gcloud" / "application_default_credentials.json"
-        else:
-            raw_cloudsdk = os.environ.get("CLOUDSDK_CONFIG")
-            if raw_cloudsdk and external_env_path(repo, raw_cloudsdk):
-                adc_src = Path(raw_cloudsdk) / "application_default_credentials.json"
-            else:
-                adc_src = real_home / ".config" / "gcloud" / "application_default_credentials.json"
-        if adc_src is not None and adc_src.is_file() and external_env_path(repo, str(adc_src)):
-            adc_dst_dir = xdg_config / "gcloud"
-            adc_dst_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
-            adc_dst = adc_dst_dir / "application_default_credentials.json"
-            adc_dst.write_bytes(adc_src.read_bytes())
-            adc_dst.chmod(0o600)
-            extra_env["GOOGLE_APPLICATION_CREDENTIALS"] = str(adc_dst)
+    adc_src = resolve_agy_default_adc_path(repo, real_home)
+    if adc_src is not None:
+        adc_dst_dir = xdg_config / "gcloud"
+        adc_dst_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
+        adc_dst = adc_dst_dir / "application_default_credentials.json"
+        try:
+            adc_bytes = adc_src.read_bytes()
+        except OSError as exc:
+            raise SystemExit(
+                f"agy engine refused: could not read default ADC credentials file ({exc})"
+            ) from exc
+        adc_dst.write_bytes(adc_bytes)
+        adc_dst.chmod(0o600)
+        extra_env["GOOGLE_APPLICATION_CREDENTIALS"] = str(adc_dst)
 
     return isolated_home, extra_env
 
