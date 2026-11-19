@@ -1550,6 +1550,784 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
         self.assertEqual(env["KIMI_CODE_NO_AUTO_UPDATE"], "1")
         self.assertNotEqual(Path(str(env["KIMI_CODE_HOME"])), repo)
 
+    def test_agy_defaults_and_unsupported_flag_refusals(self) -> None:
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
+            sys, "argv", ["autoreview", "--engine", "agy", "--agy-bin", "/tmp/fake-agy"],
+        ):
+            reviewer = AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())[0]
+        self.assertEqual(reviewer.model, "gemini-4-neon-xhigh")
+        self.assertEqual(reviewer.agy_bin, "/tmp/fake-agy")
+        self.assertTrue(reviewer.tools)
+        self.assertTrue(reviewer.web_search)
+        self.assertIsNone(reviewer.fallback_model)
+
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
+            sys, "argv", ["autoreview", "--engine", "agy", "--no-tools"],
+        ):
+            with self.assertRaises(SystemExit) as cm:
+                AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())
+        self.assertIn("--no-tools is not supported by the Agy engine", str(cm.exception))
+
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
+            sys, "argv", ["autoreview", "--engine", "agy", "--no-web-search"],
+        ):
+            with self.assertRaises(SystemExit) as cm:
+                AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())
+        self.assertIn("--no-web-search is not supported by the Agy engine", str(cm.exception))
+
+    def test_agy_safe_engine_env_filters_aws_and_extra_ssh_vars(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-env-test.") as tmpdir:
+            repo = Path(tmpdir) / "repo"
+            repo.mkdir()
+            gcp_creds = Path(tmpdir) / "gcp.json"
+            gcp_creds.write_text("{}", encoding="utf-8")
+            aws_creds = Path(tmpdir) / "aws-creds"
+            aws_creds.write_text("[default]\n", encoding="utf-8")
+            env_vars = {
+                "AGY_ADC_AUTH": "true",
+                "GEMINI_API_KEY": "test-gemini-key",
+                "GOOGLE_CLOUD_LOCATION": "eu",
+                "GOOGLE_CLOUD_PROJECT": "demo-project",
+                "GOOGLE_CLOUD_QUOTA_PROJECT": "demo-quota-project",
+                "SSH_CONNECTION": "10.0.0.1 12345 10.0.0.2 22",
+                "SSH_CLIENT": "10.0.0.1 12345 22",
+                "SSH_TTY": "/dev/pts/0",
+                "GOOGLE_APPLICATION_CREDENTIALS": str(gcp_creds),
+                "AWS_SHARED_CREDENTIALS_FILE": str(aws_creds),
+                "AWS_CONFIG_FILE": str(aws_creds),
+                "OPENAI_API_KEY": "sk-unrelated",
+            }
+            with mock.patch.dict(os.environ, env_vars, clear=True):
+                filtered = AUTOREVIEW.safe_engine_env(repo, [], engine="agy")
+        self.assertEqual(filtered.get("AGY_ADC_AUTH"), "true")
+        self.assertEqual(filtered.get("AGY_CLI_DISABLE_AUTO_UPDATE"), "true")
+        self.assertEqual(filtered.get("GEMINI_API_KEY"), "test-gemini-key")
+        self.assertEqual(filtered.get("GOOGLE_CLOUD_LOCATION"), "eu")
+        self.assertEqual(filtered.get("GOOGLE_CLOUD_PROJECT"), "demo-project")
+        self.assertEqual(filtered.get("GOOGLE_CLOUD_QUOTA_PROJECT"), "demo-quota-project")
+        self.assertEqual(filtered.get("SSH_CONNECTION"), "10.0.0.1 12345 10.0.0.2 22")
+        self.assertEqual(Path(str(filtered.get("GOOGLE_APPLICATION_CREDENTIALS"))).resolve(), gcp_creds.resolve())
+        for forbidden in ("SSH_CLIENT", "SSH_TTY", "AWS_SHARED_CREDENTIALS_FILE", "AWS_CONFIG_FILE", "OPENAI_API_KEY"):
+            self.assertNotIn(forbidden, filtered)
+
+    def test_agy_isolated_home_excludes_global_hooks_plugins_and_stages_auth_only(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-home-test.") as tmpdir:
+            root = Path(tmpdir)
+            repo = root / "repo"
+            repo.mkdir()
+            real_home = root / "real-home"
+            (real_home / ".gemini" / "config").mkdir(parents=True)
+            (real_home / ".gemini" / "config" / "hooks.json").write_text('{"h":{"PreInvocation":[{"command":"pwn"}]}}', encoding="utf-8")
+            (real_home / ".gemini" / "antigravity-cli" / "plugins").mkdir(parents=True)
+            (real_home / ".gemini" / "antigravity-cli" / "plugins" / "evil.json").write_text("{}", encoding="utf-8")
+            (real_home / ".gemini" / "antigravity-cli" / "settings.json").write_text('{"allowNonWorkspaceAccess":true}', encoding="utf-8")
+            (real_home / ".gemini" / "antigravity-cli" / "antigravity-oauth-token").write_text("oauth-token-bytes", encoding="utf-8")
+            (real_home / ".config" / "gcloud").mkdir(parents=True)
+            (real_home / ".config" / "gcloud" / "application_default_credentials.json").write_text('{"type":"authorized_user"}', encoding="utf-8")
+            runtime_root = root / "runtime"
+            runtime_root.mkdir()
+            # On POSIX, custom XDG_CONFIG_HOME and CLOUDSDK_CONFIG must NOT
+            # override the documented $HOME/.config/gcloud default ADC identity.
+            xdg_alt = root / "xdg-alt"
+            (xdg_alt / "gcloud").mkdir(parents=True)
+            (xdg_alt / "gcloud" / "application_default_credentials.json").write_text('{"type":"wrong_xdg"}', encoding="utf-8")
+            cloudsdk_alt = root / "cloudsdk-alt"
+            cloudsdk_alt.mkdir()
+            (cloudsdk_alt / "application_default_credentials.json").write_text('{"type":"wrong_cloudsdk"}', encoding="utf-8")
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "HOME": str(real_home),
+                    "USERPROFILE": str(real_home),
+                    "XDG_CONFIG_HOME": str(xdg_alt),
+                    "CLOUDSDK_CONFIG": str(cloudsdk_alt),
+                    "AGY_ADC_AUTH": "true",
+                },
+                clear=True,
+            ), mock.patch.object(AUTOREVIEW.sys, "platform", "linux"):
+                isolated_home, extra_env = AUTOREVIEW.stage_agy_isolated_home(repo, runtime_root)
+            self.assertEqual(Path(extra_env["HOME"]), isolated_home)
+            self.assertEqual(Path(extra_env["USERPROFILE"]), isolated_home)
+            self.assertNotEqual(isolated_home.resolve(), real_home.resolve())
+            self.assertFalse((isolated_home / ".gemini" / "config").exists())
+            self.assertFalse((isolated_home / ".gemini" / "antigravity-cli" / "plugins").exists())
+            self.assertFalse((isolated_home / ".gemini" / "antigravity-cli" / "settings.json").exists())
+            staged_token = isolated_home / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"
+            self.assertTrue(staged_token.is_file())
+            self.assertEqual(staged_token.read_text(encoding="utf-8"), "oauth-token-bytes")
+            staged_adc = Path(extra_env["GOOGLE_APPLICATION_CREDENTIALS"])
+            self.assertTrue(staged_adc.is_file())
+            self.assertEqual(staged_adc.read_text(encoding="utf-8"), '{"type":"authorized_user"}')
+            if os.name != "nt":
+                self.assertEqual(staged_token.stat().st_mode & 0o777, 0o600)
+                self.assertEqual(staged_adc.stat().st_mode & 0o777, 0o600)
+
+            # On Windows, %APPDATA%\gcloud takes precedence over ~/.config/gcloud.
+            appdata_dir = root / "appdata"
+            (appdata_dir / "gcloud").mkdir(parents=True)
+            (appdata_dir / "gcloud" / "application_default_credentials.json").write_text('{"type":"win_appdata"}', encoding="utf-8")
+            win_runtime = root / "win-runtime"
+            win_runtime.mkdir()
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "HOME": str(real_home),
+                    "USERPROFILE": str(real_home),
+                    "APPDATA": str(appdata_dir),
+                    "AGY_ADC_AUTH": "true",
+                },
+                clear=True,
+            ), mock.patch.object(AUTOREVIEW.sys, "platform", "win32"):
+                _, win_env = AUTOREVIEW.stage_agy_isolated_home(repo, win_runtime)
+            self.assertEqual(
+                Path(win_env["GOOGLE_APPLICATION_CREDENTIALS"]).read_text(encoding="utf-8"),
+                '{"type":"win_appdata"}',
+            )
+
+    def test_agy_tier_suffixed_model_effort_validation(self) -> None:
+        self.assertIsNone(AUTOREVIEW.agy_effort_arg("gemini-4-neon-xhigh", None))
+        self.assertIsNone(AUTOREVIEW.agy_effort_arg("gemini-4-neon-xhigh", "xhigh"))
+        self.assertEqual(AUTOREVIEW.agy_effort_arg("gemini-4-neon", "high"), "high")
+        with self.assertRaises(SystemExit) as cm:
+            AUTOREVIEW.agy_effort_arg("gemini-4-neon-xhigh", "low")
+        self.assertIn("fixes reasoning tier xhigh", str(cm.exception))
+
+    def test_agy_isolation_requires_current_cli_contract(self) -> None:
+        args = argparse.Namespace(
+            agy_bin="agy",
+            model="gemini-4-neon-xhigh",
+            thinking=None,
+            engine_timeout_seconds=None,
+        )
+        full_help = (
+            "--disable-slash-commands --sandbox --settings --input-format "
+            "--output-format --json-schema --model --print --effort --print-timeout"
+        )
+        cases = (
+            ("1.5.11\n", full_help, "1.5.12"),
+            ("1.5.12\n", "--print --model", "--sandbox"),
+            ("not-a-version\n", full_help, "could not parse --version"),
+        )
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-probe-test.") as tmpdir:
+            root = Path(tmpdir)
+            repo = root / "repo"
+            repo.mkdir()
+            clean_home = root / "clean-home"
+            clean_home.mkdir()
+            clean_env = {"HOME": str(clean_home), "USERPROFILE": str(clean_home)}
+            missing_admin = root / "missing-admin.json"
+            for version_out, help_out, expected in cases:
+                with self.subTest(expected=expected), mock.patch.dict(
+                    os.environ, clean_env, clear=True,
+                ), mock.patch.object(
+                    AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
+                ), mock.patch.object(
+                    AUTOREVIEW, "resolve_command", return_value="/usr/local/bin/agy",
+                ), mock.patch.object(
+                    AUTOREVIEW,
+                    "run",
+                    side_effect=[
+                        subprocess.CompletedProcess(["agy", "--version"], 0, version_out, ""),
+                        subprocess.CompletedProcess(["agy", "--help"], 0, help_out, ""),
+                    ],
+                ):
+                    with self.assertRaises(SystemExit) as cm:
+                        AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
+                self.assertIn(expected, str(cm.exception))
+
+            with mock.patch.dict(
+                os.environ, clean_env, clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
+            ), mock.patch.object(
+                AUTOREVIEW, "resolve_command", return_value="/usr/local/bin/agy",
+            ), mock.patch.object(
+                AUTOREVIEW,
+                "run",
+                side_effect=[
+                    subprocess.CompletedProcess(["agy", "--version"], 0, "1.5.12\n", ""),
+                    subprocess.CompletedProcess(["agy", "--help"], 0, full_help, ""),
+                ],
+            ):
+                self.assertEqual(AUTOREVIEW.ensure_agy_isolation_supported(args, repo), "/usr/local/bin/agy")
+
+    def test_agy_runs_in_strict_sandbox_stream_json_mode(self) -> None:
+        args = argparse.Namespace(
+            agy_bin="agy",
+            model="gemini-4-neon-xhigh",
+            stream_engine_output=False,
+            thinking="xhigh",
+            tools=True,
+            web_search=True,
+            engine_timeout_seconds=120.0,
+        )
+        observed: dict[str, object] = {}
+
+        def fake_run(
+            command: list[str],
+            cwd: Path,
+            **kwargs: object,
+        ) -> subprocess.CompletedProcess[str]:
+            observed["command"] = command
+            observed["cwd"] = cwd
+            observed["env"] = kwargs.get("env")
+            observed["input_text"] = kwargs.get("input_text")
+            observed["workspace"] = list(cwd.iterdir())
+            settings_path = Path(command[command.index("--settings") + 1])
+            schema_path = Path(command[command.index("--json-schema") + 1])
+            observed["settings"] = json.loads(settings_path.read_text(encoding="utf-8"))
+            observed["schema"] = json.loads(schema_path.read_text(encoding="utf-8"))
+            observed["settings_mode"] = settings_path.stat().st_mode & 0o777
+            stream = "\n".join([
+                json.dumps({"event": "init", "init": {"permission_mode": "strict", "model": "gemini-4-neon-xhigh"}}),
+                json.dumps({"event": "step_update", "step_update": {"step_type": "user_input", "state": "DONE"}}),
+                json.dumps({"event": "step_update", "step_update": {"step_type": "tool", "tool_name": "search_web", "state": "DONE"}}),
+                json.dumps({
+                    "event": "result",
+                    "result": {
+                        "conversation_id": "conv-1",
+                        "status": "SUCCESS",
+                        "response": json.dumps(FINAL_REPORT),
+                        "structured_output": FINAL_REPORT,
+                    },
+                }),
+            ]) + "\n"
+            return subprocess.CompletedProcess(command, 0, stream, "")
+
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-run-test.") as tmpdir:
+            repo = Path(tmpdir) / "repo"
+            repo.mkdir()
+            fake_home = Path(tmpdir) / "home"
+            fake_home.mkdir()
+            missing_admin = Path(tmpdir) / "missing-admin.json"
+            with mock.patch.dict(
+                os.environ,
+                {"HOME": str(fake_home), "USERPROFILE": str(fake_home)},
+                clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
+            ), mock.patch.object(
+                AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
+            ), mock.patch.object(
+                AUTOREVIEW, "run_with_heartbeat", side_effect=fake_run,
+            ):
+                output = AUTOREVIEW.run_agy(args, repo, "review prompt")
+
+        self.assertEqual(json.loads(output), FINAL_REPORT)
+        command = observed["command"]
+        assert isinstance(command, list)
+        self.assertNotIn("--dangerously-skip-permissions", command)
+        self.assertNotIn("--mode", command)
+        self.assertIn("--disable-slash-commands", command)
+        self.assertIn("--sandbox", command)
+        self.assertEqual(command[command.index("--input-format") + 1], "stream-json")
+        self.assertEqual(command[command.index("--output-format") + 1], "stream-json")
+        self.assertEqual(command[command.index("--model") + 1], "gemini-4-neon-xhigh")
+        self.assertEqual(command[command.index("--print-timeout") + 1], "120s")
+        self.assertEqual(command[command.index("--print") + 1], "")
+        self.assertNotIn("review prompt", command)
+        self.assertNotIn("--effort", command)
+        self.assertEqual(
+            json.loads(str(observed["input_text"])),
+            {"event": "user", "message": {"content": "review prompt"}},
+        )
+        self.assertEqual(observed["settings"], AUTOREVIEW.AGY_ISOLATED_SETTINGS)
+        self.assertEqual(observed["schema"], AUTOREVIEW.PROVIDER_SCHEMA)
+        env_observed = observed["env"]
+        assert isinstance(env_observed, dict)
+        self.assertEqual(env_observed.get("AGY_CLI_DISABLE_AUTO_UPDATE"), "true")
+        if os.name != "nt":
+            self.assertEqual(observed["settings_mode"], 0o600)
+        self.assertEqual(observed["workspace"], [])
+
+        # Bare GEMINI_API_KEY without explicit provider opt-in must NOT divert
+        # an Antigravity account to the direct Gemini API.
+        observed.clear()
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-apikey-ambient.") as tmpdir:
+            repo = Path(tmpdir) / "repo"
+            repo.mkdir()
+            fake_home = Path(tmpdir) / "home"
+            fake_home.mkdir()
+            missing_admin = Path(tmpdir) / "missing-admin.json"
+            with mock.patch.dict(
+                os.environ,
+                {"HOME": str(fake_home), "USERPROFILE": str(fake_home), "GEMINI_API_KEY": "test-key-123"},
+                clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
+            ), mock.patch.object(
+                AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
+            ), mock.patch.object(
+                AUTOREVIEW, "run_with_heartbeat", side_effect=fake_run,
+            ):
+                AUTOREVIEW.run_agy(args, repo, "review prompt")
+        self.assertEqual(observed["settings"], AUTOREVIEW.AGY_ISOLATED_SETTINGS)
+        self.assertEqual(observed["schema"], AUTOREVIEW.PROVIDER_SCHEMA)
+        env_observed = observed["env"]
+        assert isinstance(env_observed, dict)
+        self.assertNotIn("GEMINI_API_KEY", env_observed)
+
+        # Explicit provider opt-in via AUTOREVIEW_AGY_MODEL_PROVIDER=gemini
+        # enables modelProvider: "gemini" and forwards GEMINI_API_KEY.
+        observed.clear()
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-apikey-explicit.") as tmpdir:
+            repo = Path(tmpdir) / "repo"
+            repo.mkdir()
+            fake_home = Path(tmpdir) / "home"
+            fake_home.mkdir()
+            missing_admin = Path(tmpdir) / "missing-admin.json"
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "HOME": str(fake_home),
+                    "USERPROFILE": str(fake_home),
+                    "GEMINI_API_KEY": "test-key-123",
+                    "AUTOREVIEW_AGY_MODEL_PROVIDER": "gemini",
+                },
+                clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
+            ), mock.patch.object(
+                AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
+            ), mock.patch.object(
+                AUTOREVIEW, "run_with_heartbeat", side_effect=fake_run,
+            ):
+                AUTOREVIEW.run_agy(args, repo, "review prompt")
+        expected_with_provider = dict(AUTOREVIEW.AGY_ISOLATED_SETTINGS)
+        expected_with_provider["modelProvider"] = "gemini"
+        self.assertEqual(observed["settings"], expected_with_provider)
+        env_observed = observed["env"]
+        assert isinstance(env_observed, dict)
+        self.assertEqual(env_observed.get("GEMINI_API_KEY"), "test-key-123")
+
+        # Explicit provider opt-in via user settings.json modelProvider="gemini".
+        observed.clear()
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-apikey-settings.") as tmpdir:
+            root = Path(tmpdir)
+            repo = root / "repo"
+            repo.mkdir()
+            fake_home = root / "home"
+            missing_admin = root / "missing-admin.json"
+            (fake_home / ".gemini" / "antigravity-cli").mkdir(parents=True)
+            (fake_home / ".gemini" / "antigravity-cli" / "settings.json").write_text(
+                json.dumps({"modelProvider": "gemini"}), encoding="utf-8",
+            )
+            with mock.patch.dict(
+                os.environ,
+                {"HOME": str(fake_home), "USERPROFILE": str(fake_home), "GEMINI_API_KEY": "test-key-123"},
+                clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
+            ), mock.patch.object(
+                AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
+            ), mock.patch.object(
+                AUTOREVIEW, "run_with_heartbeat", side_effect=fake_run,
+            ):
+                AUTOREVIEW.run_agy(args, repo, "review prompt")
+        self.assertEqual(observed["settings"], expected_with_provider)
+
+        # Custom Gemini endpoint (GOOGLE_GEMINI_BASE_URL), enterprise gateway
+        # routing, home-inside-repo targets, and unpreservable ADC files must
+        # fail closed in ensure_agy_isolation_supported (--dry-run) and run_agy.
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-gateway-test.") as tmpdir:
+            root = Path(tmpdir)
+            repo = root / "repo"
+            repo.mkdir()
+            clean_home = root / "clean-home"
+            clean_home.mkdir()
+            missing_admin = root / "missing-admin.json"
+            base_home_env = {"HOME": str(clean_home), "USERPROFILE": str(clean_home)}
+            for label, env_map, expected_msg in (
+                (
+                    "custom gemini base url",
+                    {
+                        **base_home_env,
+                        "GEMINI_API_KEY": "test-key-123",
+                        "AUTOREVIEW_AGY_MODEL_PROVIDER": "gemini",
+                        "GOOGLE_GEMINI_BASE_URL": "https://proxy.corp.example/gemini",
+                    },
+                    "GOOGLE_GEMINI_BASE_URL",
+                ),
+                (
+                    "enterprise gateway env",
+                    {**base_home_env, "AGY_LLM_GATEWAY_URL": "https://gateway.corp.example"},
+                    "AGY_LLM_GATEWAY_URL",
+                ),
+            ):
+                with self.subTest(label=label), mock.patch.dict(os.environ, env_map, clear=True), mock.patch.object(
+                    AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
+                ):
+                    with self.assertRaises(SystemExit) as cm:
+                        AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
+                self.assertIn(expected_msg, str(cm.exception))
+
+            gw_home = root / "gw-home"
+            (gw_home / ".gemini" / "antigravity-cli").mkdir(parents=True)
+            (gw_home / ".gemini" / "antigravity-cli" / "settings.json").write_text(
+                json.dumps({"gateway": {"address": "https://gateway.corp.example"}}), encoding="utf-8",
+            )
+            with self.subTest(label="enterprise gateway cli settings.json"), mock.patch.dict(
+                os.environ, {"HOME": str(gw_home), "USERPROFILE": str(gw_home)}, clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
+            ):
+                with self.assertRaises(SystemExit) as cm:
+                    AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
+            self.assertIn("enterprise gateway settings", str(cm.exception))
+
+            agy_dir_home = root / "agy-dir-home"
+            (agy_dir_home / ".antigravity").mkdir(parents=True)
+            (agy_dir_home / ".antigravity" / "settings.json").write_text(
+                json.dumps({"gateway": {"address": "https://gateway.corp.example"}}), encoding="utf-8",
+            )
+            with self.subTest(label="enterprise gateway ~/.antigravity/settings.json"), mock.patch.dict(
+                os.environ, {"HOME": str(agy_dir_home), "USERPROFILE": str(agy_dir_home)}, clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
+            ):
+                with self.assertRaises(SystemExit) as cm:
+                    AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
+            self.assertIn("enterprise gateway settings", str(cm.exception))
+
+            with self.subTest(label="reviewing HOME itself refuses fail-closed"), mock.patch.dict(
+                os.environ, {"HOME": str(agy_dir_home), "USERPROFILE": str(agy_dir_home)}, clear=True,
+            ):
+                with self.assertRaises(SystemExit) as cm:
+                    AUTOREVIEW.ensure_agy_isolation_supported(args, agy_dir_home)
+            self.assertIn("cannot be verified outside the reviewed repository", str(cm.exception))
+
+            with self.subTest(label="blank HOME refuses fail-closed"), mock.patch.dict(
+                os.environ, {"HOME": ""}, clear=True,
+            ):
+                with self.assertRaises(SystemExit) as cm:
+                    AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
+                self.assertIn("HOME cannot be verified", str(cm.exception))
+
+            in_repo_gac = repo / "adc.json"
+            in_repo_gac.write_text('{"type":"service_account"}', encoding="utf-8")
+            with self.subTest(label="in-repo GOOGLE_APPLICATION_CREDENTIALS under AGY_ADC_AUTH"), mock.patch.dict(
+                os.environ,
+                {**base_home_env, "AGY_ADC_AUTH": "true", "GOOGLE_APPLICATION_CREDENTIALS": str(in_repo_gac)},
+                clear=True,
+            ):
+                with self.assertRaises(SystemExit) as cm:
+                    AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
+            self.assertIn("GOOGLE_APPLICATION_CREDENTIALS cannot be preserved", str(cm.exception))
+
+            with self.subTest(label="machine-wide admin_settings.json gateway refuses"):
+                admin_settings = root / "admin_settings.json"
+                admin_settings.write_text(
+                    json.dumps({"gateway": {"enabled": True, "address": "https://gateway.corp.example"}}),
+                    encoding="utf-8",
+                )
+                with mock.patch.dict(os.environ, base_home_env, clear=True), mock.patch.object(
+                    AUTOREVIEW, "agy_admin_settings_path", return_value=admin_settings,
+                ):
+                    with self.assertRaises(SystemExit) as cm:
+                        AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
+                self.assertIn("admin_settings.json", str(cm.exception))
+
+            with self.subTest(label="explicitly disabled gateway is honored"):
+                disabled_gw_home = root / "disabled-gw-home"
+                (disabled_gw_home / ".antigravity").mkdir(parents=True)
+                (disabled_gw_home / ".antigravity" / "settings.json").write_text(
+                    json.dumps({"gateway": {"enabled": False, "address": "https://gateway.corp.example"}}),
+                    encoding="utf-8",
+                )
+                with mock.patch.dict(
+                    os.environ,
+                    {"HOME": str(disabled_gw_home), "USERPROFILE": str(disabled_gw_home)},
+                    clear=True,
+                ), mock.patch.object(
+                    AUTOREVIEW, "agy_admin_settings_path", return_value=root / "missing-admin.json",
+                ):
+                    self.assertFalse(AUTOREVIEW.agy_explicit_gemini_api_provider(repo))
+
+            with self.subTest(label="admin_settings.json enabled=false overrides user enabled=true"):
+                admin_disabled = root / "admin_disabled.json"
+                admin_disabled.write_text(
+                    json.dumps({"gateway": {"enabled": False, "address": "https://gateway.corp.example"}}),
+                    encoding="utf-8",
+                )
+                with mock.patch.dict(
+                    os.environ,
+                    {
+                        "HOME": str(agy_dir_home),
+                        "USERPROFILE": str(agy_dir_home),
+                        "AGY_LLM_GATEWAY_URL": "https://user-gateway.example",
+                    },
+                    clear=True,
+                ), mock.patch.object(
+                    AUTOREVIEW, "agy_admin_settings_path", return_value=admin_disabled,
+                ):
+                    self.assertFalse(AUTOREVIEW.agy_explicit_gemini_api_provider(repo))
+
+            with self.subTest(label="posix ignores USERPROFILE modelProvider when HOME has no cli settings"):
+                posix_home = root / "posix-home"
+                posix_home.mkdir()
+                other_profile = root / "other-profile"
+                (other_profile / ".gemini" / "antigravity-cli").mkdir(parents=True)
+                (other_profile / ".gemini" / "antigravity-cli" / "settings.json").write_text(
+                    json.dumps({"modelProvider": "gemini"}),
+                    encoding="utf-8",
+                )
+                with mock.patch.dict(
+                    os.environ,
+                    {
+                        "HOME": str(posix_home),
+                        "USERPROFILE": str(other_profile),
+                        "GEMINI_API_KEY": "test-key-123",
+                    },
+                    clear=True,
+                ), mock.patch.object(AUTOREVIEW.sys, "platform", "linux"), mock.patch.object(
+                    AUTOREVIEW, "agy_admin_settings_path", return_value=root / "missing-admin.json",
+                ):
+                    self.assertFalse(AUTOREVIEW.agy_explicit_gemini_api_provider(repo))
+
+                with mock.patch.dict(
+                    os.environ,
+                    {
+                        "USERPROFILE": str(other_profile),
+                        "GEMINI_API_KEY": "test-key-123",
+                    },
+                    clear=True,
+                ), mock.patch.object(AUTOREVIEW.sys, "platform", "linux"), mock.patch.object(
+                    AUTOREVIEW.Path, "home", return_value=posix_home,
+                ), mock.patch.object(
+                    AUTOREVIEW, "agy_admin_settings_path", return_value=root / "missing-admin.json",
+                ):
+                    self.assertFalse(AUTOREVIEW.agy_explicit_gemini_api_provider(repo))
+
+            with self.subTest(label="non-exact saved modelProvider refuses"):
+                bad_case_home = root / "bad-case-home"
+                (bad_case_home / ".gemini" / "antigravity-cli").mkdir(parents=True)
+                (bad_case_home / ".gemini" / "antigravity-cli" / "settings.json").write_text(
+                    json.dumps({"modelProvider": "Gemini"}),
+                    encoding="utf-8",
+                )
+                with mock.patch.dict(
+                    os.environ,
+                    {
+                        "HOME": str(bad_case_home),
+                        "USERPROFILE": str(bad_case_home),
+                        "GEMINI_API_KEY": "test-key-123",
+                    },
+                    clear=True,
+                ), mock.patch.object(
+                    AUTOREVIEW, "agy_admin_settings_path", return_value=root / "missing-admin.json",
+                ):
+                    with self.assertRaises(SystemExit) as cm:
+                        AUTOREVIEW.agy_explicit_gemini_api_provider(repo)
+                self.assertIn("unsupported modelProvider", str(cm.exception))
+
+            if os.name != "nt":
+                adc_symlink_home = root / "adc-symlink-home"
+                (adc_symlink_home / ".config" / "gcloud").mkdir(parents=True)
+                (adc_symlink_home / ".config" / "gcloud" / "application_default_credentials.json").symlink_to(in_repo_gac)
+                with self.subTest(label="default ADC symlink into repo under AGY_ADC_AUTH"), mock.patch.dict(
+                    os.environ,
+                    {"HOME": str(adc_symlink_home), "USERPROFILE": str(adc_symlink_home), "AGY_ADC_AUTH": "true"},
+                    clear=True,
+                ), mock.patch.object(AUTOREVIEW.sys, "platform", "linux"):
+                    with self.assertRaises(SystemExit) as cm:
+                        AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
+                self.assertIn("existing default ADC credentials file cannot be preserved", str(cm.exception))
+
+    def test_agy_stream_parser_preserves_unicode_line_separators_inside_json(self) -> None:
+        report_with_nel = dict(FINAL_REPORT)
+        report_with_nel["overall_explanation"] = "line1\u0085line2\u2028line3\u2029end"
+        stream = (
+            json.dumps({"event": "init", "init": {"permission_mode": "strict"}}, ensure_ascii=False)
+            + "\n"
+            + json.dumps(
+                {"event": "result", "result": {"status": "SUCCESS", "structured_output": report_with_nel}},
+                ensure_ascii=False,
+            )
+            + "\n"
+        )
+        parsed = json.loads(
+            AUTOREVIEW.parse_agy_stream_output(subprocess.CompletedProcess(["agy"], 0, stream, ""))
+        )
+        self.assertEqual(parsed["overall_explanation"], "line1\u0085line2\u2028line3\u2029end")
+
+    def test_agy_stream_parser_distinguishes_denied_tool_attempts_from_execution(self) -> None:
+        strict_init = json.dumps({"event": "init", "init": {"permission_mode": "strict"}})
+        ok_result = json.dumps({
+            "event": "result",
+            "result": {"status": "SUCCESS", "structured_output": FINAL_REPORT},
+        })
+        denied_stream = "\n".join([
+            strict_init,
+            json.dumps({"event": "step_update", "step_update": {"step_index": 2, "step_type": "tool", "tool_name": "run_command", "state": "ACTIVE"}}),
+            json.dumps({
+                "event": "step_update",
+                "step_update": {
+                    "step_index": 2,
+                    "step_type": "tool",
+                    "tool_name": "run_command",
+                    "state": "ERROR",
+                    "tool_info": {"error": {"type": "TOOL_ERROR", "message": "permission check failed: Permission denied for command(ls)."}},
+                },
+            }),
+            ok_result,
+        ]) + "\n"
+        self.assertEqual(
+            json.loads(AUTOREVIEW.parse_agy_stream_output(subprocess.CompletedProcess(["agy"], 0, denied_stream, ""))),
+            FINAL_REPORT,
+        )
+
+        finish_stream = "\n".join([
+            strict_init,
+            json.dumps({"event": "step_update", "step_update": {"step_index": 2, "step_type": "tool", "tool_name": "finish", "state": "ACTIVE"}}),
+            json.dumps({"event": "step_update", "step_update": {"step_index": 2, "step_type": "finish", "state": "DONE"}}),
+            ok_result,
+        ]) + "\n"
+        self.assertEqual(
+            json.loads(AUTOREVIEW.parse_agy_stream_output(subprocess.CompletedProcess(["agy"], 0, finish_stream, ""))),
+            FINAL_REPORT,
+        )
+
+        subagent_stream = "\n".join([
+            strict_init,
+            json.dumps({"event": "step_update", "step_update": {"step_index": 3, "step_type": "subagent", "state": "DONE", "subagent_info": {"role": "helper"}}}),
+            ok_result,
+        ]) + "\n"
+        with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as cm:
+            AUTOREVIEW.parse_agy_stream_output(subprocess.CompletedProcess(["agy"], 0, subagent_stream, ""))
+        self.assertIn("disallowed tool 'subagent'", str(cm.exception))
+
+        for label, bad_step in (
+            (
+                "command failed after run",
+                {"step_index": 2, "step_type": "tool", "tool_name": "run_command", "state": "ERROR", "tool_info": {"error": {"type": "TOOL_ERROR", "message": "command exited with status 1"}}},
+            ),
+            (
+                "os eacces permission denied",
+                {"step_index": 2, "step_type": "tool", "tool_name": "run_command", "state": "ERROR", "tool_info": {"error": {"type": "TOOL_ERROR", "message": "cat /etc/shadow: Permission denied"}}},
+            ),
+            (
+                "canceled mid-run",
+                {"step_index": 2, "step_type": "tool", "tool_name": "run_command", "state": "CANCELED"},
+            ),
+        ):
+            bad_stream = "\n".join([
+                strict_init,
+                json.dumps({"event": "step_update", "step_update": {"step_index": 2, "step_type": "tool", "tool_name": "run_command", "state": "ACTIVE"}}),
+                json.dumps({"event": "step_update", "step_update": bad_step}),
+                ok_result,
+            ]) + "\n"
+            with self.subTest(label=label):
+                with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as cm:
+                    AUTOREVIEW.parse_agy_stream_output(subprocess.CompletedProcess(["agy"], 0, bad_stream, ""))
+                self.assertIn("disallowed tool 'run_command'", str(cm.exception))
+
+        unhashable_tool_stream = "\n".join([
+            strict_init,
+            json.dumps({"event": "step_update", "step_update": {"step_index": 2, "step_type": "tool", "tool_name": ["run_command"], "state": "DONE"}}),
+            ok_result,
+        ]) + "\n"
+        with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as cm:
+            AUTOREVIEW.parse_agy_stream_output(subprocess.CompletedProcess(["agy"], 0, unhashable_tool_stream, ""))
+        self.assertIn("malformed tool step event", str(cm.exception))
+
+    def test_agy_rejects_error_non_strict_disallowed_tool_and_oversized_stream(self) -> None:
+        args = argparse.Namespace(
+            agy_bin="agy",
+            model="gemini-4-neon-xhigh",
+            stream_engine_output=False,
+            thinking=None,
+            tools=True,
+            web_search=True,
+            engine_timeout_seconds=None,
+        )
+        strict_init = json.dumps({"event": "init", "init": {"permission_mode": "strict"}})
+        ok_result = json.dumps({
+            "event": "result",
+            "result": {"status": "SUCCESS", "structured_output": FINAL_REPORT},
+        })
+        cases = (
+            (
+                "error status",
+                strict_init + "\n" + json.dumps({
+                    "event": "result",
+                    "result": {"status": "ERROR", "error": "authentication failed or timed out"},
+                }),
+                "authentication failed or timed out",
+            ),
+            (
+                "print_timeout partial success",
+                strict_init + "\n" + json.dumps({
+                    "event": "result",
+                    "result": {
+                        "status": "SUCCESS",
+                        "finished_reason": "print_timeout",
+                        "response": "partial text",
+                        "structured_output": FINAL_REPORT,
+                    },
+                }),
+                "print_timeout",
+            ),
+            (
+                "non-strict init",
+                json.dumps({"event": "init", "init": {"permission_mode": "always-proceed"}}) + "\n" + ok_result,
+                "did not start in strict permission mode",
+            ),
+            (
+                "disallowed tool",
+                strict_init + "\n"
+                + json.dumps({"event": "step_update", "step_update": {"step_type": "tool", "tool_name": "run_command", "state": "DONE"}})
+                + "\n" + ok_result,
+                "disallowed tool 'run_command'",
+            ),
+            (
+                "oversized output",
+                "x" * (AUTOREVIEW.AGY_MAX_OUTPUT_CHARS + 1),
+                "exceeded",
+            ),
+            (
+                "malformed json",
+                "not-json",
+                "non-JSON stream output",
+            ),
+        )
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-err-test.") as tmpdir:
+            root = Path(tmpdir)
+            repo = root / "repo"
+            repo.mkdir()
+            fake_home = root / "home"
+            fake_home.mkdir()
+            missing_admin = root / "missing-admin.json"
+            with mock.patch.dict(
+                os.environ,
+                {"HOME": str(fake_home), "USERPROFILE": str(fake_home)},
+                clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
+            ):
+                for label, payload, expected in cases:
+                    with self.subTest(label=label), mock.patch.object(
+                        AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
+                    ), mock.patch.object(
+                        AUTOREVIEW,
+                        "run_with_heartbeat",
+                        return_value=subprocess.CompletedProcess(["agy"], 0, payload, ""),
+                    ):
+                        with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as cm:
+                            AUTOREVIEW.run_agy(args, repo, "review prompt")
+                    self.assertIn(expected, str(cm.exception))
+                with self.subTest(label="recursion error"), mock.patch.object(
+                    AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
+                ), mock.patch.object(
+                    AUTOREVIEW,
+                    "run_with_heartbeat",
+                    return_value=subprocess.CompletedProcess(["agy"], 0, "{}\n", ""),
+                ), mock.patch.object(
+                    AUTOREVIEW.json, "loads", side_effect=RecursionError("maximum recursion depth exceeded"),
+                ):
+                    with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as cm:
+                        AUTOREVIEW.run_agy(args, repo, "review prompt")
+                self.assertIn("non-JSON stream output", str(cm.exception))
+
     def test_codex_config_status_exposes_keys_only(self) -> None:
         args = argparse.Namespace(codex_config=['model_verbosity="low"'])
         self.assertEqual(AUTOREVIEW.codex_config_keys(args), ["model_verbosity"])

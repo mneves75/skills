@@ -547,7 +547,9 @@ review continues. See <a href="https://github.com/mneves75/skills/blob/main/skil
 <p><strong>What it does.</strong> Freezes the chosen Git target, scans the outgoing input, runs a reviewer in
 an isolated environment, validates its report, and rejects results if sources changed mid-review.
 The helper prints its default model and reasoning tier at startup; Codex review has no
-automatic model fallback on account-access failures.</p>
+automatic model fallback on account-access failures. Optional engines include Claude, Amp, Pi,
+Kimi (<code>--allow-kimi-argv-prompt</code>), and Antigravity CLI (<code>--engine agy</code>,
+default <code>gemini-4-neon-xhigh</code> over stdin <code>stream-json</code> in strict sandboxed mode).</p>
 <p><strong>Example</strong> (illustrative; replace the installed path).</p>
 <pre tabindex="0"><code class="language-sh">python3 /path/to/autoreview/scripts/autoreview --mode local --max-priority P3
 </code></pre>
@@ -913,8 +915,9 @@ reviewing run on different seats: code review runs on the other host&#39;s revie
 Claude-built work, Claude reviews Codex-built work), so the model that built a change never
 reviews it. The concrete
 models and reasoning tiers live only in the skill&#39;s Defaults block.
-Codex review has no automatic model fallback: when no Codex account can run, the skill names one
-deliberate fallback reviewer, records why, and never lets it review a change its own model built.
+When no Codex account can run, the skill&#39;s Defaults block names an explicit coding fallback and an
+ordered review fallback (skipping the first fallback on client, personal or regulated data), records
+why each skipped seat could not run, and never lets a fallback review a change its own model built.
 The portable defaults do not change a running
 harness&#39;s main-session model. Caller overrides and actual host
 configuration take precedence; the skill&#39;s Defaults block owns its portable defaults.

@@ -1,0 +1,21 @@
+Adaptation 11-agy-yolo-fallback
+
+Document the coding and read-only review fallback after `gpt-6.2-sol` (`gemini-4-neon-xhigh`:
+unattended `agy-yolo` coding strictly inside an enclosing external container/VM sandbox when
+explicitly authorized or blocked otherwise, and `autoreview --engine agy` for read-only review)
+when no Codex account can run, preserving the data-disclosure and owner-approval boundaries.
+
+Applies to the port's plugins/pstack/skills tree after the patches numbered before it.
+
+diff --git a/poteto-mode/references/codex-tools.md b/poteto-mode/references/codex-tools.md
+--- a/poteto-mode/references/codex-tools.md
++++ b/poteto-mode/references/codex-tools.md
+@@ -72,6 +72,8 @@
+ 
+ These substitutes are not Opus models, so the `medium` rule for a value that resolves to an Opus model does not apply to them on Codex. On Codex the level listed above for each substitute takes the place of the sheet's `default effort` line; a level the role value names with `@` still applies.
+ 
++When `gpt-6.2-sol` cannot run (no Codex quota or Codex unavailable), fall back to `gemini-4-neon-xhigh`: for unattended coding, run `agy-yolo` (`agy --dangerously-skip-permissions --sandbox --settings` with `agentMode: ""`, `allowNonWorkspaceAccess: false`, `enableTerminalSandbox: true`, and `permissions.deny: ["unsandboxed(*)"]`) inside a dedicated worktree **strictly within an enclosing external container/VM sandbox** (which bounds files, credentials, lifecycle hooks, plugins, and workspace MCP servers) when unattended execution is explicitly authorized — first completing the workspace-customization preflight (no untrusted hooks, plugins, discovery manifests, or workspace MCP servers across `.agents/`, `.agent/`, `_agents/`, `_agent/`, `.gemini/`, `.antigravity/`, or `personal_customization_dir`) and verifying the effective provider/endpoint; without an enclosing container/VM, report the coding fallback blocked. For read-only review, run through `autoreview --engine agy --model gemini-4-neon-xhigh` (if `autoreview` is not installed, do not run an ad-hoc unisolated `agy` command on untrusted code; fall through to the second review fallback or install `autoreview`). Never use this fallback in repositories declaring client, personal, or regulated data, or where the owner has not approved that provider; host-policy or task restrictions are not a reason to route around them. Record the substitution and why `gpt-6.2-sol` could not run.
++
+ `/setup-pstack` writes the configured model list. On Codex, set it to your Codex model slugs.
+ 
+ ## Session routing hook

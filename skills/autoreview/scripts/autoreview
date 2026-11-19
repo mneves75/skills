@@ -35,7 +35,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, BinaryIO, NamedTuple
 
 
-ENGINES = ("codex", "claude", "amp", "pi", "kimi")
+ENGINES = ("codex", "claude", "amp", "pi", "kimi", "agy")
 ENGINE_GIT_CONFIG_OVERRIDES = (
     ("core.fsmonitor", "false"),
     ("core.pager", "cat"),
@@ -165,6 +165,29 @@ KIMI_ARGV_PROMPT_REFUSAL = (
     "command-line argument, which other local accounts can read in the process list "
     "while it runs; pass --allow-kimi-argv-prompt to accept that, or choose another engine"
 )
+# Antigravity CLI (`agy`) receives the review prompt over stdin NDJSON
+# (`--input-format stream-json --output-format stream-json`), avoiding argv
+# exposure and platform command-line length caps while letting autoreview verify
+# strict permission mode and tool events before accepting structured output.
+AGY_MAX_OUTPUT_CHARS = 2_000_000
+AGY_ALLOWED_TOOLS = frozenset({"search_web"})
+AGY_ISOLATED_SETTINGS: dict[str, Any] = {
+    "agentMode": "",
+    "allowNonWorkspaceAccess": False,
+    "enableTerminalSandbox": True,
+    "toolPermission": "strict",
+    "permissions": {
+        "allow": [],
+        "deny": [
+            "command(*)",
+            "write_file(*)",
+            "read_file(*)",
+            "read_url(*)",
+            "mcp(*)",
+            "unsandboxed(*)",
+        ],
+    },
+}
 MAX_REVIEW_CHUNK_CONTEXT_BYTES = 64_000
 # Per-run paid-work budget, checked before the first provider call. The byte
 # default is that many full-size passes, so it binds once passes are raised.
@@ -407,10 +430,17 @@ PROVIDER_CREDENTIAL_PATH_ENV_KEYS = {
     "SSL_CERT_DIR",
     "SSL_CERT_FILE",
 }
+AGY_CREDENTIAL_PATH_ENV_KEYS = {
+    "GOOGLE_APPLICATION_CREDENTIALS",
+    "NODE_EXTRA_CA_CERTS",
+    "SSL_CERT_DIR",
+    "SSL_CERT_FILE",
+}
 DEFAULT_MODEL_BY_ENGINE = {
     "amp": "openai/gpt-6.1-sol",
     "codex": "gpt-6.2-sol",
     "claude": "claude-opus-5-5",
+    "agy": "gemini-4-neon-xhigh",
 }
 DEFAULT_CODEX_ACCESS_FALLBACK_MODEL = None
 DEFAULT_CODEX_ACCESS_FALLBACK_THINKING = "high"
@@ -436,7 +466,9 @@ THINKING_LEVELS_BY_ENGINE = {
     "claude": {"low", "medium", "high", "xhigh", "max"},
     "pi": {"off", "minimal", "low", "medium", "high", "xhigh"},
     "kimi": {"off", "on"},
+    "agy": {"low", "medium", "high", "xhigh", "max"},
 }
+AGY_TIER_SUFFIXES = frozenset({"low", "medium", "high", "xhigh", "max"})
 CLAUDE_SAFE_MODE_MIN_VERSION = (2, 1, 169)
 CLAUDE_FABLE_MIN_VERSION = (2, 1, 170)
 # A versioned model id needs the Claude Code release that serves it (Claude Code
@@ -458,6 +490,10 @@ PI_TRUST_ISOLATION_MIN_VERSION = (0, 79, 0)
 # contract with --quiet/--work-dir/--config-file/--mcp-config-file flags; no
 # such CLI was ever released — the real contract is the 0.30+ one.)
 KIMI_ISOLATION_MIN_VERSION = (0, 30, 0)
+# Antigravity CLI 1.5.12 supports strict stream-json stdin/stdout, --sandbox,
+# --disable-slash-commands, session-only --settings (with permissions.deny),
+# --json-schema, and gemini-4-neon-xhigh.
+AGY_ISOLATION_MIN_VERSION = (1, 5, 12)
 SUBPROCESS_TEXT_ENCODING = "utf-8"
 SUBPROCESS_TEXT_ERRORS = "replace"
 
@@ -1186,7 +1222,20 @@ def safe_engine_env(
     amp_allowed_exact = {
         "AMP_API_KEY",
     }
+    # AGY_ADC_AUTH + GOOGLE_CLOUD_{LOCATION,PROJECT,QUOTA_PROJECT} preserve
+    # headless ADC routing and data residency; SSH_CONNECTION triggers Linux
+    # file-based OAuth storage (~/.gemini/antigravity-cli/antigravity-oauth-token)
+    # instead of desktop keyring migration over SSH.
+    agy_allowed_exact = {
+        "AGY_ADC_AUTH",
+        "GEMINI_API_KEY",
+        "GOOGLE_CLOUD_LOCATION",
+        "GOOGLE_CLOUD_PROJECT",
+        "GOOGLE_CLOUD_QUOTA_PROJECT",
+        "SSH_CONNECTION",
+    }
     engine_allowed_exact = {
+        "agy": agy_allowed_exact,
         "amp": amp_allowed_exact,
         "claude": claude_allowed_exact,
         "codex": codex_allowed_exact,
@@ -1248,14 +1297,29 @@ def safe_engine_env(
         normalized = normalize_external_env_path_value(repo, key, value) if value else None
         if normalized:
             env[key] = normalized
-    if engine == "codex":
+    if engine in {"codex", "agy"}:
         dbus_address = os.environ.get("DBUS_SESSION_BUS_ADDRESS")
         if dbus_address and safe_dbus_session_address(repo, dbus_address):
             env["DBUS_SESSION_BUS_ADDRESS"] = dbus_address
         xdg_runtime_dir = os.environ.get("XDG_RUNTIME_DIR")
         if xdg_runtime_dir and external_env_path(repo, xdg_runtime_dir):
             env["XDG_RUNTIME_DIR"] = xdg_runtime_dir
+    if engine == "codex":
         for key in CODEX_TRUST_PATH_ENV_KEYS:
+            value = os.environ.get(key)
+            env.pop(key, None)
+            normalized = (
+                normalize_external_env_path_value(repo, key, value)
+                if value
+                else None
+            )
+            if normalized:
+                env[key] = normalized
+    if engine == "agy":
+        # Disable Agy's background self-updater in isolated HOME processes so a
+        # fresh HOME without a debounce marker never overwrites the agy binary.
+        env["AGY_CLI_DISABLE_AUTO_UPDATE"] = "true"
+        for key in AGY_CREDENTIAL_PATH_ENV_KEYS:
             value = os.environ.get(key)
             env.pop(key, None)
             normalized = (
@@ -4849,7 +4913,11 @@ def ensure_claude_isolation_supported(args: argparse.Namespace, repo: Path) -> N
     )
     help_text = f"{help_result.stdout}\n{help_result.stderr}"
     required_flags = ["--safe-mode", "--setting-sources", "--strict-mcp-config", "--disallowedTools", "--tools"]
-    missing = [flag for flag in required_flags if flag not in help_text]
+    missing = [
+        flag
+        for flag in required_flags
+        if not re.search(rf"(?<![A-Za-z0-9-]){re.escape(flag)}(?![A-Za-z0-9-])", help_text)
+    ]
     if help_result.returncode != 0 or missing:
         detail = ", ".join(missing) if missing else "--help failed"
         raise SystemExit(f"claude engine requires Claude Code isolation flags missing from --help: {detail}")
@@ -4892,7 +4960,11 @@ def ensure_amp_isolation_supported(args: argparse.Namespace, repo: Path) -> str:
         "--settings-file",
         "--no-ide",
     ]
-    missing = [flag for flag in required_flags if flag not in help_text]
+    missing = [
+        flag
+        for flag in required_flags
+        if not re.search(rf"(?<![A-Za-z0-9-]){re.escape(flag)}(?![A-Za-z0-9-])", help_text)
+    ]
     if help_result.returncode != 0 or missing:
         detail = ", ".join(missing) if missing else "--help failed"
         raise SystemExit(
@@ -4929,7 +5001,11 @@ def ensure_pi_isolation_supported(args: argparse.Namespace, repo: Path) -> str:
         "--no-tools",
         "--thinking",
     ]
-    missing = [flag for flag in required_flags if flag not in help_text]
+    missing = [
+        flag
+        for flag in required_flags
+        if not re.search(rf"(?<![A-Za-z0-9-]){re.escape(flag)}(?![A-Za-z0-9-])", help_text)
+    ]
     if help_result.returncode != 0 or missing:
         detail = ", ".join(missing) if missing else "--help failed"
         raise SystemExit(f"pi engine requires Pi isolation flags missing from --help: {detail}")
@@ -4989,7 +5065,11 @@ def ensure_kimi_isolation_supported(args: argparse.Namespace, repo: Path) -> str
         "--output-format",
         "--model",
     ]
-    missing = [flag for flag in required_flags if flag not in help_text]
+    missing = [
+        flag
+        for flag in required_flags
+        if not re.search(rf"(?<![A-Za-z0-9-]){re.escape(flag)}(?![A-Za-z0-9-])", help_text)
+    ]
     if help_result.returncode != 0 or missing:
         detail = ", ".join(missing) if missing else "--help failed"
         raise SystemExit(
@@ -4997,6 +5077,108 @@ def ensure_kimi_isolation_supported(args: argparse.Namespace, repo: Path) -> str
             + detail
         )
     return kimi_bin
+
+
+def agy_effort_arg(model: str | None, thinking: str | None) -> str | None:
+    if not thinking:
+        return None
+    if model:
+        parts = model.rsplit("-", 1)
+        if len(parts) == 2 and parts[1] in AGY_TIER_SUFFIXES:
+            suffix = parts[1]
+            if thinking != suffix:
+                raise SystemExit(
+                    f"agy model {model} fixes reasoning tier {suffix}; "
+                    f"omit --thinking or select a matching model id"
+                )
+            return None
+    return thinking
+
+
+def ensure_agy_isolation_supported(args: argparse.Namespace, repo: Path) -> str:
+    use_gemini_api = agy_explicit_gemini_api_provider(repo)
+    agy_bin = resolve_command(args.agy_bin, repo)
+    with tempfile.TemporaryDirectory(
+        prefix="autoreview-agy-probe.",
+        dir=safe_temp_root(repo),
+    ) as tempdir:
+        probe_cwd = Path(tempdir)
+        probe_home = probe_cwd / "home"
+        probe_home.mkdir(mode=0o700)
+        engine_env = safe_engine_env(
+            repo,
+            [Path(agy_bin).parent],
+            engine="agy",
+            extra={
+                "COLUMNS": "240",
+                "NO_COLOR": "1",
+                "HOME": str(probe_home),
+                "USERPROFILE": str(probe_home),
+                "XDG_CONFIG_HOME": str(probe_home / ".config"),
+                "XDG_DATA_HOME": str(probe_home / ".local" / "share"),
+            },
+        )
+        if not use_gemini_api:
+            engine_env.pop("GEMINI_API_KEY", None)
+        version_result = run(
+            [agy_bin, "--version"],
+            probe_cwd,
+            check=False,
+            env=engine_env,
+        )
+        help_result = run(
+            [agy_bin, "--help"],
+            probe_cwd,
+            check=False,
+            env=engine_env,
+        )
+    if version_result.returncode != 0:
+        raise SystemExit(
+            "agy engine requires Antigravity CLI >= "
+            f"{format_version(AGY_ISOLATION_MIN_VERSION)}; --version failed"
+        )
+    version = parse_cli_version(
+        f"{version_result.stdout}\n{version_result.stderr}"
+    )
+    if version is None:
+        raise SystemExit(
+            "agy engine requires Antigravity CLI >= "
+            f"{format_version(AGY_ISOLATION_MIN_VERSION)}; "
+            "could not parse --version output"
+        )
+    if version < AGY_ISOLATION_MIN_VERSION:
+        raise SystemExit(
+            "agy engine requires Antigravity CLI >= "
+            f"{format_version(AGY_ISOLATION_MIN_VERSION)} for isolated strict-sandbox stream-json review "
+            f"(found {format_version(version)})"
+        )
+    help_text = f"{help_result.stdout}\n{help_result.stderr}"
+    required_flags = [
+        "--disable-slash-commands",
+        "--sandbox",
+        "--settings",
+        "--input-format",
+        "--output-format",
+        "--json-schema",
+        "--model",
+        "--print",
+    ]
+    if agy_effort_arg(getattr(args, "model", None), getattr(args, "thinking", None)):
+        required_flags.append("--effort")
+    if getattr(args, "engine_timeout_seconds", None):
+        required_flags.append("--print-timeout")
+    missing = [
+        flag
+        for flag in required_flags
+        if not re.search(rf"(?<![A-Za-z0-9-]){re.escape(flag)}(?![A-Za-z0-9-])", help_text)
+    ]
+    if help_result.returncode != 0 or missing:
+        detail = ", ".join(missing) if missing else "--help failed"
+        raise SystemExit(
+            "agy engine requires Antigravity CLI isolation flags missing from --help: "
+            + detail
+        )
+    return agy_bin
 
 
 def kimi_source_share(repo: Path) -> Path | None:
@@ -6221,6 +6403,593 @@ def run_kimi(args: argparse.Namespace, repo: Path, prompt: str) -> str:
     return "\n".join(texts)
 
 
+def agy_adc_auth_enabled() -> bool:
+    return os.environ.get("AGY_ADC_AUTH", "").strip().lower() in {"1", "true", "t", "yes", "y", "on"}
+
+
+def agy_user_home_dirs(repo: Path) -> list[Path]:
+    """Return verified external home directories for Agy auth and gateway checks.
+
+    Index 0 is always the platform's active home directory (`USERPROFILE` on
+    Windows, `HOME` on POSIX, or `Path.home()` when that variable is absent),
+    used for `modelProvider` opt-in and auth staging. Any distinct secondary
+    profile variable (`HOME` on Windows, `USERPROFILE` on POSIX) is appended
+    solely for enterprise gateway inspection. Fails closed when either home
+    cannot be verified outside the reviewed repository.
+    """
+    primary_key = "USERPROFILE" if sys.platform == "win32" else "HOME"
+    secondary_key = "HOME" if sys.platform == "win32" else "USERPROFILE"
+    if primary_key in os.environ:
+        raw_primary = os.environ[primary_key].strip()
+        if not raw_primary or not external_env_path(repo, raw_primary):
+            raise SystemExit(
+                f"agy engine refused: {primary_key} cannot be verified outside the reviewed "
+                "repository to check enterprise gateway settings; set a valid home "
+                "directory outside the repository or choose another engine"
+            )
+        active_home = Path(raw_primary).expanduser()
+    else:
+        try:
+            active_home = Path.home()
+        except (OSError, RuntimeError) as exc:
+            raise SystemExit(
+                "agy engine refused: user home directory could not be determined to "
+                f"verify enterprise gateway settings ({exc})"
+            ) from exc
+        if not external_env_path(repo, str(active_home)):
+            raise SystemExit(
+                "agy engine refused: user home directory cannot be verified outside "
+                "the reviewed repository to check enterprise gateway settings"
+            )
+    homes: list[Path] = [active_home]
+    seen: set[Path] = {active_home.resolve()}
+    if secondary_key in os.environ:
+        raw_secondary = os.environ[secondary_key].strip()
+        if not raw_secondary or not external_env_path(repo, raw_secondary):
+            raise SystemExit(
+                f"agy engine refused: {secondary_key} cannot be verified outside the reviewed "
+                "repository to check enterprise gateway settings; set a valid home "
+                "directory outside the repository or choose another engine"
+            )
+        secondary_home = Path(raw_secondary).expanduser()
+        if secondary_home.resolve() not in seen:
+            homes.append(secondary_home)
+    return homes
+
+
+def agy_admin_settings_path() -> Path:
+    """Return the documented machine-wide Antigravity admin_settings.json path for this OS."""
+    if sys.platform == "darwin":
+        return Path("/Library/Application Support/Antigravity/admin_settings.json")
+    if sys.platform == "win32":
+        program_data = (
+            os.environ.get("ProgramData")
+            or os.environ.get("PROGRAMDATA")
+            or r"C:\ProgramData"
+        )
+        return Path(program_data) / "Antigravity" / "admin_settings.json"
+    return Path("/etc/antigravity/admin_settings.json")
+
+
+def agy_gateway_value_state(gw_val: Any) -> str | None:
+    """Return 'enabled', 'disabled', or None for a saved gateway setting."""
+    if isinstance(gw_val, dict):
+        if "enabled" in gw_val:
+            enabled = gw_val["enabled"]
+            if isinstance(enabled, bool):
+                return "enabled" if enabled else "disabled"
+            return "enabled"
+        return "enabled" if any(gw_val.values()) else None
+    return "enabled" if gw_val else None
+
+
+def resolve_agy_default_adc_path(repo: Path, real_home: Path) -> Path | None:
+    """Resolve an existing platform-default ADC file under AGY_ADC_AUTH, failing closed if unpreservable.
+
+    Follows Google Cloud's documented ADC well-known file search order:
+    `%APPDATA%\\gcloud\\application_default_credentials.json` on Windows and
+    `$HOME/.config/gcloud/application_default_credentials.json` on Linux/macOS
+    (never `XDG_CONFIG_HOME` and never `CLOUDSDK_CONFIG`).
+    """
+    if not agy_adc_auth_enabled() or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "").strip():
+        return None
+    if sys.platform == "win32":
+        raw_appdata = os.environ.get("APPDATA", "").strip()
+        if not raw_appdata:
+            return None
+        adc_candidate = Path(raw_appdata) / "gcloud" / "application_default_credentials.json"
+        if adc_candidate.exists() or adc_candidate.is_symlink():
+            if (
+                not external_env_path(repo, raw_appdata)
+                or not adc_candidate.is_file()
+                or not external_env_path(repo, str(adc_candidate))
+            ):
+                raise SystemExit(
+                    "agy engine refused: existing default ADC credentials file cannot be "
+                    "preserved outside the reviewed repository under AGY_ADC_AUTH; "
+                    "relocate or remove it before running autoreview"
+                )
+            return adc_candidate
+        return None
+    adc_candidate = real_home / ".config" / "gcloud" / "application_default_credentials.json"
+    if adc_candidate.exists() or adc_candidate.is_symlink():
+        if not adc_candidate.is_file() or not external_env_path(repo, str(adc_candidate)):
+            raise SystemExit(
+                "agy engine refused: existing default ADC credentials file cannot be "
+                "preserved outside the reviewed repository under AGY_ADC_AUTH; "
+                "relocate or remove it before running autoreview"
+            )
+        return adc_candidate
+    return None
+
+
+def agy_explicit_gemini_api_provider(repo: Path) -> bool:
+    """Validate Agy provider/gateway/ADC routing and return True only for explicit Gemini API opt-in.
+
+    - Fails closed if enterprise gateway routing (machine-wide
+      `admin_settings.json`, `AGY_LLM_GATEWAY_*` env vars, or an enabled
+      `gateway` setting in `~/.gemini/antigravity-cli/settings.json`,
+      `~/.antigravity/settings.json`, or `~/.gemini/config/config.json`) is
+      configured, if the user home directory cannot be verified outside the
+      reviewed repository, or if an existing settings file cannot be parsed, so
+      isolated runs never bypass or silently divert through an enterprise
+      gateway.
+    - Fails closed if AGY_ADC_AUTH is enabled with an explicit
+      GOOGLE_APPLICATION_CREDENTIALS or existing platform-default ADC file that
+      isolation would drop (for example, inside the reviewed checkout), so ADC
+      cannot silently fall through to a runner's metadata service account.
+    - Prevents an unrelated exported GEMINI_API_KEY from silently diverting an
+      Antigravity account review to the direct Gemini API, requires exact
+      schema values (`"gemini"` / `"antigravity"`) for saved `modelProvider`,
+      and refuses GOOGLE_GEMINI_BASE_URL when direct Gemini API routing is
+      enabled.
+    """
+    home_dirs = agy_user_home_dirs(repo)
+    if agy_adc_auth_enabled():
+        raw_gac = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "").strip()
+        if raw_gac and not normalize_external_env_path_value(repo, "GOOGLE_APPLICATION_CREDENTIALS", raw_gac):
+            raise SystemExit(
+                "agy engine refused: GOOGLE_APPLICATION_CREDENTIALS cannot be preserved "
+                "outside the reviewed repository under AGY_ADC_AUTH; relocate the "
+                "credentials file outside the repository before running autoreview"
+            )
+        resolve_agy_default_adc_path(repo, home_dirs[0])
+
+    def load_agy_settings_file(settings_path: Path) -> dict[str, Any] | None:
+        try:
+            present = settings_path.exists() or settings_path.is_symlink()
+        except OSError as exc:
+            raise SystemExit(
+                f"agy engine refused: could not inspect configuration path "
+                f"{settings_path.name} ({exc})"
+            ) from exc
+        if not present:
+            return None
+        if not settings_path.is_file() or not external_env_path(repo, str(settings_path)):
+            raise SystemExit(
+                f"agy engine refused: configuration path {settings_path.name} "
+                "cannot be verified outside the reviewed repository"
+            )
+        try:
+            loaded = json.loads(settings_path.read_text(encoding="utf-8-sig"))
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            raise SystemExit(
+                f"agy engine refused: could not parse {settings_path.name} to verify "
+                f"gateway/provider policy ({exc})"
+            ) from exc
+        if not isinstance(loaded, dict):
+            raise SystemExit(
+                f"agy engine refused: unexpected JSON shape in {settings_path.name}"
+            )
+        return loaded
+
+    # Evaluate enterprise gateway precedence:
+    # 1. Machine-wide admin_settings.json (highest precedence; explicit enabled=False
+    #    overrides lower-priority env vars and user settings).
+    # 2. AGY_LLM_GATEWAY_* environment variables.
+    # 3. User settings files under HOME/USERPROFILE.
+    admin_path = agy_admin_settings_path()
+    admin_loaded = load_agy_settings_file(admin_path)
+    admin_gateway_disabled = False
+    if admin_loaded is not None:
+        for gw_key in ("gateway", "llmGateway", "enterpriseGateway"):
+            gw_state = agy_gateway_value_state(admin_loaded.get(gw_key))
+            if gw_state == "enabled":
+                raise SystemExit(
+                    f"agy engine refused: enterprise gateway settings ({gw_key}) in "
+                    f"{admin_path.name} cannot be verified/preserved under isolated "
+                    "autoreview; choose another engine"
+                )
+            if gw_state == "disabled":
+                admin_gateway_disabled = True
+    if not admin_gateway_disabled:
+        gateway_env_keys = sorted(
+            key for key, value in os.environ.items()
+            if key.startswith("AGY_LLM_GATEWAY_") and value.strip()
+        )
+        if gateway_env_keys:
+            joined = ", ".join(gateway_env_keys)
+            raise SystemExit(
+                f"agy engine refused: enterprise gateway configuration ({joined}) "
+                "cannot be preserved under isolated autoreview; choose another engine "
+                "or unset gateway variables only if direct routing is authorized"
+            )
+    active_home = home_dirs[0]
+    user_settings_to_inspect: list[tuple[Path, bool]] = []
+    for home_path in home_dirs:
+        user_settings_to_inspect.extend((
+            (home_path / ".gemini" / "antigravity-cli" / "settings.json", home_path == active_home),
+            (home_path / ".antigravity" / "settings.json", False),
+            (home_path / ".gemini" / "config" / "config.json", False),
+        ))
+    cli_settings_parsed: dict[str, Any] | None = None
+    for settings_path, is_cli_settings in user_settings_to_inspect:
+        loaded = load_agy_settings_file(settings_path)
+        if loaded is None:
+            continue
+        if not admin_gateway_disabled:
+            for gw_key in ("gateway", "llmGateway", "enterpriseGateway"):
+                if agy_gateway_value_state(loaded.get(gw_key)) == "enabled":
+                    raise SystemExit(
+                        f"agy engine refused: enterprise gateway settings ({gw_key}) in "
+                        f"{settings_path.name} cannot be verified/preserved under isolated "
+                        "autoreview; choose another engine"
+                    )
+        if is_cli_settings and cli_settings_parsed is None:
+            cli_settings_parsed = loaded
+    override = os.environ.get("AUTOREVIEW_AGY_MODEL_PROVIDER", "").strip().lower()
+    if override:
+        if override == "gemini":
+            use_gemini = True
+        elif override == "antigravity":
+            use_gemini = False
+        else:
+            raise SystemExit(
+                f"invalid AUTOREVIEW_AGY_MODEL_PROVIDER={override!r}; expected 'antigravity' or 'gemini'"
+            )
+    else:
+        saved_provider = cli_settings_parsed.get("modelProvider") if cli_settings_parsed is not None else None
+        if saved_provider is None or saved_provider == "":
+            use_gemini = False
+        elif isinstance(saved_provider, str):
+            if saved_provider == "gemini":
+                use_gemini = True
+            elif saved_provider == "antigravity":
+                use_gemini = False
+            else:
+                raise SystemExit(
+                    f"agy engine refused: unsupported modelProvider {saved_provider!r} in "
+                    "settings.json cannot be preserved under isolated autoreview"
+                )
+        else:
+            raise SystemExit(
+                "agy engine refused: non-string modelProvider in settings.json cannot be "
+                "verified under isolated autoreview"
+            )
+    if use_gemini and os.environ.get("GOOGLE_GEMINI_BASE_URL", "").strip():
+        raise SystemExit(
+            "agy engine refused: GOOGLE_GEMINI_BASE_URL configures a custom Gemini endpoint "
+            "that autoreview does not forward; unset GOOGLE_GEMINI_BASE_URL only if direct "
+            "Google Gemini API routing is authorized, or choose another engine"
+        )
+    return use_gemini
+
+
+def stage_agy_isolated_home(repo: Path, runtime_root: Path) -> tuple[Path, dict[str, str]]:
+    """Create a private HOME for Agy staging only authentication material.
+
+    Isolates the subprocess from user global hooks (`~/.gemini/config/hooks.json`,
+    `~/.gemini/antigravity-cli/hooks.json`), installed plugins, MCP servers,
+    global rules, and user settings while preserving OAuth and ADC login.
+    """
+    isolated_home = runtime_root / "home"
+    isolated_home.mkdir(mode=0o700)
+    xdg_config = isolated_home / ".config"
+    xdg_data = isolated_home / ".local" / "share"
+    xdg_config.mkdir(parents=True, mode=0o700)
+    xdg_data.mkdir(parents=True, mode=0o700)
+    extra_env = {
+        "HOME": str(isolated_home),
+        "USERPROFILE": str(isolated_home),
+        "XDG_CONFIG_HOME": str(xdg_config),
+        "XDG_DATA_HOME": str(xdg_data),
+    }
+    real_home = agy_user_home_dirs(repo)[0]
+
+    # macOS login keychain lookup reads $HOME/Library/Keychains; symlink only
+    # that directory so OAuth works without exposing any ~/.gemini config.
+    if sys.platform == "darwin":
+        keychains_src = real_home / "Library" / "Keychains"
+        if keychains_src.is_dir() and external_env_path(repo, str(keychains_src)):
+            lib_dir = isolated_home / "Library"
+            lib_dir.mkdir(mode=0o700, exist_ok=True)
+            (lib_dir / "Keychains").symlink_to(keychains_src)
+
+    # Portable file-based OAuth token (used on Linux over SSH and headless hosts).
+    oauth_src = real_home / ".gemini" / "antigravity-cli" / "antigravity-oauth-token"
+    if oauth_src.is_file() and external_env_path(repo, str(oauth_src)):
+        oauth_dst_dir = isolated_home / ".gemini" / "antigravity-cli"
+        oauth_dst_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
+        oauth_dst = oauth_dst_dir / "antigravity-oauth-token"
+        oauth_dst.write_bytes(oauth_src.read_bytes())
+        oauth_dst.chmod(0o600)
+
+    # Default gcloud ADC file when AGY_ADC_AUTH is enabled without an explicit
+    # GOOGLE_APPLICATION_CREDENTIALS path, following Google Cloud's documented
+    # platform search order (%APPDATA%\gcloud on Windows; $HOME/.config/gcloud
+    # on Linux/macOS, never XDG_CONFIG_HOME or CLOUDSDK_CONFIG).
+    adc_src = resolve_agy_default_adc_path(repo, real_home)
+    if adc_src is not None:
+        adc_dst_dir = xdg_config / "gcloud"
+        adc_dst_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
+        adc_dst = adc_dst_dir / "application_default_credentials.json"
+        try:
+            adc_bytes = adc_src.read_bytes()
+        except OSError as exc:
+            raise SystemExit(
+                f"agy engine refused: could not read default ADC credentials file ({exc})"
+            ) from exc
+        adc_dst.write_bytes(adc_bytes)
+        adc_dst.chmod(0o600)
+        extra_env["GOOGLE_APPLICATION_CREDENTIALS"] = str(adc_dst)
+
+    return isolated_home, extra_env
+
+
+def parse_agy_stream_output(result: subprocess.CompletedProcess[str]) -> str:
+    if len(result.stdout) > AGY_MAX_OUTPUT_CHARS:
+        raise ReviewerUnavailable(
+            f"agy engine output exceeded {AGY_MAX_OUTPUT_CHARS} characters",
+            reason="invalid_report",
+            result=result,
+        )
+    lines = [line.rstrip("\r") for line in result.stdout.split("\n") if line.strip("\r \t")]
+    if not lines:
+        raise ReviewerUnavailable(
+            "agy engine returned empty output",
+            reason="invalid_report",
+            result=result,
+        )
+    saw_strict_init = False
+    final_result: dict[str, Any] | None = None
+    # Track disallowed tool steps by step_index: agy emits ACTIVE before the
+    # permission check resolves, then ERROR with a permission-denied message
+    # in tool_info.error.message when blocked by permissions.deny.
+    disallowed_tool_steps: dict[int, tuple[str, str, str]] = {}
+    synthetic_step_index = -1
+    for line in lines:
+        try:
+            entry = json.loads(line)
+        except (json.JSONDecodeError, RecursionError, ValueError) as exc:
+            raise ReviewerUnavailable(
+                f"agy engine returned non-JSON stream output: {exc}\n{line[:2000]}",
+                reason="invalid_report",
+                result=result,
+            ) from exc
+        if not isinstance(entry, dict):
+            raise ReviewerUnavailable(
+                f"agy engine returned unexpected stream event shape\n{line[:2000]}",
+                reason="invalid_report",
+                result=result,
+            )
+        event_type = entry.get("event")
+        if event_type == "init":
+            init_obj = entry.get("init")
+            if not isinstance(init_obj, dict) or init_obj.get("permission_mode") != "strict":
+                mode = init_obj.get("permission_mode") if isinstance(init_obj, dict) else None
+                raise ReviewerUnavailable(
+                    f"agy engine did not start in strict permission mode (got {mode!r})",
+                    reason="invalid_report",
+                    result=result,
+                )
+            saw_strict_init = True
+        elif event_type == "step_update":
+            step = entry.get("step_update")
+            if isinstance(step, dict):
+                step_type = step.get("step_type")
+                if step_type == "subagent" or step.get("subagent_info") is not None:
+                    step_state = step.get("state")
+                    if not isinstance(step_state, str):
+                        raise ReviewerUnavailable(
+                            "agy engine emitted malformed subagent step event",
+                            reason="invalid_report",
+                            result=result,
+                        )
+                    raw_index = step.get("step_index")
+                    if isinstance(raw_index, int) and not isinstance(raw_index, bool):
+                        step_key = raw_index
+                    else:
+                        step_key = synthetic_step_index
+                        synthetic_step_index -= 1
+                    sub_name = step.get("tool_name")
+                    label = (
+                        f"subagent:{sub_name}"
+                        if isinstance(sub_name, str) and sub_name and sub_name != "subagent"
+                        else "subagent"
+                    )
+                    tool_info = step.get("tool_info")
+                    error_obj = tool_info.get("error") if isinstance(tool_info, dict) else step.get("error")
+                    error_msg = error_obj.get("message") if isinstance(error_obj, dict) else ""
+                    if not isinstance(error_msg, str):
+                        error_msg = ""
+                    disallowed_tool_steps[step_key] = (label, step_state, error_msg)
+                elif step_type == "finish" and step.get("state") == "DONE":
+                    raw_index = step.get("step_index")
+                    if isinstance(raw_index, int) and not isinstance(raw_index, bool):
+                        prior = disallowed_tool_steps.get(raw_index)
+                        if prior is not None and prior[0] == "finish" and prior[1] == "ACTIVE":
+                            disallowed_tool_steps.pop(raw_index, None)
+                elif step_type == "tool":
+                    tool_name = step.get("tool_name")
+                    step_state = step.get("state")
+                    if not isinstance(tool_name, str) or not isinstance(step_state, str):
+                        raise ReviewerUnavailable(
+                            "agy engine emitted malformed tool step event",
+                            reason="invalid_report",
+                            result=result,
+                        )
+                    if tool_name not in AGY_ALLOWED_TOOLS:
+                        raw_index = step.get("step_index")
+                        if isinstance(raw_index, int) and not isinstance(raw_index, bool):
+                            step_key = raw_index
+                        else:
+                            step_key = synthetic_step_index
+                            synthetic_step_index -= 1
+                        tool_info = step.get("tool_info")
+                        error_obj = tool_info.get("error") if isinstance(tool_info, dict) else None
+                        error_msg = error_obj.get("message") if isinstance(error_obj, dict) else ""
+                        if not isinstance(error_msg, str):
+                            error_msg = ""
+                        disallowed_tool_steps[step_key] = (tool_name, step_state, error_msg)
+        elif event_type == "result":
+            res = entry.get("result")
+            if isinstance(res, dict):
+                final_result = res
+    for tool_name, step_state, error_msg in disallowed_tool_steps.values():
+        lowered_error = error_msg.strip().lower()
+        denied = step_state == "DENIED" or (
+            step_state == "ERROR"
+            and lowered_error.startswith("permission check failed")
+            and "permission denied" in lowered_error
+        )
+        if not denied:
+            raise ReviewerUnavailable(
+                f"agy engine executed disallowed tool {tool_name!r}",
+                reason="invalid_report",
+                result=result,
+            )
+    if not saw_strict_init:
+        raise ReviewerUnavailable(
+            "agy engine stream omitted strict init event",
+            reason="invalid_report",
+            result=result,
+        )
+    if final_result is None:
+        raise ReviewerUnavailable(
+            f"agy engine stream omitted result event\n{result.stdout[:2000]}",
+            reason="invalid_report",
+            result=result,
+        )
+    status = final_result.get("status")
+    finished_reason = final_result.get("finished_reason")
+    unexpected_finish = (
+        isinstance(finished_reason, str)
+        and bool(finished_reason.strip())
+        and finished_reason.strip().lower() not in {"completed", "end_turn", "stop"}
+    )
+    if status != "SUCCESS" or unexpected_finish:
+        error_detail = final_result.get("error") or finished_reason or status
+        raise ReviewerUnavailable(
+            f"agy engine failed ({status}): {error_detail}",
+            result=result,
+        )
+    structured = final_result.get("structured_output")
+    if isinstance(structured, dict):
+        return json.dumps(structured)
+    response = final_result.get("response")
+    if isinstance(response, str) and response.strip():
+        return response
+    raise ReviewerUnavailable(
+        f"agy engine returned no structured_output or response\n{result.stdout[:2000]}",
+        reason="invalid_report",
+        result=result,
+    )
+
+
+def run_agy(args: argparse.Namespace, repo: Path, prompt: str) -> str:
+    if not getattr(args, "tools", True):
+        raise SystemExit(
+            "--no-tools is not supported by the Agy engine; "
+            "use --engine claude --no-tools for a no-tools run"
+        )
+    if not getattr(args, "web_search", True):
+        raise SystemExit(
+            "--no-web-search is not supported by the Agy engine; "
+            "use --engine codex --no-web-search or --engine claude --no-web-search"
+        )
+    agy_bin = ensure_agy_isolation_supported(args, repo)
+    effort = agy_effort_arg(args.model, args.thinking)
+    temp_root = safe_temp_root(repo)
+    with tempfile.TemporaryDirectory(
+        prefix="autoreview-agy-workspace.",
+        dir=temp_root,
+    ) as workspace_dir, tempfile.TemporaryDirectory(
+        prefix="autoreview-agy-runtime.",
+        dir=temp_root,
+    ) as runtime_dir:
+        review_root = Path(workspace_dir)
+        runtime_root = Path(runtime_dir)
+        use_gemini_api = agy_explicit_gemini_api_provider(repo)
+        _, isolated_home_env = stage_agy_isolated_home(repo, runtime_root)
+        engine_env = safe_engine_env(
+            repo,
+            [Path(agy_bin).parent],
+            engine="agy",
+            extra=isolated_home_env,
+        )
+        agy_settings = copy.deepcopy(AGY_ISOLATED_SETTINGS)
+        if use_gemini_api:
+            agy_settings["modelProvider"] = "gemini"
+        else:
+            engine_env.pop("GEMINI_API_KEY", None)
+        schema_path = runtime_root / "schema.json"
+        settings_path = runtime_root / "settings.json"
+        schema_path.write_text(json.dumps(PROVIDER_SCHEMA), encoding="utf-8")
+        settings_path.write_text(
+            json.dumps(agy_settings, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        schema_path.chmod(0o600)
+        settings_path.chmod(0o600)
+        # Send the prompt over stdin NDJSON (stream-json) in an isolated HOME
+        # staging only auth material, enforcing strict tool permissions +
+        # deny-all rules + terminal sandbox + disabled slash commands without
+        # ever passing --dangerously-skip-permissions.
+        cmd = [
+            agy_bin,
+            "--disable-slash-commands",
+            "--sandbox",
+            "--settings",
+            str(settings_path),
+            "--input-format",
+            "stream-json",
+            "--output-format",
+            "stream-json",
+            "--json-schema",
+            str(schema_path),
+        ]
+        if args.model:
+            cmd.extend(["--model", args.model])
+        if effort:
+            cmd.extend(["--effort", effort])
+        timeout_seconds = getattr(args, "engine_timeout_seconds", None)
+        if timeout_seconds:
+            cmd.extend(["--print-timeout", f"{int(max(1, round(timeout_seconds)))}s"])
+        cmd.extend(["--print", ""])
+        stdin_payload = (
+            json.dumps(
+                {"event": "user", "message": {"content": prompt}},
+                separators=(",", ":"),
+            )
+            + "\n"
+        )
+        result = run_with_heartbeat(
+            cmd,
+            review_root,
+            input_text=stdin_payload,
+            label="agy",
+            max_runtime_seconds=timeout_seconds,
+            stream_output=args.stream_engine_output,
+            env=engine_env,
+        )
+    if result.returncode != 0:
+        raise ReviewerUnavailable(
+            f"agy engine failed ({result.returncode})\n{result.stderr or result.stdout}",
+            result=result,
+        )
+    return parse_agy_stream_output(result)
+
+
 class CodexStreamDisplay:
     def __init__(self, *, activity_seconds: int = 20, suppress_diagnostics: bool = False) -> None:
         self.activity_seconds = activity_seconds
@@ -6856,7 +7625,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--model",
         action="append",
-        help="Model override or engine=model. Repeatable. Defaults: codex=gpt-6.2-sol (high reasoning; no model fallback), claude=claude-opus-5-5 (medium effort), amp=openai/gpt-6.1-sol (xhigh reasoning).",
+        help="Model override or engine=model. Repeatable. Defaults: codex=gpt-6.2-sol (high reasoning; no model fallback), claude=claude-opus-5-5 (medium effort), amp=openai/gpt-6.1-sol (xhigh reasoning), agy=gemini-4-neon-xhigh.",
     )
     parser.add_argument(
         "--thinking", action="append",
@@ -6864,7 +7633,8 @@ def parse_args() -> argparse.Namespace:
         "Codex: none, minimal, low, medium, high, xhigh, max. "
         "gpt-6-astra requires low through max. gpt-6.2-astra and gpt-6.2-sol support low through ultra. "
         "Claude: low, medium, high, xhigh, max. Amp: none, low, medium, high, xhigh, max. "
-        "Pi: off, minimal, low, medium, high, xhigh. Kimi: off, on.",
+        "Pi: off, minimal, low, medium, high, xhigh. Kimi: off, on. "
+        "Agy: low, medium, high, xhigh, max (tier-suffixed models such as gemini-4-neon-xhigh fix their tier).",
     )
     parser.add_argument(
         "--fallback-model",
@@ -6910,7 +7680,8 @@ def parse_args() -> argparse.Namespace:
         help="Required for --engine kimi: accept that Kimi receives the review prompt as a "
         "command-line argument, which other local accounts can read in the process list while it runs.",
     )
-    parser.add_argument("--no-tools", dest="tools", action="store_false", default=True, help="Disable tools for engines that support it. Amp, Pi, and Kimi always run without tools; Codex rejects no-tools review.")
+    parser.add_argument("--agy-bin", default=os.environ.get("AGY_BIN", "agy"))
+    parser.add_argument("--no-tools", dest="tools", action="store_false", default=True, help="Disable tools for engines that support it. Amp, Pi, and Kimi always run without tools; Codex and Agy reject no-tools review.")
     parser.add_argument("--no-web-search", dest="web_search", action="store_false", default=True)
     parser.add_argument(
         "--claude-allowed-tools",
@@ -6962,6 +7733,8 @@ def run_engine(args: argparse.Namespace, repo: Path, prompt: str) -> str:
         return run_pi(args, repo, prompt)
     if args.engine == "kimi":
         return run_kimi(args, repo, prompt)
+    if args.engine == "agy":
+        return run_agy(args, repo, prompt)
     raise SystemExit(f"unsupported engine: {args.engine}")
 
 
@@ -7055,6 +7828,17 @@ def reviewer_args(args: argparse.Namespace) -> list[argparse.Namespace]:
         raise SystemExit("--allow-kimi-argv-prompt is only supported for kimi; no kimi reviewer selected")
     if engine == "kimi" and not allow_kimi_argv:
         raise SystemExit(KIMI_ARGV_PROMPT_REFUSAL)
+    if engine == "agy":
+        if not getattr(args, "tools", True):
+            raise SystemExit(
+                "--no-tools is not supported by the Agy engine; "
+                "use --engine claude --no-tools for a no-tools run"
+            )
+        if not getattr(args, "web_search", True):
+            raise SystemExit(
+                "--no-web-search is not supported by the Agy engine; "
+                "use --engine codex --no-web-search or --engine claude --no-web-search"
+            )
     model = (
         model_by_engine.get(engine)
         or global_model
@@ -7090,6 +7874,8 @@ def reviewer_args(args: argparse.Namespace) -> list[argparse.Namespace]:
     if thinking and thinking not in thinking_levels:
         valid = ", ".join(sorted(thinking_levels)) or "none"
         raise SystemExit(f"invalid thinking level for {thinking_target}: {thinking} (valid: {valid})")
+    if engine == "agy":
+        agy_effort_arg(model, thinking)
     clone = copy.copy(args)
     clone.model = model
     clone.thinking = thinking
@@ -7115,6 +7901,7 @@ ENGINE_ISOLATION_PROBES: dict[str, Callable[[argparse.Namespace, Path], object]]
     "amp": ensure_amp_isolation_supported,
     "pi": ensure_pi_isolation_supported,
     "kimi": ensure_kimi_isolation_supported,
+    "agy": ensure_agy_isolation_supported,
 }
 
 
@@ -7182,6 +7969,7 @@ def resolve_engine_binary(reviewer: argparse.Namespace, repo: Path) -> tuple[boo
         "amp": getattr(reviewer, "amp_bin", None),
         "pi": getattr(reviewer, "pi_bin", None),
         "kimi": getattr(reviewer, "kimi_bin", None),
+        "agy": getattr(reviewer, "agy_bin", None),
     }
     bin_name = bin_by_engine.get(engine)
     if bin_name is None:

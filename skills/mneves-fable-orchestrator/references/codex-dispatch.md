@@ -4,7 +4,7 @@ Read this before the first `codex exec` or `codex-lane` command issued from anot
 harness. The orchestrator skill owns role selection; this file owns launcher mechanics.
 
 Contents: where Codex finds skills · one round or a lane · flags, resume, and fork · diagnose
-before retrying · optional account-aware launcher (not shipped) · acceptance.
+before retrying · optional account-aware launcher (not shipped) · coding and review fallback CLI (not shipped) · acceptance.
 
 ## Where Codex finds skills
 
@@ -121,6 +121,170 @@ can resume under another account. Its live quota probe runs the executor model a
 an isolated read-only directory with user instructions and skills disabled. Automatic account
 selection and an explicit profile must produce the same model policy; environment overrides such
 as `CODEX_AUTO_MODEL` are deliberate exceptions, checked in the session header.
+
+## Coding and review fallback CLI (not shipped)
+
+When no Codex account can run (not installed, out of quota, not signed in, or refused by host
+policy), the orchestrator's Defaults block routes coding and review after `gpt-6.2-sol` to
+`gemini-4-neon-xhigh` through Antigravity CLI (`agy`, **not shipped with this skill**).
+`agy-yolo` is a personal wrapper/alias for `agy --dangerously-skip-permissions` (**not shipped**;
+substitute `agy --dangerously-skip-permissions` only where unattended tool execution is explicitly
+authorized).
+
+Never send a repository that declares client, personal, or regulated data, or one whose owner has
+not approved that provider; host-policy or task restrictions on a provider are not a reason to
+route around them, and disclosure must be authorized before dispatching. When disallowed or
+unavailable for review, skip this fallback explicitly and fall through to the reviewer row's second
+fallback.
+
+### Coding fallback
+
+Unattended coding fallback with `agy-yolo` (`agy --dangerously-skip-permissions`) must run inside
+a dedicated worktree **within an enclosing external sandbox (container or VM)** that bounds the
+filesystem, credentials, lifecycle hooks, plugins, and workspace MCP servers, and only when the
+owner or host policy explicitly authorizes unattended execution (never widening permissions beyond
+the authorized Codex seat). Why an enclosing container or VM is required:
+
+- On hosts without OS sandbox support (such as Linux without unprivileged user namespaces),
+  `--sandbox` degrades to a no-op; on personal accounts, Antigravity ignores `unsandboxed(*)` deny
+  rules and defaults to Auto mode (since 1.5.7) unless forced to Default mode (`"agentMode": ""`).
+- Lifecycle hooks (`PreInvocation`, `SessionStart`, etc.) and workspace MCP servers
+  (`.agents/mcp_config.json`) execute outside the agent's terminal sandbox with host privileges,
+  even before interactive approval prompts appear.
+
+Without an enclosing container or VM, **report the coding fallback blocked** rather than launching
+an uncontained worktree session.
+
+Inside an authorized enclosing container/VM sandbox, complete two preflight checks before
+launching `agy-yolo`:
+
+1. **Trusted workspace and container-home customizations only**: inspect all Antigravity workspace
+   discovery paths — `.agents/`, `.agent/`, `_agents/`, `_agent/`, `.gemini/`, `.antigravity/`
+   (including `hooks.json`, `plugins/`, and `mcp_config.json`), any configured
+   `personal_customization_dir`, **and resolve every workspace discovery/plugin manifest to its
+   target paths** (even when a manifest points outside those directories). Also use an auth-only
+   container `HOME` (staging only OAuth/ADC credentials) or inspect global Agy hooks and installed
+   plugins under the container's `HOME` (`~/.gemini/`, `~/.antigravity/`, `~/.agents/`, installed
+   plugin manifests, and global MCP config). Refuse any untrusted hooks (`SessionStart`,
+   `PreInvocation`, etc.), plugins, or workspace/global MCP servers — or remove the untrusted files and any manifest references to
+   out-of-workspace targets in a clean scratch copy — because they run before the model sees the
+   brief and outside Agy's terminal sandbox.
+2. **Verify effective provider and endpoint**: check `admin_settings.json`, user `settings.json`,
+   `AGY_LLM_GATEWAY_*`, `GOOGLE_GEMINI_BASE_URL`, `GEMINI_API_KEY`, `AGY_ADC_AUTH`, and
+   `GOOGLE_APPLICATION_CREDENTIALS` inside the container so repository contents are sent only to
+   the owner-approved provider and endpoint.
+
+Then pass the brief from a mode-`0600` file over stdin `stream-json` (never argv), clean up
+temporary files even under `set -e` while preserving the exit status, reject runs with denied
+tool steps, and verify `.result.status == "SUCCESS"` with a nonblank `.result.response` before
+accepting the output:
+
+```bash
+# Run ONLY inside an enclosing container/VM sandbox with explicit owner/host authorization:
+run_agy_coding_fallback() {
+  local brief_file="$1" settings_file="" out="" status=0
+  settings_file=$(mktemp) || return $?
+  chmod 600 "$settings_file" || { rm -f -- "$settings_file"; return 1; }
+  printf '{"agentMode":"","allowNonWorkspaceAccess":false,"enableTerminalSandbox":true,"permissions":{"deny":["unsandboxed(*)"]}}\n' > "$settings_file" \
+    || { rm -f -- "$settings_file"; return 1; }
+
+  out=$(set -o pipefail; jq -Rsc '{event:"user",message:{content:.}}' < "$brief_file" \
+    | agy-yolo --sandbox --settings "$settings_file" \
+        --input-format stream-json --output-format stream-json \
+        --model gemini-4-neon-xhigh --print "" --print-timeout 10m) || status=$?
+  rm -f -- "$settings_file"
+  [ "$status" -eq 0 ] || return "$status"
+  jq -se '
+    (any(.[]; .event == "step_update" and (
+      .step_update.state == "DENIED"
+      or ([(.step_update.tool_info.error.message // ""), (.step_update.error.message // "")]
+          | any(.[]; ascii_downcase
+            | (contains("permission check failed") and contains("permission denied"))))
+    )) | not)
+    and ([.[] | select(.event == "result")] as $r
+      | ($r | length) == 1
+      and $r[0].result.status == "SUCCESS"
+      and (($r[0].result.finished_reason // "") | ascii_downcase
+           | (. == "" or . == "completed" or . == "end_turn" or . == "stop"))
+      and (($r[0].result.response // "") | gsub("^\\s+|\\s+$"; "") | length > 0))
+  ' <<< "$out" >/dev/null || return 1
+  jq -re 'select(.event == "result" and .result.status == "SUCCESS") | .result.response' <<< "$out"
+}
+```
+
+### Read-only review fallback
+
+Run the first read-only review fallback through the sibling `autoreview` skill (**not shipped with
+this skill**), preserving the original review's exact target, priority, prompt, and restriction
+flags (`--mode`, `--base`, `--commit`, `--max-priority`, `--prompt-file`, `--dataset`,
+`--no-tools`, `--no-web-search`, using absolute paths for any file arguments) so the fallback
+changes only the reviewer engine and model:
+
+- **Committed branch/commit targets (`--mode branch` / `--mode commit`)**: freeze the exact Git
+  commit SHA(s) before launching the primary reviewer and pass the same frozen SHA(s) to both
+  reviewers. For `--mode commit`, resolve the requested `--commit` argument once
+  (`COMMIT_SHA=$(git rev-parse --verify "${ORIGINAL_COMMIT_REF}^{commit}") || exit 1`) and pass
+  `--commit "$COMMIT_SHA"` to both reviewers (never substituting `HEAD` when an earlier commit or
+  other ref was requested). For `--mode branch`, freeze `BASE_SHA` and `HEAD_SHA` (confirming
+  `HEAD` still equals `HEAD_SHA` if the primary runs in the live checkout); `autoreview` builds its
+  diff bundle solely from Git objects and launches the reviewer in an empty non-Git workspace, so
+  running inside a `--detach --no-checkout` worktree pinned to `HEAD_SHA` produces the identical
+  bundle without checking out files (no Git smudge, process, or LFS filters run):
+
+```bash
+# Freeze exact endpoints BEFORE launching the primary reviewer (reuse them for both reviewers):
+BASE_SHA=$(git rev-parse --verify 'origin/main^{commit}') || exit 1
+HEAD_SHA=$(git rev-parse --verify 'HEAD^{commit}') || exit 1
+ORIGINAL_REVIEW_ARGS=(--mode branch --base "$BASE_SHA" --max-priority P3)
+
+run_agy_branch_review_fallback() (
+  wt=$(mktemp -d) || exit $?
+  _cleanup_agy_wt() {
+    git worktree remove --force "$wt" 2>/dev/null || rm -rf -- "$wt"
+  }
+  trap '_cleanup_agy_wt; exit 130' INT
+  trap '_cleanup_agy_wt; exit 143' TERM
+  git -c core.hooksPath=/dev/null worktree add --detach --no-checkout "$wt" "$HEAD_SHA" \
+    || { _cleanup_agy_wt; exit 1; }
+  rc=0
+  (cd "$wt" && python3 /path/to/autoreview/scripts/autoreview \
+    "${ORIGINAL_REVIEW_ARGS[@]}" --engine agy --model gemini-4-neon-xhigh) || rc=$?
+  _cleanup_agy_wt
+  exit "$rc"
+)
+
+run_agy_branch_review_fallback
+```
+
+- **Local/uncommitted targets (`--mode local` / `--mode uncommitted`)**: do **not** use a clean
+  detached worktree (which would omit staged, unstaged, and untracked changes). Capture a guarded
+  local-snapshot fingerprint **before** launching the primary reviewer and require an exact match
+  before dispatching the fallback in the original checkout (pinning `--base "$BASE_SHA"` if
+  `--base` was passed). Pass `-c core.fsmonitor=false -c core.hooksPath=/dev/null --no-optional-locks`
+  on every Git call (`status --porcelain=v2 -z --untracked-files=all` and
+  `diff --no-ext-diff --no-textconv --binary HEAD`) and hash the raw bytes of all modified and
+  untracked working-tree files with a non-Git hasher (`shasum -a 256` or `git hash-object --no-filters`)
+  so configured fsmonitor, textconv, or clean-filter helpers never run. If the snapshot changed
+  between reviewers, abort the fallback rather than reviewing a different tree.
+
+If the original review restricted tools or web search (`--no-tools` or `--no-web-search`), pass
+those flags unchanged: `autoreview --engine agy` refuses before launch because Agy's built-in
+`search_web` cannot be disabled up front. Treat that refusal as a reason to skip Agy and move to
+the reviewer row's second fallback while preserving `--no-tools` / `--no-web-search`.
+
+`autoreview --engine agy` handles the full isolation boundary: TruffleHog secret scanning, isolated
+auth-only `HOME`/`USERPROFILE`/`XDG_*` (preventing global/plugin hooks, plugins, and user MCP
+servers from running), `AGY_CLI_DISABLE_AUTO_UPDATE=true`, environment scrubbing (preserving ADC
+region/project vars while refusing unforwarded custom endpoints like `GOOGLE_GEMINI_BASE_URL`,
+unverified home/gateway configurations, and unpreservable ADC files while ignoring ambient
+`GEMINI_API_KEY` without explicit opt-in), an empty non-Git launch workspace, stdin NDJSON `stream-json` (zero argv
+exposure), `--disable-slash-commands --sandbox` with Default-mode strict deny-all `--settings`
+(never passing `--dangerously-skip-permissions`), and strict stream verification of
+`permission_mode == "strict"` and tool outcomes.
+
+If `autoreview` is not installed on the host, do **not** run an ad-hoc unisolated `agy` command on
+untrusted code: skip the first fallback explicitly (recording that `autoreview` is not installed)
+and fall through to the reviewer row's second fallback (or install `autoreview` first).
 
 ## Acceptance
 

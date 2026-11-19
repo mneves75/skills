@@ -37,8 +37,25 @@ including a caller that substitutes another reviewer under its own recorded poli
 | Amp             | `AMP_API_KEY` for a plugin-free account; local POSIX execution, no custom endpoint or cloud/orb agent |
 | Pi              | Recent CLI; configured model; no tools or project resources                                           |
 | Kimi            | Recent CLI; configured model; Python 3.11+ or `tomli` for TOML config; `--allow-kimi-argv-prompt`     |
+| Agy             | Antigravity CLI >= 1.5.12 (`agy` authenticated); default `gemini-4-neon-xhigh`; web search always on  |
 
-Kimi Code takes a one-shot prompt only as a command-line argument, and other local accounts
-can read a process's arguments while it runs. `--engine kimi` therefore refuses to start,
-before any Kimi process, unless the run passes `--allow-kimi-argv-prompt`. Pass it only on a
-machine whose other accounts may see the review pack; otherwise choose another engine.
+Kimi Code takes a one-shot prompt only as a command-line argument, and other local accounts can
+read a process's arguments while it runs. `--engine kimi` therefore refuses to start unless the run
+passes `--allow-kimi-argv-prompt`. Pass that flag only on a machine whose other accounts may see
+the review pack; otherwise choose another engine.
+
+`--engine agy` sends the review prompt over stdin NDJSON (`--input-format stream-json
+--output-format stream-json`), runs in an empty temporary workspace with an isolated `HOME`
+(staging only auth material — macOS Keychains link, file OAuth token, or `AGY_ADC_AUTH` / ADC
+credentials — so global/plugin hooks, plugins, user MCP servers, and global rules are never
+discovered), passes `--disable-slash-commands`, `--sandbox`, and session-only `--settings`
+enforcing Default mode (`agentMode: ""`), `toolPermission: "strict"`,
+`allowNonWorkspaceAccess: false`, `enableTerminalSandbox: true`, and explicit deny rules for
+`command(*)`, `write_file(*)`, `read_file(*)`, `read_url(*)`, `mcp(*)`, and `unsandboxed(*)`, and
+verifies `permission_mode == "strict"` plus tool outcomes in the stream before accepting structured
+output. Direct Gemini API routing (`modelProvider: "gemini"` with `GEMINI_API_KEY`) is enabled only
+when explicitly configured in `~/.gemini/antigravity-cli/settings.json` or via
+`AUTOREVIEW_AGY_MODEL_PROVIDER=gemini`, so an unrelated exported `GEMINI_API_KEY` never redirects
+an Antigravity account review; if `GOOGLE_GEMINI_BASE_URL` is also set, `--engine agy` refuses to
+run rather than silently redirecting custom-endpoint traffic to Google. Because Antigravity CLI's built-in `search_web` cannot be disabled
+up front, `--engine agy` rejects `--no-tools` and `--no-web-search`.
