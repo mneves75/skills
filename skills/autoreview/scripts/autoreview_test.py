@@ -2141,11 +2141,27 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             FINAL_REPORT,
         )
 
+        finish_stream = "\n".join([
+            strict_init,
+            json.dumps({"event": "step_update", "step_update": {"step_index": 2, "step_type": "tool", "tool_name": "finish", "state": "ACTIVE"}}),
+            json.dumps({"event": "step_update", "step_update": {"step_index": 2, "step_type": "finish", "state": "DONE"}}),
+            ok_result,
+        ]) + "\n"
+        self.assertEqual(
+            json.loads(AUTOREVIEW.parse_agy_stream_output(subprocess.CompletedProcess(["agy"], 0, finish_stream, ""))),
+            FINAL_REPORT,
+        )
+
+        subagent_stream = "\n".join([
+            strict_init,
+            json.dumps({"event": "step_update", "step_update": {"step_index": 3, "step_type": "subagent", "state": "DONE", "subagent_info": {"role": "helper"}}}),
+            ok_result,
+        ]) + "\n"
+        with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as cm:
+            AUTOREVIEW.parse_agy_stream_output(subprocess.CompletedProcess(["agy"], 0, subagent_stream, ""))
+        self.assertIn("disallowed tool 'subagent'", str(cm.exception))
+
         for label, bad_step in (
-            (
-                "subagent invocation executed",
-                {"step_index": 3, "step_type": "subagent", "state": "DONE", "subagent_info": {"role": "helper"}},
-            ),
             (
                 "command failed after run",
                 {"step_index": 2, "step_type": "tool", "tool_name": "run_command", "state": "ERROR", "tool_info": {"error": {"type": "TOOL_ERROR", "message": "command exited with status 1"}}},
@@ -2226,34 +2242,43 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 "non-JSON stream output",
             ),
         )
-        with tempfile.TemporaryDirectory(prefix="autoreview-agy-err-test.") as tmpdir, mock.patch.dict(
-            os.environ, {}, clear=True,
-        ):
-            repo = Path(tmpdir) / "repo"
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-err-test.") as tmpdir:
+            root = Path(tmpdir)
+            repo = root / "repo"
             repo.mkdir()
-            for label, payload, expected in cases:
-                with self.subTest(label=label), mock.patch.object(
+            fake_home = root / "home"
+            fake_home.mkdir()
+            missing_admin = root / "missing-admin.json"
+            with mock.patch.dict(
+                os.environ,
+                {"HOME": str(fake_home), "USERPROFILE": str(fake_home)},
+                clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
+            ):
+                for label, payload, expected in cases:
+                    with self.subTest(label=label), mock.patch.object(
+                        AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
+                    ), mock.patch.object(
+                        AUTOREVIEW,
+                        "run_with_heartbeat",
+                        return_value=subprocess.CompletedProcess(["agy"], 0, payload, ""),
+                    ):
+                        with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as cm:
+                            AUTOREVIEW.run_agy(args, repo, "review prompt")
+                    self.assertIn(expected, str(cm.exception))
+                with self.subTest(label="recursion error"), mock.patch.object(
                     AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
                 ), mock.patch.object(
                     AUTOREVIEW,
                     "run_with_heartbeat",
-                    return_value=subprocess.CompletedProcess(["agy"], 0, payload, ""),
+                    return_value=subprocess.CompletedProcess(["agy"], 0, "{}\n", ""),
+                ), mock.patch.object(
+                    AUTOREVIEW.json, "loads", side_effect=RecursionError("maximum recursion depth exceeded"),
                 ):
                     with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as cm:
                         AUTOREVIEW.run_agy(args, repo, "review prompt")
-                self.assertIn(expected, str(cm.exception))
-            with self.subTest(label="recursion error"), mock.patch.object(
-                AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
-            ), mock.patch.object(
-                AUTOREVIEW,
-                "run_with_heartbeat",
-                return_value=subprocess.CompletedProcess(["agy"], 0, "{}\n", ""),
-            ), mock.patch.object(
-                AUTOREVIEW.json, "loads", side_effect=RecursionError("maximum recursion depth exceeded"),
-            ):
-                with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as cm:
-                    AUTOREVIEW.run_agy(args, repo, "review prompt")
-            self.assertIn("non-JSON stream output", str(cm.exception))
+                self.assertIn("non-JSON stream output", str(cm.exception))
 
     def test_codex_config_status_exposes_keys_only(self) -> None:
         args = argparse.Namespace(codex_config=['model_verbosity="low"'])

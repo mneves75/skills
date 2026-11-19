@@ -171,8 +171,9 @@ launching `agy-yolo`:
    the owner-approved provider and endpoint.
 
 Then pass the brief from a mode-`0600` file over stdin `stream-json` (never argv), clean up
-temporary files even under `set -e` while preserving the exit status, and verify
-`.result.status == "SUCCESS"` before accepting `.result.response`:
+temporary files even under `set -e` while preserving the exit status, reject runs with denied
+tool steps, and verify `.result.status == "SUCCESS"` with a nonblank `.result.response` before
+accepting the output:
 
 ```bash
 # Run ONLY inside an enclosing container/VM sandbox with explicit owner/host authorization:
@@ -189,6 +190,10 @@ run_agy_coding_fallback() {
         --model gemini-4-neon-xhigh --print "" --print-timeout 10m) || status=$?
   rm -f -- "$settings_file"
   [ "$status" -eq 0 ] || return "$status"
+  jq -se '
+    (any(.[]; .event == "step_update" and (.step_update.state == "DENIED" or ((.step_update.tool_info.error.message // "") | ascii_downcase | contains("permission denied")))) | not)
+    and any(.[]; .event == "result" and .result.status == "SUCCESS" and ((.result.response // "") | gsub("^\\s+|\\s+$"; "") | length > 0))
+  ' <<< "$out" >/dev/null || return 1
   jq -re 'select(.event == "result" and .result.status == "SUCCESS") | .result.response' <<< "$out"
 }
 ```
@@ -240,9 +245,10 @@ run_agy_branch_review_fallback
 - **Local/uncommitted targets (`--mode local` / `--mode uncommitted`)**: do **not** use a clean
   detached worktree (which would omit staged, unstaged, and untracked changes). Run
   `autoreview --engine agy --model gemini-4-neon-xhigh` directly in the original checkout with the
-  original flags (pinning `--base "$BASE_SHA"` if `--base` was passed), and compare a hash of
-  `git status --porcelain=v2` plus `git diff HEAD` (and untracked file hashes) before and after
-  to confirm the local snapshot did not change between reviewers.
+  original flags (pinning `--base "$BASE_SHA"` if `--base` was passed), and compare a fingerprint
+  of `git status --porcelain=v2 -z`, `git diff --no-ext-diff --no-textconv --binary HEAD`, and the
+  raw contents of all modified and untracked working-tree files before and after to confirm the
+  local snapshot did not change between reviewers.
 
 If the original review restricted tools or web search (`--no-tools` or `--no-web-search`), pass
 those flags unchanged: `autoreview --engine agy` refuses before launch because Agy's built-in

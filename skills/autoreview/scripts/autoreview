@@ -6781,7 +6781,13 @@ def parse_agy_stream_output(result: subprocess.CompletedProcess[str]) -> str:
             step = entry.get("step_update")
             if isinstance(step, dict):
                 step_type = step.get("step_type")
-                if step_type == "subagent" or step.get("subagent_info") is not None:
+                if step_type == "finish" and step.get("state") == "DONE":
+                    raw_index = step.get("step_index")
+                    if isinstance(raw_index, int) and not isinstance(raw_index, bool):
+                        prior = disallowed_tool_steps.get(raw_index)
+                        if prior is not None and prior[0] == "finish" and prior[1] == "ACTIVE":
+                            disallowed_tool_steps.pop(raw_index, None)
+                elif step_type == "subagent" or step.get("subagent_info") is not None:
                     step_state = step.get("state")
                     if not isinstance(step_state, str):
                         raise ReviewerUnavailable(
@@ -6796,7 +6802,11 @@ def parse_agy_stream_output(result: subprocess.CompletedProcess[str]) -> str:
                         step_key = synthetic_step_index
                         synthetic_step_index -= 1
                     sub_name = step.get("tool_name")
-                    label = sub_name if isinstance(sub_name, str) and sub_name else "subagent"
+                    label = (
+                        f"subagent:{sub_name}"
+                        if isinstance(sub_name, str) and sub_name and sub_name != "subagent"
+                        else "subagent"
+                    )
                     tool_info = step.get("tool_info")
                     error_obj = tool_info.get("error") if isinstance(tool_info, dict) else step.get("error")
                     error_msg = error_obj.get("message") if isinstance(error_obj, dict) else ""
