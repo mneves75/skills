@@ -158,11 +158,12 @@ an uncontained worktree session.
 Inside an authorized enclosing container/VM sandbox, complete two preflight checks before
 launching `agy-yolo`:
 
-1. **Trusted workspace customizations only**: inspect the worktree and refuse (or strip in a clean
-   scratch copy) untrusted workspace lifecycle hooks, plugins, or workspace MCP configs under
-   `.agents/` (including `.agents/hooks.json`, `.agents/plugins/`, and `.agents/mcp_config.json`),
-   `.gemini/`, and `.antigravity/` — workspace hooks such as `SessionStart` and `PreInvocation`
-   and workspace plugins run before the model sees the brief and outside Agy's terminal sandbox.
+1. **Trusted workspace customizations only**: inspect `.agents/` (including `.agents/hooks.json`,
+   `.agents/plugins/`, and `.agents/mcp_config.json`), `.gemini/`, and `.antigravity/`, **and
+   resolve every Antigravity workspace discovery/plugin manifest to its target paths** (even when a
+   manifest points outside those directories). Refuse — or strip in a clean scratch copy — any
+   untrusted hooks (`SessionStart`, `PreInvocation`, etc.), plugins, or workspace MCP servers,
+   because they run before the model sees the brief and outside Agy's terminal sandbox.
 2. **Verify effective provider and endpoint**: check `admin_settings.json`, user `settings.json`,
    `AGY_LLM_GATEWAY_*`, `GOOGLE_GEMINI_BASE_URL`, `GEMINI_API_KEY`, `AGY_ADC_AUTH`, and
    `GOOGLE_APPLICATION_CREDENTIALS` inside the container so repository contents are sent only to
@@ -194,32 +195,47 @@ run_agy_coding_fallback() {
 ### Read-only review fallback
 
 Run the first read-only review fallback through the sibling `autoreview` skill (**not shipped with
-this skill**), freezing the resolved Git target SHAs (`BASE_SHA` and `HEAD_SHA`) before the first
-reviewer runs and preserving the original review's exact target, priority, prompt, and restriction
-flags (`--mode`, `--base "$BASE_SHA"`, `--commit`, `--max-priority`, `--prompt-file`, `--dataset`,
+this skill**), preserving the original review's exact target, priority, prompt, and restriction
+flags (`--mode`, `--base`, `--commit`, `--max-priority`, `--prompt-file`, `--dataset`,
 `--no-tools`, `--no-web-search`, using absolute paths for any file arguments) so the fallback
 changes only the reviewer engine and model:
 
+- **Committed branch/commit targets (`--mode branch` / `--mode commit`)**: freeze `BASE_SHA` and
+  `HEAD_SHA` before launching the primary reviewer and pass the same frozen SHAs to both reviewers.
+  For `--mode commit`, pass `--commit "$HEAD_SHA"` directly. For `--mode branch`, run the fallback
+  inside a `--detach --no-checkout` worktree pinned to `HEAD_SHA` so live branch movement cannot
+  shift the diff and zero files are checked out (no Git smudge, process, or LFS filters run):
+
 ```bash
-# Freeze exact endpoints BEFORE the first reviewer runs so a concurrent fetch or branch
-# move cannot shift the diff between the primary reviewer and the fallback:
+# Freeze exact endpoints BEFORE launching the primary reviewer (reuse them for both reviewers):
 BASE_SHA=$(git rev-parse --verify 'origin/main^{commit}') || exit 1
 HEAD_SHA=$(git rev-parse --verify 'HEAD^{commit}') || exit 1
 ORIGINAL_REVIEW_ARGS=(--mode branch --base "$BASE_SHA" --max-priority P3)
 
-# Run the fallback against a detached worktree pinned to HEAD_SHA (for --mode commit,
-# pass --commit "$HEAD_SHA" directly) and propagate autoreview's exact exit status:
-run_agy_review_fallback() {
+run_agy_branch_review_fallback() {
   local wt="" rc=0
   wt=$(mktemp -d) || return $?
-  git -c core.hooksPath=/dev/null worktree add --detach "$wt" "$HEAD_SHA" \
-    || { rmdir "$wt"; return 1; }
+  cleanup() {
+    trap - RETURN INT TERM
+    git worktree remove --force "$wt" 2>/dev/null || rm -rf -- "$wt"
+    git worktree prune 2>/dev/null || true
+  }
+  trap cleanup RETURN INT TERM
+  git -c core.hooksPath=/dev/null worktree add --detach --no-checkout "$wt" "$HEAD_SHA" \
+    || return 1
   (cd "$wt" && python3 /path/to/autoreview/scripts/autoreview \
     "${ORIGINAL_REVIEW_ARGS[@]}" --engine agy --model gemini-4-neon-xhigh) || rc=$?
-  git worktree remove --force "$wt" 2>/dev/null || rm -rf "$wt"
   return "$rc"
 }
+
+run_agy_branch_review_fallback
 ```
+
+- **Local/uncommitted targets (`--mode local` / `--mode uncommitted`)**: do **not** use a clean
+  detached worktree (which would omit staged, unstaged, and untracked changes). Run
+  `autoreview --engine agy --model gemini-4-neon-xhigh` directly in the original checkout with the
+  original flags (pinning `--base "$BASE_SHA"` if `--base` was passed) and confirm the working tree
+  and index have not changed between reviewers before accepting the report.
 
 If the original review restricted tools or web search (`--no-tools` or `--no-web-search`), pass
 those flags unchanged: `autoreview --engine agy` refuses before launch because Agy's built-in
