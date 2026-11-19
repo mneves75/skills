@@ -9,18 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **autoreview**: added native `--engine agy` backend for Antigravity CLI (`>= 1.5.12`),
-  defaulting to `gemini-4-neon-xhigh` in read-only `--mode plan` with `--json-schema`,
-  session-only `--settings` (`{"allowNonWorkspaceAccess":false}`), `--agy-bin` / `AGY_BIN`,
-  argv-size partitioning, and mandatory `--allow-agy-argv-prompt` opt-in for process-list prompt
-  exposure; covered by unit and end-to-end hardening tests.
-- **mneves-fable-orchestrator**: added `gemini-4-neon-xhigh` via `agy-yolo` (`agy
-  --dangerously-skip-permissions`) as the coding fallback and first read-only review fallback
-  after `gpt-6.2-sol` (never for repositories declaring client, personal, or regulated data,
-  where review falls through to `claude-fable-5-2` at reasoning high); added
-  `O16-reviewer-fallback-regulated-no-codex` and `O17-coding-fallback-no-codex` to
-  `tools/routing-eval/cases.json`.
+  defaulting to `gemini-4-neon-xhigh`, sending the prompt over stdin NDJSON
+  (`--input-format stream-json --output-format stream-json`), enforcing `--disable-slash-commands`,
+  `--sandbox`, `--json-schema`, and session-only `--settings` (`toolPermission: "strict"`,
+  `allowNonWorkspaceAccess: false`, `enableTerminalSandbox: true`, explicit deny rules for
+  commands/files/URLs/MCP/unsandboxed tools), verifying `permission_mode == "strict"` and tool
+  events in the stream, rejecting `--no-tools` and `--no-web-search`, filtering environment
+  variables cleanly (`AGY_CREDENTIAL_PATH_ENV_KEYS`), and supporting `--agy-bin` / `AGY_BIN`;
+  covered by unit and end-to-end hardening tests.
+- **mneves-fable-orchestrator**: added `gemini-4-neon-xhigh` as the coding fallback (sandboxed
+  dedicated worktree via `agy-yolo` when unattended execution is explicitly authorized) and first
+  read-only review fallback (`autoreview --engine agy --model gemini-4-neon-xhigh`, or isolated
+  strict non-skip-permissions `agy` from a clean empty temporary directory) after `gpt-6.2-sol`
+  (never for repositories declaring client, personal, or regulated data, or where the owner has
+  not approved that provider, where review falls through to `claude-fable-5-2` at reasoning high);
+  added `O16-reviewer-fallback-regulated-no-codex`, `O17-coding-fallback-no-codex`, and
+  `O18-reviewer-fallback-unapproved-provider` to `tools/routing-eval/cases.json`.
 - **collections/pstack**: added `adaptations/11-agy-yolo-fallback.patch` documenting the
-  `gemini-4-neon-xhigh` via `agy-yolo` coding and read-only review fallback after `gpt-6.2-sol`
+  `gemini-4-neon-xhigh` coding and isolated read-only review fallback after `gpt-6.2-sol`
   in `poteto-mode/references/codex-tools.md`.
 
 ### Changed

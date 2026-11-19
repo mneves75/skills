@@ -165,15 +165,28 @@ KIMI_ARGV_PROMPT_REFUSAL = (
     "command-line argument, which other local accounts can read in the process list "
     "while it runs; pass --allow-kimi-argv-prompt to accept that, or choose another engine"
 )
-# Antigravity CLI (`agy`) takes the one-shot prompt as `--print <prompt>` (argv),
-# so it carries the same platform argv-size ceiling and local process-list exposure
-# disclosure opt-in as Kimi.
-AGY_MAX_PROMPT_BYTES = 30_000 if os.name == "nt" else 120_000
-AGY_ARGV_PROMPT_REFUSAL = (
-    "agy engine refused: Antigravity CLI takes the review prompt as a `--print` "
-    "command-line argument, which other local accounts can read in the process list "
-    "while it runs; pass --allow-agy-argv-prompt to accept that, or choose another engine"
-)
+# Antigravity CLI (`agy`) receives the review prompt over stdin NDJSON
+# (`--input-format stream-json --output-format stream-json`), avoiding argv
+# exposure and platform command-line length caps while letting autoreview verify
+# strict permission mode and tool events before accepting structured output.
+AGY_MAX_OUTPUT_CHARS = 2_000_000
+AGY_ALLOWED_TOOLS = frozenset({"search_web"})
+AGY_ISOLATED_SETTINGS: dict[str, Any] = {
+    "allowNonWorkspaceAccess": False,
+    "enableTerminalSandbox": True,
+    "toolPermission": "strict",
+    "permissions": {
+        "allow": [],
+        "deny": [
+            "command(*)",
+            "write_file(*)",
+            "read_file(*)",
+            "read_url(*)",
+            "mcp(*)",
+            "unsandboxed(*)",
+        ],
+    },
+}
 MAX_REVIEW_CHUNK_CONTEXT_BYTES = 64_000
 # Per-run paid-work budget, checked before the first provider call. The byte
 # default is that many full-size passes, so it binds once passes are raised.
@@ -411,6 +424,12 @@ PROVIDER_CREDENTIAL_PATH_ENV_KEYS = {
     "AWS_CONTAINER_AUTHORIZATION_TOKEN_FILE",
     "AWS_SHARED_CREDENTIALS_FILE",
     "AWS_WEB_IDENTITY_TOKEN_FILE",
+    "GOOGLE_APPLICATION_CREDENTIALS",
+    "NODE_EXTRA_CA_CERTS",
+    "SSL_CERT_DIR",
+    "SSL_CERT_FILE",
+}
+AGY_CREDENTIAL_PATH_ENV_KEYS = {
     "GOOGLE_APPLICATION_CREDENTIALS",
     "NODE_EXTRA_CA_CERTS",
     "SSL_CERT_DIR",
@@ -1201,11 +1220,11 @@ def safe_engine_env(
     amp_allowed_exact = {
         "AMP_API_KEY",
     }
+    # SSH_CONNECTION triggers Linux file-based OAuth storage (~/.gemini/antigravity-cli/
+    # antigravity-oauth-token) instead of desktop keyring migration over SSH.
     agy_allowed_exact = {
         "GEMINI_API_KEY",
-        "SSH_CLIENT",
         "SSH_CONNECTION",
-        "SSH_TTY",
     }
     engine_allowed_exact = {
         "agy": agy_allowed_exact,
@@ -1288,7 +1307,18 @@ def safe_engine_env(
             )
             if normalized:
                 env[key] = normalized
-    if engine in {"agy", "claude", "kimi", "pi"}:
+    if engine == "agy":
+        for key in AGY_CREDENTIAL_PATH_ENV_KEYS:
+            value = os.environ.get(key)
+            env.pop(key, None)
+            normalized = (
+                normalize_external_env_path_value(repo, key, value)
+                if value
+                else None
+            )
+            if normalized:
+                env[key] = normalized
+    if engine in {"claude", "kimi", "pi"}:
         for key in PROVIDER_CREDENTIAL_PATH_ENV_KEYS:
             value = os.environ.get(key)
             env.pop(key, None)
@@ -5096,17 +5126,18 @@ def ensure_agy_isolation_supported(args: argparse.Namespace, repo: Path) -> str:
     if version < AGY_ISOLATION_MIN_VERSION:
         raise SystemExit(
             "agy engine requires Antigravity CLI >= "
-            f"{format_version(AGY_ISOLATION_MIN_VERSION)} for isolated plan-mode review "
+            f"{format_version(AGY_ISOLATION_MIN_VERSION)} for isolated strict-sandbox stream-json review "
             f"(found {format_version(version)})"
         )
     help_text = f"{help_result.stdout}\n{help_result.stderr}"
     required_flags = [
-        "--dangerously-skip-permissions",
-        "--mode",
-        "--model",
+        "--disable-slash-commands",
+        "--sandbox",
         "--settings",
+        "--input-format",
         "--output-format",
         "--json-schema",
+        "--model",
         "--print",
     ]
     if agy_effort_arg(getattr(args, "model", None), getattr(args, "thinking", None)):
@@ -6350,12 +6381,17 @@ def run_kimi(args: argparse.Namespace, repo: Path, prompt: str) -> str:
 
 
 def run_agy(args: argparse.Namespace, repo: Path, prompt: str) -> str:
-    agy_bin = ensure_agy_isolation_supported(args, repo)
-    if len(prompt.encode("utf-8")) > AGY_MAX_PROMPT_BYTES:
+    if not getattr(args, "tools", True):
         raise SystemExit(
-            "agy engine prompt exceeds the safe argv budget for `agy --print` "
-            f"({AGY_MAX_PROMPT_BYTES} bytes); split the review into smaller targets"
+            "--no-tools is not supported by the Agy engine; "
+            "use --engine claude --no-tools for a no-tools run"
         )
+    if not getattr(args, "web_search", True):
+        raise SystemExit(
+            "--no-web-search is not supported by the Agy engine; "
+            "use --engine codex --no-web-search or --engine claude --no-web-search"
+        )
+    agy_bin = ensure_agy_isolation_supported(args, repo)
     effort = agy_effort_arg(args.model, args.thinking)
     temp_root = safe_temp_root(repo)
     with tempfile.TemporaryDirectory(
@@ -6371,22 +6407,24 @@ def run_agy(args: argparse.Namespace, repo: Path, prompt: str) -> str:
         settings_path = runtime_root / "settings.json"
         schema_path.write_text(json.dumps(SCHEMA), encoding="utf-8")
         settings_path.write_text(
-            json.dumps({"allowNonWorkspaceAccess": False}, separators=(",", ":")),
+            json.dumps(AGY_ISOLATED_SETTINGS, separators=(",", ":")),
             encoding="utf-8",
         )
         schema_path.chmod(0o600)
         settings_path.chmod(0o600)
-        # Never pass --disable-slash-commands with --mode plan: agy disables
-        # plan mode when slash command expansion is turned off.
+        # Send the prompt over stdin NDJSON (stream-json) rather than argv, and
+        # enforce strict tool permissions + deny-all rules + terminal sandbox +
+        # disabled slash commands without ever passing --dangerously-skip-permissions.
         cmd = [
             agy_bin,
-            "--dangerously-skip-permissions",
-            "--mode",
-            "plan",
+            "--disable-slash-commands",
+            "--sandbox",
             "--settings",
             str(settings_path),
+            "--input-format",
+            "stream-json",
             "--output-format",
-            "json",
+            "stream-json",
             "--json-schema",
             str(schema_path),
         ]
@@ -6397,10 +6435,18 @@ def run_agy(args: argparse.Namespace, repo: Path, prompt: str) -> str:
         timeout_seconds = getattr(args, "engine_timeout_seconds", None)
         if timeout_seconds:
             cmd.extend(["--print-timeout", f"{int(max(1, round(timeout_seconds)))}s"])
-        cmd.extend(["--print", prompt])
+        cmd.extend(["--print", ""])
+        stdin_payload = (
+            json.dumps(
+                {"event": "user", "message": {"content": prompt}},
+                separators=(",", ":"),
+            )
+            + "\n"
+        )
         result = run_with_heartbeat(
             cmd,
             review_root,
+            input_text=stdin_payload,
             label="agy",
             max_runtime_seconds=timeout_seconds,
             stream_output=args.stream_engine_output,
@@ -6415,42 +6461,89 @@ def run_agy(args: argparse.Namespace, repo: Path, prompt: str) -> str:
             f"agy engine failed ({result.returncode})\n{result.stderr or result.stdout}",
             result=result,
         )
-    stripped = result.stdout.strip()
-    if not stripped:
+    if len(result.stdout) > AGY_MAX_OUTPUT_CHARS:
+        raise ReviewerUnavailable(
+            f"agy engine output exceeded {AGY_MAX_OUTPUT_CHARS} characters",
+            reason="invalid_report",
+            result=result,
+        )
+    lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+    if not lines:
         raise ReviewerUnavailable(
             "agy engine returned empty output",
             reason="invalid_report",
             result=result,
         )
-    try:
-        parsed = json.loads(stripped)
-    except json.JSONDecodeError as exc:
+    saw_strict_init = False
+    final_result: dict[str, Any] | None = None
+    for line in lines:
+        try:
+            entry = json.loads(line)
+        except (json.JSONDecodeError, RecursionError, ValueError) as exc:
+            raise ReviewerUnavailable(
+                f"agy engine returned non-JSON stream output: {exc}\n{line[:2000]}",
+                reason="invalid_report",
+                result=result,
+            ) from exc
+        if not isinstance(entry, dict):
+            raise ReviewerUnavailable(
+                f"agy engine returned unexpected stream event shape\n{line[:2000]}",
+                reason="invalid_report",
+                result=result,
+            )
+        event_type = entry.get("event")
+        if event_type == "init":
+            init_obj = entry.get("init")
+            if not isinstance(init_obj, dict) or init_obj.get("permission_mode") != "strict":
+                mode = init_obj.get("permission_mode") if isinstance(init_obj, dict) else None
+                raise ReviewerUnavailable(
+                    f"agy engine did not start in strict permission mode (got {mode!r})",
+                    reason="invalid_report",
+                    result=result,
+                )
+            saw_strict_init = True
+        elif event_type == "step_update":
+            step = entry.get("step_update")
+            if isinstance(step, dict) and step.get("step_type") == "tool":
+                tool_name = step.get("tool_name")
+                step_state = step.get("state")
+                if tool_name not in AGY_ALLOWED_TOOLS and step_state not in {"DENIED", "CANCELED", "ERROR"}:
+                    raise ReviewerUnavailable(
+                        f"agy engine executed disallowed tool {tool_name!r}",
+                        reason="invalid_report",
+                        result=result,
+                    )
+        elif event_type == "result":
+            res = entry.get("result")
+            if isinstance(res, dict):
+                final_result = res
+    if not saw_strict_init:
         raise ReviewerUnavailable(
-            f"agy engine returned non-JSON output: {exc}\n{stripped[:2000]}",
-            reason="invalid_report",
-            result=result,
-        ) from exc
-    if not isinstance(parsed, dict):
-        raise ReviewerUnavailable(
-            f"agy engine returned unexpected JSON shape\n{stripped[:2000]}",
+            "agy engine stream omitted strict init event",
             reason="invalid_report",
             result=result,
         )
-    status = parsed.get("status")
-    if status is not None and status != "SUCCESS":
-        error_detail = parsed.get("error") or parsed.get("finished_reason") or status
+    if final_result is None:
+        raise ReviewerUnavailable(
+            f"agy engine stream omitted result event\n{result.stdout[:2000]}",
+            reason="invalid_report",
+            result=result,
+        )
+    status = final_result.get("status")
+    if status != "SUCCESS":
+        error_detail = final_result.get("error") or final_result.get("finished_reason") or status
         raise ReviewerUnavailable(
             f"agy engine failed ({status}): {error_detail}",
             result=result,
         )
-    structured = parsed.get("structured_output")
+    structured = final_result.get("structured_output")
     if isinstance(structured, dict):
         return json.dumps(structured)
-    response = parsed.get("response")
+    response = final_result.get("response")
     if isinstance(response, str) and response.strip():
         return response
     raise ReviewerUnavailable(
-        f"agy engine returned no structured_output or response\n{stripped[:2000]}",
+        f"agy engine returned no structured_output or response\n{result.stdout[:2000]}",
         reason="invalid_report",
         result=result,
     )
@@ -7147,13 +7240,7 @@ def parse_args() -> argparse.Namespace:
         "command-line argument, which other local accounts can read in the process list while it runs.",
     )
     parser.add_argument("--agy-bin", default=os.environ.get("AGY_BIN", "agy"))
-    parser.add_argument(
-        "--allow-agy-argv-prompt",
-        action="store_true",
-        help="Required for --engine agy: accept that Antigravity CLI receives the review prompt as a "
-        "command-line argument, which other local accounts can read in the process list while it runs.",
-    )
-    parser.add_argument("--no-tools", dest="tools", action="store_false", default=True, help="Disable tools for engines that support it. Amp, Pi, and Kimi always run without tools; Codex rejects no-tools review.")
+    parser.add_argument("--no-tools", dest="tools", action="store_false", default=True, help="Disable tools for engines that support it. Amp, Pi, and Kimi always run without tools; Codex and Agy reject no-tools review.")
     parser.add_argument("--no-web-search", dest="web_search", action="store_false", default=True)
     parser.add_argument(
         "--claude-allowed-tools",
@@ -7300,11 +7387,17 @@ def reviewer_args(args: argparse.Namespace) -> list[argparse.Namespace]:
         raise SystemExit("--allow-kimi-argv-prompt is only supported for kimi; no kimi reviewer selected")
     if engine == "kimi" and not allow_kimi_argv:
         raise SystemExit(KIMI_ARGV_PROMPT_REFUSAL)
-    allow_agy_argv = getattr(args, "allow_agy_argv_prompt", False)
-    if allow_agy_argv and engine != "agy":
-        raise SystemExit("--allow-agy-argv-prompt is only supported for agy; no agy reviewer selected")
-    if engine == "agy" and not allow_agy_argv:
-        raise SystemExit(AGY_ARGV_PROMPT_REFUSAL)
+    if engine == "agy":
+        if not getattr(args, "tools", True):
+            raise SystemExit(
+                "--no-tools is not supported by the Agy engine; "
+                "use --engine claude --no-tools for a no-tools run"
+            )
+        if not getattr(args, "web_search", True):
+            raise SystemExit(
+                "--no-web-search is not supported by the Agy engine; "
+                "use --engine codex --no-web-search or --engine claude --no-web-search"
+            )
     model = (
         model_by_engine.get(engine)
         or global_model
@@ -7346,7 +7439,7 @@ def reviewer_args(args: argparse.Namespace) -> list[argparse.Namespace]:
     clone.model = model
     clone.thinking = thinking
     clone.fallback_model = fallback_model
-    clone.tools = False if engine in {"amp", "pi", "kimi", "agy"} else args.tools
+    clone.tools = False if engine in {"amp", "pi", "kimi"} else args.tools
     return [clone]
 
 
@@ -7479,8 +7572,6 @@ def max_prompt_bytes_for_reviewers(reviewers: list[argparse.Namespace]) -> int:
     max_prompt_bytes = MAX_REVIEW_PROMPT_BYTES
     if any(reviewer.engine == "kimi" for reviewer in reviewers):
         max_prompt_bytes = min(max_prompt_bytes, KIMI_MAX_PROMPT_BYTES)
-    if any(reviewer.engine == "agy" for reviewer in reviewers):
-        max_prompt_bytes = min(max_prompt_bytes, AGY_MAX_PROMPT_BYTES)
     return max_prompt_bytes
 
 

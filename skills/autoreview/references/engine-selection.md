@@ -37,12 +37,18 @@ including a caller that substitutes another reviewer under its own recorded poli
 | Amp             | `AMP_API_KEY` for a plugin-free account; local POSIX execution, no custom endpoint or cloud/orb agent |
 | Pi              | Recent CLI; configured model; no tools or project resources                                           |
 | Kimi            | Recent CLI; configured model; Python 3.11+ or `tomli` for TOML config; `--allow-kimi-argv-prompt`     |
-| Agy             | Antigravity CLI >= 1.5.12 (`agy` authenticated); default `gemini-4-neon-xhigh`; `--allow-agy-argv-prompt` |
+| Agy             | Antigravity CLI >= 1.5.12 (`agy` authenticated); default `gemini-4-neon-xhigh`; web search always on  |
 
-Kimi Code and Antigravity CLI (`agy`) take a one-shot prompt only as a command-line argument, and
-other local accounts can read a process's arguments while it runs. `--engine kimi` therefore
-refuses to start unless the run passes `--allow-kimi-argv-prompt`, and `--engine agy` refuses to
-start unless the run passes `--allow-agy-argv-prompt`. Pass those flags only on a machine whose
-other accounts may see the review pack; otherwise choose another engine. `--engine agy` runs in
-`--mode plan` with `--settings` disabling non-workspace access and never passes
-`--disable-slash-commands` (which disables `--mode plan`).
+Kimi Code takes a one-shot prompt only as a command-line argument, and other local accounts can
+read a process's arguments while it runs. `--engine kimi` therefore refuses to start unless the run
+passes `--allow-kimi-argv-prompt`. Pass that flag only on a machine whose other accounts may see
+the review pack; otherwise choose another engine.
+
+`--engine agy` sends the review prompt over stdin NDJSON (`--input-format stream-json
+--output-format stream-json`), runs in an empty temporary workspace with `--disable-slash-commands`,
+`--sandbox`, and session-only `--settings` enforcing `toolPermission: "strict"`,
+`allowNonWorkspaceAccess: false`, `enableTerminalSandbox: true`, and explicit deny rules for
+`command(*)`, `write_file(*)`, `read_file(*)`, `read_url(*)`, `mcp(*)`, and `unsandboxed(*)`, and
+verifies `permission_mode == "strict"` plus tool events in the stream before accepting structured
+output. Because Antigravity CLI's built-in `search_web` cannot be disabled up front, `--engine agy`
+rejects `--no-tools` and `--no-web-search`.

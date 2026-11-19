@@ -1550,29 +1550,56 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
         self.assertEqual(env["KIMI_CODE_NO_AUTO_UPDATE"], "1")
         self.assertNotEqual(Path(str(env["KIMI_CODE_HOME"])), repo)
 
-    def test_agy_requires_argv_prompt_opt_in_and_sets_default_model(self) -> None:
+    def test_agy_defaults_and_unsupported_flag_refusals(self) -> None:
         with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
-            sys, "argv", ["autoreview", "--engine", "agy"],
-        ):
-            with self.assertRaises(SystemExit) as cm:
-                AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())
-        self.assertIn("--allow-agy-argv-prompt", str(cm.exception))
-
-        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
-            sys, "argv", ["autoreview", "--engine", "codex", "--allow-agy-argv-prompt"],
-        ):
-            with self.assertRaises(SystemExit) as cm:
-                AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())
-        self.assertIn("only supported for agy", str(cm.exception))
-
-        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
-            sys, "argv", ["autoreview", "--engine", "agy", "--allow-agy-argv-prompt", "--agy-bin", "/tmp/fake-agy"],
+            sys, "argv", ["autoreview", "--engine", "agy", "--agy-bin", "/tmp/fake-agy"],
         ):
             reviewer = AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())[0]
         self.assertEqual(reviewer.model, "gemini-4-neon-xhigh")
         self.assertEqual(reviewer.agy_bin, "/tmp/fake-agy")
-        self.assertFalse(reviewer.tools)
+        self.assertTrue(reviewer.tools)
+        self.assertTrue(reviewer.web_search)
         self.assertIsNone(reviewer.fallback_model)
+
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
+            sys, "argv", ["autoreview", "--engine", "agy", "--no-tools"],
+        ):
+            with self.assertRaises(SystemExit) as cm:
+                AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())
+        self.assertIn("--no-tools is not supported by the Agy engine", str(cm.exception))
+
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
+            sys, "argv", ["autoreview", "--engine", "agy", "--no-web-search"],
+        ):
+            with self.assertRaises(SystemExit) as cm:
+                AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())
+        self.assertIn("--no-web-search is not supported by the Agy engine", str(cm.exception))
+
+    def test_agy_safe_engine_env_filters_aws_and_extra_ssh_vars(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-env-test.") as tmpdir:
+            repo = Path(tmpdir) / "repo"
+            repo.mkdir()
+            gcp_creds = Path(tmpdir) / "gcp.json"
+            gcp_creds.write_text("{}", encoding="utf-8")
+            aws_creds = Path(tmpdir) / "aws-creds"
+            aws_creds.write_text("[default]\n", encoding="utf-8")
+            env_vars = {
+                "GEMINI_API_KEY": "test-gemini-key",
+                "SSH_CONNECTION": "10.0.0.1 12345 10.0.0.2 22",
+                "SSH_CLIENT": "10.0.0.1 12345 22",
+                "SSH_TTY": "/dev/pts/0",
+                "GOOGLE_APPLICATION_CREDENTIALS": str(gcp_creds),
+                "AWS_SHARED_CREDENTIALS_FILE": str(aws_creds),
+                "AWS_CONFIG_FILE": str(aws_creds),
+                "OPENAI_API_KEY": "sk-unrelated",
+            }
+            with mock.patch.dict(os.environ, env_vars, clear=True):
+                filtered = AUTOREVIEW.safe_engine_env(repo, [], engine="agy")
+        self.assertEqual(filtered.get("GEMINI_API_KEY"), "test-gemini-key")
+        self.assertEqual(filtered.get("SSH_CONNECTION"), "10.0.0.1 12345 10.0.0.2 22")
+        self.assertEqual(Path(str(filtered.get("GOOGLE_APPLICATION_CREDENTIALS"))).resolve(), gcp_creds.resolve())
+        for forbidden in ("SSH_CLIENT", "SSH_TTY", "AWS_SHARED_CREDENTIALS_FILE", "AWS_CONFIG_FILE", "OPENAI_API_KEY"):
+            self.assertNotIn(forbidden, filtered)
 
     def test_agy_tier_suffixed_model_effort_validation(self) -> None:
         self.assertIsNone(AUTOREVIEW.agy_effort_arg("gemini-4-neon-xhigh", None))
@@ -1590,12 +1617,12 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             engine_timeout_seconds=None,
         )
         full_help = (
-            "--dangerously-skip-permissions --mode --model --settings "
-            "--output-format --json-schema --print --effort --print-timeout"
+            "--disable-slash-commands --sandbox --settings --input-format "
+            "--output-format --json-schema --model --print --effort --print-timeout"
         )
         cases = (
             ("1.5.11\n", full_help, "1.5.12"),
-            ("1.5.12\n", "--print --model", "--mode"),
+            ("1.5.12\n", "--print --model", "--sandbox"),
             ("not-a-version\n", full_help, "could not parse --version"),
         )
         with tempfile.TemporaryDirectory(prefix="autoreview-agy-probe-test.") as tmpdir:
@@ -1628,12 +1655,14 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             ):
                 self.assertEqual(AUTOREVIEW.ensure_agy_isolation_supported(args, repo), "/usr/local/bin/agy")
 
-    def test_agy_runs_in_plan_mode_with_isolated_settings_and_schema(self) -> None:
+    def test_agy_runs_in_strict_sandbox_stream_json_mode(self) -> None:
         args = argparse.Namespace(
             agy_bin="agy",
             model="gemini-4-neon-xhigh",
             stream_engine_output=False,
             thinking="xhigh",
+            tools=True,
+            web_search=True,
             engine_timeout_seconds=120.0,
         )
         observed: dict[str, object] = {}
@@ -1645,19 +1674,28 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
         ) -> subprocess.CompletedProcess[str]:
             observed["command"] = command
             observed["cwd"] = cwd
+            observed["input_text"] = kwargs.get("input_text")
             observed["workspace"] = list(cwd.iterdir())
             settings_path = Path(command[command.index("--settings") + 1])
             schema_path = Path(command[command.index("--json-schema") + 1])
             observed["settings"] = json.loads(settings_path.read_text(encoding="utf-8"))
             observed["schema"] = json.loads(schema_path.read_text(encoding="utf-8"))
             observed["settings_mode"] = settings_path.stat().st_mode & 0o777
-            payload = {
-                "conversation_id": "conv-1",
-                "status": "SUCCESS",
-                "response": json.dumps(FINAL_REPORT),
-                "structured_output": FINAL_REPORT,
-            }
-            return subprocess.CompletedProcess(command, 0, json.dumps(payload), "")
+            stream = "\n".join([
+                json.dumps({"event": "init", "init": {"permission_mode": "strict", "model": "gemini-4-neon-xhigh"}}),
+                json.dumps({"event": "step_update", "step_update": {"step_type": "user_input", "state": "DONE"}}),
+                json.dumps({"event": "step_update", "step_update": {"step_type": "tool", "tool_name": "search_web", "state": "DONE"}}),
+                json.dumps({
+                    "event": "result",
+                    "result": {
+                        "conversation_id": "conv-1",
+                        "status": "SUCCESS",
+                        "response": json.dumps(FINAL_REPORT),
+                        "structured_output": FINAL_REPORT,
+                    },
+                }),
+            ]) + "\n"
+            return subprocess.CompletedProcess(command, 0, stream, "")
 
         with tempfile.TemporaryDirectory(prefix="autoreview-agy-run-test.") as tmpdir:
             repo = Path(tmpdir) / "repo"
@@ -1672,46 +1710,99 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
         self.assertEqual(json.loads(output), FINAL_REPORT)
         command = observed["command"]
         assert isinstance(command, list)
-        self.assertIn("--dangerously-skip-permissions", command)
-        self.assertEqual(command[command.index("--mode") + 1], "plan")
+        self.assertNotIn("--dangerously-skip-permissions", command)
+        self.assertNotIn("--mode", command)
+        self.assertIn("--disable-slash-commands", command)
+        self.assertIn("--sandbox", command)
+        self.assertEqual(command[command.index("--input-format") + 1], "stream-json")
+        self.assertEqual(command[command.index("--output-format") + 1], "stream-json")
         self.assertEqual(command[command.index("--model") + 1], "gemini-4-neon-xhigh")
-        self.assertEqual(command[command.index("--output-format") + 1], "json")
         self.assertEqual(command[command.index("--print-timeout") + 1], "120s")
-        self.assertEqual(command[command.index("--print") + 1], "review prompt")
+        self.assertEqual(command[command.index("--print") + 1], "")
+        self.assertNotIn("review prompt", command)
         self.assertNotIn("--effort", command)
-        self.assertNotIn("--disable-slash-commands", command)
-        self.assertEqual(observed["settings"], {"allowNonWorkspaceAccess": False})
+        self.assertEqual(
+            json.loads(str(observed["input_text"])),
+            {"event": "user", "message": {"content": "review prompt"}},
+        )
+        self.assertEqual(observed["settings"], AUTOREVIEW.AGY_ISOLATED_SETTINGS)
         if os.name != "nt":
             self.assertEqual(observed["settings_mode"], 0o600)
         self.assertEqual(observed["workspace"], [])
 
-    def test_agy_error_status_is_unavailable(self) -> None:
+    def test_agy_rejects_error_non_strict_disallowed_tool_and_oversized_stream(self) -> None:
         args = argparse.Namespace(
             agy_bin="agy",
             model="gemini-4-neon-xhigh",
             stream_engine_output=False,
             thinking=None,
+            tools=True,
+            web_search=True,
             engine_timeout_seconds=None,
         )
-        error_payload = json.dumps({
-            "conversation_id": "",
-            "status": "ERROR",
-            "error": "authentication failed or timed out",
-            "finished_reason": "error",
+        strict_init = json.dumps({"event": "init", "init": {"permission_mode": "strict"}})
+        ok_result = json.dumps({
+            "event": "result",
+            "result": {"status": "SUCCESS", "structured_output": FINAL_REPORT},
         })
+        cases = (
+            (
+                "error status",
+                strict_init + "\n" + json.dumps({
+                    "event": "result",
+                    "result": {"status": "ERROR", "error": "authentication failed or timed out"},
+                }),
+                "authentication failed or timed out",
+            ),
+            (
+                "non-strict init",
+                json.dumps({"event": "init", "init": {"permission_mode": "always-proceed"}}) + "\n" + ok_result,
+                "did not start in strict permission mode",
+            ),
+            (
+                "disallowed tool",
+                strict_init + "\n"
+                + json.dumps({"event": "step_update", "step_update": {"step_type": "tool", "tool_name": "run_command", "state": "DONE"}})
+                + "\n" + ok_result,
+                "disallowed tool 'run_command'",
+            ),
+            (
+                "oversized output",
+                "x" * (AUTOREVIEW.AGY_MAX_OUTPUT_CHARS + 1),
+                "exceeded",
+            ),
+            (
+                "malformed json",
+                "not-json",
+                "non-JSON stream output",
+            ),
+        )
         with tempfile.TemporaryDirectory(prefix="autoreview-agy-err-test.") as tmpdir:
             repo = Path(tmpdir) / "repo"
             repo.mkdir()
-            with mock.patch.object(
+            for label, payload, expected in cases:
+                with self.subTest(label=label), mock.patch.object(
+                    AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
+                ), mock.patch.object(
+                    AUTOREVIEW,
+                    "run_with_heartbeat",
+                    return_value=subprocess.CompletedProcess(["agy"], 0, payload, ""),
+                ):
+                    with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as cm:
+                        AUTOREVIEW.run_agy(args, repo, "review prompt")
+                self.assertIn(expected, str(cm.exception))
+            with self.subTest(label="recursion error"), mock.patch.object(
                 AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
             ), mock.patch.object(
                 AUTOREVIEW,
                 "run_with_heartbeat",
-                return_value=subprocess.CompletedProcess(["agy"], 0, error_payload, ""),
+                return_value=subprocess.CompletedProcess(["agy"], 0, "{}\n", ""),
+            ), mock.patch.object(
+                AUTOREVIEW.json, "loads", side_effect=RecursionError("maximum recursion depth exceeded"),
             ):
                 with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as cm:
                     AUTOREVIEW.run_agy(args, repo, "review prompt")
-        self.assertIn("authentication failed or timed out", str(cm.exception))
+            self.assertIn("non-JSON stream output", str(cm.exception))
 
     def test_codex_config_status_exposes_keys_only(self) -> None:
         args = argparse.Namespace(codex_config=['model_verbosity="low"'])

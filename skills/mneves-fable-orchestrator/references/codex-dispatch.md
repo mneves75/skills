@@ -126,24 +126,70 @@ as `CODEX_AUTO_MODEL` are deliberate exceptions, checked in the session header.
 
 When no Codex account can run (not installed, out of quota, not signed in, or refused by host
 policy), the orchestrator's Defaults block routes coding and review after `gpt-6.2-sol` to
-`gemini-4-neon-xhigh` through `agy-yolo` — a personal wrapper/alias for
-`agy --dangerously-skip-permissions` (**not shipped with this skill**; substitute
-`agy --dangerously-skip-permissions` if you do not have the alias).
+`gemini-4-neon-xhigh` through Antigravity CLI (`agy`, **not shipped with this skill**).
+`agy-yolo` is a personal wrapper/alias for `agy --dangerously-skip-permissions` (**not shipped**;
+substitute `agy --dangerously-skip-permissions` only where unattended tool execution is explicitly
+authorized).
+
+Never send a repository that declares client, personal, or regulated data, or one whose owner has
+not approved that provider; host-policy or task restrictions on a provider are not a reason to
+route around them, and disclosure must be authorized before dispatching. When disallowed or
+unavailable for review, skip this fallback explicitly and fall through to the reviewer row's second
+fallback.
+
+### Coding fallback
+
+Run inside a dedicated worktree with `--sandbox` and session-only `--settings` restricting writes
+and terminal execution to that workspace. `agy-yolo` (`--dangerously-skip-permissions`)
+auto-approves tool requests without prompting, so use it only when the owner or host policy
+explicitly authorizes unattended execution and never to widen permissions beyond the authorized
+Codex seat; if unattended execution is not authorized, report the coding fallback blocked. Preserve
+the CLI exit code and verify `.status == "SUCCESS"` before accepting `.response`:
 
 ```bash
-# Coding fallback (workspace writes allowed inside the authorized repo):
-agy-yolo -p '<self-contained brief>' --model gemini-4-neon-xhigh \
-  --output-format json --print-timeout 10m | jq -r .response
+settings_file=$(mktemp)
+chmod 600 "$settings_file"
+printf '{"allowNonWorkspaceAccess":false,"enableTerminalSandbox":true}\n' > "$settings_file"
 
-# Read-only review fallback (--mode plan keeps the run read-only):
-agy-yolo --mode plan -p '<self-contained review brief>' --model gemini-4-neon-xhigh \
-  --output-format json --print-timeout 10m | jq -r .response
+out=$(agy-yolo --sandbox --settings "$settings_file" \
+  -p '<self-contained brief>' --model gemini-4-neon-xhigh \
+  --output-format json --print-timeout 10m) \
+  && jq -re 'select(.status == "SUCCESS") | .response' <<< "$out"
+rm -f "$settings_file"
 ```
 
-Do not pass `--disable-slash-commands` with `--mode plan`: the CLI warns that `--mode plan` has
-no effect while slash command expansion is disabled. Never send a repository that declares
-client, personal, or regulated data to this fallback; skip it explicitly and, for review, fall
-through to the reviewer row's second fallback.
+### Read-only review fallback
+
+Prefer `autoreview --engine agy --model gemini-4-neon-xhigh` when `autoreview` is installed: it
+scans outgoing inputs with TruffleHog, sends the review pack over stdin `stream-json` (no argv
+exposure), runs in an empty temporary workspace with `--disable-slash-commands --sandbox` and
+strict deny-all `--settings`, never passes `--dangerously-skip-permissions`, and verifies
+`permission_mode == "strict"` and tool events before accepting structured output.
+
+When `autoreview` is not installed, scan/sanitize the review brief first and run plain `agy`
+(never `agy-yolo` or `--dangerously-skip-permissions`) from a **clean empty temporary directory**
+so untrusted `.agents/hooks.json` in the reviewed checkout never runs on session start:
+
+```bash
+review_dir=$(mktemp -d)
+settings_file=$(mktemp)
+chmod 600 "$settings_file"
+cat > "$settings_file" <<'EOF'
+{"allowNonWorkspaceAccess":false,"enableTerminalSandbox":true,"toolPermission":"strict","permissions":{"allow":[],"deny":["command(*)","write_file(*)","read_file(*)","read_url(*)","mcp(*)","unsandboxed(*)"]}}
+EOF
+
+out=$(cd "$review_dir" && jq -nc --arg content '<scanned self-contained review brief>' \
+  '{event:"user",message:{content:$content}}' \
+  | agy --disable-slash-commands --sandbox --settings "$settings_file" \
+      --input-format stream-json --output-format stream-json \
+      --model gemini-4-neon-xhigh --print "" --print-timeout 10m) \
+  && jq -re 'select(.event == "result" and .result.status == "SUCCESS") | .result.response' <<< "$out"
+rm -rf "$review_dir" "$settings_file"
+```
+
+If using `--mode plan` interactively instead of strict `stream-json`, never combine it with
+`--disable-slash-commands` (the CLI disables plan mode when slash command expansion is off) and
+never combine it with `--dangerously-skip-permissions` (which overrides plan mode).
 
 ## Acceptance
 
