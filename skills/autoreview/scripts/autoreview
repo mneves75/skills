@@ -5093,6 +5093,7 @@ def agy_effort_arg(model: str | None, thinking: str | None) -> str | None:
 
 
 def ensure_agy_isolation_supported(args: argparse.Namespace, repo: Path) -> str:
+    use_gemini_api = agy_explicit_gemini_api_provider(repo)
     agy_bin = resolve_command(args.agy_bin, repo)
     with tempfile.TemporaryDirectory(
         prefix="autoreview-agy-probe.",
@@ -5114,6 +5115,8 @@ def ensure_agy_isolation_supported(args: argparse.Namespace, repo: Path) -> str:
                 "XDG_DATA_HOME": str(probe_home / ".local" / "share"),
             },
         )
+        if not use_gemini_api:
+            engine_env.pop("GEMINI_API_KEY", None)
         version_result = run(
             [agy_bin, "--version"],
             probe_cwd,
@@ -6401,28 +6404,38 @@ def agy_explicit_gemini_api_provider(repo: Path) -> bool:
     """Return True only when the operator explicitly chose direct Gemini API routing.
 
     Prevents an unrelated exported GEMINI_API_KEY from silently diverting an
-    organization Antigravity account's review bundle to the direct Gemini API.
+    organization Antigravity account's review bundle to the direct Gemini API,
+    and refuses GOOGLE_GEMINI_BASE_URL rather than silently redirecting custom
+    endpoint traffic to Google.
     """
     override = os.environ.get("AUTOREVIEW_AGY_MODEL_PROVIDER", "").strip().lower()
     if override:
         if override == "gemini":
-            return True
-        if override == "antigravity":
-            return False
+            use_gemini = True
+        elif override == "antigravity":
+            use_gemini = False
+        else:
+            raise SystemExit(
+                f"invalid AUTOREVIEW_AGY_MODEL_PROVIDER={override!r}; expected 'antigravity' or 'gemini'"
+            )
+    else:
+        use_gemini = False
+        raw_home = os.environ.get("HOME") or os.environ.get("USERPROFILE")
+        if raw_home and external_env_path(repo, raw_home):
+            user_settings = Path(raw_home).expanduser() / ".gemini" / "antigravity-cli" / "settings.json"
+            if user_settings.is_file() and external_env_path(repo, str(user_settings)):
+                try:
+                    parsed = json.loads(user_settings.read_text(encoding="utf-8-sig"))
+                except (OSError, json.JSONDecodeError, ValueError):
+                    parsed = None
+                use_gemini = isinstance(parsed, dict) and parsed.get("modelProvider") == "gemini"
+    if use_gemini and os.environ.get("GOOGLE_GEMINI_BASE_URL", "").strip():
         raise SystemExit(
-            f"invalid AUTOREVIEW_AGY_MODEL_PROVIDER={override!r}; expected 'antigravity' or 'gemini'"
+            "agy engine refused: GOOGLE_GEMINI_BASE_URL configures a custom Gemini endpoint "
+            "that autoreview does not forward; unset GOOGLE_GEMINI_BASE_URL only if direct "
+            "Google Gemini API routing is authorized, or choose another engine"
         )
-    raw_home = os.environ.get("HOME") or os.environ.get("USERPROFILE")
-    if not raw_home or not external_env_path(repo, raw_home):
-        return False
-    user_settings = Path(raw_home).expanduser() / ".gemini" / "antigravity-cli" / "settings.json"
-    if not user_settings.is_file() or not external_env_path(repo, str(user_settings)):
-        return False
-    try:
-        parsed = json.loads(user_settings.read_text(encoding="utf-8-sig"))
-    except (OSError, json.JSONDecodeError, ValueError):
-        return False
-    return isinstance(parsed, dict) and parsed.get("modelProvider") == "gemini"
+    return use_gemini
 
 
 def stage_agy_isolated_home(repo: Path, runtime_root: Path) -> tuple[Path, dict[str, str]]:

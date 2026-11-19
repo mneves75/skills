@@ -12,23 +12,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   defaulting to `gemini-4-neon-xhigh`, sending the prompt over stdin NDJSON
   (`--input-format stream-json --output-format stream-json`), isolating `HOME` to auth material
   only (blocking global/plugin hooks, plugins, user MCP servers, and global rules while preserving
-  OAuth and `AGY_ADC_AUTH` / ADC, with explicit `modelProvider: "gemini"` opt-in required for
-  `GEMINI_API_KEY`), enforcing `--disable-slash-commands`, `--sandbox`, `--json-schema`, and
-  session-only `--settings` (`agentMode: ""`, `toolPermission: "strict"`,
-  `allowNonWorkspaceAccess: false`, `enableTerminalSandbox: true`, explicit deny rules for
-  commands/files/URLs/MCP/unsandboxed tools), verifying `permission_mode == "strict"` and tool
-  outcomes in the stream, rejecting `--no-tools` and `--no-web-search`, filtering environment
-  variables cleanly (`AGY_CREDENTIAL_PATH_ENV_KEYS`), and supporting `--agy-bin` / `AGY_BIN`;
-  covered by unit and end-to-end hardening tests.
+  OAuth and `AGY_ADC_AUTH` / ADC with region and project routing, requiring explicit
+  `modelProvider: "gemini"` opt-in for `GEMINI_API_KEY`, and refusing `GOOGLE_GEMINI_BASE_URL`),
+  enforcing `--disable-slash-commands`, `--sandbox`, `--json-schema`, and session-only `--settings`
+  (`agentMode: ""`, `toolPermission: "strict"`, `allowNonWorkspaceAccess: false`,
+  `enableTerminalSandbox: true`, explicit deny rules for commands/files/URLs/MCP/unsandboxed
+  tools), verifying `permission_mode == "strict"` and tool outcomes in the stream, rejecting
+  `--no-tools` and `--no-web-search`, filtering environment variables cleanly
+  (`AGY_CREDENTIAL_PATH_ENV_KEYS`), and supporting `--agy-bin` / `AGY_BIN`; covered by unit and
+  end-to-end hardening tests.
 - **mneves-fable-orchestrator**: added `gemini-4-neon-xhigh` as the coding fallback (unattended
-  `agy-yolo` strictly inside an enclosing container/VM sandbox when explicitly authorized;
-  interactive approval or blocked otherwise) and first read-only review fallback (`autoreview
-  --engine agy --model gemini-4-neon-xhigh`, or isolated strict non-skip-permissions `agy` from a
-  clean empty temporary directory verified outside any Git checkout) after `gpt-6.2-sol` (never
-  for repositories declaring client, personal, or regulated data, or where the owner has not
-  approved that provider, where review falls through to `claude-fable-5-2` at reasoning high);
-  added `O16-reviewer-fallback-regulated-no-codex`, `O17-coding-fallback-no-codex`, and
-  `O18-reviewer-fallback-unapproved-provider` to `tools/routing-eval/cases.json`.
+  `agy-yolo` strictly inside an enclosing container/VM sandbox when explicitly authorized; blocked
+  otherwise) and first read-only review fallback (`autoreview --engine agy --model
+  gemini-4-neon-xhigh`, falling through to the second fallback if `autoreview` is not installed)
+  after `gpt-6.2-sol` (never for repositories declaring client, personal, or regulated data, or
+  where the owner has not approved that provider, where review falls through to `claude-fable-5-2`
+  at reasoning high); added `O16-reviewer-fallback-regulated-no-codex`,
+  `O17-coding-fallback-no-codex`, and `O18-reviewer-fallback-unapproved-provider` to
+  `tools/routing-eval/cases.json`.
 - **collections/pstack**: added `adaptations/11-agy-yolo-fallback.patch` documenting the
   `gemini-4-neon-xhigh` coding and isolated read-only review fallback after `gpt-6.2-sol`
   in `poteto-mode/references/codex-tools.md`.

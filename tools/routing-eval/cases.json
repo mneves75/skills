@@ -1183,13 +1183,13 @@
    },
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "When that first fallback is unavailable or\ndisallowed by that data or provider policy, the reviewer row's second fallback reviews in its place,\nin a fresh context, gates and security acceptance included."
+    "text": "When `autoreview` or that first fallback is unavailable, or\ndisallowed by that data or provider policy, the reviewer row's second fallback reviews in its\nplace, in a fresh context, gates and security acceptance included."
    }
   ],
   "O17-coding-fallback-no-codex": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "coding fallback   = gemini-4-neon-xhigh, reasoning xhigh (after gpt-6.2-sol, via `agy --sandbox --model gemini-4-neon-xhigh`, or `agy-yolo` inside an enclosing container)"
+    "text": "coding fallback   = gemini-4-neon-xhigh, reasoning xhigh (after gpt-6.2-sol, via `agy-yolo --model gemini-4-neon-xhigh` inside an enclosing container)"
    },
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
@@ -1199,11 +1199,11 @@
   "O18-reviewer-fallback-unapproved-provider": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "except in a repository that declares client, personal or regulated data, or one whose owner has not\napproved that provider"
+    "text": "except in a repository that\ndeclares client, personal or regulated data, or one whose owner has not approved that provider"
    },
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "When that first fallback is unavailable or\ndisallowed by that data or provider policy, the reviewer row's second fallback reviews in its place,\nin a fresh context, gates and security acceptance included."
+    "text": "When `autoreview` or that first fallback is unavailable, or\ndisallowed by that data or provider policy, the reviewer row's second fallback reviews in its\nplace, in a fresh context, gates and security acceptance included."
    }
   ]
  }

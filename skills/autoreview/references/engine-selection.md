@@ -56,5 +56,6 @@ verifies `permission_mode == "strict"` plus tool outcomes in the stream before a
 output. Direct Gemini API routing (`modelProvider: "gemini"` with `GEMINI_API_KEY`) is enabled only
 when explicitly configured in `~/.gemini/antigravity-cli/settings.json` or via
 `AUTOREVIEW_AGY_MODEL_PROVIDER=gemini`, so an unrelated exported `GEMINI_API_KEY` never redirects
-an Antigravity account review. Because Antigravity CLI's built-in `search_web` cannot be disabled
+an Antigravity account review; if `GOOGLE_GEMINI_BASE_URL` is also set, `--engine agy` refuses to
+run rather than silently redirecting custom-endpoint traffic to Google. Because Antigravity CLI's built-in `search_web` cannot be disabled
 up front, `--engine agy` rejects `--no-tools` and `--no-web-search`.

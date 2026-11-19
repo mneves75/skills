@@ -143,18 +143,17 @@ Unattended coding fallback with `agy-yolo` (`agy --dangerously-skip-permissions`
 a dedicated worktree **within an enclosing external sandbox (container or VM)** that bounds the
 filesystem, credentials, lifecycle hooks, plugins, and workspace MCP servers, and only when the
 owner or host policy explicitly authorizes unattended execution (never widening permissions beyond
-the authorized Codex seat). Why an enclosing container or VM is required for unattended coding:
+the authorized Codex seat). Why an enclosing container or VM is required:
 
 - On hosts without OS sandbox support (such as Linux without unprivileged user namespaces),
   `--sandbox` degrades to a no-op; on personal accounts, Antigravity ignores `unsandboxed(*)` deny
   rules and defaults to Auto mode (since 1.5.7) unless forced to Default mode (`"agentMode": ""`).
 - Lifecycle hooks (`PreInvocation`, `SessionStart`, etc.) and workspace MCP servers
-  (`.agents/mcp_config.json`) execute outside the agent's terminal sandbox with host privileges.
+  (`.agents/mcp_config.json`) execute outside the agent's terminal sandbox with host privileges,
+  even before interactive approval prompts appear.
 
-Without an enclosing container or VM, **do not** run unattended auto-approved coding commands:
-either run interactively with explicit per-action human approval
-(`agy --sandbox --settings '{"agentMode":"","allowNonWorkspaceAccess":false,"enableTerminalSandbox":true}' --model gemini-4-neon-xhigh`)
-or report the coding fallback blocked.
+Without an enclosing container or VM, **report the coding fallback blocked** rather than launching
+an uncontained worktree session.
 
 Inside an authorized enclosing container/VM sandbox, pass the brief from a mode-`0600` file over
 stdin `stream-json` (never argv), clean up temporary files even under `set -e` while preserving
@@ -181,90 +180,27 @@ run_agy_coding_fallback() {
 
 ### Read-only review fallback
 
-Prefer `autoreview --engine agy --model gemini-4-neon-xhigh` when `autoreview` is installed: it
-scans outgoing inputs with TruffleHog, runs with an isolated `HOME` (preventing global and plugin
-`PreInvocation` hooks, plugins, and user MCP servers from seeing the brief), scrubs unrelated
-environment credentials, sends the review pack over stdin `stream-json` (no argv exposure), runs
-in an empty temporary workspace outside any Git checkout with `--disable-slash-commands --sandbox`
-and Default-mode strict deny-all `--settings`, never passes `--dangerously-skip-permissions`, and
-verifies `permission_mode == "strict"` and tool outcomes before accepting structured output.
-
-When `autoreview` is not installed, use this self-contained standalone POSIX/Unix fallback after
-scanning/sanitizing the review brief into a mode-`0600` file (never pass the brief on `jq` or
-`agy` argv). Create the launch directory outside any Git checkout (override `TMPDIR` and verify
-`git rev-parse` fails so parent `.agents/hooks.json` cannot be discovered), stage an isolated
-`HOME` / `USERPROFILE` holding only authentication material (macOS Keychains link, file OAuth
-token, and default gcloud ADC staged independently; or set `GOOGLE_APPLICATION_CREDENTIALS`
-explicitly), run plain `agy` (never `agy-yolo` or `--dangerously-skip-permissions`), clean up the
-temporary directories and staged credentials even under `set -e` while preserving exit status, and
-verify both `permission_mode == "strict"` and `.result.status == "SUCCESS"`:
+Run the first read-only review fallback through the sibling `autoreview` skill (**not shipped with
+this skill**):
 
 ```bash
-run_agy_review_fallback() {
-  local brief_file="$1" review_dir="" isolated_home="" settings_file="" adc_src="" out="" status=0
-  review_dir=$(TMPDIR=/tmp mktemp -d) || return $?
-  isolated_home=$(TMPDIR=/tmp mktemp -d) || { rm -rf -- "$review_dir"; return 1; }
-  settings_file=$(TMPDIR=/tmp mktemp) || { rm -rf -- "$review_dir" "$isolated_home"; return 1; }
-  chmod 700 "$review_dir" "$isolated_home" && chmod 600 "$settings_file" \
-    || { rm -rf -- "$review_dir" "$isolated_home" "$settings_file"; return 1; }
-  # Refuse to launch if review_dir sits inside any Git checkout (prevents parent .agents/hooks.json):
-  if git -C "$review_dir" rev-parse --show-toplevel >/dev/null 2>&1; then
-    echo "error: review_dir is inside a Git checkout: $review_dir" >&2
-    rm -rf -- "$review_dir" "$isolated_home" "$settings_file"
-    return 1
-  fi
-  # Stage auth only (independently, never ~/.gemini/config, hooks, plugins, or settings):
-  if [ "$(uname -s)" = "Darwin" ] && [ -d "$HOME/Library/Keychains" ]; then
-    mkdir -p "$isolated_home/Library" && ln -s "$HOME/Library/Keychains" "$isolated_home/Library/Keychains" \
-      || { rm -rf -- "$review_dir" "$isolated_home" "$settings_file"; return 1; }
-  fi
-  if [ -f "$HOME/.gemini/antigravity-cli/antigravity-oauth-token" ]; then
-    mkdir -p "$isolated_home/.gemini/antigravity-cli" \
-      && install -m 600 "$HOME/.gemini/antigravity-cli/antigravity-oauth-token" \
-        "$isolated_home/.gemini/antigravity-cli/antigravity-oauth-token" \
-      || { rm -rf -- "$review_dir" "$isolated_home" "$settings_file"; return 1; }
-  fi
-  case "${AGY_ADC_AUTH:-}" in
-    1|[Tt][Rr][Uu][Ee]|[Yy][Ee][Ss])
-      if [ -z "${GOOGLE_APPLICATION_CREDENTIALS:-}" ]; then
-        for adc_src in \
-          "${CLOUDSDK_CONFIG:-}/application_default_credentials.json" \
-          "${XDG_CONFIG_HOME:-$HOME/.config}/gcloud/application_default_credentials.json" \
-          "$HOME/.config/gcloud/application_default_credentials.json"; do
-          if [ -f "$adc_src" ]; then
-            mkdir -p "$isolated_home/.config/gcloud" \
-              && install -m 600 "$adc_src" "$isolated_home/.config/gcloud/application_default_credentials.json" \
-              || { rm -rf -- "$review_dir" "$isolated_home" "$settings_file"; return 1; }
-            break
-          fi
-        done
-      fi
-      ;;
-  esac
-  cat > "$settings_file" <<'EOF' || { rm -rf -- "$review_dir" "$isolated_home" "$settings_file"; return 1; }
-{"agentMode":"","allowNonWorkspaceAccess":false,"enableTerminalSandbox":true,"toolPermission":"strict","permissions":{"allow":[],"deny":["command(*)","write_file(*)","read_file(*)","read_url(*)","mcp(*)","unsandboxed(*)"]}}
-EOF
-
-  out=$(
-    set -o pipefail
-    exec 3< "$brief_file" || exit 1
-    cd "$review_dir" || exit 1
-    export HOME="$isolated_home" USERPROFILE="$isolated_home" \
-      XDG_CONFIG_HOME="$isolated_home/.config" XDG_DATA_HOME="$isolated_home/.local/share"
-    jq -Rsc '{event:"user",message:{content:.}}' <&3 \
-      | agy --disable-slash-commands --sandbox --settings "$settings_file" \
-          --input-format stream-json --output-format stream-json \
-          --model gemini-4-neon-xhigh --print "" --print-timeout 10m 3<&-
-  ) || status=$?
-  rm -rf -- "$review_dir" "$isolated_home" "$settings_file"
-  [ "$status" -eq 0 ] || return "$status"
-  jq -esr '
-    (any(.[]; .event == "init" and .init.permission_mode == "strict")) as $strict
-    | ([.[] | select(.event == "result") | .result] | last) as $res
-    | if ($strict and $res != null and $res.status == "SUCCESS") then $res.response else error("unverified agy review result") end
-  ' <<< "$out"
-}
+python3 /path/to/autoreview/scripts/autoreview \
+  --mode branch --base origin/main \
+  --engine agy --model gemini-4-neon-xhigh --max-priority P3
 ```
+
+`autoreview --engine agy` handles the full isolation boundary: TruffleHog secret scanning, isolated
+auth-only `HOME`/`USERPROFILE`/`XDG_*` (preventing global/plugin hooks, plugins, and user MCP
+servers from running), environment scrubbing (preserving ADC region/project vars while refusing
+unforwarded custom endpoints like `GOOGLE_GEMINI_BASE_URL` and requiring explicit opt-in for
+direct `GEMINI_API_KEY` routing), an empty non-Git launch workspace, stdin NDJSON `stream-json`
+(zero argv exposure), `--disable-slash-commands --sandbox` with Default-mode strict deny-all
+`--settings` (never passing `--dangerously-skip-permissions`), and strict stream verification of
+`permission_mode == "strict"` and tool outcomes.
+
+If `autoreview` is not installed on the host, do **not** run an ad-hoc unisolated `agy` command on
+untrusted code: skip the first fallback explicitly (recording that `autoreview` is not installed)
+and fall through to the reviewer row's second fallback (or install `autoreview` first).
 
 If using `--mode plan` interactively instead of strict `stream-json`, never combine it with
 `--disable-slash-commands` (the CLI disables plan mode when slash command expansion is off) and

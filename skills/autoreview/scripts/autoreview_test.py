@@ -1840,6 +1840,26 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 AUTOREVIEW.run_agy(args, repo, "review prompt")
         self.assertEqual(observed["settings"], expected_with_provider)
 
+        # Custom Gemini endpoint (GOOGLE_GEMINI_BASE_URL) must be refused rather
+        # than silently sending the API key and review bundle to Google.
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-baseurl-test.") as tmpdir:
+            repo = Path(tmpdir) / "repo"
+            repo.mkdir()
+            with mock.patch.dict(
+                os.environ,
+                {
+                    "GEMINI_API_KEY": "test-key-123",
+                    "AUTOREVIEW_AGY_MODEL_PROVIDER": "gemini",
+                    "GOOGLE_GEMINI_BASE_URL": "https://proxy.corp.example/gemini",
+                },
+                clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
+            ):
+                with self.assertRaises(SystemExit) as cm:
+                    AUTOREVIEW.run_agy(args, repo, "review prompt")
+            self.assertIn("GOOGLE_GEMINI_BASE_URL", str(cm.exception))
+
     def test_agy_stream_parser_preserves_unicode_line_separators_inside_json(self) -> None:
         report_with_nel = dict(FINAL_REPORT)
         report_with_nel["overall_explanation"] = "line1\u0085line2\u2028line3\u2029end"

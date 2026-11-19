@@ -47,7 +47,7 @@ frontend subagent = Opus, latest release (Claude subagent alias `opus`), reasoni
 ordinary worker   = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning medium (Codex worker)
 bounded worker    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning medium (bounded Codex task)
 heavy executor    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (Codex worker)
-coding fallback   = gemini-4-neon-xhigh, reasoning xhigh (after gpt-6.2-sol, via `agy --sandbox --model gemini-4-neon-xhigh`, or `agy-yolo` inside an enclosing container)
+coding fallback   = gemini-4-neon-xhigh, reasoning xhigh (after gpt-6.2-sol, via `agy-yolo --model gemini-4-neon-xhigh` inside an enclosing container)
 reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (autoreview `--model gpt-6.2-sol --thinking high`); when no Codex account can run: gemini-4-neon-xhigh, reasoning xhigh (autoreview `--engine agy --model gemini-4-neon-xhigh`), then Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high
 planner           = Fable, latest release (Claude subagent alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (planning)
 plan advisor      = Fable, latest release (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (advice and plan review)
@@ -64,9 +64,8 @@ or task restrictions on a provider are not a reason to route around them, and di
 authorized before dispatching. Unattended execution requires both explicit owner or host
 authorization and an enclosing external container or VM sandbox that bounds files, credentials,
 hooks, plugins, and workspace MCP servers, and never widens permissions beyond the authorized
-Codex seat; without an enclosing container or VM, run interactively with per-action approval in
-sandboxed mode or report the seat blocked. Record the substitution and the error each Codex
-account returned.
+Codex seat; without an enclosing container or VM, report the coding fallback blocked. Record the
+substitution and the error each Codex account returned.
 
 When review runs, a seat never reviews what it built. That covers the workers, the heavy executor,
 the coding fallback, the economy executor, and the main session when it kept the hardest part: a
@@ -75,15 +74,14 @@ coding fallback or economy executor change by either column's reviewer (never th
 When no reviewer value allowed for a change can run except the Codex one, and no Codex account
 can run (Codex not installed, out of quota, not signed in, or refused by host policy; a slow or
 failing run does not count), the reviewer row's first fallback reviews in its place, in a fresh
-read-only context, gates and security acceptance included — through `autoreview` when installed, or
-through the isolated read-only fallback CLI from a clean temporary directory without
-permission-skipping flags (see [references/codex-dispatch.md](references/codex-dispatch.md)) —
-except in a repository that declares client, personal or regulated data, or one whose owner has not
-approved that provider (host-policy or task restrictions on a provider are not a reason to route
-around them; authorize disclosure before dispatching). When that first fallback is unavailable or
-disallowed by that data or provider policy, the reviewer row's second fallback reviews in its place,
-in a fresh context, gates and security acceptance included. Record the substitution and the error
-each skipped seat returned. A fallback never reviews a change its own model built; when it is
+read-only context, gates and security acceptance included — through `autoreview` when installed
+(see [references/codex-dispatch.md](references/codex-dispatch.md)) — except in a repository that
+declares client, personal or regulated data, or one whose owner has not approved that provider
+(host-policy or task restrictions on a provider are not a reason to route around them; authorize
+disclosure before dispatching). When `autoreview` or that first fallback is unavailable, or
+disallowed by that data or provider policy, the reviewer row's second fallback reviews in its
+place, in a fresh context, gates and security acceptance included. Record the substitution and the
+error each skipped seat returned. A fallback never reviews a change its own model built; when it is
 excluded and no other model can review, report the gate blocked, and the economy executor does not
 take that review.
 Planning and plan advice run only on their own seats. Crossing means the change leaves for the

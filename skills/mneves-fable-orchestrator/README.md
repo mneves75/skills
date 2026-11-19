@@ -13,10 +13,10 @@ Delegate only when the work is independent, substantial, and objectively verifia
 | Ordinary worker | A scoped worker (model per the Defaults block) | Routine implementation with checkable acceptance |
 | Bounded worker | A scoped worker (model per the Defaults block) | Search, writing, and mechanical changes with a narrow result |
 | Heavy executor | A Claude subagent, or Codex via `codex exec` / `codex-lane` (model per the Defaults block) | Difficult debugging, architecture, and refactors |
-| Coding fallback | Antigravity CLI (`agy-yolo` strictly inside an enclosing container/VM when authorized; interactive approval or blocked otherwise; model per the Defaults block) | Fallback coding executor when no Codex account can run; never for client, personal, regulated, or unapproved-provider repos |
+| Coding fallback | Antigravity CLI (`agy-yolo` strictly inside an enclosing container/VM when authorized; blocked otherwise; model per the Defaults block) | Fallback coding executor when no Codex account can run; never for client, personal, regulated, or unapproved-provider repos |
 | Planner | A read-only Claude subagent or Codex run (model per the Defaults block) | The plan, before implementation |
 | Plan advisor | Claude's native advisor or a read-only Codex run (model per the Defaults block) | Review of the main session's plan before a decision with real downside |
-| Reviewer | A read-only Claude subagent, `autoreview` (Codex or `--engine agy`), or an isolated read-only Codex/Agy run (model per the Defaults block) | Independent review of a fixed Git target, never by the model that built it |
+| Reviewer | A read-only Claude subagent, `autoreview` (Codex or `--engine agy`), or a read-only Codex run (model per the Defaults block) | Independent review of a fixed Git target, never by the model that built it |
 | Specialist | A deliberately chosen model (model per the Defaults block) | Comparison or capability-specific work |
 | Economy executor | A low-cost model through `pi` (model per the Defaults block) | Bounded tickets whose proof is a test written first; never a repository that declares client, personal or regulated data |
 
