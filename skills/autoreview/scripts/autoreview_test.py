@@ -2028,6 +2028,28 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 ):
                     self.assertFalse(AUTOREVIEW.agy_explicit_gemini_api_provider(repo))
 
+            with self.subTest(label="posix ignores USERPROFILE modelProvider when HOME has no cli settings"):
+                posix_home = root / "posix-home"
+                posix_home.mkdir()
+                other_profile = root / "other-profile"
+                (other_profile / ".gemini" / "antigravity-cli").mkdir(parents=True)
+                (other_profile / ".gemini" / "antigravity-cli" / "settings.json").write_text(
+                    json.dumps({"modelProvider": "gemini"}),
+                    encoding="utf-8",
+                )
+                with mock.patch.dict(
+                    os.environ,
+                    {
+                        "HOME": str(posix_home),
+                        "USERPROFILE": str(other_profile),
+                        "GEMINI_API_KEY": "test-key-123",
+                    },
+                    clear=True,
+                ), mock.patch.object(AUTOREVIEW.sys, "platform", "linux"), mock.patch.object(
+                    AUTOREVIEW, "agy_admin_settings_path", return_value=root / "missing-admin.json",
+                ):
+                    self.assertFalse(AUTOREVIEW.agy_explicit_gemini_api_provider(repo))
+
             with self.subTest(label="non-exact saved modelProvider refuses"):
                 bad_case_home = root / "bad-case-home"
                 (bad_case_home / ".gemini" / "antigravity-cli").mkdir(parents=True)

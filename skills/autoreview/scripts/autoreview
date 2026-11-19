@@ -6608,10 +6608,11 @@ def agy_explicit_gemini_api_provider(repo: Path) -> bool:
                 "cannot be preserved under isolated autoreview; choose another engine "
                 "or unset gateway variables only if direct routing is authorized"
             )
+    active_home = home_dirs[0]
     user_settings_to_inspect: list[tuple[Path, bool]] = []
     for home_path in home_dirs:
         user_settings_to_inspect.extend((
-            (home_path / ".gemini" / "antigravity-cli" / "settings.json", True),
+            (home_path / ".gemini" / "antigravity-cli" / "settings.json", home_path == active_home),
             (home_path / ".antigravity" / "settings.json", False),
             (home_path / ".gemini" / "config" / "config.json", False),
         ))

@@ -159,13 +159,14 @@ Inside an authorized enclosing container/VM sandbox, complete two preflight chec
 launching `agy-yolo`:
 
 1. **Trusted workspace customizations only**: inspect the worktree and refuse (or strip in a clean
-   scratch copy) untrusted workspace lifecycle hooks, plugins, or workspace MCP configs
-   (`.gemini/`, `.antigravity/`, `.agents/mcp_config.json`) — workspace hooks such as
-   `SessionStart` and `PreInvocation` run before the model sees the brief and outside Agy's
-   terminal sandbox.
+   scratch copy) untrusted workspace lifecycle hooks, plugins, or workspace MCP configs under
+   `.agents/` (including `.agents/hooks.json`, `.agents/plugins/`, and `.agents/mcp_config.json`),
+   `.gemini/`, and `.antigravity/` — workspace hooks such as `SessionStart` and `PreInvocation`
+   and workspace plugins run before the model sees the brief and outside Agy's terminal sandbox.
 2. **Verify effective provider and endpoint**: check `admin_settings.json`, user `settings.json`,
-   `AGY_LLM_GATEWAY_*`, `GOOGLE_GEMINI_BASE_URL`, `GEMINI_API_KEY`, and `AGY_ADC_AUTH` inside the
-   container so repository contents are sent only to the owner-approved provider and endpoint.
+   `AGY_LLM_GATEWAY_*`, `GOOGLE_GEMINI_BASE_URL`, `GEMINI_API_KEY`, `AGY_ADC_AUTH`, and
+   `GOOGLE_APPLICATION_CREDENTIALS` inside the container so repository contents are sent only to
+   the owner-approved provider and endpoint.
 
 Then pass the brief from a mode-`0600` file over stdin `stream-json` (never argv), clean up
 temporary files even under `set -e` while preserving the exit status, and verify
@@ -196,19 +197,28 @@ Run the first read-only review fallback through the sibling `autoreview` skill (
 this skill**), freezing the resolved Git target SHAs (`BASE_SHA` and `HEAD_SHA`) before the first
 reviewer runs and preserving the original review's exact target, priority, prompt, and restriction
 flags (`--mode`, `--base "$BASE_SHA"`, `--commit`, `--max-priority`, `--prompt-file`, `--dataset`,
-`--no-tools`, `--no-web-search`) so the fallback changes only the reviewer engine and model:
+`--no-tools`, `--no-web-search`, using absolute paths for any file arguments) so the fallback
+changes only the reviewer engine and model:
 
 ```bash
-# Freeze the exact candidate before the first reviewer runs so a concurrent fetch or branch
-# move cannot cause the fallback to review a different diff:
-BASE_SHA=$(git rev-parse origin/main)
-HEAD_SHA=$(git rev-parse HEAD)
+# Freeze exact endpoints BEFORE the first reviewer runs so a concurrent fetch or branch
+# move cannot shift the diff between the primary reviewer and the fallback:
+BASE_SHA=$(git rev-parse --verify 'origin/main^{commit}') || exit 1
+HEAD_SHA=$(git rev-parse --verify 'HEAD^{commit}') || exit 1
 ORIGINAL_REVIEW_ARGS=(--mode branch --base "$BASE_SHA" --max-priority P3)
 
-python3 /path/to/autoreview/scripts/autoreview \
-  "${ORIGINAL_REVIEW_ARGS[@]}" \
-  --engine agy --model gemini-4-neon-xhigh
-[ "$(git rev-parse HEAD)" = "$HEAD_SHA" ] || { echo "HEAD moved during fallback review" >&2; exit 1; }
+# Run the fallback against a detached worktree pinned to HEAD_SHA (for --mode commit,
+# pass --commit "$HEAD_SHA" directly) and propagate autoreview's exact exit status:
+run_agy_review_fallback() {
+  local wt="" rc=0
+  wt=$(mktemp -d) || return $?
+  git -c core.hooksPath=/dev/null worktree add --detach "$wt" "$HEAD_SHA" \
+    || { rmdir "$wt"; return 1; }
+  (cd "$wt" && python3 /path/to/autoreview/scripts/autoreview \
+    "${ORIGINAL_REVIEW_ARGS[@]}" --engine agy --model gemini-4-neon-xhigh) || rc=$?
+  git worktree remove --force "$wt" 2>/dev/null || rm -rf "$wt"
+  return "$rc"
+}
 ```
 
 If the original review restricted tools or web search (`--no-tools` or `--no-web-search`), pass
