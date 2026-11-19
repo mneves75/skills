@@ -202,8 +202,8 @@ the reviewer row's second fallback while preserving `--no-tools` / `--no-web-sea
 auth-only `HOME`/`USERPROFILE`/`XDG_*` (preventing global/plugin hooks, plugins, and user MCP
 servers from running), `AGY_CLI_DISABLE_AUTO_UPDATE=true`, environment scrubbing (preserving ADC
 region/project vars while refusing unforwarded custom endpoints like `GOOGLE_GEMINI_BASE_URL`,
-unverified home/gateway configurations, unpreservable ADC files, and unrequested direct
-`GEMINI_API_KEY` routing), an empty non-Git launch workspace, stdin NDJSON `stream-json` (zero argv
+unverified home/gateway configurations, and unpreservable ADC files while ignoring ambient
+`GEMINI_API_KEY` without explicit opt-in), an empty non-Git launch workspace, stdin NDJSON `stream-json` (zero argv
 exposure), `--disable-slash-commands --sandbox` with Default-mode strict deny-all `--settings`
 (never passing `--dangerously-skip-permissions`), and strict stream verification of
 `permission_mode == "strict"` and tool outcomes.

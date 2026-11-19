@@ -1626,17 +1626,21 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             (real_home / ".config" / "gcloud" / "application_default_credentials.json").write_text('{"type":"authorized_user"}', encoding="utf-8")
             runtime_root = root / "runtime"
             runtime_root.mkdir()
-            # On POSIX, a custom XDG_CONFIG_HOME must NOT override the
-            # documented $HOME/.config/gcloud default ADC identity.
+            # On POSIX, custom XDG_CONFIG_HOME and CLOUDSDK_CONFIG must NOT
+            # override the documented $HOME/.config/gcloud default ADC identity.
             xdg_alt = root / "xdg-alt"
             (xdg_alt / "gcloud").mkdir(parents=True)
             (xdg_alt / "gcloud" / "application_default_credentials.json").write_text('{"type":"wrong_xdg"}', encoding="utf-8")
+            cloudsdk_alt = root / "cloudsdk-alt"
+            cloudsdk_alt.mkdir()
+            (cloudsdk_alt / "application_default_credentials.json").write_text('{"type":"wrong_cloudsdk"}', encoding="utf-8")
             with mock.patch.dict(
                 os.environ,
                 {
                     "HOME": str(real_home),
                     "USERPROFILE": str(real_home),
                     "XDG_CONFIG_HOME": str(xdg_alt),
+                    "CLOUDSDK_CONFIG": str(cloudsdk_alt),
                     "AGY_ADC_AUTH": "true",
                 },
                 clear=True,
@@ -1958,6 +1962,13 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                     AUTOREVIEW.ensure_agy_isolation_supported(args, agy_dir_home)
             self.assertIn("cannot be verified outside the reviewed repository", str(cm.exception))
 
+            with self.subTest(label="blank HOME refuses fail-closed"), mock.patch.dict(
+                os.environ, {"HOME": ""}, clear=True,
+            ):
+                with self.assertRaises(SystemExit) as cm:
+                    AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
+            self.assertIn("cannot be verified outside the reviewed repository", str(cm.exception))
+
             in_repo_gac = repo / "adc.json"
             in_repo_gac.write_text('{"type":"service_account"}', encoding="utf-8")
             with self.subTest(label="in-repo GOOGLE_APPLICATION_CREDENTIALS under AGY_ADC_AUTH"), mock.patch.dict(
@@ -1969,14 +1980,56 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                     AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
             self.assertIn("GOOGLE_APPLICATION_CREDENTIALS cannot be preserved", str(cm.exception))
 
-            with self.subTest(label="in-repo CLOUDSDK_CONFIG under AGY_ADC_AUTH"), mock.patch.dict(
-                os.environ,
-                {**base_home_env, "AGY_ADC_AUTH": "true", "CLOUDSDK_CONFIG": str(repo)},
-                clear=True,
-            ), mock.patch.object(AUTOREVIEW.sys, "platform", "linux"):
-                with self.assertRaises(SystemExit) as cm:
-                    AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
-            self.assertIn("CLOUDSDK_CONFIG must be outside the reviewed repository", str(cm.exception))
+            with self.subTest(label="machine-wide admin_settings.json gateway refuses"):
+                admin_settings = root / "admin_settings.json"
+                admin_settings.write_text(
+                    json.dumps({"gateway": {"enabled": True, "address": "https://gateway.corp.example"}}),
+                    encoding="utf-8",
+                )
+                with mock.patch.dict(os.environ, base_home_env, clear=True), mock.patch.object(
+                    AUTOREVIEW, "agy_admin_settings_path", return_value=admin_settings,
+                ):
+                    with self.assertRaises(SystemExit) as cm:
+                        AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
+                self.assertIn("admin_settings.json", str(cm.exception))
+
+            with self.subTest(label="explicitly disabled gateway is honored"):
+                disabled_gw_home = root / "disabled-gw-home"
+                (disabled_gw_home / ".antigravity").mkdir(parents=True)
+                (disabled_gw_home / ".antigravity" / "settings.json").write_text(
+                    json.dumps({"gateway": {"enabled": False, "address": "https://gateway.corp.example"}}),
+                    encoding="utf-8",
+                )
+                with mock.patch.dict(
+                    os.environ,
+                    {"HOME": str(disabled_gw_home), "USERPROFILE": str(disabled_gw_home)},
+                    clear=True,
+                ), mock.patch.object(
+                    AUTOREVIEW, "agy_admin_settings_path", return_value=root / "missing-admin.json",
+                ):
+                    self.assertFalse(AUTOREVIEW.agy_explicit_gemini_api_provider(repo))
+
+            with self.subTest(label="non-exact saved modelProvider refuses"):
+                bad_case_home = root / "bad-case-home"
+                (bad_case_home / ".gemini" / "antigravity-cli").mkdir(parents=True)
+                (bad_case_home / ".gemini" / "antigravity-cli" / "settings.json").write_text(
+                    json.dumps({"modelProvider": "Gemini"}),
+                    encoding="utf-8",
+                )
+                with mock.patch.dict(
+                    os.environ,
+                    {
+                        "HOME": str(bad_case_home),
+                        "USERPROFILE": str(bad_case_home),
+                        "GEMINI_API_KEY": "test-key-123",
+                    },
+                    clear=True,
+                ), mock.patch.object(
+                    AUTOREVIEW, "agy_admin_settings_path", return_value=root / "missing-admin.json",
+                ):
+                    with self.assertRaises(SystemExit) as cm:
+                        AUTOREVIEW.agy_explicit_gemini_api_provider(repo)
+                self.assertIn("unsupported modelProvider", str(cm.exception))
 
             if os.name != "nt":
                 adc_symlink_home = root / "adc-symlink-home"

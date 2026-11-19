@@ -6420,15 +6420,15 @@ def agy_user_home_dirs(repo: Path) -> list[Path]:
     seen: set[Path] = set()
     any_configured = False
     for key in keys:
-        raw = os.environ.get(key, "").strip()
-        if not raw:
+        if key not in os.environ:
             continue
         any_configured = True
-        if not external_env_path(repo, raw):
+        raw = os.environ[key].strip()
+        if not raw or not external_env_path(repo, raw):
             raise SystemExit(
                 f"agy engine refused: {key} cannot be verified outside the reviewed "
-                "repository to check enterprise gateway settings; run autoreview from "
-                "a repository outside the user home directory or choose another engine"
+                "repository to check enterprise gateway settings; set a valid home "
+                "directory outside the repository or choose another engine"
             )
         resolved = Path(raw).expanduser().resolve()
         if resolved not in seen:
@@ -6451,8 +6451,40 @@ def agy_user_home_dirs(repo: Path) -> list[Path]:
     return homes
 
 
+def agy_admin_settings_path() -> Path:
+    """Return the documented machine-wide Antigravity admin_settings.json path for this OS."""
+    if sys.platform == "darwin":
+        return Path("/Library/Application Support/Antigravity/admin_settings.json")
+    if sys.platform == "win32":
+        program_data = (
+            os.environ.get("ProgramData")
+            or os.environ.get("PROGRAMDATA")
+            or r"C:\ProgramData"
+        )
+        return Path(program_data) / "Antigravity" / "admin_settings.json"
+    return Path("/etc/antigravity/admin_settings.json")
+
+
+def agy_gateway_value_enabled(gw_val: Any) -> bool:
+    """Return True if a saved gateway setting is active, honoring explicit enabled=False."""
+    if isinstance(gw_val, dict):
+        if "enabled" in gw_val:
+            enabled = gw_val["enabled"]
+            if isinstance(enabled, bool):
+                return enabled
+            return True
+        return any(gw_val.values())
+    return bool(gw_val)
+
+
 def resolve_agy_default_adc_path(repo: Path, real_home: Path) -> Path | None:
-    """Resolve an existing platform-default ADC file under AGY_ADC_AUTH, failing closed if unpreservable."""
+    """Resolve an existing platform-default ADC file under AGY_ADC_AUTH, failing closed if unpreservable.
+
+    Follows Google Cloud's documented ADC well-known file search order:
+    `%APPDATA%\\gcloud\\application_default_credentials.json` on Windows and
+    `$HOME/.config/gcloud/application_default_credentials.json` on Linux/macOS
+    (never `XDG_CONFIG_HOME` and never `CLOUDSDK_CONFIG`).
+    """
     if not agy_adc_auth_enabled() or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS", "").strip():
         return None
     if sys.platform == "win32":
@@ -6473,16 +6505,7 @@ def resolve_agy_default_adc_path(repo: Path, real_home: Path) -> Path | None:
                 )
             return adc_candidate
         return None
-    raw_cloudsdk = os.environ.get("CLOUDSDK_CONFIG", "").strip()
-    if raw_cloudsdk:
-        if not external_env_path(repo, raw_cloudsdk):
-            raise SystemExit(
-                "agy engine refused: CLOUDSDK_CONFIG must be outside the reviewed "
-                "repository under AGY_ADC_AUTH; relocate it before running autoreview"
-            )
-        adc_candidate = Path(raw_cloudsdk) / "application_default_credentials.json"
-    else:
-        adc_candidate = real_home / ".config" / "gcloud" / "application_default_credentials.json"
+    adc_candidate = real_home / ".config" / "gcloud" / "application_default_credentials.json"
     if adc_candidate.exists() or adc_candidate.is_symlink():
         if not adc_candidate.is_file() or not external_env_path(repo, str(adc_candidate)):
             raise SystemExit(
@@ -6497,20 +6520,23 @@ def resolve_agy_default_adc_path(repo: Path, real_home: Path) -> Path | None:
 def agy_explicit_gemini_api_provider(repo: Path) -> bool:
     """Validate Agy provider/gateway/ADC routing and return True only for explicit Gemini API opt-in.
 
-    - Fails closed if enterprise gateway routing (AGY_LLM_GATEWAY_* env vars or
-      a `gateway` setting in `~/.gemini/antigravity-cli/settings.json`,
+    - Fails closed if enterprise gateway routing (machine-wide
+      `admin_settings.json`, `AGY_LLM_GATEWAY_*` env vars, or an enabled
+      `gateway` setting in `~/.gemini/antigravity-cli/settings.json`,
       `~/.antigravity/settings.json`, or `~/.gemini/config/config.json`) is
       configured, if the user home directory cannot be verified outside the
-      reviewed repository, or if an existing user settings file cannot be parsed,
-      so isolated runs never bypass an organization's gateway.
+      reviewed repository, or if an existing settings file cannot be parsed, so
+      isolated runs never bypass or silently divert through an enterprise
+      gateway.
     - Fails closed if AGY_ADC_AUTH is enabled with an explicit
-      GOOGLE_APPLICATION_CREDENTIALS, POSIX CLOUDSDK_CONFIG, or existing
-      default ADC file that isolation would drop (for example, inside the
-      reviewed checkout), so ADC cannot silently fall through to a runner's
-      metadata service account.
+      GOOGLE_APPLICATION_CREDENTIALS or existing platform-default ADC file that
+      isolation would drop (for example, inside the reviewed checkout), so ADC
+      cannot silently fall through to a runner's metadata service account.
     - Prevents an unrelated exported GEMINI_API_KEY from silently diverting an
-      Antigravity account review to the direct Gemini API, and refuses
-      GOOGLE_GEMINI_BASE_URL when direct Gemini API routing is enabled.
+      Antigravity account review to the direct Gemini API, requires exact
+      schema values (`"gemini"` / `"antigravity"`) for saved `modelProvider`,
+      and refuses GOOGLE_GEMINI_BASE_URL when direct Gemini API routing is
+      enabled.
     """
     gateway_env_keys = sorted(
         key for key, value in os.environ.items()
@@ -6533,49 +6559,42 @@ def agy_explicit_gemini_api_provider(repo: Path) -> bool:
                 "credentials file outside the repository before running autoreview"
             )
         resolve_agy_default_adc_path(repo, home_dirs[0])
-    cli_settings_parsed: dict[str, Any] | None = None
+    settings_to_inspect: list[tuple[Path, bool]] = [(agy_admin_settings_path(), False)]
     for home_path in home_dirs:
-        settings_candidates = (
+        settings_to_inspect.extend((
             (home_path / ".gemini" / "antigravity-cli" / "settings.json", True),
             (home_path / ".antigravity" / "settings.json", False),
             (home_path / ".gemini" / "config" / "config.json", False),
-        )
-        for settings_path, is_cli_settings in settings_candidates:
-            if not (settings_path.exists() or settings_path.is_symlink()):
-                continue
-            if not settings_path.is_file() or not external_env_path(repo, str(settings_path)):
+        ))
+    cli_settings_parsed: dict[str, Any] | None = None
+    for settings_path, is_cli_settings in settings_to_inspect:
+        if not (settings_path.exists() or settings_path.is_symlink()):
+            continue
+        if not settings_path.is_file() or not external_env_path(repo, str(settings_path)):
+            raise SystemExit(
+                f"agy engine refused: configuration path {settings_path.name} "
+                "cannot be verified outside the reviewed repository"
+            )
+        try:
+            loaded = json.loads(settings_path.read_text(encoding="utf-8-sig"))
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            raise SystemExit(
+                f"agy engine refused: could not parse {settings_path.name} to verify "
+                f"gateway/provider policy ({exc})"
+            ) from exc
+        if not isinstance(loaded, dict):
+            raise SystemExit(
+                f"agy engine refused: unexpected JSON shape in {settings_path.name}"
+            )
+        for gw_key in ("gateway", "llmGateway", "enterpriseGateway"):
+            if agy_gateway_value_enabled(loaded.get(gw_key)):
                 raise SystemExit(
-                    f"agy engine refused: user configuration path {settings_path.name} "
-                    "cannot be verified outside the reviewed repository"
+                    f"agy engine refused: enterprise gateway settings ({gw_key}) in "
+                    f"{settings_path.name} cannot be verified/preserved under isolated "
+                    "autoreview; choose another engine"
                 )
-            try:
-                loaded = json.loads(settings_path.read_text(encoding="utf-8-sig"))
-            except (OSError, json.JSONDecodeError, ValueError) as exc:
-                raise SystemExit(
-                    f"agy engine refused: could not parse {settings_path.name} to verify "
-                    f"gateway/provider policy ({exc})"
-                ) from exc
-            if not isinstance(loaded, dict):
-                raise SystemExit(
-                    f"agy engine refused: unexpected JSON shape in {settings_path.name}"
-                )
-            for gw_key in ("gateway", "llmGateway", "enterpriseGateway"):
-                gw_val = loaded.get(gw_key)
-                if isinstance(gw_val, dict):
-                    if any(gw_val.values()):
-                        raise SystemExit(
-                            f"agy engine refused: enterprise gateway settings ({gw_key}) in "
-                            f"{settings_path.name} cannot be preserved under isolated autoreview; "
-                            "choose another engine"
-                        )
-                elif gw_val:
-                    raise SystemExit(
-                        f"agy engine refused: enterprise gateway settings ({gw_key}) in "
-                        f"{settings_path.name} cannot be preserved under isolated autoreview; "
-                        "choose another engine"
-                    )
-            if is_cli_settings and cli_settings_parsed is None:
-                cli_settings_parsed = loaded
+        if is_cli_settings and cli_settings_parsed is None:
+            cli_settings_parsed = loaded
     override = os.environ.get("AUTOREVIEW_AGY_MODEL_PROVIDER", "").strip().lower()
     if override:
         if override == "gemini":
@@ -6591,10 +6610,9 @@ def agy_explicit_gemini_api_provider(repo: Path) -> bool:
         if saved_provider is None or saved_provider == "":
             use_gemini = False
         elif isinstance(saved_provider, str):
-            normalized_provider = saved_provider.strip().lower()
-            if normalized_provider == "gemini":
+            if saved_provider == "gemini":
                 use_gemini = True
-            elif normalized_provider == "antigravity":
+            elif saved_provider == "antigravity":
                 use_gemini = False
             else:
                 raise SystemExit(
@@ -6656,8 +6674,8 @@ def stage_agy_isolated_home(repo: Path, runtime_root: Path) -> tuple[Path, dict[
 
     # Default gcloud ADC file when AGY_ADC_AUTH is enabled without an explicit
     # GOOGLE_APPLICATION_CREDENTIALS path, following Google Cloud's documented
-    # platform search order (%APPDATA%\gcloud on Windows; $CLOUDSDK_CONFIG or
-    # $HOME/.config/gcloud on Linux/macOS, never XDG_CONFIG_HOME).
+    # platform search order (%APPDATA%\gcloud on Windows; $HOME/.config/gcloud
+    # on Linux/macOS, never XDG_CONFIG_HOME or CLOUDSDK_CONFIG).
     adc_src = resolve_agy_default_adc_path(repo, real_home)
     if adc_src is not None:
         adc_dst_dir = xdg_config / "gcloud"
