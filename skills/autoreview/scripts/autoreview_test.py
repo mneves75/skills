@@ -1714,6 +1714,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
         ) -> subprocess.CompletedProcess[str]:
             observed["command"] = command
             observed["cwd"] = cwd
+            observed["env"] = kwargs.get("env")
             observed["input_text"] = kwargs.get("input_text")
             observed["workspace"] = list(cwd.iterdir())
             settings_path = Path(command[command.index("--settings") + 1])
@@ -1770,8 +1771,10 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             self.assertEqual(observed["settings_mode"], 0o600)
         self.assertEqual(observed["workspace"], [])
 
+        # Bare GEMINI_API_KEY without explicit provider opt-in must NOT divert
+        # an Antigravity account to the direct Gemini API.
         observed.clear()
-        with tempfile.TemporaryDirectory(prefix="autoreview-agy-apikey-test.") as tmpdir:
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-apikey-ambient.") as tmpdir:
             repo = Path(tmpdir) / "repo"
             repo.mkdir()
             with mock.patch.dict(os.environ, {"GEMINI_API_KEY": "test-key-123"}, clear=True), mock.patch.object(
@@ -1780,8 +1783,55 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 AUTOREVIEW, "run_with_heartbeat", side_effect=fake_run,
             ):
                 AUTOREVIEW.run_agy(args, repo, "review prompt")
+        self.assertEqual(observed["settings"], AUTOREVIEW.AGY_ISOLATED_SETTINGS)
+        env_observed = observed["env"]
+        assert isinstance(env_observed, dict)
+        self.assertNotIn("GEMINI_API_KEY", env_observed)
+
+        # Explicit provider opt-in via AUTOREVIEW_AGY_MODEL_PROVIDER=gemini
+        # enables modelProvider: "gemini" and forwards GEMINI_API_KEY.
+        observed.clear()
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-apikey-explicit.") as tmpdir:
+            repo = Path(tmpdir) / "repo"
+            repo.mkdir()
+            with mock.patch.dict(
+                os.environ,
+                {"GEMINI_API_KEY": "test-key-123", "AUTOREVIEW_AGY_MODEL_PROVIDER": "gemini"},
+                clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
+            ), mock.patch.object(
+                AUTOREVIEW, "run_with_heartbeat", side_effect=fake_run,
+            ):
+                AUTOREVIEW.run_agy(args, repo, "review prompt")
         expected_with_provider = dict(AUTOREVIEW.AGY_ISOLATED_SETTINGS)
         expected_with_provider["modelProvider"] = "gemini"
+        self.assertEqual(observed["settings"], expected_with_provider)
+        env_observed = observed["env"]
+        assert isinstance(env_observed, dict)
+        self.assertEqual(env_observed.get("GEMINI_API_KEY"), "test-key-123")
+
+        # Explicit provider opt-in via user settings.json modelProvider="gemini".
+        observed.clear()
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-apikey-settings.") as tmpdir:
+            root = Path(tmpdir)
+            repo = root / "repo"
+            repo.mkdir()
+            fake_home = root / "home"
+            (fake_home / ".gemini" / "antigravity-cli").mkdir(parents=True)
+            (fake_home / ".gemini" / "antigravity-cli" / "settings.json").write_text(
+                json.dumps({"modelProvider": "gemini"}), encoding="utf-8",
+            )
+            with mock.patch.dict(
+                os.environ,
+                {"HOME": str(fake_home), "USERPROFILE": str(fake_home), "GEMINI_API_KEY": "test-key-123"},
+                clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
+            ), mock.patch.object(
+                AUTOREVIEW, "run_with_heartbeat", side_effect=fake_run,
+            ):
+                AUTOREVIEW.run_agy(args, repo, "review prompt")
         self.assertEqual(observed["settings"], expected_with_provider)
 
     def test_agy_stream_parser_preserves_unicode_line_separators_inside_json(self) -> None:
@@ -1827,24 +1877,30 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             FINAL_REPORT,
         )
 
-        failed_after_run_stream = "\n".join([
-            strict_init,
-            json.dumps({"event": "step_update", "step_update": {"step_index": 2, "step_type": "tool", "tool_name": "run_command", "state": "ACTIVE"}}),
-            json.dumps({
-                "event": "step_update",
-                "step_update": {
-                    "step_index": 2,
-                    "step_type": "tool",
-                    "tool_name": "run_command",
-                    "state": "ERROR",
-                    "tool_info": {"error": {"type": "TOOL_ERROR", "message": "command exited with status 1"}},
-                },
-            }),
-            ok_result,
-        ]) + "\n"
-        with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as cm:
-            AUTOREVIEW.parse_agy_stream_output(subprocess.CompletedProcess(["agy"], 0, failed_after_run_stream, ""))
-        self.assertIn("disallowed tool 'run_command'", str(cm.exception))
+        for label, bad_step in (
+            (
+                "command failed after run",
+                {"step_index": 2, "step_type": "tool", "tool_name": "run_command", "state": "ERROR", "tool_info": {"error": {"type": "TOOL_ERROR", "message": "command exited with status 1"}}},
+            ),
+            (
+                "os eacces permission denied",
+                {"step_index": 2, "step_type": "tool", "tool_name": "run_command", "state": "ERROR", "tool_info": {"error": {"type": "TOOL_ERROR", "message": "cat /etc/shadow: Permission denied"}}},
+            ),
+            (
+                "canceled mid-run",
+                {"step_index": 2, "step_type": "tool", "tool_name": "run_command", "state": "CANCELED"},
+            ),
+        ):
+            bad_stream = "\n".join([
+                strict_init,
+                json.dumps({"event": "step_update", "step_update": {"step_index": 2, "step_type": "tool", "tool_name": "run_command", "state": "ACTIVE"}}),
+                json.dumps({"event": "step_update", "step_update": bad_step}),
+                ok_result,
+            ]) + "\n"
+            with self.subTest(label=label):
+                with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as cm:
+                    AUTOREVIEW.parse_agy_stream_output(subprocess.CompletedProcess(["agy"], 0, bad_stream, ""))
+                self.assertIn("disallowed tool 'run_command'", str(cm.exception))
 
         unhashable_tool_stream = "\n".join([
             strict_init,
@@ -1902,7 +1958,9 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                 "non-JSON stream output",
             ),
         )
-        with tempfile.TemporaryDirectory(prefix="autoreview-agy-err-test.") as tmpdir:
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-err-test.") as tmpdir, mock.patch.dict(
+            os.environ, {}, clear=True,
+        ):
             repo = Path(tmpdir) / "repo"
             repo.mkdir()
             for label, payload, expected in cases:

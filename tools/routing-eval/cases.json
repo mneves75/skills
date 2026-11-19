@@ -1189,7 +1189,7 @@
   "O17-coding-fallback-no-codex": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "coding fallback   = gemini-4-neon-xhigh, reasoning xhigh (after gpt-6.2-sol, via `agy-yolo --model gemini-4-neon-xhigh`)"
+    "text": "coding fallback   = gemini-4-neon-xhigh, reasoning xhigh (after gpt-6.2-sol, via `agy --sandbox --model gemini-4-neon-xhigh`, or `agy-yolo` inside an enclosing container)"
    },
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",

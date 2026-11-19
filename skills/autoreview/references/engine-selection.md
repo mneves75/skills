@@ -46,12 +46,15 @@ the review pack; otherwise choose another engine.
 
 `--engine agy` sends the review prompt over stdin NDJSON (`--input-format stream-json
 --output-format stream-json`), runs in an empty temporary workspace with an isolated `HOME`
-(staging only auth material — macOS Keychains link, file OAuth token, `GEMINI_API_KEY`, or
-`AGY_ADC_AUTH` / ADC credentials — so global/plugin hooks, plugins, user MCP servers, and global
-rules are never discovered), passes `--disable-slash-commands`, `--sandbox`, and session-only
-`--settings` enforcing `toolPermission: "strict"`, `allowNonWorkspaceAccess: false`,
-`enableTerminalSandbox: true`, and explicit deny rules for `command(*)`, `write_file(*)`,
-`read_file(*)`, `read_url(*)`, `mcp(*)`, and `unsandboxed(*)`, and verifies
-`permission_mode == "strict"` plus tool events in the stream before accepting structured output.
-Because Antigravity CLI's built-in `search_web` cannot be disabled up front, `--engine agy`
-rejects `--no-tools` and `--no-web-search`.
+(staging only auth material — macOS Keychains link, file OAuth token, or `AGY_ADC_AUTH` / ADC
+credentials — so global/plugin hooks, plugins, user MCP servers, and global rules are never
+discovered), passes `--disable-slash-commands`, `--sandbox`, and session-only `--settings`
+enforcing Default mode (`agentMode: ""`), `toolPermission: "strict"`,
+`allowNonWorkspaceAccess: false`, `enableTerminalSandbox: true`, and explicit deny rules for
+`command(*)`, `write_file(*)`, `read_file(*)`, `read_url(*)`, `mcp(*)`, and `unsandboxed(*)`, and
+verifies `permission_mode == "strict"` plus tool outcomes in the stream before accepting structured
+output. Direct Gemini API routing (`modelProvider: "gemini"` with `GEMINI_API_KEY`) is enabled only
+when explicitly configured in `~/.gemini/antigravity-cli/settings.json` or via
+`AUTOREVIEW_AGY_MODEL_PROVIDER=gemini`, so an unrelated exported `GEMINI_API_KEY` never redirects
+an Antigravity account review. Because Antigravity CLI's built-in `search_web` cannot be disabled
+up front, `--engine agy` rejects `--no-tools` and `--no-web-search`.

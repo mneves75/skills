@@ -172,6 +172,7 @@ KIMI_ARGV_PROMPT_REFUSAL = (
 AGY_MAX_OUTPUT_CHARS = 2_000_000
 AGY_ALLOWED_TOOLS = frozenset({"search_web"})
 AGY_ISOLATED_SETTINGS: dict[str, Any] = {
+    "agentMode": "",
     "allowNonWorkspaceAccess": False,
     "enableTerminalSandbox": True,
     "toolPermission": "strict",
@@ -6392,6 +6393,34 @@ def run_kimi(args: argparse.Namespace, repo: Path, prompt: str) -> str:
     return "\n".join(texts)
 
 
+def agy_explicit_gemini_api_provider(repo: Path) -> bool:
+    """Return True only when the operator explicitly chose direct Gemini API routing.
+
+    Prevents an unrelated exported GEMINI_API_KEY from silently diverting an
+    organization Antigravity account's review bundle to the direct Gemini API.
+    """
+    override = os.environ.get("AUTOREVIEW_AGY_MODEL_PROVIDER", "").strip().lower()
+    if override:
+        if override == "gemini":
+            return True
+        if override == "antigravity":
+            return False
+        raise SystemExit(
+            f"invalid AUTOREVIEW_AGY_MODEL_PROVIDER={override!r}; expected 'antigravity' or 'gemini'"
+        )
+    raw_home = os.environ.get("HOME") or os.environ.get("USERPROFILE")
+    if not raw_home or not external_env_path(repo, raw_home):
+        return False
+    user_settings = Path(raw_home).expanduser() / ".gemini" / "antigravity-cli" / "settings.json"
+    if not user_settings.is_file() or not external_env_path(repo, str(user_settings)):
+        return False
+    try:
+        parsed = json.loads(user_settings.read_text(encoding="utf-8-sig"))
+    except (OSError, json.JSONDecodeError, ValueError):
+        return False
+    return isinstance(parsed, dict) and parsed.get("modelProvider") == "gemini"
+
+
 def stage_agy_isolated_home(repo: Path, runtime_root: Path) -> tuple[Path, dict[str, str]]:
     """Create a private HOME for Agy staging only authentication material.
 
@@ -6534,13 +6563,11 @@ def parse_agy_stream_output(result: subprocess.CompletedProcess[str]) -> str:
             if isinstance(res, dict):
                 final_result = res
     for tool_name, step_state, error_msg in disallowed_tool_steps.values():
-        lowered_error = error_msg.lower()
-        denied = step_state in {"DENIED", "CANCELED"} or (
+        lowered_error = error_msg.strip().lower()
+        denied = step_state == "DENIED" or (
             step_state == "ERROR"
-            and (
-                "permission denied" in lowered_error
-                or "permission check failed" in lowered_error
-            )
+            and lowered_error.startswith("permission check failed")
+            and "permission denied" in lowered_error
         )
         if not denied:
             raise ReviewerUnavailable(
@@ -6603,6 +6630,7 @@ def run_agy(args: argparse.Namespace, repo: Path, prompt: str) -> str:
     ) as runtime_dir:
         review_root = Path(workspace_dir)
         runtime_root = Path(runtime_dir)
+        use_gemini_api = agy_explicit_gemini_api_provider(repo)
         _, isolated_home_env = stage_agy_isolated_home(repo, runtime_root)
         engine_env = safe_engine_env(
             repo,
@@ -6611,8 +6639,10 @@ def run_agy(args: argparse.Namespace, repo: Path, prompt: str) -> str:
             extra=isolated_home_env,
         )
         agy_settings = copy.deepcopy(AGY_ISOLATED_SETTINGS)
-        if engine_env.get("GEMINI_API_KEY"):
+        if use_gemini_api:
             agy_settings["modelProvider"] = "gemini"
+        else:
+            engine_env.pop("GEMINI_API_KEY", None)
         schema_path = runtime_root / "schema.json"
         settings_path = runtime_root / "settings.json"
         schema_path.write_text(json.dumps(SCHEMA), encoding="utf-8")

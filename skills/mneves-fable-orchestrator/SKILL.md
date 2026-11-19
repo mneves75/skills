@@ -47,7 +47,7 @@ frontend subagent = Opus, latest release (Claude subagent alias `opus`), reasoni
 ordinary worker   = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning medium (Codex worker)
 bounded worker    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning medium (bounded Codex task)
 heavy executor    = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (Codex worker)
-coding fallback   = gemini-4-neon-xhigh, reasoning xhigh (after gpt-6.2-sol, via `agy-yolo --model gemini-4-neon-xhigh`)
+coding fallback   = gemini-4-neon-xhigh, reasoning xhigh (after gpt-6.2-sol, via `agy --sandbox --model gemini-4-neon-xhigh`, or `agy-yolo` inside an enclosing container)
 reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoning medium | gpt-6.2-sol, reasoning high (autoreview `--model gpt-6.2-sol --thinking high`); when no Codex account can run: gemini-4-neon-xhigh, reasoning xhigh (autoreview `--engine agy --model gemini-4-neon-xhigh`), then Fable, latest release (Claude subagent alias `claude-fable-5-2`), reasoning high
 planner           = Fable, latest release (Claude subagent alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (planning)
 plan advisor      = Fable, latest release (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (advice and plan review)
@@ -62,9 +62,10 @@ place through the fallback CLI inside a sandboxed dedicated worktree (see
 client, personal or regulated data, or one whose owner has not approved that provider; host-policy
 or task restrictions on a provider are not a reason to route around them, and disclosure must be
 authorized before dispatching. Unattended tool auto-approval requires both explicit owner or host
-authorization and verified active OS or external containment, and never widens permissions beyond
-the authorized Codex seat; if either is missing, report the seat blocked. Record the substitution
-and the error each Codex account returned.
+authorization and an enclosing external container or VM sandbox, and never widens permissions
+beyond the authorized Codex seat; host-local runs must omit permission-skipping flags and verify
+active OS containment in default sandboxed mode. If neither containment path holds, report the
+seat blocked. Record the substitution and the error each Codex account returned.
 
 When review runs, a seat never reviews what it built. That covers the workers, the heavy executor,
 the coding fallback, the economy executor, and the main session when it kept the hardest part: a
