@@ -140,32 +140,45 @@ fallback.
 ### Coding fallback
 
 Run inside a dedicated worktree with `--sandbox` and session-only `--settings` restricting writes
-and terminal execution to that workspace **and explicitly denying `unsandboxed(*)`**. Without an
-explicit `permissions.deny: ["unsandboxed(*)"]` rule (deny rules override
-`--dangerously-skip-permissions`), an agent retry requesting execution outside the sandbox would be
-auto-approved with the user's host permissions; and on hosts without OS sandbox support (such as
-Linux hosts with unprivileged user namespaces disabled), `--sandbox` degrades to a no-op so
-`allowNonWorkspaceAccess: false` restricts only agent file tools. Therefore, before auto-approving
-commands with `agy-yolo` (`--dangerously-skip-permissions`), verify that OS containment is active
-**with `unsandboxed(*)` denied** or run inside an enclosing external container/VM sandbox enforcing
-the authorized boundary; if containment is unavailable or unattended execution is not explicitly
-authorized by the owner or host policy, **block dispatch** rather than widening permissions beyond
-the authorized Codex seat. Write the brief to a mode-`0600` file, send it on stdin via
-`stream-json` (never argv), preserve the CLI and `jq` exit status across cleanup, and verify
-`.result.status == "SUCCESS"` before accepting `.result.response`:
+and terminal execution to that workspace. Containment depends on both host support and account
+type:
+
+- On hosts without OS sandbox support (for example, Linux hosts with unprivileged user namespaces
+  disabled), `--sandbox` degrades to a no-op and `allowNonWorkspaceAccess: false` restricts only
+  agent file tools.
+- On personal accounts, Antigravity ignores `unsandboxed(*)` deny rules, so `agy-yolo`
+  (`--dangerously-skip-permissions`) can still auto-approve an agent retry outside the terminal
+  sandbox unless an enclosing external sandbox bounds the process.
+
+Therefore, choose only one of two safe execution modes, or **block dispatch**:
+
+1. **Host-local dedicated worktree (no enclosing container/VM)**: verify active OS containment
+   (macOS Seatbelt or Linux `unshare -Ur true`), omit `--dangerously-skip-permissions` (do not
+   use `agy-yolo`), and pass `toolPermission: "proceed-in-sandbox"` so sandboxed commands run
+   automatically while out-of-sandbox requests are soft-denied in headless print mode, even on
+   personal accounts.
+2. **Enclosing external container/VM sandbox**: when the entire agent process runs inside an
+   external sandbox enforcing the authorized boundary and the owner or host policy explicitly
+   authorizes unattended execution, `agy-yolo` (`--dangerously-skip-permissions`) may be used
+   with `--sandbox` and `permissions.deny: ["unsandboxed(*)"]`.
+
+Write the brief to a mode-`0600` file, send it on stdin via `stream-json` (never argv), preserve
+the CLI and `jq` exit status across cleanup, and verify `.result.status == "SUCCESS"` before
+accepting `.result.response`:
 
 ```bash
-# Run only after confirming active OS containment (e.g., macOS Seatbelt or Linux `unshare -Ur true`)
-# OR an enclosing external container/VM sandbox, plus explicit owner/host authorization:
+# Default safe host-local form (after verifying active OS sandbox, e.g. macOS Seatbelt or Linux
+# `unshare -Ur true`). Switch `agy` to `agy-yolo` ONLY inside an enclosing container/VM sandbox
+# with explicit owner/host authorization for unattended execution:
 run_agy_coding_fallback() {
   local brief_file="$1" settings_file out status
   settings_file=$(mktemp)
   trap 'rm -f -- "$settings_file"' RETURN
   chmod 600 "$settings_file"
-  printf '{"allowNonWorkspaceAccess":false,"enableTerminalSandbox":true,"permissions":{"deny":["unsandboxed(*)"]}}\n' > "$settings_file"
+  printf '{"allowNonWorkspaceAccess":false,"enableTerminalSandbox":true,"toolPermission":"proceed-in-sandbox","permissions":{"deny":["unsandboxed(*)"]}}\n' > "$settings_file"
 
   out=$(set -o pipefail; jq -Rsc '{event:"user",message:{content:.}}' < "$brief_file" \
-    | agy-yolo --sandbox --settings "$settings_file" \
+    | agy --sandbox --settings "$settings_file" \
         --input-format stream-json --output-format stream-json \
         --model gemini-4-neon-xhigh --print "" --print-timeout 10m)
   status=$?
@@ -178,28 +191,34 @@ run_agy_coding_fallback() {
 
 Prefer `autoreview --engine agy --model gemini-4-neon-xhigh` when `autoreview` is installed: it
 scans outgoing inputs with TruffleHog, runs with an isolated `HOME` (preventing global and plugin
-`PreInvocation` hooks, plugins, and user MCP servers from seeing the brief), sends the review pack
-over stdin `stream-json` (no argv exposure), runs in an empty temporary workspace with
-`--disable-slash-commands --sandbox` and strict deny-all `--settings`, never passes
-`--dangerously-skip-permissions`, and verifies `permission_mode == "strict"` and tool events before
-accepting structured output.
+`PreInvocation` hooks, plugins, and user MCP servers from seeing the brief), scrubs unrelated
+environment credentials, sends the review pack over stdin `stream-json` (no argv exposure), runs
+in an empty temporary workspace outside any Git checkout with `--disable-slash-commands --sandbox`
+and strict deny-all `--settings`, never passes `--dangerously-skip-permissions`, and verifies
+`permission_mode == "strict"` and tool outcomes before accepting structured output.
 
-When `autoreview` is not installed, write the scanned/sanitized review brief to a mode-`0600` file
-(never pass it on `jq` or `agy` argv), stage an isolated `HOME` holding only authentication
-material (so global/plugin hooks cannot run), and run plain `agy` (never `agy-yolo` or
-`--dangerously-skip-permissions`) from a **clean empty temporary directory** so untrusted
-`.agents/hooks.json` in the reviewed checkout never runs on session start. Preserve the check's
-exit status across cleanup:
+When `autoreview` is not installed, use this minimal standalone fallback after scanning/sanitizing
+the review brief into a mode-`0600` file (never pass the brief on `jq` or `agy` argv). Create the
+launch directory outside any Git checkout (override `TMPDIR` and verify `git rev-parse` fails so
+parent `.agents/hooks.json` cannot be discovered), stage an isolated `HOME` holding only
+authentication material, run plain `agy` (never `agy-yolo` or `--dangerously-skip-permissions`),
+verify both `permission_mode == "strict"` and `.result.status == "SUCCESS"`, and preserve the exit
+status across cleanup:
 
 ```bash
 run_agy_review_fallback() {
   local brief_file="$1" review_dir isolated_home settings_file out status
-  review_dir=$(mktemp -d)
-  isolated_home=$(mktemp -d)
-  settings_file=$(mktemp)
+  review_dir=$(TMPDIR=/tmp mktemp -d)
+  isolated_home=$(TMPDIR=/tmp mktemp -d)
+  settings_file=$(TMPDIR=/tmp mktemp)
   trap 'rm -rf -- "$review_dir" "$isolated_home" "$settings_file"' RETURN
   chmod 700 "$review_dir" "$isolated_home"
   chmod 600 "$settings_file"
+  # Refuse to launch if review_dir sits inside any Git checkout (prevents parent .agents/hooks.json):
+  if git -C "$review_dir" rev-parse --show-toplevel >/dev/null 2>&1; then
+    echo "error: review_dir is inside a Git checkout: $review_dir" >&2
+    return 1
+  fi
   # Stage auth only (macOS Keychains link or file OAuth token; no ~/.gemini/config or plugins):
   if [ "$(uname -s)" = "Darwin" ] && [ -d "$HOME/Library/Keychains" ]; then
     mkdir -p "$isolated_home/Library" && ln -s "$HOME/Library/Keychains" "$isolated_home/Library/Keychains"
@@ -224,7 +243,11 @@ EOF
   )
   status=$?
   [ "$status" -eq 0 ] || return "$status"
-  jq -re 'select(.event == "result" and .result.status == "SUCCESS") | .result.response' <<< "$out"
+  jq -esr '
+    (any(.[]; .event == "init" and .init.permission_mode == "strict")) as $strict
+    | ([.[] | select(.event == "result") | .result] | last) as $res
+    | if ($strict and $res != null and $res.status == "SUCCESS") then $res.response else error("unverified agy review result") end
+  ' <<< "$out"
 }
 ```
 

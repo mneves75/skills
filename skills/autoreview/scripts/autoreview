@@ -489,8 +489,9 @@ PI_TRUST_ISOLATION_MIN_VERSION = (0, 79, 0)
 # contract with --quiet/--work-dir/--config-file/--mcp-config-file flags; no
 # such CLI was ever released — the real contract is the 0.30+ one.)
 KIMI_ISOLATION_MIN_VERSION = (0, 30, 0)
-# Antigravity CLI 1.5.12 supports --mode plan, --settings, --json-schema,
-# --output-format json, --dangerously-skip-permissions, and gemini-4-neon-xhigh.
+# Antigravity CLI 1.5.12 supports strict stream-json stdin/stdout, --sandbox,
+# --disable-slash-commands, session-only --settings (with permissions.deny),
+# --json-schema, and gemini-4-neon-xhigh.
 AGY_ISOLATION_MIN_VERSION = (1, 5, 12)
 SUBPROCESS_TEXT_ENCODING = "utf-8"
 SUBPROCESS_TEXT_ERRORS = "replace"
@@ -6473,6 +6474,11 @@ def parse_agy_stream_output(result: subprocess.CompletedProcess[str]) -> str:
         )
     saw_strict_init = False
     final_result: dict[str, Any] | None = None
+    # Track disallowed tool steps by step_index: agy emits ACTIVE before the
+    # permission check resolves, then ERROR with a permission-denied message
+    # in tool_info.error.message when blocked by permissions.deny.
+    disallowed_tool_steps: dict[int, tuple[str, str, str]] = {}
+    synthetic_step_index = -1
     for line in lines:
         try:
             entry = json.loads(line)
@@ -6504,16 +6510,44 @@ def parse_agy_stream_output(result: subprocess.CompletedProcess[str]) -> str:
             if isinstance(step, dict) and step.get("step_type") == "tool":
                 tool_name = step.get("tool_name")
                 step_state = step.get("state")
-                if tool_name not in AGY_ALLOWED_TOOLS and step_state not in {"DENIED", "CANCELED", "ERROR"}:
+                if not isinstance(tool_name, str) or not isinstance(step_state, str):
                     raise ReviewerUnavailable(
-                        f"agy engine executed disallowed tool {tool_name!r}",
+                        "agy engine emitted malformed tool step event",
                         reason="invalid_report",
                         result=result,
                     )
+                if tool_name not in AGY_ALLOWED_TOOLS:
+                    raw_index = step.get("step_index")
+                    if isinstance(raw_index, int) and not isinstance(raw_index, bool):
+                        step_key = raw_index
+                    else:
+                        step_key = synthetic_step_index
+                        synthetic_step_index -= 1
+                    tool_info = step.get("tool_info")
+                    error_obj = tool_info.get("error") if isinstance(tool_info, dict) else None
+                    error_msg = error_obj.get("message") if isinstance(error_obj, dict) else ""
+                    if not isinstance(error_msg, str):
+                        error_msg = ""
+                    disallowed_tool_steps[step_key] = (tool_name, step_state, error_msg)
         elif event_type == "result":
             res = entry.get("result")
             if isinstance(res, dict):
                 final_result = res
+    for tool_name, step_state, error_msg in disallowed_tool_steps.values():
+        lowered_error = error_msg.lower()
+        denied = step_state in {"DENIED", "CANCELED"} or (
+            step_state == "ERROR"
+            and (
+                "permission denied" in lowered_error
+                or "permission check failed" in lowered_error
+            )
+        )
+        if not denied:
+            raise ReviewerUnavailable(
+                f"agy engine executed disallowed tool {tool_name!r}",
+                reason="invalid_report",
+                result=result,
+            )
     if not saw_strict_init:
         raise ReviewerUnavailable(
             "agy engine stream omitted strict init event",

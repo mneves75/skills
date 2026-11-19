@@ -7420,7 +7420,11 @@ os.execv(target, [str(target), *sys.argv[1:]])
             git(repo, "add", "source.txt")
             agy_bin = write_executable(root / "agy", fake_agy)
             record = root / "agy-record.json"
+            fake_home = root / "fake-home"
+            fake_home.mkdir()
             env = os.environ.copy()
+            env["HOME"] = str(fake_home)
+            env["USERPROFILE"] = str(fake_home)
             add_fake_trufflehog(self.helper, root, env)
             env["AUTOREVIEW_FAKE_RECORD"] = str(record)
 
@@ -7460,7 +7464,7 @@ os.execv(target, [str(target), *sys.argv[1:]])
             self.assertTrue(recorded["settings"]["enableTerminalSandbox"])
             self.assertIn("command(*)", recorded["settings"]["permissions"]["deny"])
             self.assertNotEqual(Path(recorded["cwd"]).resolve(), repo.resolve())
-            self.assertNotEqual(Path(recorded["home"]).resolve(), Path.home().resolve())
+            self.assertNotEqual(Path(recorded["home"]).resolve(), fake_home.resolve())
             self.assertFalse((Path(recorded["home"]) / ".gemini" / "config").exists())
 
     def test_dry_run_flag_exits_nonzero_when_claude_tool_not_read_only(self) -> None:

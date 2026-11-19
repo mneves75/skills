@@ -1801,6 +1801,60 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
         )
         self.assertEqual(parsed["overall_explanation"], "line1\u0085line2\u2028line3\u2029end")
 
+    def test_agy_stream_parser_distinguishes_denied_tool_attempts_from_execution(self) -> None:
+        strict_init = json.dumps({"event": "init", "init": {"permission_mode": "strict"}})
+        ok_result = json.dumps({
+            "event": "result",
+            "result": {"status": "SUCCESS", "structured_output": FINAL_REPORT},
+        })
+        denied_stream = "\n".join([
+            strict_init,
+            json.dumps({"event": "step_update", "step_update": {"step_index": 2, "step_type": "tool", "tool_name": "run_command", "state": "ACTIVE"}}),
+            json.dumps({
+                "event": "step_update",
+                "step_update": {
+                    "step_index": 2,
+                    "step_type": "tool",
+                    "tool_name": "run_command",
+                    "state": "ERROR",
+                    "tool_info": {"error": {"type": "TOOL_ERROR", "message": "permission check failed: Permission denied for command(ls)."}},
+                },
+            }),
+            ok_result,
+        ]) + "\n"
+        self.assertEqual(
+            json.loads(AUTOREVIEW.parse_agy_stream_output(subprocess.CompletedProcess(["agy"], 0, denied_stream, ""))),
+            FINAL_REPORT,
+        )
+
+        failed_after_run_stream = "\n".join([
+            strict_init,
+            json.dumps({"event": "step_update", "step_update": {"step_index": 2, "step_type": "tool", "tool_name": "run_command", "state": "ACTIVE"}}),
+            json.dumps({
+                "event": "step_update",
+                "step_update": {
+                    "step_index": 2,
+                    "step_type": "tool",
+                    "tool_name": "run_command",
+                    "state": "ERROR",
+                    "tool_info": {"error": {"type": "TOOL_ERROR", "message": "command exited with status 1"}},
+                },
+            }),
+            ok_result,
+        ]) + "\n"
+        with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as cm:
+            AUTOREVIEW.parse_agy_stream_output(subprocess.CompletedProcess(["agy"], 0, failed_after_run_stream, ""))
+        self.assertIn("disallowed tool 'run_command'", str(cm.exception))
+
+        unhashable_tool_stream = "\n".join([
+            strict_init,
+            json.dumps({"event": "step_update", "step_update": {"step_index": 2, "step_type": "tool", "tool_name": ["run_command"], "state": "DONE"}}),
+            ok_result,
+        ]) + "\n"
+        with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as cm:
+            AUTOREVIEW.parse_agy_stream_output(subprocess.CompletedProcess(["agy"], 0, unhashable_tool_stream, ""))
+        self.assertIn("malformed tool step event", str(cm.exception))
+
     def test_agy_rejects_error_non_strict_disallowed_tool_and_oversized_stream(self) -> None:
         args = argparse.Namespace(
             agy_bin="agy",
