@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.52.0] - 2026-11-19
+
+### Added
+- **autoreview**: added native `--engine agy` backend for Antigravity CLI (`>= 1.5.12`),
+  defaulting to `gemini-4-neon-xhigh` in read-only `--mode plan` with `--json-schema`,
+  session-only `--settings` (`{"allowNonWorkspaceAccess":false}`), `--agy-bin` / `AGY_BIN`,
+  argv-size partitioning, and mandatory `--allow-agy-argv-prompt` opt-in for process-list prompt
+  exposure; covered by unit and end-to-end hardening tests.
+- **mneves-fable-orchestrator**: added `gemini-4-neon-xhigh` via `agy-yolo` (`agy
+  --dangerously-skip-permissions`) as the coding fallback and first read-only review fallback
+  after `gpt-6.2-sol` (never for repositories declaring client, personal, or regulated data,
+  where review falls through to `claude-fable-5-2` at reasoning high); added
+  `O16-reviewer-fallback-regulated-no-codex` and `O17-coding-fallback-no-codex` to
+  `tools/routing-eval/cases.json`.
+- **collections/pstack**: added `adaptations/11-agy-yolo-fallback.patch` documenting the
+  `gemini-4-neon-xhigh` via `agy-yolo` coding and read-only review fallback after `gpt-6.2-sol`
+  in `poteto-mode/references/codex-tools.md`.
+
+### Changed
+- **mneves-fable-orchestrator**: routine Codex seats (`main session`, `ordinary worker`,
+  `bounded worker`) use `medium` reasoning; re-verified the Defaults block on `2026-11-19` and
+  updated `tools/routing-eval/cases.json` anchors and `O8`/`O14` expectations.
+- **autoreview**: engine `--help` isolation probes now match required CLI flags with word
+  boundaries so `--model` cannot falsely satisfy `--mode`.
+
 ## [1.51.5] - 2026-11-17
 
 1.51.4 was never released; its changes ship here.

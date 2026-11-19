@@ -72,6 +72,8 @@ Skills name Claude defaults (a single-role default for code/prose/judgment, a wo
 
 These substitutes are not Opus models, so the `medium` rule for a value that resolves to an Opus model does not apply to them on Codex. On Codex the level listed above for each substitute takes the place of the sheet's `default effort` line; a level the role value names with `@` still applies.
 
+When `gpt-6.2-sol` cannot run (no Codex quota or Codex unavailable), fall back to `gemini-4-neon-xhigh` via `agy-yolo` (or `agy --dangerously-skip-permissions --model gemini-4-neon-xhigh`) for coding and `--mode plan` (without `--disable-slash-commands`) for read-only review, except in repositories declaring client, personal, or regulated data. Record the substitution and why `gpt-6.2-sol` could not run.
+
 `/setup-pstack` writes the configured model list. On Codex, set it to your Codex model slugs.
 
 ## Session routing hook

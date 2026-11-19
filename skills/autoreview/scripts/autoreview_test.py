@@ -1550,6 +1550,168 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
         self.assertEqual(env["KIMI_CODE_NO_AUTO_UPDATE"], "1")
         self.assertNotEqual(Path(str(env["KIMI_CODE_HOME"])), repo)
 
+    def test_agy_requires_argv_prompt_opt_in_and_sets_default_model(self) -> None:
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
+            sys, "argv", ["autoreview", "--engine", "agy"],
+        ):
+            with self.assertRaises(SystemExit) as cm:
+                AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())
+        self.assertIn("--allow-agy-argv-prompt", str(cm.exception))
+
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
+            sys, "argv", ["autoreview", "--engine", "codex", "--allow-agy-argv-prompt"],
+        ):
+            with self.assertRaises(SystemExit) as cm:
+                AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())
+        self.assertIn("only supported for agy", str(cm.exception))
+
+        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(
+            sys, "argv", ["autoreview", "--engine", "agy", "--allow-agy-argv-prompt", "--agy-bin", "/tmp/fake-agy"],
+        ):
+            reviewer = AUTOREVIEW.reviewer_args(AUTOREVIEW.parse_args())[0]
+        self.assertEqual(reviewer.model, "gemini-4-neon-xhigh")
+        self.assertEqual(reviewer.agy_bin, "/tmp/fake-agy")
+        self.assertFalse(reviewer.tools)
+        self.assertIsNone(reviewer.fallback_model)
+
+    def test_agy_tier_suffixed_model_effort_validation(self) -> None:
+        self.assertIsNone(AUTOREVIEW.agy_effort_arg("gemini-4-neon-xhigh", None))
+        self.assertIsNone(AUTOREVIEW.agy_effort_arg("gemini-4-neon-xhigh", "xhigh"))
+        self.assertEqual(AUTOREVIEW.agy_effort_arg("gemini-4-neon", "high"), "high")
+        with self.assertRaises(SystemExit) as cm:
+            AUTOREVIEW.agy_effort_arg("gemini-4-neon-xhigh", "low")
+        self.assertIn("fixes reasoning tier xhigh", str(cm.exception))
+
+    def test_agy_isolation_requires_current_cli_contract(self) -> None:
+        args = argparse.Namespace(
+            agy_bin="agy",
+            model="gemini-4-neon-xhigh",
+            thinking=None,
+            engine_timeout_seconds=None,
+        )
+        full_help = (
+            "--dangerously-skip-permissions --mode --model --settings "
+            "--output-format --json-schema --print --effort --print-timeout"
+        )
+        cases = (
+            ("1.5.11\n", full_help, "1.5.12"),
+            ("1.5.12\n", "--print --model", "--mode"),
+            ("not-a-version\n", full_help, "could not parse --version"),
+        )
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-probe-test.") as tmpdir:
+            repo = Path(tmpdir) / "repo"
+            repo.mkdir()
+            for version_out, help_out, expected in cases:
+                with self.subTest(expected=expected), mock.patch.object(
+                    AUTOREVIEW, "resolve_command", return_value="/usr/local/bin/agy",
+                ), mock.patch.object(
+                    AUTOREVIEW,
+                    "run",
+                    side_effect=[
+                        subprocess.CompletedProcess(["agy", "--version"], 0, version_out, ""),
+                        subprocess.CompletedProcess(["agy", "--help"], 0, help_out, ""),
+                    ],
+                ):
+                    with self.assertRaises(SystemExit) as cm:
+                        AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
+                self.assertIn(expected, str(cm.exception))
+
+            with mock.patch.object(
+                AUTOREVIEW, "resolve_command", return_value="/usr/local/bin/agy",
+            ), mock.patch.object(
+                AUTOREVIEW,
+                "run",
+                side_effect=[
+                    subprocess.CompletedProcess(["agy", "--version"], 0, "1.5.12\n", ""),
+                    subprocess.CompletedProcess(["agy", "--help"], 0, full_help, ""),
+                ],
+            ):
+                self.assertEqual(AUTOREVIEW.ensure_agy_isolation_supported(args, repo), "/usr/local/bin/agy")
+
+    def test_agy_runs_in_plan_mode_with_isolated_settings_and_schema(self) -> None:
+        args = argparse.Namespace(
+            agy_bin="agy",
+            model="gemini-4-neon-xhigh",
+            stream_engine_output=False,
+            thinking="xhigh",
+            engine_timeout_seconds=120.0,
+        )
+        observed: dict[str, object] = {}
+
+        def fake_run(
+            command: list[str],
+            cwd: Path,
+            **kwargs: object,
+        ) -> subprocess.CompletedProcess[str]:
+            observed["command"] = command
+            observed["cwd"] = cwd
+            observed["workspace"] = list(cwd.iterdir())
+            settings_path = Path(command[command.index("--settings") + 1])
+            schema_path = Path(command[command.index("--json-schema") + 1])
+            observed["settings"] = json.loads(settings_path.read_text(encoding="utf-8"))
+            observed["schema"] = json.loads(schema_path.read_text(encoding="utf-8"))
+            observed["settings_mode"] = settings_path.stat().st_mode & 0o777
+            payload = {
+                "conversation_id": "conv-1",
+                "status": "SUCCESS",
+                "response": json.dumps(FINAL_REPORT),
+                "structured_output": FINAL_REPORT,
+            }
+            return subprocess.CompletedProcess(command, 0, json.dumps(payload), "")
+
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-run-test.") as tmpdir:
+            repo = Path(tmpdir) / "repo"
+            repo.mkdir()
+            with mock.patch.object(
+                AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
+            ), mock.patch.object(
+                AUTOREVIEW, "run_with_heartbeat", side_effect=fake_run,
+            ):
+                output = AUTOREVIEW.run_agy(args, repo, "review prompt")
+
+        self.assertEqual(json.loads(output), FINAL_REPORT)
+        command = observed["command"]
+        assert isinstance(command, list)
+        self.assertIn("--dangerously-skip-permissions", command)
+        self.assertEqual(command[command.index("--mode") + 1], "plan")
+        self.assertEqual(command[command.index("--model") + 1], "gemini-4-neon-xhigh")
+        self.assertEqual(command[command.index("--output-format") + 1], "json")
+        self.assertEqual(command[command.index("--print-timeout") + 1], "120s")
+        self.assertEqual(command[command.index("--print") + 1], "review prompt")
+        self.assertNotIn("--effort", command)
+        self.assertNotIn("--disable-slash-commands", command)
+        self.assertEqual(observed["settings"], {"allowNonWorkspaceAccess": False})
+        self.assertEqual(observed["settings_mode"], 0o600)
+        self.assertEqual(observed["workspace"], [])
+
+    def test_agy_error_status_is_unavailable(self) -> None:
+        args = argparse.Namespace(
+            agy_bin="agy",
+            model="gemini-4-neon-xhigh",
+            stream_engine_output=False,
+            thinking=None,
+            engine_timeout_seconds=None,
+        )
+        error_payload = json.dumps({
+            "conversation_id": "",
+            "status": "ERROR",
+            "error": "authentication failed or timed out",
+            "finished_reason": "error",
+        })
+        with tempfile.TemporaryDirectory(prefix="autoreview-agy-err-test.") as tmpdir:
+            repo = Path(tmpdir) / "repo"
+            repo.mkdir()
+            with mock.patch.object(
+                AUTOREVIEW, "ensure_agy_isolation_supported", return_value="/usr/local/bin/agy",
+            ), mock.patch.object(
+                AUTOREVIEW,
+                "run_with_heartbeat",
+                return_value=subprocess.CompletedProcess(["agy"], 0, error_payload, ""),
+            ):
+                with self.assertRaises(AUTOREVIEW.ReviewerUnavailable) as cm:
+                    AUTOREVIEW.run_agy(args, repo, "review prompt")
+        self.assertIn("authentication failed or timed out", str(cm.exception))
+
     def test_codex_config_status_exposes_keys_only(self) -> None:
         args = argparse.Namespace(codex_config=['model_verbosity="low"'])
         self.assertEqual(AUTOREVIEW.codex_config_keys(args), ["model_verbosity"])

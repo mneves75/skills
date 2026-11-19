@@ -389,7 +389,9 @@ review continues. See [the full procedure](skills/autoreview/references/complexi
 **What it does.** Freezes the chosen Git target, scans the outgoing input, runs a reviewer in
 an isolated environment, validates its report, and rejects results if sources changed mid-review.
 The helper prints its default model and reasoning tier at startup; Codex review has no
-automatic model fallback on account-access failures.
+automatic model fallback on account-access failures. Optional engines include Claude, Amp, Pi,
+Kimi (`--allow-kimi-argv-prompt`), and Antigravity CLI (`--engine agy --allow-agy-argv-prompt`,
+default `gemini-4-neon-xhigh` in `--mode plan`).
 
 **Example** (illustrative; replace the installed path).
 

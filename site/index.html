@@ -193,10 +193,10 @@ bun --bun /path/to/skills/tools/readiness-check.ts \
   <h2 id="h-log">What changed.</h2>
   <ul class="log">
     <!-- changelog:start -->
+        <li><span class="v">1.52.0<span class="d">2026-11-19</span></span><span>autoreview: added native <code>--engine agy</code> backend for Antigravity CLI (<code>&gt;= 1.5.12</code>), defaulting to <code>gemini-4-neon-xhigh</code> in read-only <code>--mode plan</code> with <code>--json-schema</code>, session-only <code>--settings</code> (<code>{"allowNonWorkspaceAccess":false}</code>), <code>--agy-bin</code> / <code>AGY_BIN</code>, argv-size partitioning, and mandatory <code>--allow-agy-argv-prompt</code> opt-in for process-list prompt exposure; covered by unit and end-to-end hardening tests.</span></li>
         <li><span class="v">1.51.5<span class="d">2026-11-17</span></span><span>mneves-teach-back-srs: <code>srs_db.py</code> prints stored card and session text with C0 and C1 control characters, ESC included, shown as visible <code>\xNN</code> escapes; newline and tab stay.</span></li>
         <li><span class="v">1.51.3<span class="d">2026-11-14</span></span><span>pstack: adaptation 09 removes text written for older models.</span></li>
         <li><span class="v">1.51.2<span class="d">2026-11-14</span></span><span>babysit-pr: <code>pr-wait</code> counts a required check bound to a GitHub App only from that app.</span></li>
-        <li><span class="v">1.51.1<span class="d">2026-11-13</span></span><span>mneves-fable-orchestrator: when no Codex account can run (not installed, out of quota, not signed in, or blocked by host policy), Claude Fable reviews in Sol's place at reasoning high, in a fresh context, for gates and security acceptance as well.</span></li>
         <!-- changelog:end -->
   </ul>
   <a href="https://github.com/mneves75/skills/blob/main/CHANGELOG.md">Read the full changelog</a>

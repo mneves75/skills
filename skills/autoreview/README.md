@@ -47,7 +47,7 @@ not a security guarantee. `--dry-run` checks preparation without contacting a re
   provider call; `--max-review-passes` and `--max-review-input-bytes` raise those limits. Hard
   spending limits belong in the provider account.
 - **Network calls and retries.** The helper opens no provider connection itself: the engine
-  CLI it starts (Codex, Claude, Amp, Pi or Kimi) owns transport retries, backoff and rate-limit
+  CLI it starts (Codex, Claude, Amp, Pi, Kimi or Agy) owns transport retries, backoff and rate-limit
   handling against its provider. The helper classifies an engine failure (authentication,
   rate limit, transport and others), repeats a pass only after an access failure, and
   `--engine-timeout-seconds` bounds each reviewer process by wall-clock time.

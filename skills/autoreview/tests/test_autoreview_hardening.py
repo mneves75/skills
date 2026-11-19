@@ -7341,6 +7341,139 @@ os.execv(target, [str(target), *sys.argv[1:]])
             self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
             self.assertIn("--allow-kimi-argv-prompt is only supported for kimi", result.stderr)
 
+    @unittest.skipIf(os.name == "nt", "the fake executable is POSIX-only")
+    def test_agy_refuses_argv_prompt_without_explicit_opt_in(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            repo = init_repo(root)
+            source = repo / "source.txt"
+            source.write_text("staged private change\n", encoding="utf-8")
+            git(repo, "add", "source.txt")
+            marker = root / "agy-was-started"
+            agy_bin = write_executable(
+                root / "agy",
+                f"#!/bin/sh\n: > '{marker}'\nexit 1\n",
+            )
+            env = os.environ.copy()
+            add_fake_trufflehog(self.helper, root, env)
+            for extra in ([], ["--dry-run"]):
+                with self.subTest(extra=extra):
+                    result = subprocess.run(
+                        [
+                            sys.executable,
+                            str(SCRIPT),
+                            "--mode",
+                            "local",
+                            "--engine",
+                            "agy",
+                            "--agy-bin",
+                            str(agy_bin),
+                            *extra,
+                        ],
+                        cwd=repo,
+                        env=env,
+                        text=True,
+                        capture_output=True,
+                        check=False,
+                    )
+
+                    self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+                    self.assertIn("--allow-agy-argv-prompt", result.stderr)
+                    self.assertIn("process list", result.stderr)
+                    self.assertFalse(marker.exists(), "agy must not start without the opt-in")
+
+    @unittest.skipIf(os.name == "nt", "the fake executable is POSIX-only")
+    def test_agy_argv_opt_in_runs_the_review(self) -> None:
+        fake_agy = (
+            f"#!{sys.executable}\n"
+            "import json, os, pathlib, sys\n"
+            "args = sys.argv[1:]\n"
+            "if args == ['--version']:\n"
+            "    print('1.5.12')\n"
+            "    raise SystemExit(0)\n"
+            "if args == ['--help']:\n"
+            "    print('--dangerously-skip-permissions --mode --model --settings --output-format --json-schema --print --effort --print-timeout')\n"
+            "    raise SystemExit(0)\n"
+            "record = os.environ.get('AUTOREVIEW_FAKE_RECORD')\n"
+            "if record:\n"
+            "    settings_path = args[args.index('--settings') + 1]\n"
+            "    pathlib.Path(record).write_text(json.dumps({\n"
+            "        'argv': args,\n"
+            "        'cwd': os.getcwd(),\n"
+            "        'settings': json.loads(pathlib.Path(settings_path).read_text(encoding='utf-8')),\n"
+            "    }), encoding='utf-8')\n"
+            "report = {'findings': [], 'overall_correctness': 'patch is correct', 'overall_explanation': 'clean', 'overall_confidence': 0.9, 'review_completion': 'complete'}\n"
+            "print(json.dumps({'conversation_id': 'c1', 'status': 'SUCCESS', 'response': json.dumps(report), 'structured_output': report}))\n"
+        )
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            repo = init_repo(root)
+            source = repo / "source.txt"
+            source.write_text("staged change\n", encoding="utf-8")
+            git(repo, "add", "source.txt")
+            agy_bin = write_executable(root / "agy", fake_agy)
+            record = root / "agy-record.json"
+            env = os.environ.copy()
+            add_fake_trufflehog(self.helper, root, env)
+            env["AUTOREVIEW_FAKE_RECORD"] = str(record)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--mode",
+                    "local",
+                    "--engine",
+                    "agy",
+                    "--agy-bin",
+                    str(agy_bin),
+                    "--allow-agy-argv-prompt",
+                ],
+                cwd=repo,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            recorded = json.loads(record.read_text(encoding="utf-8"))
+            argv = recorded["argv"]
+            self.assertIn("--dangerously-skip-permissions", argv)
+            self.assertEqual(argv[argv.index("--mode") + 1], "plan")
+            self.assertEqual(argv[argv.index("--model") + 1], "gemini-4-neon-xhigh")
+            self.assertIn("staged change", argv[argv.index("--print") + 1])
+            self.assertEqual(recorded["settings"], {"allowNonWorkspaceAccess": False})
+            self.assertNotEqual(Path(recorded["cwd"]).resolve(), repo.resolve())
+
+    def test_agy_argv_opt_in_is_refused_for_other_engines(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            repo = init_repo(root)
+            env = os.environ.copy()
+            add_fake_trufflehog(self.helper, root, env)
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--mode",
+                    "local",
+                    "--engine",
+                    "codex",
+                    "--allow-agy-argv-prompt",
+                    "--dry-run",
+                ],
+                cwd=repo,
+                env=env,
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+
+            self.assertNotEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertIn("--allow-agy-argv-prompt is only supported for agy", result.stderr)
+
     def test_dry_run_flag_exits_nonzero_when_claude_tool_not_read_only(self) -> None:
         # run_claude() computes its --tools inventory via
         # claude_allowed_tools()/claude_tool_inventory() before the CLI is

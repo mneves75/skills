@@ -35,7 +35,7 @@ from pathlib import Path, PurePosixPath
 from typing import Any, BinaryIO, NamedTuple
 
 
-ENGINES = ("codex", "claude", "amp", "pi", "kimi")
+ENGINES = ("codex", "claude", "amp", "pi", "kimi", "agy")
 ENGINE_GIT_CONFIG_OVERRIDES = (
     ("core.fsmonitor", "false"),
     ("core.pager", "cat"),
@@ -164,6 +164,15 @@ KIMI_ARGV_PROMPT_REFUSAL = (
     "kimi engine refused: Kimi Code takes the review prompt only as a `--prompt` "
     "command-line argument, which other local accounts can read in the process list "
     "while it runs; pass --allow-kimi-argv-prompt to accept that, or choose another engine"
+)
+# Antigravity CLI (`agy`) takes the one-shot prompt as `--print <prompt>` (argv),
+# so it carries the same platform argv-size ceiling and local process-list exposure
+# disclosure opt-in as Kimi.
+AGY_MAX_PROMPT_BYTES = 30_000 if os.name == "nt" else 120_000
+AGY_ARGV_PROMPT_REFUSAL = (
+    "agy engine refused: Antigravity CLI takes the review prompt as a `--print` "
+    "command-line argument, which other local accounts can read in the process list "
+    "while it runs; pass --allow-agy-argv-prompt to accept that, or choose another engine"
 )
 MAX_REVIEW_CHUNK_CONTEXT_BYTES = 64_000
 # Per-run paid-work budget, checked before the first provider call. The byte
@@ -411,6 +420,7 @@ DEFAULT_MODEL_BY_ENGINE = {
     "amp": "openai/gpt-6.1-sol",
     "codex": "gpt-6.2-sol",
     "claude": "claude-opus-5-5",
+    "agy": "gemini-4-neon-xhigh",
 }
 DEFAULT_CODEX_ACCESS_FALLBACK_MODEL = None
 DEFAULT_CODEX_ACCESS_FALLBACK_THINKING = "high"
@@ -436,7 +446,9 @@ THINKING_LEVELS_BY_ENGINE = {
     "claude": {"low", "medium", "high", "xhigh", "max"},
     "pi": {"off", "minimal", "low", "medium", "high", "xhigh"},
     "kimi": {"off", "on"},
+    "agy": {"low", "medium", "high", "xhigh", "max"},
 }
+AGY_TIER_SUFFIXES = frozenset({"low", "medium", "high", "xhigh", "max"})
 CLAUDE_SAFE_MODE_MIN_VERSION = (2, 1, 169)
 CLAUDE_FABLE_MIN_VERSION = (2, 1, 170)
 # A versioned model id needs the Claude Code release that serves it (Claude Code
@@ -458,6 +470,9 @@ PI_TRUST_ISOLATION_MIN_VERSION = (0, 79, 0)
 # contract with --quiet/--work-dir/--config-file/--mcp-config-file flags; no
 # such CLI was ever released — the real contract is the 0.30+ one.)
 KIMI_ISOLATION_MIN_VERSION = (0, 30, 0)
+# Antigravity CLI 1.5.12 supports --mode plan, --settings, --json-schema,
+# --output-format json, --dangerously-skip-permissions, and gemini-4-neon-xhigh.
+AGY_ISOLATION_MIN_VERSION = (1, 5, 12)
 SUBPROCESS_TEXT_ENCODING = "utf-8"
 SUBPROCESS_TEXT_ERRORS = "replace"
 
@@ -1186,7 +1201,14 @@ def safe_engine_env(
     amp_allowed_exact = {
         "AMP_API_KEY",
     }
+    agy_allowed_exact = {
+        "GEMINI_API_KEY",
+        "SSH_CLIENT",
+        "SSH_CONNECTION",
+        "SSH_TTY",
+    }
     engine_allowed_exact = {
+        "agy": agy_allowed_exact,
         "amp": amp_allowed_exact,
         "claude": claude_allowed_exact,
         "codex": codex_allowed_exact,
@@ -1248,13 +1270,14 @@ def safe_engine_env(
         normalized = normalize_external_env_path_value(repo, key, value) if value else None
         if normalized:
             env[key] = normalized
-    if engine == "codex":
+    if engine in {"codex", "agy"}:
         dbus_address = os.environ.get("DBUS_SESSION_BUS_ADDRESS")
         if dbus_address and safe_dbus_session_address(repo, dbus_address):
             env["DBUS_SESSION_BUS_ADDRESS"] = dbus_address
         xdg_runtime_dir = os.environ.get("XDG_RUNTIME_DIR")
         if xdg_runtime_dir and external_env_path(repo, xdg_runtime_dir):
             env["XDG_RUNTIME_DIR"] = xdg_runtime_dir
+    if engine == "codex":
         for key in CODEX_TRUST_PATH_ENV_KEYS:
             value = os.environ.get(key)
             env.pop(key, None)
@@ -1265,7 +1288,7 @@ def safe_engine_env(
             )
             if normalized:
                 env[key] = normalized
-    if engine in {"claude", "kimi", "pi"}:
+    if engine in {"agy", "claude", "kimi", "pi"}:
         for key in PROVIDER_CREDENTIAL_PATH_ENV_KEYS:
             value = os.environ.get(key)
             env.pop(key, None)
@@ -4849,7 +4872,11 @@ def ensure_claude_isolation_supported(args: argparse.Namespace, repo: Path) -> N
     )
     help_text = f"{help_result.stdout}\n{help_result.stderr}"
     required_flags = ["--safe-mode", "--setting-sources", "--strict-mcp-config", "--disallowedTools", "--tools"]
-    missing = [flag for flag in required_flags if flag not in help_text]
+    missing = [
+        flag
+        for flag in required_flags
+        if not re.search(rf"(?<![A-Za-z0-9-]){re.escape(flag)}(?![A-Za-z0-9-])", help_text)
+    ]
     if help_result.returncode != 0 or missing:
         detail = ", ".join(missing) if missing else "--help failed"
         raise SystemExit(f"claude engine requires Claude Code isolation flags missing from --help: {detail}")
@@ -4892,7 +4919,11 @@ def ensure_amp_isolation_supported(args: argparse.Namespace, repo: Path) -> str:
         "--settings-file",
         "--no-ide",
     ]
-    missing = [flag for flag in required_flags if flag not in help_text]
+    missing = [
+        flag
+        for flag in required_flags
+        if not re.search(rf"(?<![A-Za-z0-9-]){re.escape(flag)}(?![A-Za-z0-9-])", help_text)
+    ]
     if help_result.returncode != 0 or missing:
         detail = ", ".join(missing) if missing else "--help failed"
         raise SystemExit(
@@ -4929,7 +4960,11 @@ def ensure_pi_isolation_supported(args: argparse.Namespace, repo: Path) -> str:
         "--no-tools",
         "--thinking",
     ]
-    missing = [flag for flag in required_flags if flag not in help_text]
+    missing = [
+        flag
+        for flag in required_flags
+        if not re.search(rf"(?<![A-Za-z0-9-]){re.escape(flag)}(?![A-Za-z0-9-])", help_text)
+    ]
     if help_result.returncode != 0 or missing:
         detail = ", ".join(missing) if missing else "--help failed"
         raise SystemExit(f"pi engine requires Pi isolation flags missing from --help: {detail}")
@@ -4989,7 +5024,11 @@ def ensure_kimi_isolation_supported(args: argparse.Namespace, repo: Path) -> str
         "--output-format",
         "--model",
     ]
-    missing = [flag for flag in required_flags if flag not in help_text]
+    missing = [
+        flag
+        for flag in required_flags
+        if not re.search(rf"(?<![A-Za-z0-9-]){re.escape(flag)}(?![A-Za-z0-9-])", help_text)
+    ]
     if help_result.returncode != 0 or missing:
         detail = ", ".join(missing) if missing else "--help failed"
         raise SystemExit(
@@ -4997,6 +5036,95 @@ def ensure_kimi_isolation_supported(args: argparse.Namespace, repo: Path) -> str
             + detail
         )
     return kimi_bin
+
+
+def agy_effort_arg(model: str | None, thinking: str | None) -> str | None:
+    if not thinking:
+        return None
+    if model:
+        parts = model.rsplit("-", 1)
+        if len(parts) == 2 and parts[1] in AGY_TIER_SUFFIXES:
+            suffix = parts[1]
+            if thinking != suffix:
+                raise SystemExit(
+                    f"agy model {model} fixes reasoning tier {suffix}; "
+                    f"omit --thinking or select a matching model id"
+                )
+            return None
+    return thinking
+
+
+def ensure_agy_isolation_supported(args: argparse.Namespace, repo: Path) -> str:
+    agy_bin = resolve_command(args.agy_bin, repo)
+    engine_env = safe_engine_env(
+        repo,
+        [Path(agy_bin).parent],
+        engine="agy",
+        extra={"COLUMNS": "240", "NO_COLOR": "1"},
+    )
+    with tempfile.TemporaryDirectory(
+        prefix="autoreview-agy-probe.",
+        dir=safe_temp_root(repo),
+    ) as tempdir:
+        probe_cwd = Path(tempdir)
+        version_result = run(
+            [agy_bin, "--version"],
+            probe_cwd,
+            check=False,
+            env=engine_env,
+        )
+        help_result = run(
+            [agy_bin, "--help"],
+            probe_cwd,
+            check=False,
+            env=engine_env,
+        )
+    if version_result.returncode != 0:
+        raise SystemExit(
+            "agy engine requires Antigravity CLI >= "
+            f"{format_version(AGY_ISOLATION_MIN_VERSION)}; --version failed"
+        )
+    version = parse_cli_version(
+        f"{version_result.stdout}\n{version_result.stderr}"
+    )
+    if version is None:
+        raise SystemExit(
+            "agy engine requires Antigravity CLI >= "
+            f"{format_version(AGY_ISOLATION_MIN_VERSION)}; "
+            "could not parse --version output"
+        )
+    if version < AGY_ISOLATION_MIN_VERSION:
+        raise SystemExit(
+            "agy engine requires Antigravity CLI >= "
+            f"{format_version(AGY_ISOLATION_MIN_VERSION)} for isolated plan-mode review "
+            f"(found {format_version(version)})"
+        )
+    help_text = f"{help_result.stdout}\n{help_result.stderr}"
+    required_flags = [
+        "--dangerously-skip-permissions",
+        "--mode",
+        "--model",
+        "--settings",
+        "--output-format",
+        "--json-schema",
+        "--print",
+    ]
+    if agy_effort_arg(getattr(args, "model", None), getattr(args, "thinking", None)):
+        required_flags.append("--effort")
+    if getattr(args, "engine_timeout_seconds", None):
+        required_flags.append("--print-timeout")
+    missing = [
+        flag
+        for flag in required_flags
+        if not re.search(rf"(?<![A-Za-z0-9-]){re.escape(flag)}(?![A-Za-z0-9-])", help_text)
+    ]
+    if help_result.returncode != 0 or missing:
+        detail = ", ".join(missing) if missing else "--help failed"
+        raise SystemExit(
+            "agy engine requires Antigravity CLI isolation flags missing from --help: "
+            + detail
+        )
+    return agy_bin
 
 
 def kimi_source_share(repo: Path) -> Path | None:
@@ -6221,6 +6349,113 @@ def run_kimi(args: argparse.Namespace, repo: Path, prompt: str) -> str:
     return "\n".join(texts)
 
 
+def run_agy(args: argparse.Namespace, repo: Path, prompt: str) -> str:
+    agy_bin = ensure_agy_isolation_supported(args, repo)
+    if len(prompt.encode("utf-8")) > AGY_MAX_PROMPT_BYTES:
+        raise SystemExit(
+            "agy engine prompt exceeds the safe argv budget for `agy --print` "
+            f"({AGY_MAX_PROMPT_BYTES} bytes); split the review into smaller targets"
+        )
+    effort = agy_effort_arg(args.model, args.thinking)
+    temp_root = safe_temp_root(repo)
+    with tempfile.TemporaryDirectory(
+        prefix="autoreview-agy-workspace.",
+        dir=temp_root,
+    ) as workspace_dir, tempfile.TemporaryDirectory(
+        prefix="autoreview-agy-runtime.",
+        dir=temp_root,
+    ) as runtime_dir:
+        review_root = Path(workspace_dir)
+        runtime_root = Path(runtime_dir)
+        schema_path = runtime_root / "schema.json"
+        settings_path = runtime_root / "settings.json"
+        schema_path.write_text(json.dumps(SCHEMA), encoding="utf-8")
+        settings_path.write_text(
+            json.dumps({"allowNonWorkspaceAccess": False}, separators=(",", ":")),
+            encoding="utf-8",
+        )
+        schema_path.chmod(0o600)
+        settings_path.chmod(0o600)
+        # Never pass --disable-slash-commands with --mode plan: agy disables
+        # plan mode when slash command expansion is turned off.
+        cmd = [
+            agy_bin,
+            "--dangerously-skip-permissions",
+            "--mode",
+            "plan",
+            "--settings",
+            str(settings_path),
+            "--output-format",
+            "json",
+            "--json-schema",
+            str(schema_path),
+        ]
+        if args.model:
+            cmd.extend(["--model", args.model])
+        if effort:
+            cmd.extend(["--effort", effort])
+        timeout_seconds = getattr(args, "engine_timeout_seconds", None)
+        if timeout_seconds:
+            cmd.extend(["--print-timeout", f"{int(max(1, round(timeout_seconds)))}s"])
+        cmd.extend(["--print", prompt])
+        result = run_with_heartbeat(
+            cmd,
+            review_root,
+            label="agy",
+            max_runtime_seconds=timeout_seconds,
+            stream_output=args.stream_engine_output,
+            env=safe_engine_env(
+                repo,
+                [Path(agy_bin).parent],
+                engine="agy",
+            ),
+        )
+    if result.returncode != 0:
+        raise ReviewerUnavailable(
+            f"agy engine failed ({result.returncode})\n{result.stderr or result.stdout}",
+            result=result,
+        )
+    stripped = result.stdout.strip()
+    if not stripped:
+        raise ReviewerUnavailable(
+            "agy engine returned empty output",
+            reason="invalid_report",
+            result=result,
+        )
+    try:
+        parsed = json.loads(stripped)
+    except json.JSONDecodeError as exc:
+        raise ReviewerUnavailable(
+            f"agy engine returned non-JSON output: {exc}\n{stripped[:2000]}",
+            reason="invalid_report",
+            result=result,
+        ) from exc
+    if not isinstance(parsed, dict):
+        raise ReviewerUnavailable(
+            f"agy engine returned unexpected JSON shape\n{stripped[:2000]}",
+            reason="invalid_report",
+            result=result,
+        )
+    status = parsed.get("status")
+    if status is not None and status != "SUCCESS":
+        error_detail = parsed.get("error") or parsed.get("finished_reason") or status
+        raise ReviewerUnavailable(
+            f"agy engine failed ({status}): {error_detail}",
+            result=result,
+        )
+    structured = parsed.get("structured_output")
+    if isinstance(structured, dict):
+        return json.dumps(structured)
+    response = parsed.get("response")
+    if isinstance(response, str) and response.strip():
+        return response
+    raise ReviewerUnavailable(
+        f"agy engine returned no structured_output or response\n{stripped[:2000]}",
+        reason="invalid_report",
+        result=result,
+    )
+
+
 class CodexStreamDisplay:
     def __init__(self, *, activity_seconds: int = 20, suppress_diagnostics: bool = False) -> None:
         self.activity_seconds = activity_seconds
@@ -6856,7 +7091,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--model",
         action="append",
-        help="Model override or engine=model. Repeatable. Defaults: codex=gpt-6.2-sol (high reasoning; no model fallback), claude=claude-opus-5-5 (medium effort), amp=openai/gpt-6.1-sol (xhigh reasoning).",
+        help="Model override or engine=model. Repeatable. Defaults: codex=gpt-6.2-sol (high reasoning; no model fallback), claude=claude-opus-5-5 (medium effort), amp=openai/gpt-6.1-sol (xhigh reasoning), agy=gemini-4-neon-xhigh.",
     )
     parser.add_argument(
         "--thinking", action="append",
@@ -6864,7 +7099,8 @@ def parse_args() -> argparse.Namespace:
         "Codex: none, minimal, low, medium, high, xhigh, max. "
         "gpt-6-astra requires low through max. gpt-6.2-astra and gpt-6.2-sol support low through ultra. "
         "Claude: low, medium, high, xhigh, max. Amp: none, low, medium, high, xhigh, max. "
-        "Pi: off, minimal, low, medium, high, xhigh. Kimi: off, on.",
+        "Pi: off, minimal, low, medium, high, xhigh. Kimi: off, on. "
+        "Agy: low, medium, high, xhigh, max (tier-suffixed models such as gemini-4-neon-xhigh fix their tier).",
     )
     parser.add_argument(
         "--fallback-model",
@@ -6908,6 +7144,13 @@ def parse_args() -> argparse.Namespace:
         "--allow-kimi-argv-prompt",
         action="store_true",
         help="Required for --engine kimi: accept that Kimi receives the review prompt as a "
+        "command-line argument, which other local accounts can read in the process list while it runs.",
+    )
+    parser.add_argument("--agy-bin", default=os.environ.get("AGY_BIN", "agy"))
+    parser.add_argument(
+        "--allow-agy-argv-prompt",
+        action="store_true",
+        help="Required for --engine agy: accept that Antigravity CLI receives the review prompt as a "
         "command-line argument, which other local accounts can read in the process list while it runs.",
     )
     parser.add_argument("--no-tools", dest="tools", action="store_false", default=True, help="Disable tools for engines that support it. Amp, Pi, and Kimi always run without tools; Codex rejects no-tools review.")
@@ -6962,6 +7205,8 @@ def run_engine(args: argparse.Namespace, repo: Path, prompt: str) -> str:
         return run_pi(args, repo, prompt)
     if args.engine == "kimi":
         return run_kimi(args, repo, prompt)
+    if args.engine == "agy":
+        return run_agy(args, repo, prompt)
     raise SystemExit(f"unsupported engine: {args.engine}")
 
 
@@ -7055,6 +7300,11 @@ def reviewer_args(args: argparse.Namespace) -> list[argparse.Namespace]:
         raise SystemExit("--allow-kimi-argv-prompt is only supported for kimi; no kimi reviewer selected")
     if engine == "kimi" and not allow_kimi_argv:
         raise SystemExit(KIMI_ARGV_PROMPT_REFUSAL)
+    allow_agy_argv = getattr(args, "allow_agy_argv_prompt", False)
+    if allow_agy_argv and engine != "agy":
+        raise SystemExit("--allow-agy-argv-prompt is only supported for agy; no agy reviewer selected")
+    if engine == "agy" and not allow_agy_argv:
+        raise SystemExit(AGY_ARGV_PROMPT_REFUSAL)
     model = (
         model_by_engine.get(engine)
         or global_model
@@ -7090,11 +7340,13 @@ def reviewer_args(args: argparse.Namespace) -> list[argparse.Namespace]:
     if thinking and thinking not in thinking_levels:
         valid = ", ".join(sorted(thinking_levels)) or "none"
         raise SystemExit(f"invalid thinking level for {thinking_target}: {thinking} (valid: {valid})")
+    if engine == "agy":
+        agy_effort_arg(model, thinking)
     clone = copy.copy(args)
     clone.model = model
     clone.thinking = thinking
     clone.fallback_model = fallback_model
-    clone.tools = False if engine in {"amp", "pi", "kimi"} else args.tools
+    clone.tools = False if engine in {"amp", "pi", "kimi", "agy"} else args.tools
     return [clone]
 
 
@@ -7115,6 +7367,7 @@ ENGINE_ISOLATION_PROBES: dict[str, Callable[[argparse.Namespace, Path], object]]
     "amp": ensure_amp_isolation_supported,
     "pi": ensure_pi_isolation_supported,
     "kimi": ensure_kimi_isolation_supported,
+    "agy": ensure_agy_isolation_supported,
 }
 
 
@@ -7182,6 +7435,7 @@ def resolve_engine_binary(reviewer: argparse.Namespace, repo: Path) -> tuple[boo
         "amp": getattr(reviewer, "amp_bin", None),
         "pi": getattr(reviewer, "pi_bin", None),
         "kimi": getattr(reviewer, "kimi_bin", None),
+        "agy": getattr(reviewer, "agy_bin", None),
     }
     bin_name = bin_by_engine.get(engine)
     if bin_name is None:
@@ -7225,6 +7479,8 @@ def max_prompt_bytes_for_reviewers(reviewers: list[argparse.Namespace]) -> int:
     max_prompt_bytes = MAX_REVIEW_PROMPT_BYTES
     if any(reviewer.engine == "kimi" for reviewer in reviewers):
         max_prompt_bytes = min(max_prompt_bytes, KIMI_MAX_PROMPT_BYTES)
+    if any(reviewer.engine == "agy" for reviewer in reviewers):
+        max_prompt_bytes = min(max_prompt_bytes, AGY_MAX_PROMPT_BYTES)
     return max_prompt_bytes
 
 

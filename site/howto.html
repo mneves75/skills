@@ -547,7 +547,9 @@ review continues. See <a href="https://github.com/mneves75/skills/blob/main/skil
 <p><strong>What it does.</strong> Freezes the chosen Git target, scans the outgoing input, runs a reviewer in
 an isolated environment, validates its report, and rejects results if sources changed mid-review.
 The helper prints its default model and reasoning tier at startup; Codex review has no
-automatic model fallback on account-access failures.</p>
+automatic model fallback on account-access failures. Optional engines include Claude, Amp, Pi,
+Kimi (<code>--allow-kimi-argv-prompt</code>), and Antigravity CLI (<code>--engine agy --allow-agy-argv-prompt</code>,
+default <code>gemini-4-neon-xhigh</code> in <code>--mode plan</code>).</p>
 <p><strong>Example</strong> (illustrative; replace the installed path).</p>
 <pre tabindex="0"><code class="language-sh">python3 /path/to/autoreview/scripts/autoreview --mode local --max-priority P3
 </code></pre>
