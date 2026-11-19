@@ -204,6 +204,8 @@ run_agy_coding_fallback() {
     and ([.[] | select(.event == "result")] as $r
       | ($r | length) == 1
       and $r[0].result.status == "SUCCESS"
+      and (($r[0].result.finished_reason // "") | ascii_downcase
+           | (. == "" or . == "completed" or . == "end_turn" or . == "stop"))
       and (($r[0].result.response // "") | gsub("^\\s+|\\s+$"; "") | length > 0))
   ' <<< "$out" >/dev/null || return 1
   jq -re 'select(.event == "result" and .result.status == "SUCCESS") | .result.response' <<< "$out"
@@ -255,15 +257,15 @@ run_agy_branch_review_fallback
 ```
 
 - **Local/uncommitted targets (`--mode local` / `--mode uncommitted`)**: do **not** use a clean
-  detached worktree (which would omit staged, unstaged, and untracked changes). Run
-  `autoreview --engine agy --model gemini-4-neon-xhigh` directly in the original checkout with the
-  original flags (pinning `--base "$BASE_SHA"` if `--base` was passed). `autoreview` itself runs
-  guarded Git commands (`core.fsmonitor=false`, `core.hooksPath=/dev/null`) to verify the local
-  source snapshot before and after review; if comparing the local snapshot externally between
-  reviewers, pass `-c core.fsmonitor=false -c core.hooksPath=/dev/null` on every Git call
-  (`git -c core.fsmonitor=false --no-optional-locks status --porcelain=v2 -z --untracked-files=all`,
-  `git -c core.fsmonitor=false diff --no-ext-diff --no-textconv --binary HEAD`, and raw hashes of
-  all modified and untracked working-tree files) so tracked fsmonitor/textconv helpers never run.
+  detached worktree (which would omit staged, unstaged, and untracked changes). Capture a guarded
+  local-snapshot fingerprint **before** launching the primary reviewer and require an exact match
+  before dispatching the fallback in the original checkout (pinning `--base "$BASE_SHA"` if
+  `--base` was passed). Pass `-c core.fsmonitor=false -c core.hooksPath=/dev/null --no-optional-locks`
+  on every Git call (`status --porcelain=v2 -z --untracked-files=all` and
+  `diff --no-ext-diff --no-textconv --binary HEAD`) and hash the raw bytes of all modified and
+  untracked working-tree files with a non-Git hasher (`shasum -a 256` or `git hash-object --no-filters`)
+  so configured fsmonitor, textconv, or clean-filter helpers never run. If the snapshot changed
+  between reviewers, abort the fallback rather than reviewing a different tree.
 
 If the original review restricted tools or web search (`--no-tools` or `--no-web-search`), pass
 those flags unchanged: `autoreview --engine agy` refuses before launch because Agy's built-in

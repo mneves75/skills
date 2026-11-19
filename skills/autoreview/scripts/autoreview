@@ -6871,8 +6871,14 @@ def parse_agy_stream_output(result: subprocess.CompletedProcess[str]) -> str:
             result=result,
         )
     status = final_result.get("status")
-    if status != "SUCCESS":
-        error_detail = final_result.get("error") or final_result.get("finished_reason") or status
+    finished_reason = final_result.get("finished_reason")
+    unexpected_finish = (
+        isinstance(finished_reason, str)
+        and bool(finished_reason.strip())
+        and finished_reason.strip().lower() not in {"completed", "end_turn", "stop"}
+    )
+    if status != "SUCCESS" or unexpected_finish:
+        error_detail = final_result.get("error") or finished_reason or status
         raise ReviewerUnavailable(
             f"agy engine failed ({status}): {error_detail}",
             result=result,

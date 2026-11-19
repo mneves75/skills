@@ -1935,6 +1935,7 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             repo.mkdir()
             clean_home = root / "clean-home"
             clean_home.mkdir()
+            missing_admin = root / "missing-admin.json"
             base_home_env = {"HOME": str(clean_home), "USERPROFILE": str(clean_home)}
             for label, env_map, expected_msg in (
                 (
@@ -1953,7 +1954,9 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                     "AGY_LLM_GATEWAY_URL",
                 ),
             ):
-                with self.subTest(label=label), mock.patch.dict(os.environ, env_map, clear=True):
+                with self.subTest(label=label), mock.patch.dict(os.environ, env_map, clear=True), mock.patch.object(
+                    AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
+                ):
                     with self.assertRaises(SystemExit) as cm:
                         AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
                 self.assertIn(expected_msg, str(cm.exception))
@@ -1965,6 +1968,8 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             )
             with self.subTest(label="enterprise gateway cli settings.json"), mock.patch.dict(
                 os.environ, {"HOME": str(gw_home), "USERPROFILE": str(gw_home)}, clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
             ):
                 with self.assertRaises(SystemExit) as cm:
                     AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
@@ -1977,6 +1982,8 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
             )
             with self.subTest(label="enterprise gateway ~/.antigravity/settings.json"), mock.patch.dict(
                 os.environ, {"HOME": str(agy_dir_home), "USERPROFILE": str(agy_dir_home)}, clear=True,
+            ), mock.patch.object(
+                AUTOREVIEW, "agy_admin_settings_path", return_value=missing_admin,
             ):
                 with self.assertRaises(SystemExit) as cm:
                     AUTOREVIEW.ensure_agy_isolation_supported(args, repo)
@@ -2246,6 +2253,19 @@ class AutoreviewCompatibilityTests(unittest.TestCase):
                     "result": {"status": "ERROR", "error": "authentication failed or timed out"},
                 }),
                 "authentication failed or timed out",
+            ),
+            (
+                "print_timeout partial success",
+                strict_init + "\n" + json.dumps({
+                    "event": "result",
+                    "result": {
+                        "status": "SUCCESS",
+                        "finished_reason": "print_timeout",
+                        "response": "partial text",
+                        "structured_output": FINAL_REPORT,
+                    },
+                }),
+                "print_timeout",
             ),
             (
                 "non-strict init",
