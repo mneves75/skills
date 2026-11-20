@@ -1,6 +1,6 @@
 ---
 name: mneves-security
-description: Audit application security and privacy against current OWASP guidance and gate every staging or production deploy; use for vulnerability hunting, remediation plans, authorized safe fixes and the pre-deploy verdict.
+description: Audit trust boundaries and OWASP/privacy controls, implement authorized security fixes, and issue the pre-deploy security verdict; for full six-phase coverage-led source audits use security-audit.
 license: Apache-2.0
 ---
 
@@ -83,9 +83,10 @@ independent tracks, and give each worker a bounded goal, files, constraints and 
 Apply the first-principles/alternatives challenge in step 4 directly. Model bindings
 come from the host or orchestrator; this skill does not pin models or reasoning tiers.
 
-In audit, fix and deploy-gate modes, perform adversarial review. Use installed `code-review` for distinct standards
-and requirement checks when appropriate; otherwise use a fresh read-only reviewer on
-the fixed diff. Use installed `mneves-verify` for independent acceptance; without it,
+In audit, fix and deploy-gate modes, perform adversarial review. Use an optional host `code-review`
+skill (not shipped here) when installed for distinct standards and requirement checks, or installed
+`autoreview` for fixed-diff critique where its evidence fits; otherwise use a fresh read-only
+reviewer on the fixed diff. Use installed `mneves-verify` for independent acceptance; without it,
 give a fresh verifier the frozen criteria, artifacts and stopping condition. Security
 acceptance uses a different model from the builder. If an independent reviewer or
 required distinct-model verifier is unavailable, mark that gate and overall assurance

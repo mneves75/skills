@@ -1,6 +1,6 @@
 ---
 name: mneves-socratic-tutor
-description: Tutor a topic to mastery with Socratic questions, a diagnostic, a 0-5 skill map, spaced review and a final assessment. Use when the user asks to be tutored, drilled or taught a topic properly.
+description: Tutor any topic to mastery with Socratic questions, a diagnostic, a 0-5 skill map, and pasteable save state; for repo-backed codebase teach-back with SQLite flashcards use mneves-teach-back-srs.
 license: MIT
 ---
 

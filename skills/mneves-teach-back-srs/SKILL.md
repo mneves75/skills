@@ -1,6 +1,6 @@
 ---
 name: mneves-teach-back-srs
-description: Run codebase teach-back with Socratic questions and spaced repetition. Use when users teach, want a quiz, or review cards.
+description: Verify your explanation of a codebase against actual source and persist SM-2 SQLite flashcards (.ai-learn/srs.db); use for codebase teach-back, card review, stats, or export.
 license: Apache-2.0
 compatibility: Needs python3 (3.11+, standard library with sqlite3) to run `scripts/srs_db.py`; cards live in the project's `.ai-learn/srs.db`.
 ---

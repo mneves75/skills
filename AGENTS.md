@@ -74,6 +74,10 @@ python3 skills/mneves-teach-back-srs/tests/test_srs_db.py    # SRS helper: concu
 python3 skills/babysit-pr/tests/test_pr_wait.py              # pr-wait watcher against a fake gh (no network)
 python3 tools/scripts/routing-eval.py check   # routing-eval cases well formed, anchors still in the text: no model call
 python3 tools/scripts/routing-eval.test.py    # routing-eval checks, grader and `run` against fake claude/codex (no quota)
+python3 tools/scripts/check-catalog-hygiene.py   # root-skill doc/routing coverage, link integrity, ref depth, char/line budgets
+python3 tools/scripts/check-catalog-hygiene.test.py  # planted-violation controls for the catalog hygiene guard
+python3 tools/scripts/catalog-eval.py check   # 24-case routing confusion-matrix cases valid against skills/ (no model call)
+python3 tools/scripts/catalog-eval.test.py    # catalog-eval checks and `run` against fake claude/codex (no quota)
 tools/scripts/check-defaults-block.sh   # model ids only inside the orchestrator's Defaults block, with its verified-on date
 bash tools/scripts/check-defaults-block.test   # planted-violation controls for that guard
 bun --bun tools/readiness-check.ts --format=html --output=report.html   # assess cwd
