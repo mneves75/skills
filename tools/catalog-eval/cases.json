@@ -1,0 +1,198 @@
+{
+  "schema": "catalog-eval-1",
+  "description": "Frozen 24-case routing confusion-matrix benchmark over live skills/*/SKILL.md metadata (names + descriptions only).",
+  "cases": [
+    {
+      "id": "sec-pre-deploy-gate",
+      "cluster": "security-vs-readiness",
+      "prompt": "We're ready to deploy this commit to staging — run the pre-deploy security check and give me the verdict before we push.",
+      "expected": ["mneves-security"],
+      "forbidden": ["security-audit", "mneves-ship-deploy"],
+      "notes": "Deploy security gate belongs exclusively to mneves-security, never security-audit."
+    },
+    {
+      "id": "sec-deep-read-only-audit",
+      "cluster": "security-vs-readiness",
+      "prompt": "Do a full, strictly read-only six-phase source security audit of this entire codebase and emit validated machine-readable findings and a coverage ledger.",
+      "expected": ["security-audit"],
+      "forbidden": ["mneves-security"],
+      "notes": "Read-only coverage-led deep source audit belongs to security-audit."
+    },
+    {
+      "id": "sec-authorized-fix",
+      "cluster": "security-vs-readiness",
+      "prompt": "We confirmed an IDOR vulnerability in src/api/orders.ts; patch it safely, add a regression test, and verify the OWASP controls.",
+      "expected": ["mneves-security"],
+      "forbidden": ["security-audit"],
+      "notes": "Authorized remediation and OWASP control verification belongs to mneves-security."
+    },
+    {
+      "id": "readiness-launch-review",
+      "cluster": "security-vs-readiness",
+      "prompt": "Before we launch to production next week, check our backup/restore plan, rollback path, cost caps, monitoring alerts, and on-call ownership.",
+      "expected": ["mneves-production-readiness"],
+      "forbidden": ["mneves-security", "security-audit", "mneves-agent-readiness"],
+      "notes": "Operational production readiness is disjoint from security and agent DX readiness."
+    },
+    {
+      "id": "agent-readiness-audit",
+      "cluster": "security-vs-readiness",
+      "prompt": "Coding agents keep stumbling and breaking builds in this repo — assess the codebase's AI-agent readiness and prioritize DX fixes.",
+      "expected": ["mneves-agent-readiness"],
+      "forbidden": ["mneves-production-readiness"],
+      "notes": "AI-agent repository readiness belongs to mneves-agent-readiness."
+    },
+    {
+      "id": "deploy-explicit-staging",
+      "cluster": "security-vs-readiness",
+      "prompt": "ship-staging: deploy the current tested commit to staging and verify the live endpoint.",
+      "expected": ["mneves-ship-deploy"],
+      "forbidden": ["mneves-production-readiness", "none"],
+      "notes": "Explicit ship-staging invokes mneves-ship-deploy."
+    },
+    {
+      "id": "tutor-socratic-topic",
+      "cluster": "tutor-vs-explainer",
+      "prompt": "Tutor me on distributed consensus (Raft) from scratch until I master it, with a diagnostic, Socratic questions, and a final exam.",
+      "expected": ["mneves-socratic-tutor"],
+      "forbidden": ["mneves-teach-back-srs", "mneves-eli5"],
+      "notes": "General topic mastery tutoring belongs to mneves-socratic-tutor."
+    },
+    {
+      "id": "tutor-teach-back-srs",
+      "cluster": "tutor-vs-explainer",
+      "prompt": "I want to teach back how this repository's auth middleware works and review my due spaced-repetition flashcards.",
+      "expected": ["mneves-teach-back-srs"],
+      "forbidden": ["mneves-socratic-tutor", "mneves-eli5"],
+      "notes": "Repo-backed teach-back and SQLite flashcard review belongs to mneves-teach-back-srs."
+    },
+    {
+      "id": "explainer-eli5",
+      "cluster": "tutor-vs-explainer",
+      "prompt": "Explain how Cloudflare Durable Objects work in plain language for a non-technical product manager.",
+      "expected": ["mneves-eli5"],
+      "forbidden": ["mneves-socratic-tutor", "mneves-teach-back-srs"],
+      "notes": "Audience-calibrated plain explanation belongs to mneves-eli5."
+    },
+    {
+      "id": "tutor-one-off-question",
+      "cluster": "tutor-vs-explainer",
+      "prompt": "What HTTP status code means Too Many Requests?",
+      "expected": ["none"],
+      "forbidden": ["mneves-socratic-tutor", "mneves-teach-back-srs", "mneves-eli5"],
+      "notes": "Trivial factual lookup should not invoke a tutoring or ELI5 skill."
+    },
+    {
+      "id": "review-git-diff",
+      "cluster": "review-vs-verify-vs-council",
+      "prompt": "Do an independent AI code review of my current branch diff against main before I open a PR.",
+      "expected": ["autoreview"],
+      "forbidden": ["mneves-verify", "mneves-expert-review"],
+      "notes": "Git target code review belongs to autoreview."
+    },
+    {
+      "id": "verify-completion-claim",
+      "cluster": "review-vs-verify-vs-council",
+      "prompt": "The previous agent claims the billing migration is fixed and all tests pass — independently verify the outcome with fresh proof.",
+      "expected": ["mneves-verify"],
+      "forbidden": ["autoreview", "mneves-expert-review"],
+      "notes": "Independent verification of a completion claim belongs to mneves-verify."
+    },
+    {
+      "id": "council-multi-cli",
+      "cluster": "review-vs-verify-vs-council",
+      "prompt": "Convene independent coding-agent CLIs for a bounded multi-round deliberation on our database sharding RFC.",
+      "expected": ["council"],
+      "forbidden": ["autoreview", "mneves-verify"],
+      "notes": "Multi-CLI plan deliberation belongs to council."
+    },
+    {
+      "id": "expert-review-decision",
+      "cluster": "review-vs-verify-vs-council",
+      "prompt": "Stress-test this pricing memo and B2B positioning decision — give me alternatives, evidence, and trade-offs.",
+      "expected": ["mneves-expert-review"],
+      "forbidden": ["autoreview", "mneves-verify"],
+      "notes": "Non-diff high-stakes decision stress test belongs to mneves-expert-review."
+    },
+    {
+      "id": "untangle-scoped-refactor",
+      "cluster": "review-vs-verify-vs-council",
+      "prompt": "Diagnose structural coupling in src/checkout/ and plan a behavior-preserving refactor of that module.",
+      "expected": ["untangle-codebase"],
+      "forbidden": ["mneves-superaudit", "autoreview"],
+      "notes": "Bounded structural coupling diagnosis/refactor belongs to untangle-codebase."
+    },
+    {
+      "id": "superaudit-repo-cleanup",
+      "cluster": "review-vs-verify-vs-council",
+      "prompt": "Run a bounded repo-wide cleanup pass covering AI slop, performance hotspots, agent DX, and stale PR triage.",
+      "expected": ["mneves-superaudit"],
+      "forbidden": ["untangle-codebase", "autoreview"],
+      "notes": "Repo-wide slop/perf/DX/PR-triage pass belongs to mneves-superaudit."
+    },
+    {
+      "id": "pr-babysit",
+      "cluster": "pr-ops",
+      "prompt": "Watch PR #412 through CI and review comments and alert me when something breaks or needs my call.",
+      "expected": ["babysit-pr"],
+      "forbidden": ["modernize", "takeover", "full-stop"],
+      "notes": "Monitoring an active PR through CI and review belongs to babysit-pr."
+    },
+    {
+      "id": "pr-modernize",
+      "cluster": "pr-ops",
+      "prompt": "Rebase our 3-week-old PR #288 onto main and assess whether it is still worth keeping.",
+      "expected": ["modernize"],
+      "forbidden": ["babysit-pr", "takeover"],
+      "notes": "Rebasing and triaging an aging PR belongs to modernize."
+    },
+    {
+      "id": "pr-takeover",
+      "cluster": "pr-ops",
+      "prompt": "Take over Alex's stalled PR #305 and finish the remaining review feedback while keeping Alex's commit attribution.",
+      "expected": ["takeover"],
+      "forbidden": ["modernize", "babysit-pr"],
+      "notes": "Finishing someone else's PR with credit preserved belongs to takeover."
+    },
+    {
+      "id": "pr-leave-comment",
+      "cluster": "pr-ops",
+      "prompt": "Draft and post a review comment on GitHub PR #510 clearly attributing that an agent wrote it on my behalf.",
+      "expected": ["leaving-pr-comments"],
+      "forbidden": ["babysit-pr", "autoreview"],
+      "notes": "Formatting and attributing agent-posted GitHub comments belongs to leaving-pr-comments."
+    },
+    {
+      "id": "neg-full-stop-punctuation",
+      "cluster": "negative-control",
+      "prompt": "Never force-push to main. Full stop. Now fix the broken markdown heading in README.md.",
+      "expected": ["none"],
+      "forbidden": ["full-stop"],
+      "notes": "Punctuation 'Full stop.' must never invoke the explicit-only full-stop skill."
+    },
+    {
+      "id": "neg-plain-ship",
+      "cluster": "negative-control",
+      "prompt": "Let's ship this helper function cleanly by finishing the unit test and pushing to my feature branch.",
+      "expected": ["none"],
+      "forbidden": ["mneves-ship-deploy"],
+      "notes": "Plain conversational 'ship' must never invoke mneves-ship-deploy."
+    },
+    {
+      "id": "neg-ordinary-typo",
+      "cluster": "negative-control",
+      "prompt": "Fix the spelling mistake 'recieve' -> 'receive' on line 14 of docs/faq.md.",
+      "expected": ["none"],
+      "forbidden": ["autoreview", "mneves-superaudit", "untangle-codebase", "mneves-verify"],
+      "notes": "Ordinary typo fix needs no specialist skill."
+    },
+    {
+      "id": "explicit-full-stop",
+      "cluster": "negative-control",
+      "prompt": "Run full-stop on this task: add pagination to /api/users, verify tests, and open a ready PR unattended.",
+      "expected": ["full-stop"],
+      "forbidden": ["none", "babysit-pr"],
+      "notes": "Explicitly invoking full-stop by name selects full-stop."
+    }
+  ]
+}

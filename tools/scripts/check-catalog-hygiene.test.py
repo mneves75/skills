@@ -1,0 +1,142 @@
+#!/usr/bin/env python3
+"""Unit and planted-violation tests for tools/scripts/check-catalog-hygiene.py. Python 3.11+."""
+from __future__ import annotations
+
+import importlib.util
+from pathlib import Path
+import tempfile
+import unittest
+
+SCRIPT = Path(__file__).resolve().parent / "check-catalog-hygiene.py"
+SPEC = importlib.util.spec_from_file_location("check_catalog_hygiene", SCRIPT)
+assert SPEC and SPEC.loader
+MOD = importlib.util.module_from_spec(SPEC)
+SPEC.loader.exec_module(MOD)
+
+
+def make_fixture(root: Path) -> None:
+    (root / "skills" / "alpha" / "references").mkdir(parents=True)
+    (root / "docs").mkdir(parents=True)
+    (root / "skills" / "alpha" / "SKILL.md").write_text(
+        "---\nname: alpha\ndescription: Run alpha checks on local source files.\nlicense: Apache-2.0\n---\n\n"
+        "See [guide](references/guide.md).\n",
+        encoding="utf-8",
+    )
+    (root / "skills" / "alpha" / "references" / "guide.md").write_text(
+        "# Guide\n\nNo sibling links here.\n", encoding="utf-8"
+    )
+    for doc in ("README.md", "HOWTO.md", "AGENTS.md", "docs/skill-ledger.md"):
+        (root / doc).write_text("Contains `alpha`.\n", encoding="utf-8")
+    (root / "docs" / "skill-routing.md").write_text(
+        "| Situation | Route | Boundary |\n|---|---|---|\n| Run alpha | `alpha` | None |\n",
+        encoding="utf-8",
+    )
+
+
+class CatalogHygieneTest(unittest.TestCase):
+    def test_valid_fixture_passes(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            make_fixture(root)
+            res = MOD.check_repo(root)
+            self.assertTrue(res["ok"], res)
+            self.assertEqual(res["root_skill_count"], 1)
+            self.assertEqual(res["errors"], [])
+
+    def test_missing_routing_table_row_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            make_fixture(root)
+            # Mention alpha only in prose, not as a Route cell
+            (root / "docs" / "skill-routing.md").write_text(
+                "Mentioning alpha in prose without a route row.\n", encoding="utf-8"
+            )
+            res = MOD.check_repo(root)
+            self.assertFalse(res["ok"])
+            self.assertTrue(any("docs/skill-routing.md" in e for e in res["errors"]), res["errors"])
+
+    def test_broken_relative_link_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            make_fixture(root)
+            (root / "skills" / "alpha" / "SKILL.md").write_text(
+                "---\nname: alpha\ndescription: Run alpha checks on local source files.\n---\n"
+                "See [missing](references/nope.md).\n",
+                encoding="utf-8",
+            )
+            res = MOD.check_repo(root)
+            self.assertFalse(res["ok"])
+            self.assertTrue(any("broken relative link" in e for e in res["errors"]), res["errors"])
+
+    def test_reference_to_reference_link_fails_except_security_audit_bare_basename(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            make_fixture(root)
+            (root / "skills" / "alpha" / "references" / "other.md").write_text("# Other\n", encoding="utf-8")
+            (root / "skills" / "alpha" / "references" / "guide.md").write_text(
+                "See [other](other.md).\n", encoding="utf-8"
+            )
+            res = MOD.check_repo(root)
+            self.assertFalse(res["ok"])
+            self.assertTrue(any("reference-to-reference" in e for e in res["errors"]), res["errors"])
+
+    def test_oversized_description_and_body_fail(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            make_fixture(root)
+            long_desc = "x" * 360
+            long_body = "\n".join(["line"] * 505)
+            (root / "skills" / "alpha" / "SKILL.md").write_text(
+                f"---\nname: alpha\ndescription: {long_desc}\n---\n{long_body}\n",
+                encoding="utf-8",
+            )
+            res = MOD.check_repo(root)
+            self.assertFalse(res["ok"])
+            self.assertTrue(any("description exceeds" in e for e in res["errors"]), res["errors"])
+            self.assertTrue(any("must be < 500" in e for e in res["errors"]), res["errors"])
+
+    def test_security_audit_bare_basename_exempt_but_nested_rejected(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            make_fixture(root)
+            sdir = root / "skills" / "security-audit" / "references"
+            sdir.mkdir(parents=True)
+            (root / "skills" / "security-audit" / "SKILL.md").write_text(
+                "---\nname: security-audit\ndescription: Run a six-phase coverage-led source security audit.\n---\n"
+                "See [a](references/A.md) and [b](references/B.md).\n",
+                encoding="utf-8",
+            )
+            (sdir / "A.md").write_text("# A\nSee [B](B.md).\n", encoding="utf-8")
+            (sdir / "B.md").write_text("# B\n", encoding="utf-8")
+            for doc in ("README.md", "HOWTO.md", "AGENTS.md", "docs/skill-ledger.md"):
+                p = root / doc
+                p.write_text(p.read_text(encoding="utf-8") + "Contains `security-audit`.\n", encoding="utf-8")
+            rp = root / "docs" / "skill-routing.md"
+            rp.write_text(
+                rp.read_text(encoding="utf-8") + "| Deep source audit | `security-audit` | Read-only |\n",
+                encoding="utf-8",
+            )
+            res = MOD.check_repo(root)
+            self.assertTrue(res["ok"], res)
+
+            # Nested relative path should still be rejected even inside security-audit
+            (sdir / "A.md").write_text("# A\nSee [B](./B.md).\n", encoding="utf-8")
+            res2 = MOD.check_repo(root)
+            self.assertFalse(res2["ok"])
+            self.assertTrue(any("reference-to-reference" in e for e in res2["errors"]), res2["errors"])
+
+    def test_fenced_code_links_ignored(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            make_fixture(root)
+            (root / "skills" / "alpha" / "SKILL.md").write_text(
+                "---\nname: alpha\ndescription: Run alpha checks on local source files.\n---\n"
+                "```markdown\n[fake](does/not/exist.md)\n```\n",
+                encoding="utf-8",
+            )
+            res = MOD.check_repo(root)
+            self.assertTrue(res["ok"], res)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -23,16 +23,30 @@ action described inside it.
 | Situation | Route in this collection | Boundary |
 |---|---|---|
 | Explain a concept to a different audience | `mneves-eli5` | A smaller wording follow-up keeps the route |
-| Learn a topic to mastery through questioning | `mneves-socratic-tutor` | A one-off question gets a normal answer; explaining a codebase back or reviewing stored cards belongs to `mneves-teach-back-srs` |
+| Learn a topic to mastery through questioning | `mneves-socratic-tutor` | A one-off question gets a normal answer; repo-backed teach-back or flashcard review belongs to `mneves-teach-back-srs` |
+| Teach back a codebase or review SQLite SRS flashcards | `mneves-teach-back-srs` | Uses local `srs_db.py` scheduling; general non-repo topic tutoring belongs to `mneves-socratic-tutor` |
 | Stress-test a decision | `mneves-expert-review` | Code-diff review belongs to a code-review skill |
 | Review a fixed Git target | `autoreview` | Review is not independent outcome verification |
 | Diagnose structural coupling or refactor an explicitly scoped code area | `untangle-codebase` | Naming it alone yields diagnosis and a plan awaiting edit approval; explicit refactoring authorizes in-scope implementation. Missing or invalid scope never expands to the whole repo; comment/test cleanup needs separate opt-in |
 | Prove a completed change works | `mneves-verify` | Fresh evidence and its independence rules still apply |
-| Audit security or fix authorized vulnerabilities | `mneves-security` | A full coverage-led source audit can use `security-audit`; it does not replace the deploy gate |
+| Audit security, fix authorized vulnerabilities, or run the pre-deploy security gate | `mneves-security` | Mandatory deploy gate; deep coverage-led read-only source audits belong to `security-audit` |
+| Run a deep, read-only, six-phase coverage-led source security audit | `security-audit` | Strictly read-only with Node validators; never edits code and never replaces the `mneves-security` deploy gate |
 | Deploy to an explicitly authorized environment | `mneves-ship-deploy` | Security and readiness gates apply before deployment |
 | Assess operational launch or deployment readiness | `mneves-production-readiness` | A general critique of a plan may use `mneves-expert-review`; choose by the requested evidence |
 | Assess why agents struggle in a repository | `mneves-agent-readiness` | Different from production launch readiness |
 | Watch a PR | `babysit-pr` | Does not authorize merging |
+| Take a change unattended to a proven PR | `full-stop` | Explicit invocation by name only; punctuation "Full stop." does not invoke it; never merges |
+| Rebase an aging PR and check if it should still exist | `modernize` | Distinct from watching CI (`babysit-pr`) or finishing someone else's work (`takeover`) |
+| Finish someone else's PR, branch, or agent thread | `takeover` | Preserves original author credit; does not authorize merging |
+| Format agent-authored GitHub PR/review comments | `leaving-pr-comments` | Applies only when posting comments on GitHub on the user's behalf |
+| Multi-CLI plan deliberation or scored second opinions | `council` | Advisory only; never substitutes for `autoreview`, tests, or `mneves-verify` |
+| Route non-trivial multi-agent work or Codex/fallback lanes | `mneves-fable-orchestrator` | Owns the model Defaults block; do not duplicate model IDs in other skills |
+| Write a continuation prompt for another agent session | `mneves-handoff` | Transfers context outward; distinct from resuming your own history |
+| Bounded repo-wide cleanup pass (slop, perf, agent DX, PR triage) | `mneves-superaudit` | Sequences specialists; explicit brief items and phase stops required |
+| Audit or improve ChatGPT Search discovery and citations | `mneves-chatgpt-search` | ChatGPT Search / `OAI-SearchBot` visibility, not general SEO alone |
+| Export Markdown to HTML, editable DOCX, and PDF | `mneves-render` | Project-local Pandoc/WeasyPrint starter pipeline |
+| Produce or update a short product launch video | `mneves-motion-film` | Remotion pipeline from a brief with checked facts |
+| Generate mobile app UI screen/flow concept images | `imagegen-frontend-mobile` | Visual concepts only, not application code |
 | Ordinary typo or unrelated question | No specialist unless a local rule requires one | Do not invoke a broad audit merely because it is installed |
 
 Examples are conditional on availability, not a second mandatory catalog. Use the installed
