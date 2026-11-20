@@ -90,19 +90,26 @@ def parse_frontmatter(text: str) -> dict[str, str]:
     return fields
 
 
-def load_catalog(root: Path) -> list[dict[str, str]]:
-    skills_dir = root.resolve() / "skills"
+def load_catalog(root: Path, include_pstack: bool = False) -> list[dict[str, str]]:
+    roots = [root.resolve() / "skills"]
+    if include_pstack:
+        roots.append(root.resolve() / "collections" / "pstack" / "skills")
     entries: list[dict[str, str]] = []
-    if not skills_dir.is_dir():
-        return entries
-    for sdir in sorted(p for p in skills_dir.iterdir() if p.is_dir()):
-        sfile = sdir / "SKILL.md"
-        if not sfile.is_file():
+    seen: set[str] = set()
+    for skills_dir in roots:
+        if not skills_dir.is_dir():
             continue
-        fm = parse_frontmatter(sfile.read_text(encoding="utf-8"))
-        name = fm.get("name", sdir.name)
-        desc = fm.get("description", "")
-        entries.append({"name": name, "description": desc})
+        for sdir in sorted(p for p in skills_dir.iterdir() if p.is_dir()):
+            sfile = sdir / "SKILL.md"
+            if not sfile.is_file():
+                continue
+            fm = parse_frontmatter(sfile.read_text(encoding="utf-8"))
+            name = fm.get("name", sdir.name)
+            if name in seen:
+                continue
+            seen.add(name)
+            desc = fm.get("description", "")
+            entries.append({"name": name, "description": desc})
     return entries
 
 
@@ -328,7 +335,7 @@ def run_one(job: tuple, schema: dict, out_dir: Path, commands: dict[str, list[st
 
 
 def command_check(args: argparse.Namespace) -> int:
-    catalog = load_catalog(args.root)
+    catalog = load_catalog(args.root, include_pstack=args.include_pstack)
     if not catalog:
         print(f"no skills found under {args.root / 'skills'}")
         return 1
@@ -341,7 +348,8 @@ def command_check(args: argparse.Namespace) -> int:
     if problems:
         print("\n".join(problems))
         return 1
-    print(f"catalog-eval check: {len(spec['cases'])} cases valid against {len(catalog)} root skills")
+    scope = "root+pstack" if args.include_pstack else "root"
+    print(f"catalog-eval check: {len(spec['cases'])} cases valid against {len(catalog)} {scope} skills")
     return 0
 
 
@@ -356,7 +364,7 @@ def command_run(args: argparse.Namespace) -> int:
     if args.samples < 1:
         sys.exit("--samples must be >= 1")
 
-    catalog = load_catalog(root)
+    catalog = load_catalog(root, include_pstack=args.include_pstack)
     skill_names = [e["name"] for e in catalog]
     cases_bytes = args.cases.read_bytes()
     spec = json.loads(cases_bytes)
@@ -424,6 +432,7 @@ def main() -> int:
         p = sub.add_parser(name)
         p.add_argument("--cases", type=Path, default=CASES)
         p.add_argument("--root", type=Path, default=ROOT)
+        p.add_argument("--include-pstack", action="store_true")
         if name == "run":
             p.add_argument("--out", type=Path, required=True)
             p.add_argument("--samples", type=int, default=1)

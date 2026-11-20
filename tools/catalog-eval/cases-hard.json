@@ -1,0 +1,102 @@
+{
+  "schema": "catalog-eval-1",
+  "description": "12 harder ambiguous, trigger-free, and 67-skill cross-collection routing stress tests (run with --include-pstack).",
+  "cases": [
+    {
+      "id": "hard-babysit-collision",
+      "cluster": "pstack-overlap",
+      "prompt": "Keep an eye on PR #99 until checks finish and tell me if a reviewer asks for changes.",
+      "expected": ["babysit-pr"],
+      "forbidden": ["babysit", "get-pr-comments"],
+      "notes": "When both babysit-pr and pstack/babysit exist in the 67-skill catalog, babysit-pr should win."
+    },
+    {
+      "id": "hard-ketchup-vs-video",
+      "cluster": "pstack-overlap",
+      "prompt": "I stepped away for an hour—catch me up on what changed in this thread and what is waiting on my call.",
+      "expected": ["ketchup"],
+      "forbidden": ["ketchup-video"],
+      "notes": "ketchup-video is explicit-only by name; ordinary catch-up must pick ketchup."
+    },
+    {
+      "id": "hard-vague-go-live",
+      "cluster": "ambiguous-release",
+      "prompt": "We want to launch this billing service to real customers next Tuesday—are we actually ready operationally?",
+      "expected": ["mneves-production-readiness"],
+      "forbidden": ["mneves-ship-deploy", "security-audit"],
+      "notes": "Trigger-free launch-readiness question should select mneves-production-readiness."
+    },
+    {
+      "id": "hard-vague-auth-bug",
+      "cluster": "ambiguous-security",
+      "prompt": "A user reported they can download another tenant's invoice PDF by changing the numeric ID in the URL—investigate and fix it.",
+      "expected": ["mneves-security"],
+      "forbidden": ["security-audit", "mneves-production-readiness"],
+      "notes": "Concrete exploitable vulnerability fix without naming OWASP should route to mneves-security, not read-only security-audit."
+    },
+    {
+      "id": "hard-tangled-module",
+      "cluster": "ambiguous-refactor",
+      "prompt": "src/billing/ has grown into a ball of circular imports and mixed concerns—map the coupling and plan a safe cleanup inside that folder.",
+      "expected": ["untangle-codebase"],
+      "forbidden": ["mneves-superaudit", "autoreview"],
+      "notes": "Scoped structural coupling in one module belongs to untangle-codebase."
+    },
+    {
+      "id": "hard-thermos-not-implicit",
+      "cluster": "pstack-opt-in",
+      "prompt": "Review my current branch diff carefully for bugs and edge cases before I open a PR.",
+      "expected": ["autoreview"],
+      "forbidden": ["thermos", "thermo-nuclear-review", "thermo-nuclear-code-quality-review"],
+      "notes": "thermos is explicit-only by name; routine branch diff review must pick autoreview."
+    },
+    {
+      "id": "hard-statechart-not-implicit",
+      "cluster": "pstack-opt-in",
+      "prompt": "Explain the states an order goes through from created to refunded in plain English.",
+      "expected": ["none", "mneves-eli5"],
+      "forbidden": ["statechart", "create-formal-verification-skill"],
+      "notes": "statechart is explicit-only; explaining order states must not invoke statechart."
+    },
+    {
+      "id": "hard-sharpen-explicit",
+      "cluster": "pstack-explicit",
+      "prompt": "Run /sharpen on my rough prompt: 'make our onboarding faster'.",
+      "expected": ["sharpen"],
+      "forbidden": ["none", "mneves-expert-review"],
+      "notes": "Explicit /sharpen invocation."
+    },
+    {
+      "id": "hard-full-stop-tight-desc-neg",
+      "cluster": "negative-control",
+      "prompt": "Do not touch the database migrations. Full stop. Just rename the button label in Header.tsx.",
+      "expected": ["none"],
+      "forbidden": ["full-stop"],
+      "notes": "Re-tests our newly tightened 180-char full-stop description against trailing 'Full stop.' punctuation."
+    },
+    {
+      "id": "hard-full-stop-tight-desc-pos",
+      "cluster": "negative-control",
+      "prompt": "Use the full-stop skill to implement CSV export on /reports, prove it with tests, and open a ready PR unattended.",
+      "expected": ["full-stop"],
+      "forbidden": ["none", "babysit-pr"],
+      "notes": "Re-tests our tightened 180-char full-stop description on explicit invocation."
+    },
+    {
+      "id": "hard-plain-ship-casual",
+      "cluster": "negative-control",
+      "prompt": "Once the lint error is gone let's ship this commit up to my working branch so CI runs.",
+      "expected": ["none"],
+      "forbidden": ["mneves-ship-deploy"],
+      "notes": "Casual 'ship' to a working branch must not trigger mneves-ship-deploy."
+    },
+    {
+      "id": "hard-tutor-vs-teachback-subtle",
+      "cluster": "ambiguous-tutor",
+      "prompt": "Quiz me on the payment webhook handler in this repo and update my review schedule for the parts I miss.",
+      "expected": ["mneves-teach-back-srs"],
+      "forbidden": ["mneves-socratic-tutor", "mneves-eli5"],
+      "notes": "Repo-specific quiz + review schedule should select mneves-teach-back-srs over general socratic-tutor."
+    }
+  ]
+}

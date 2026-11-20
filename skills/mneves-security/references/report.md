@@ -6,15 +6,40 @@ reports compact without dropping sections or silently replacing missing proof wi
 
 ## Finding records
 
+A candidate becomes a finding only when it names all six boundary elements with concrete
+files, symbols, routes or policies: (1) lower-trust principal, (2) its input or action,
+(3) the control meant to stop it, (4) the boundary crossed, (5) the affected principal or
+resource, and (6) the observed (or owner-observable) result. A missing best practice with
+no reachable violation is a hardening note; self-impact, intended same-principal
+authority and a parser crash with no named boundary are not findings. Vulnerability
+findings and launch-control gaps are separate records: a missing launch control (runbook,
+disclosure policy, rotation record) is a `No` in its checklist row and a plan item without
+an attacker narrative.
+
 Assign stable IDs. For each record capture:
 
-- Disposition: confirmed, needs-validation or disproved (SKILL.md step 3). A confirmed
-  record names the six boundary elements and what would falsify it. A needs-validation
-  record names the missing fact, the safe check that resolves it and its owner. A
-  disproved record names the evidence that refuted it and the assumptions that evidence
-  rests on (source, provider policy, identity, dependency versions, topology).
-- Severity: Critical, High, Medium, Low or Informational, for confirmed records only, per
-  the SKILL.md anchors; `-` otherwise.
+- **Disposition** (distinct from deploy-gate verdict):
+  - `confirmed`: source trace and bounded local evidence establish all six elements, and a
+    fresh verifier (not the finder; a different model for production) failed to disprove
+    it while positive evidence holds. Carries a severity.
+  - `needs-validation`: a source-grounded hypothesis blocked on one specific missing fact
+    (provider setting, proxy behavior, deployed policy, runtime identity). Record that
+    fact and the safe resolving check. Carries no severity (`-`); never guess one.
+  - `disproved`: a verifier showed the boundary holds. Keep the record with the refuting
+    evidence and assumptions so later runs do not re-report it.
+- **Severity** (for `confirmed` findings only; follows demonstrated impact, never class
+  name; launch controls setting a minimum severity such as `SEC-12`/`SEC-13` take
+  precedence):
+  - **Critical**: unauthenticated code execution, full data-store access, or arbitrary
+    account takeover.
+  - **High**: an explicit control is fully defeated with real consequences (auth bypass,
+    cross-tenant read/write, stored script running for other users, authenticated RCE, or
+    unauthenticated stop of a shared service).
+  - **Medium**: real boundary violation with limited blast radius, uncommon preconditions
+    or a narrow resource set (weakens a control rather than defeating it for high-impact
+    damage).
+  - **Low**: non-secret internals disclosed, or sustained effort for minimal gain.
+  - **Informational**: confirmed minimal impact, mainly useful inside a larger chain.
 - Area, actual path/line and symbol/route/policy, observed behavior, relevant current
   standard/control, evidence scope and source. Do not invent an identifier or line.
 - Proposed fix, owner/dependencies, implementation risk, rollback and acceptance test.

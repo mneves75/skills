@@ -136,15 +136,19 @@ jobs:
           python3 tools/scripts/routing-eval.py check
           python3 tools/scripts/routing-eval.test.py
 
-      - name: Catalog hygiene and selection-eval cases (no model call)
+      - name: Catalog hygiene, install profiles, and eval suites (no model call)
         run: |
           python3 tools/scripts/check-catalog-hygiene.py
           python3 tools/scripts/check-catalog-hygiene.test.py
           python3 tools/scripts/catalog-eval.py check
+          python3 tools/scripts/catalog-eval.py check --include-pstack --cases tools/catalog-eval/cases-hard.json
           python3 tools/scripts/catalog-eval.test.py
+          python3 tools/scripts/baseline-delta-eval.py check
+          python3 tools/scripts/baseline-delta-eval.test.py
+          python3 tools/scripts/install-skills.test.py
 
       - name: Python syntax
-        run: python3 -m py_compile tools/scripts/routing-eval.py tools/scripts/routing-eval.test.py tools/scripts/check-catalog-hygiene.py tools/scripts/check-catalog-hygiene.test.py tools/scripts/catalog-eval.py tools/scripts/catalog-eval.test.py skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py skills/mneves-ship-deploy/scripts/release-contract-check.py skills/mneves-ship-deploy/scripts/run-tests.py skills/mneves-ship-deploy/tests/test_release_contract_check.py tools/scripts/check-readiness-catalog.py tools/scripts/sync-pstack.py skills/autoreview/scripts/test-review-harness.py skills/babysit-pr/scripts/pr-wait skills/babysit-pr/tests/test_pr_wait.py skills/mneves-motion-film/scripts/*.py skills/mneves-motion-film/tests/test_pipeline.py
+        run: python3 -m py_compile tools/scripts/routing-eval.py tools/scripts/routing-eval.test.py tools/scripts/check-catalog-hygiene.py tools/scripts/check-catalog-hygiene.test.py tools/scripts/catalog-eval.py tools/scripts/catalog-eval.test.py tools/scripts/baseline-delta-eval.py tools/scripts/baseline-delta-eval.test.py tools/scripts/install-skills.py tools/scripts/install-skills.test.py skills/mneves-teach-back-srs/scripts/srs_db.py tools/scripts/check-html-active.py tools/scripts/changelog-rows.py skills/mneves-ship-deploy/scripts/release-contract-check.py skills/mneves-ship-deploy/scripts/run-tests.py skills/mneves-ship-deploy/tests/test_release_contract_check.py tools/scripts/check-readiness-catalog.py tools/scripts/sync-pstack.py skills/autoreview/scripts/test-review-harness.py skills/babysit-pr/scripts/pr-wait skills/babysit-pr/tests/test_pr_wait.py skills/mneves-motion-film/scripts/*.py skills/mneves-motion-film/tests/test_pipeline.py
 
       - name: Security audit validator suites and syntax
         run: |

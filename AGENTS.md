@@ -77,7 +77,12 @@ python3 tools/scripts/routing-eval.test.py    # routing-eval checks, grader and 
 python3 tools/scripts/check-catalog-hygiene.py   # root-skill doc/routing coverage, link integrity, ref depth, char/line budgets
 python3 tools/scripts/check-catalog-hygiene.test.py  # planted-violation controls for the catalog hygiene guard
 python3 tools/scripts/catalog-eval.py check   # 24-case routing confusion-matrix cases valid against skills/ (no model call)
+python3 tools/scripts/catalog-eval.py check --include-pstack --cases tools/catalog-eval/cases-hard.json  # 12-case 67-skill hard routing check
 python3 tools/scripts/catalog-eval.test.py    # catalog-eval checks and `run` against fake claude/codex (no quota)
+python3 tools/scripts/baseline-delta-eval.py check  # 6-case blinded zero-skill baseline-delta cases valid (no model call)
+python3 tools/scripts/baseline-delta-eval.test.py   # baseline-delta unblinding tests against fake CLIs (no quota)
+python3 tools/scripts/install-skills.py --list-profiles  # curated install profiles, overlap exclusions and char budgets
+python3 tools/scripts/install-skills.test.py  # install-skills dry-run, babysit exclusion, and local-edit protection tests
 tools/scripts/check-defaults-block.sh   # model ids only inside the orchestrator's Defaults block, with its verified-on date
 bash tools/scripts/check-defaults-block.test   # planted-violation controls for that guard
 bun --bun tools/readiness-check.ts --format=html --output=report.html   # assess cwd

@@ -37,9 +37,12 @@ npx skills@latest add https://github.com/mneves75/skills/tree/main/collections/p
 # One skill
 npx skills@latest add mneves75/skills --full-depth --skill poteto-mode
 
-# Manual: clone once, then link the skills into the agent's skills directory
+# Manual: clone once, then install via curated profiles (skips pstack/babysit when babysit-pr is installed)
 git clone https://github.com/mneves75/skills.git
-ln -s "$PWD/skills/collections/pstack/skills/"* ~/.agents/skills/   # Codex, shared catalog
+python3 skills/tools/scripts/install-skills.py --list-profiles
+python3 skills/tools/scripts/install-skills.py --profile pstack-compatible --target ~/.agents/skills/ --apply
+# Or install root skills + pstack deduped together (66 skills; excludes superseded pstack/babysit):
+python3 skills/tools/scripts/install-skills.py --profile full-deduped --target ~/.agents/skills/ --apply
 ```
 
 The manual install table in the [root README](../../README.md#manual-git-clone) lists the
