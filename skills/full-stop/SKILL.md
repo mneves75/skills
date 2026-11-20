@@ -1,6 +1,6 @@
 ---
 name: full-stop
-description: Take a change unattended to a proven, reviewed PR that is ready for the user to merge, and never merge it. Use only when the user explicitly invokes this workflow by name, such as `/full-stop`, "run full-stop" or "use the full-stop skill". A message that merely ends with "full stop" or "Full stop." for emphasis is not an invocation.
+description: Unattended change-to-ready-PR workflow (never merges). Explicit invocation by name only (`/full-stop`, "run full-stop"); trailing "Full stop." punctuation never invokes it.
 license: MIT
 ---
 

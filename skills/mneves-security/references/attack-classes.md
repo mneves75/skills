@@ -1,6 +1,9 @@
 # Attack classes
 
-Hunting prompts for a full audit or deploy gate. The twelve audit areas say *what* to cover;
+Compact hunting prompts for standalone `mneves-security` full audits and deploy gates.
+When the sibling `security-audit` skill is installed for an explicit deep six-phase source
+audit, use `security-audit`'s domain class files instead of running both lists in parallel.
+The twelve audit areas say *what* to cover;
 these classes say *how a boundary breaks*. Select every class the inventory makes reachable,
 and record the unselected ones with the inventory fact that excludes them. A class with no
 candidate is a coverage note, not a pass: say what was traced.
