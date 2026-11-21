@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.52.2] - 2026-11-21
+
+### Fixed
+- **site**: the landing page's changelog rows wrap long words, so the page no longer scrolls
+  sideways on a 390px screen. A 1.52.0 row held one unbreakable word and widened the page to
+  423px; `tools/scripts/check-site-copy.sh` failed its overflow case on the live 1.52.0 and 1.52.1
+  sites and passes all nine cases on this release.
+
+### Changed
+- **readiness ledger and specs**: fold the 1.52.1 binding run (cursor `f91d7cb`, audit
+  `995f940`) into `docs/readiness/ledger.md` and `MEMORY.md`, and record the 1.52.1 release results
+  (live routing eval 240 of 240, baseline control 228 of 240, full suite 55 of 55) in the
+  economy-fallback and routing-eval specs.
+
 ## [1.52.1] - 2026-11-21
 
 ### Changed

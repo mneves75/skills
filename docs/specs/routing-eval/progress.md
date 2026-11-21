@@ -96,6 +96,9 @@ dispatch the model and reasoning effort each seat is meant to run at? Cases live
   are marked changed and must fail on the 1.52.0 text. O8, O14 and O17 are no longer marked
   changed, because the 1.52.0 text already sets their expectations. 1.52.0 itself added O16 to
   O18 and changed O8, O14 and O17 without a revision line or an entry here.
+  Live run on the release commit `995f940` (2026-11-21T03:27Z to 03:42Z): 240/240, 40 cases on
+  both consumers, threshold met. Baseline on `633a2b3`: 228/240, the 12 failures exactly O13 and
+  O19 on both consumers, so the control was met.
 
 ## Open
 

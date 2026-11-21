@@ -112,3 +112,13 @@ edited, because each changes run cost or a recorded owner rule):
   This commit moves the Defaults row, O13's expected model and anchor, the CHANGELOG, MEMORY and
   the routing-eval record to `glm-5.3`, with `~/.claude` following. The eval, the suite, the scans
   and independent acceptance rerun on this commit's tree.
+- 2026-11-21 (UTC), released: `995f940` (tree `5871977`) passed every gate. Live eval 240 of
+  240 (03:27Z to 03:42Z); baseline control on `633a2b3` 228 of 240, failing exactly O13 and O19;
+  full suite 55 of 55; PR CI run 44861220482 passed every job; fresh `claude -p` and `codex exec`
+  sessions name `opencode-go/glm-5.3` for the pi seat and DeepSeek only as the final fallback.
+  Independent acceptance (GPT-6.2 Astra) PASS on the first try, one Low (stale release names in
+  private waiver reasons, reconciled in the final records). Merged as `f91d7cb` (PR #71), CI run
+  44863927813 and Pages run 44865530911 succeeded, the seven served files matched the tree byte
+  for byte, and `v1.52.1` was tagged. The owner then approved moving the host defaults (pi's
+  `defaultModel`, the Mac Hermes gateway) to `glm-5.3`; that host configuration is outside this
+  repository.
