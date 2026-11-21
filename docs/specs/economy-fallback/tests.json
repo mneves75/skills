@@ -1,0 +1,16 @@
+{
+  "spec": "economy-fallback",
+  "release": "1.52.1",
+  "tests": [
+    {"id": "glm-smoke", "command": "pi -p --mode json --model opencode-go/glm-5.3-flash @brief.md (scratch dir, planted bug)", "status": "pass", "evidence": "calc.py fixed, add(2,3)=5; 16 events provider opencode-go model glm-5.3-flash"},
+    {"id": "deepseek-smoke", "command": "pi -p --mode json --model opencode-go/deepseek-v4.1-flash 'Reply with the single word: ok'", "status": "pass", "evidence": "rc=0, answered ok, model deepseek-v4.1-flash"},
+    {"id": "defaults-block", "command": "tools/scripts/check-defaults-block.sh", "status": "pending"},
+    {"id": "agentskills-validate", "command": ".scratch/skills-ref/bin/agentskills validate skills/mneves-fable-orchestrator", "status": "pending"},
+    {"id": "routing-eval-check", "command": "python3 tools/scripts/routing-eval.py check", "status": "pending"},
+    {"id": "routing-eval-unit", "command": "python3 tools/scripts/routing-eval.test.py", "status": "pending"},
+    {"id": "routing-eval-candidate", "command": "python3 tools/scripts/routing-eval.py run <candidate> --out <dir>", "status": "pending"},
+    {"id": "routing-eval-baseline", "command": "python3 tools/scripts/routing-eval.py run 633a2b3 --baseline --out <dir>", "status": "pending"},
+    {"id": "global-refs-probe", "command": "claude -p / codex exec reading ~/.claude references", "status": "pending"},
+    {"id": "full-suite", "command": "AGENTS.md Commands list", "status": "pending"}
+  ]
+}

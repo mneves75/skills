@@ -90,6 +90,12 @@ dispatch the model and reasoning effort each seat is meant to run at? Cases live
   the run was stopped. Earlier runs loaded the same text (about the same input tokens) without
   that item. Run `--out` outside any repository, so no project instruction file reaches either
   consumer.
+- **1.52.1, revision 12.** The economy executor moves to GLM-5.3-Flash and a new economy
+  fallback row keeps DeepSeek v4.1 Flash as the last resort. O13 now expects the new model and
+  new O19 expects the economy fallback when only the economy executor's model is refused; both
+  are marked changed and must fail on the 1.52.0 text. O8, O14 and O17 are no longer marked
+  changed, because the 1.52.0 text already sets their expectations. 1.52.0 itself added O16 to
+  O18 and changed O8, O14 and O17 without a revision line or an entry here.
 
 ## Open
 

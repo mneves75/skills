@@ -30,6 +30,7 @@ whole skill.
 | Reviewer | Independent review of a fixed Git target (`autoreview` when installed) |
 | Specialist | Deliberate comparison or capability-specific work |
 | Economy executor | Bounded, test-first tickets on a low-cost model |
+| Economy fallback | Last resort when the economy executor's model and every other seat for the role cannot run |
 
 The user's current instruction beats this routing. Preserve explicit caller overrides and
 specialist selections. The heavy executor is an executor: do not insert an advisor-only handoff
@@ -52,7 +53,8 @@ reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoni
 planner           = Fable, latest release (Claude subagent alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (planning)
 plan advisor      = Fable, latest release (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (advice and plan review)
 specialist        = gpt-6.2-sol, reasoning high (specialist execution; a specialist review takes the reviewer seat)
-economy executor  = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the only substitute when no Claude, Codex, or coding fallback seat for that role can run)
+economy executor  = opencode-go/glm-5.3-flash, reasoning high (pi on any host; the only substitute when no Claude, Codex, or coding fallback seat for that role can run)
+economy fallback  = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the last resort, only when the economy executor's model cannot run)
 ```
 
 When a Codex coding seat cannot run (Codex not installed, out of quota, not signed in, or
@@ -68,9 +70,9 @@ Codex seat; without an enclosing container or VM, report the coding fallback blo
 substitution and the error each Codex account returned.
 
 When review runs, a seat never reviews what it built. That covers the workers, the heavy executor,
-the coding fallback, the economy executor, and the main session when it kept the hardest part: a
+the coding fallback, both economy rows, and the main session when it kept the hardest part: a
 change is reviewed by the reviewer value in the other column from the seat that built it, and a
-coding fallback or economy executor change by either column's reviewer (never the same model).
+coding fallback or economy row change by either column's reviewer (never the same model).
 When no reviewer value allowed for a change can run except the Codex one, and no Codex account
 can run (Codex not installed, out of quota, not signed in, or refused by host policy; a slow or
 failing run does not count), the reviewer row's first fallback reviews in its place, in a fresh
@@ -82,13 +84,13 @@ disclosure before dispatching). When `autoreview` or that first fallback is unav
 disallowed by that data or provider policy, the reviewer row's second fallback reviews in its
 place, in a fresh context, gates and security acceptance included. Record the substitution and the
 error each skipped seat returned. A fallback never reviews a change its own model built; when it is
-excluded and no other model can review, report the gate blocked, and the economy executor does not
-take that review.
+excluded and no other model can review, report the gate blocked, and neither economy row takes that
+review.
 Planning and plan advice run only on their own seats. Crossing means the change leaves for the
 other provider: authorize that disclosure as you would for any review provider before dispatching
 it.
 
-Verified against the vendor model lists on 2026-11-19; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-11-21; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file). A seat that names a versioned alias stays on that release
 when the host's short alias moves; check what each short alias resolves to on every release.
@@ -113,10 +115,16 @@ test written first. Dispatching to it sends the code to that row's provider, so:
 - Nothing else relaxes. Effort selection, evidence, acceptance and permission rules are the
   same, and this seat gains no authority another seat lacked.
 
-It is also the only substitute, apart from the coding fallback and the reviewer row's named
-fallbacks, when no authorized primary seat for a role can run: not installed, not signed in, out
-of quota, or refused by host policy. Record why each applicable primary failed, and announce the
-substitution the same way.
+It is also the only substitute, apart from the coding fallback, the reviewer row's named
+fallbacks and the economy fallback, when no authorized primary seat for a role can run: not
+installed, not signed in, out of quota, or refused by host policy. Record why each applicable
+primary failed, and announce the substitution the same way.
+
+The economy fallback row is the last resort. It takes a ticket only when the economy executor's
+model cannot run (refused, unavailable or withdrawn by its provider) and no other authorized seat
+for that role can run either; never choose it first, for cost or any other reason. When both
+economy rows draw on one provider allowance and that allowance is spent, the fallback cannot run
+either: report the seat blocked. Every rule above for the economy executor binds it too.
 
 Reasoning-effort names are vendor enums and change; if one is rejected, read the CLI's `--help`
 rather than guessing a neighbouring value.
