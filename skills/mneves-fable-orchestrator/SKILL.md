@@ -30,7 +30,7 @@ whole skill.
 | Reviewer | Independent review of a fixed Git target (`autoreview` when installed) |
 | Specialist | Deliberate comparison or capability-specific work |
 | Economy executor | Bounded, test-first tickets on a low-cost model |
-| Economy fallback | Last resort when the economy executor's model and every other seat for the role cannot run |
+| Economy fallback | Last resort: only when the economy executor's model cannot run and no other authorized seat for the role can |
 
 The user's current instruction beats this routing. Preserve explicit caller overrides and
 specialist selections. The heavy executor is an executor: do not insert an advisor-only handoff
@@ -53,8 +53,8 @@ reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoni
 planner           = Fable, latest release (Claude subagent alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (planning)
 plan advisor      = Fable, latest release (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (advice and plan review)
 specialist        = gpt-6.2-sol, reasoning high (specialist execution; a specialist review takes the reviewer seat)
-economy executor  = opencode-go/glm-5.3-flash, reasoning high (pi on any host; the only substitute when no Claude, Codex, or coding fallback seat for that role can run)
-economy fallback  = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the last resort, only when the economy executor's model cannot run)
+economy executor  = opencode-go/glm-5.3-flash, reasoning high (pi on any host; a substitute when no Claude, Codex, or coding fallback seat for that role can run; only the economy fallback comes after it)
+economy fallback  = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the last resort: only when the economy executor's model cannot run and no other authorized seat for the role can)
 ```
 
 When a Codex coding seat cannot run (Codex not installed, out of quota, not signed in, or
@@ -115,16 +115,17 @@ test written first. Dispatching to it sends the code to that row's provider, so:
 - Nothing else relaxes. Effort selection, evidence, acceptance and permission rules are the
   same, and this seat gains no authority another seat lacked.
 
-It is also the only substitute, apart from the coding fallback, the reviewer row's named
-fallbacks and the economy fallback, when no authorized primary seat for a role can run: not
-installed, not signed in, out of quota, or refused by host policy. Record why each applicable
-primary failed, and announce the substitution the same way.
+It is also the only substitute, apart from the coding fallback and the reviewer row's named
+fallbacks, when no authorized primary seat for a role can run: not installed, not signed in, out
+of quota, or refused by host policy. Record why each applicable primary failed, and announce the
+substitution the same way. Only the economy fallback comes after it, last in every chain.
 
 The economy fallback row is the last resort. It takes a ticket only when the economy executor's
-model cannot run (refused, unavailable or withdrawn by its provider) and no other authorized seat
-for that role can run either; never choose it first, for cost or any other reason. When both
-economy rows draw on one provider allowance and that allowance is spent, the fallback cannot run
-either: report the seat blocked. Every rule above for the economy executor binds it too.
+model cannot run and no other authorized seat for the role can; the model cannot run when its
+provider refuses, removes or does not offer it. Never choose it first, for cost or any other
+reason. When both economy rows draw on one provider allowance and that allowance is spent, the
+fallback cannot run either: report the seat blocked. Every rule above for the economy executor
+binds it too.
 
 Reasoning-effort names are vendor enums and change; if one is rejected, read the CLI's `--help`
 rather than guessing a neighbouring value.
