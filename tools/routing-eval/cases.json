@@ -12,7 +12,7 @@
   "9: 1.51.1 names a reviewer fallback for when no Codex account can run (owner, 2026-11-12). O3 and O4 follow the edited reviewer row with unchanged expectations; new O14 expects that fallback (claude-fable-5-2 at high) and is changed. O1 is no longer marked changed: 1.51.0 already sets its expectation, so the 1.51.0 baseline must pass it.",
   "10: 1.51.2 changes no routing text; only the Defaults block's verified-on date moves, so every case runs again on the candidate. O14 is no longer marked changed: 1.51.1 already sets its expectation, so the 1.51.1 baseline must pass it. No expectation changed.",
   "11: 1.51.5 folds in the unreleased 1.51.4 (whose routing values equal 1.51.3's) and moves every Codex Sol route to gpt-6.2-sol at high and the Codex planner and plan advisor to gpt-6.2-astra at high (owner, 2026-11-17); Pi rows keep the 6.1 ids because Pi lists no 6.2 model. Changed against the 1.51.3 baseline (9d90d4a): O4 and O8 (gpt-6.2-sol, high), P19 (gpt-6.2-sol at high, no longer clarified: adaptation 08 now says the Codex mapping's level takes the place of the sheet's default effort line) and new O15 (the Codex plan advisor, gpt-6.2-astra at high). The orchestrator anchors follow the edited Defaults rows, and O3's scenario names the builder as gpt-6.2-sol (wording only; O3 stays unchanged); every other expectation is unchanged. The Codex consumer moves to gpt-6.2-sol at high, so the baseline run uses that consumer too.",
-  "12: 1.52.1 moves the economy executor to opencode-go/glm-5.3-flash at reasoning high and adds an economy fallback row, opencode-go/deepseek-v4.1-flash at reasoning high, the last resort: only when the economy executor's model cannot run and no other authorized seat for the role can (owner, 2026-11-20). Changed against the 1.52.0 baseline (633a2b3): O13 (glm-5.3-flash, high) and new O19 (the economy fallback, deepseek-v4.1-flash at high). O8, O14 and O17 are no longer marked changed: 1.52.0 already sets their expectations (it added O16-O18 and changed O8, O14 and O17 without a revision line), so the 1.52.0 baseline must pass them. The O13 anchor follows the edited Defaults row; every other expectation is unchanged."
+  "12: 1.52.1 moves the economy executor to opencode-go/glm-5.3 at reasoning high and adds an economy fallback row, opencode-go/deepseek-v4.1-flash at reasoning high, the last resort: only when the economy executor's model cannot run and no other authorized seat for the role can (owner, 2026-11-20). Changed against the 1.52.0 baseline (633a2b3): O13 (glm-5.3-flash, high) and new O19 (the economy fallback, deepseek-v4.1-flash at high). O8, O14 and O17 are no longer marked changed: 1.52.0 already sets their expectations (it added O16-O18 and changed O8, O14 and O17 without a revision line), so the 1.52.0 baseline must pass them. The O13 anchor follows the edited Defaults row; every other expectation is unchanged."
  ],
  "purpose": "Expected-outcome eval of the routing text: does an agent reading the shipped skill text dispatch the expected model and reasoning effort for each seat? Expectations come from the owner's rules and the orchestrator's Defaults block, frozen before any run.",
  "threshold": "Candidate: every sample of every case passes on both consumers. Baseline control (the previous release's text, run with --baseline): every case marked changed fails on every sample, and every unchanged case passes, and no sample errors; a changed case that passes on the baseline does not discriminate: the control fails until the case is replaced or no longer marked changed. A case marked changed \"clarified\" had its source reworded to remove an ambiguity without changing its expected answer: a candidate run judges it like any case, and a baseline run records its counts in clarified_on_baseline and fails it only on an errored sample. Only a full run (every case on both consumers) can meet either threshold.",
@@ -635,13 +635,13 @@
    "scenario": "Following this skill, you hand a task to the seat that runs on pi. Report the exact model id the text binds to that seat and the reasoning effort it sets for it (`none` if it names none). `how` is dispatch-parameter.",
    "expected": {
     "model": [
-     "opencode-go/glm-5.3-flash"
+     "opencode-go/glm-5.3"
     ],
     "effort": [
      "high"
     ]
    },
-   "known_failure": "opencode-go/deepseek-v4.1-flash (the 1.52.0 binding, now the economy fallback), a Claude or Codex model, or no effort."
+   "known_failure": "opencode-go/deepseek-v4.1-flash (the 1.52.0 binding, now the economy fallback), opencode-go/glm-5.3-flash (an earlier 1.52.1 draft), a Claude or Codex model, or no effort."
   },
   {
    "id": "O15-plan-advisor-codex",
@@ -1175,7 +1175,7 @@
   "O13-economy-executor": [
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
-    "text": "economy executor  = opencode-go/glm-5.3-flash, reasoning high (pi on any host; a substitute when no Claude, Codex, or coding fallback seat for that role can run; only the economy fallback comes after it)"
+    "text": "economy executor  = opencode-go/glm-5.3, reasoning high (pi on any host; a substitute when no Claude, Codex, or coding fallback seat for that role can run; only the economy fallback comes after it)"
    }
   ],
   "O14-reviewer-fallback-no-codex": [

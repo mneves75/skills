@@ -53,7 +53,7 @@ reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoni
 planner           = Fable, latest release (Claude subagent alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (planning)
 plan advisor      = Fable, latest release (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (advice and plan review)
 specialist        = gpt-6.2-sol, reasoning high (specialist execution; a specialist review takes the reviewer seat)
-economy executor  = opencode-go/glm-5.3-flash, reasoning high (pi on any host; a substitute when no Claude, Codex, or coding fallback seat for that role can run; only the economy fallback comes after it)
+economy executor  = opencode-go/glm-5.3, reasoning high (pi on any host; a substitute when no Claude, Codex, or coding fallback seat for that role can run; only the economy fallback comes after it)
 economy fallback  = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the last resort: only when the economy executor's model cannot run and no other authorized seat for the role can)
 ```
 

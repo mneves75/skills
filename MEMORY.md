@@ -14,7 +14,7 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
-- **1.52.1 candidate**: the orchestrator's economy executor moves to GLM-5.3-Flash on pi and a new
+- **1.52.1 candidate**: the orchestrator's economy executor moves to GLM-5.3 on pi and a new
   economy fallback row keeps DeepSeek v4.1 Flash as the last resort (owner, 2026-11-20); the
   OpenCode Go allowance is shared, so a spent allowance blocks both. Routing-eval revision 12
   (`O13` changed, new `O19`). Folds in the 1.51.5 and 1.52.0 ledger bookkeeping. Binding results

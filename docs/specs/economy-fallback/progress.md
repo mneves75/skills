@@ -4,18 +4,22 @@ Branch `feat/economy-glm-deepseek-final`, worktree `.scratch/wt-economy-glm`, ba
 633a2b3 (`v1.52.0`). Owner request, 2026-11-20: "usar deepseek somente em ultimo caso, como
 fallback final; antes use opencode-go/GLM-5.3-Flash; ... adapte todos os meus arquivos globais
 agents.md/claude.md e skills; deploy to prod when done", then "yes to all ... deploy when done".
+Owner change, 2026-11-21, before merge: "change to glm-5.3", confirmed as the release model
+(`opencode-go/glm-5.3`, not the Flash variant).
 
 ## Task analysis
 
 1. Playback: the pi seat (the orchestrator's economy executor) moves from
-   `opencode-go/deepseek-v4.1-flash` to `opencode-go/glm-5.3-flash`. DeepSeek stays only as the
+   `opencode-go/deepseek-v4.1-flash` to `opencode-go/glm-5.3` (first `glm-5.3-flash`; owner
+   change 2026-11-21). DeepSeek stays only as the
    last link of the chain, used when the GLM model itself cannot run. Every place an agent reads
    that routing changes with it: the owner's global instruction files, which every agent CLI on
    the owner's hosts reads, and the orchestrator skill, which
    ships from this repository. Then release this repository and propagate to the store and hosts.
 2. Deeper version: treat the routing text as a spec with executable checks, not prose. Start
    from the provider's own catalog and a real dispatch, not the id as typed (the owner wrote
-   `GLM-5.3-Flash`; `pi --list-models` lists `glm-5.3-flash`). Prove it with the frozen routing
+   `GLM-5.3-Flash`, then `glm-5.3`; `pi --list-models` lists both `glm-5.3-flash` and `glm-5.3`
+   under `opencode-go`). Prove it with the frozen routing
    eval run live on both consumers (a changed O13 and a new O19 that fail on the 1.52.0 text),
    the derived-vocabulary Defaults guard, a fresh Claude and Codex session reading the edited
    global references, and store/host parity after release.
@@ -29,7 +33,9 @@ agents.md/claude.md e skills; deploy to prod when done", then "yes to all ... de
    - GLM cannot act as an executor (no tool use, wrong provider). Trigger: first real ticket.
      Cost: the seat silently fails. Experiment (done): `pi -p --mode json --model
      opencode-go/glm-5.3-flash` fixed a planted bug in a scratch file; every event names provider
-     `opencode-go`, model `glm-5.3-flash`. DeepSeek answered the same way.
+     `opencode-go`, model `glm-5.3-flash`. DeepSeek answered the same way. Repeated for
+     `opencode-go/glm-5.3` at `--thinking high` on 2026-11-21: it fixed the same planted bug
+     (`add(2,3)` returns 5) and every event that names a model names `glm-5.3` on `opencode-go`.
    - The eval cannot tell the new text from the old. Trigger: O19 expects DeepSeek, which the
      1.52.0 text already names for the pi seat, so a careless scenario passes on the baseline and
      proves nothing. Cost: an unearned green gate. Experiment: the `--baseline` run on 633a2b3,
@@ -98,3 +104,11 @@ edited, because each changes run cost or a recorded owner rule):
 - T8 to T10 run on the commit that carries this entry: the routing eval, the full suite, the
   scans, the review and the gate records rerun on its tree; the eval and suite results above are
   from `c8c0890`, before the wording fix.
+- 2026-11-21 (UTC): before merge, the owner switched the release model to `opencode-go/glm-5.3`.
+  The release commit `5b1b012` (with `glm-5.3-flash`) had passed every gate: live eval 240 of 240,
+  baseline control 228 of 240 failing only O13 and O19, full suite 55 of 55, PR CI 5 of 5, and
+  independent acceptance PASS on its second try (the first failed on missing global Pi rules and
+  record provenance, fixed in `~/.claude` `25fdaf0` and the private records). It was not merged.
+  This commit moves the Defaults row, O13's expected model and anchor, the CHANGELOG, MEMORY and
+  the routing-eval record to `glm-5.3`, with `~/.claude` following. The eval, the suite, the scans
+  and independent acceptance rerun on this commit's tree.

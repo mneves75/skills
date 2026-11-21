@@ -8,8 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.52.1] - 2026-11-21
 
 ### Changed
-- **mneves-fable-orchestrator**: the economy executor moves to `opencode-go/glm-5.3-flash` at
-  reasoning high (owner, 2026-11-20), and a new economy fallback row keeps
+- **mneves-fable-orchestrator**: the economy executor moves to `opencode-go/glm-5.3` at
+  reasoning high (owner, 2026-11-20 and 2026-11-21), and a new economy fallback row keeps
   `opencode-go/deepseek-v4.1-flash` at reasoning high as the last resort. The fallback takes a
   ticket only when the economy executor's model cannot run and no other authorized seat for the
   role can; when both rows draw on one spent provider allowance, the seat is reported blocked.
