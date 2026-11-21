@@ -14,7 +14,13 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
-- **1.52.0 candidate**: adds native `--engine agy` to `autoreview` (Antigravity CLI `>= 1.5.12`,
+- **1.52.1 candidate**: the orchestrator's economy executor moves to GLM-5.3 on pi and a new
+  economy fallback row keeps DeepSeek v4.1 Flash as the last resort (owner, 2026-11-20); the
+  OpenCode Go allowance is shared, so a spent allowance blocks both. Routing-eval revision 12
+  (`O13` changed, new `O19`). Folds in the 1.51.5 and 1.52.0 ledger bookkeeping. Binding results
+  live in the private exact-candidate gate records and the `v1.52.1` tag message.
+- **1.52.0** (2026-11-19 UTC closeout): adds native `--engine agy` to `autoreview`
+  (Antigravity CLI `>= 1.5.12`,
   `gemini-4-neon-xhigh`, stdin NDJSON `stream-json`, isolated `HOME` staging auth only to block
   global/plugin hooks, explicit `modelProvider: "gemini"` opt-in for `GEMINI_API_KEY`,
   `--disable-slash-commands`, `--sandbox`, session-only `--settings` enforcing Default mode
@@ -28,15 +34,20 @@ measure whether a *target* codebase is ready for agents.
   `gpt-6.2-sol` in `mneves-fable-orchestrator` and pstack adaptation 11 (skipping client,
   personal, regulated, or unapproved-provider repos), moves routine Codex seats to `medium`
   reasoning, and updates `tools/routing-eval/cases.json` (`O8`, `O14`, plus `O16`, `O17`, `O18`).
-  Binding results live in the private exact-candidate gate records and the `v1.52.0` tag message.
+  Merged as `633a2b3` (PR #70, audit `99fd898`, identical tree `58d2bdd`), tagged `v1.52.0`
+  after CI run 44633046725 and Pages run 44637661958 succeeded and served files matched byte for
+  byte. Security WAIVED six standing controls; readiness ready with 26 waivers (the 16
+  candidate-only ones to 2026-11-28T23:59:59Z); independent acceptance passed (diff-only, seven
+  Low). The 1.51.5 and 1.52.0 ledger bookkeeping is folded into the next release (cursor `633a2b3`).
 - **1.51.5** (2026-11-18 UTC closeout; 1.51.4 folded in, never released): Sol and Astra routes
   moved to `gpt-6.2-sol` and `gpt-6.2-astra` at reasoning high (Pi rows stayed on 6.1);
   ROOT-B-H01 fixed (SRS output neutralizes terminal control bytes; `export --output FILE` writes
   an owner-only `0600` file); delegation briefs tell workers not to call an advisor tool and to
   use bounded reads. Merged as `db40ae4` (PR #67, audit `bb61f2f`, identical tree `23bc86f`),
   tagged `v1.51.5` after CI run 44246566334 and Pages run 44249875672 succeeded and served files
-  matched byte for byte. Security WAIVED six standing controls; readiness ready with 26 waivers;
-  independent acceptance passed.
+  matched byte for byte. Security WAIVED six standing controls; readiness ready with 26 waivers
+  (the 16 candidate-only ones renewed to 2026-11-28T23:59:59Z); independent acceptance passed on
+  the seventh attempt.
 - **1.51.3** (2026-11-14 UTC closeout): the Opus 5.5 prompt-audit edits: pstack adaptation 09 (the
   `general-purpose` fallback for `pstack:*` agent types, setup-pstack's rules claim, boosters and
   fixed caps) and the orchestrator and teach-back-srs cleanups. Merged as `9d90d4a` (PR #61, audit

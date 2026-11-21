@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.52.1] - 2026-11-21
+
+### Changed
+- **mneves-fable-orchestrator**: the economy executor moves to `opencode-go/glm-5.3` at
+  reasoning high (owner, 2026-11-20 and 2026-11-21), and a new economy fallback row keeps
+  `opencode-go/deepseek-v4.1-flash` at reasoning high as the last resort. The fallback takes a
+  ticket only when the economy executor's model cannot run and no other authorized seat for the
+  role can; when both rows draw on one spent provider allowance, the seat is reported blocked.
+  Both economy rows keep the data-disclosure, announcement and no-self-review rules.
+  `tools/routing-eval/cases.json` revision 12: `O13` expects the new model and new `O19` the
+  economy fallback, both changed against 1.52.0; `O8`, `O14` and `O17` are no longer marked changed.
+- **Readiness ledger and `MEMORY.md`**: fold in the 1.51.5 and 1.52.0 binding results
+  (production cursor `633a2b3`).
+
 ## [1.52.0] - 2026-11-19
 
 ### Added

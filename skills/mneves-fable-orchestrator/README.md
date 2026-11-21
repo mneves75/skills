@@ -19,6 +19,7 @@ Delegate only when the work is independent, substantial, and objectively verifia
 | Reviewer | A read-only Claude subagent, `autoreview` (Codex or `--engine agy`), or a read-only Codex run (model per the Defaults block) | Independent review of a fixed Git target, never by the model that built it |
 | Specialist | A deliberately chosen model (model per the Defaults block) | Comparison or capability-specific work |
 | Economy executor | A low-cost model through `pi` (model per the Defaults block) | Bounded tickets whose proof is a test written first; never a repository that declares client, personal or regulated data |
+| Economy fallback | A second low-cost model through `pi` (model per the Defaults block) | Last resort: only when the economy executor's model cannot run and no other authorized seat for the role can |
 
 User-requested multi-phase work needs a driver that survives context loss: a lane, a checked-in plan file, or your harness's long-task mechanism.
 

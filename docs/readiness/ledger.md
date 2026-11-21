@@ -5,12 +5,56 @@ Deploy artifact: `site/`, published to GitHub Pages by `.github/workflows/static
 Profile: hosted ui (static Pages artifact); distributed db, ai, user-input, external-calls and local-persistence; unit flags ui/db/ai. Unit . includes the shipped SQLite SRS and AI tools, not only site/. Stake/customer-data applicability needs owner determination; the final 1.46.0 and 1.46.1 assessments conservatively treated affected controls as blockers. Hosted stake: false is descriptive only and does not downgrade the whole unit.
 Regulated: none established; no operator-specific data, market or contract determination is invented. Local privacy copies remain applicable. The UX-07 contract gate is inactive; this is not a legal exemption claim.
 Contracts: none
-Cursors: production 9d90d4a89395a2fb39b30f2fd6d2783de4075a96 (2026-11-14 UTC; v1.51.3, original audit `8ff1b754de81bba6ed352e59f7ead526e71ed9b9`, identical tree `921e82817465637fd1a584539de662d1380f0d6c`; previous cursor 704904c00502098b397c16ab3490d072d502861c, v1.51.2)
+Cursors: production 633a2b32f8de02ae0540e3ec160ae98e64c48e46 (2026-11-19 UTC; v1.52.0, original audit `99fd898003a0e97d95e67bc861bc323ccbcdeb0b`, identical tree `58d2bddcbc7a4ff2bf7a8aebe2fa1f6e7cf7ce71`; previous cursor db40ae488f2c69fc251b5d666839c10fdae03fab, v1.51.5, whose previous cursor was 9d90d4a89395a2fb39b30f2fd6d2783de4075a96, v1.51.3)
 Baseline: 2026-11-05 at 24f387652c70c3507af5fc310d3eae5cd9c49896 (full-unit source assessment; maximum age 90 days; expires 2027-02-03T23:21:54Z). Final dispositions below come from binding-assessment.json, not the earlier not-ready baseline draft.
-Binding run for production: 2026-11-14T16:43:47Z at 9d90d4a89395a2fb39b30f2fd6d2783de4075a96 (v1.51.3; original audit `8ff1b754de81bba6ed352e59f7ead526e71ed9b9`, identical tree `921e82817465637fd1a584539de662d1380f0d6c`) · verdict ready · 0 open blockers · independent acceptance pass · 26 WAIVED · historical record `.scratch/readiness/9d90d4a89395a2fb39b30f2fd6d2783de4075a96/production.json`, valid_until 2026-11-15T16:28:17Z. Earlier binding runs remain in Gate history.
+Binding run for production: 2026-11-19T23:27:18Z at 633a2b32f8de02ae0540e3ec160ae98e64c48e46 (v1.52.0; original audit `99fd898003a0e97d95e67bc861bc323ccbcdeb0b`, identical tree `58d2bddcbc7a4ff2bf7a8aebe2fa1f6e7cf7ce71`) · verdict ready · 0 open blockers · independent acceptance pass · 26 WAIVED · historical record `.scratch/readiness/633a2b32f8de02ae0540e3ec160ae98e64c48e46/production.json`, valid_until 2026-11-20T21:54:09Z. Earlier binding runs remain in Gate history.
 Owners: proposed roles only, none accepted · review proposed: maintainer · data proposed: maintainer · delivery and cost proposed: maintainer · on-call proposed: maintainer, backup unassigned · security patching proposed: maintainer · compliance proposed: maintainer · testing proposed: maintainer · scope proposed: maintainer · architecture proposed: maintainer · memory proposed: maintainer
 
-## Recorded 1.51.3 binding result
+## Recorded 1.52.0 binding result
+
+The production record for 1.52.0 binds audit `99fd898003a0e97d95e67bc861bc323ccbcdeb0b`, merged to
+production as `633a2b32f8de02ae0540e3ec160ae98e64c48e46` (PR #70, identical tree
+`58d2bddcbc7a4ff2bf7a8aebe2fa1f6e7cf7ce71`): verdict ready, zero open blockers, independent
+acceptance pass and 26 waivers (`.scratch/readiness/99fd898003a0e97d95e67bc861bc323ccbcdeb0b/production.json`;
+the merge record reuses it). The security gate recorded WAIVED for SEC-15, SEC-17, SEC-20, SEC-21,
+SEC-23 and CMP-06 (`.scratch/security-gate/99fd898003a0e97d95e67bc861bc323ccbcdeb0b/production.json`).
+That record cites no per-control binding assessment, so the per-control rows below keep their
+1.51.3 citations; this fold changes no row's status or tier. The cited routing-eval run passed
+234 of 234 samples over 39 cases on `d2b6fa2` (tree `95c79a7`), not on the candidate tree; its
+baseline on `db40ae4` recorded 216 pass and 18 fail of 234. Independent acceptance recorded PASS
+with no Critical, High or Medium finding and seven Low, from a diff-only review of the
+`d38fcad` delta; CI run 44629559709 on the candidate succeeded for every job. CI run 44633046725
+on `main` and Pages run 44637661958 succeeded before the `v1.52.0` tag.
+
+The 1.51.5 record binds audit `bb61f2fb6c0f9a0af9716b8de409a35eca48e37d`, merged to production
+as `db40ae488f2c69fc251b5d666839c10fdae03fab` (identical tree `23bc86fdffc1ce7f5693d67d7d3e9b79f2be7ac6`):
+verdict ready, zero open blockers, independent acceptance pass and 26 waivers
+(`.scratch/readiness/bb61f2fb6c0f9a0af9716b8de409a35eca48e37d/production.json`; the merge record
+reuses it). Its per-control assessment
+(`.scratch/readiness/bb61f2fb6c0f9a0af9716b8de409a35eca48e37d/binding-assessment.json`, cursor
+`9d90d4a`, 136 controls) kept the status and effective tier of every control in the 1.51.3
+assessment (`8ff1b75`). AI-01 stayed PASS on a fresh live routing-eval run (216 of 216 samples
+over 36 cases on the candidate tree; the baseline on `9d90d4a` recorded 192 pass and 24 expected
+fail). Independent acceptance passed on the seventh attempt with no open Critical or High; the two
+introduced Low findings, ROOT-A-R01 and ROOT-A-H01, were fixed before it. The security gate
+recorded WAIVED for the same six controls. CI run 44246566334 on `main` and Pages run 44249875672
+succeeded before the `v1.51.5` tag.
+
+The 26 waivers on both releases keep their underlying gaps and owner `@mneves75`:
+- Ten existing controls (SEC-15, SEC-17, SEC-20, SEC-21, SEC-23, CMP-06, DEL-04, DEL-09,
+  ASY-02, OPS-04) expire 2027-01-25T23:59:59Z; any later reuse still needs a fresh exact-candidate gate.
+- Sixteen candidate-only controls (AI-02, DM-04, BR-01, BR-02, BR-03, BR-04, DEL-05, CST-02,
+  OBS-02, OBS-03, OBS-04, OBS-07, TST-04, MNT-02, OPS-05 and OPS-06) were renewed to
+  2026-11-28T23:59:59Z, conditionally on unchanged gaps, for 1.51.5
+  (`.scratch/security-gate/bb61f2fb6c0f9a0af9716b8de409a35eca48e37d/owner-approval.json`) and
+  confirmed for 1.52.0 (`.scratch/security-gate/99fd898003a0e97d95e67bc861bc323ccbcdeb0b/owner-approval.json`).
+  On 2026-11-18 the owner said they stand "until i say otherwise"; the condition still applies to
+  each later candidate, and this bookkeeping extends none of them past 2026-11-28T23:59:59Z.
+
+The next binding result belongs in its own private exact-candidate records and annotated release
+tag; these historical ready verdicts do not admit a different tree.
+
+### 1.51.3 assessment cited by the per-control rows
 
 The table records the full-unit assessment for audit `8ff1b754de81bba6ed352e59f7ead526e71ed9b9`,
 merged to production as `9d90d4a89395a2fb39b30f2fd6d2783de4075a96` (identical tree `921e82817465637fd1a584539de662d1380f0d6c`).
@@ -33,9 +77,6 @@ The 26 waivers preserve their underlying gaps and owner `@mneves75`:
   (`.scratch/security-gate/8ff1b754de81bba6ed352e59f7ead526e71ed9b9/owner-approval.json`), to
   2026-11-21T23:59:59Z. This bookkeeping renews none of them; a later candidate needs
   its own approval.
-
-The 1.51.4 binding result belongs in its own private exact-candidate records and annotated release
-tag; this historical ready verdict does not admit a different tree.
 
 ## Earlier assessment context
 
@@ -271,3 +312,5 @@ Totals: 136 rows · NOT APPLICABLE 66 · PASS 20 · FAIL 4 · NOT TESTED 20 · B
 | 2026-11-14 | production | e0b3776ae4ec261180684f998cfa86a70b2d1298 | ready (v1.51.1; original audit `577bff4`, same tree) | 0 | SEC-15 SEC-17 SEC-20 SEC-21 SEC-23 CMP-06 DEL-04 DEL-09 ASY-02 OPS-04 AI-02 DM-04 BR-01 BR-02 BR-03 BR-04 DEL-05 CST-02 OBS-02 OBS-03 OBS-04 OBS-07 TST-04 MNT-02 OPS-05 OPS-06 |
 | 2026-11-14 | production | 704904c00502098b397c16ab3490d072d502861c | ready (v1.51.2; original audit `6c83b0f`, same tree) | 0 | SEC-15 SEC-17 SEC-20 SEC-21 SEC-23 CMP-06 DEL-04 DEL-09 ASY-02 OPS-04 AI-02 DM-04 BR-01 BR-02 BR-03 BR-04 DEL-05 CST-02 OBS-02 OBS-03 OBS-04 OBS-07 TST-04 MNT-02 OPS-05 OPS-06 |
 | 2026-11-14 | production | 9d90d4a89395a2fb39b30f2fd6d2783de4075a96 | ready (v1.51.3; original audit `8ff1b75`, same tree) | 0 | SEC-15 SEC-17 SEC-20 SEC-21 SEC-23 CMP-06 DEL-04 DEL-09 ASY-02 OPS-04 AI-02 DM-04 BR-01 BR-02 BR-03 BR-04 DEL-05 CST-02 OBS-02 OBS-03 OBS-04 OBS-07 TST-04 MNT-02 OPS-05 OPS-06 |
+| 2026-11-18 | production | db40ae488f2c69fc251b5d666839c10fdae03fab | ready (v1.51.5; original audit `bb61f2f`, same tree) | 0 | SEC-15 SEC-17 SEC-20 SEC-21 SEC-23 CMP-06 DEL-04 DEL-09 ASY-02 OPS-04 AI-02 DM-04 BR-01 BR-02 BR-03 BR-04 DEL-05 CST-02 OBS-02 OBS-03 OBS-04 OBS-07 TST-04 MNT-02 OPS-05 OPS-06 |
+| 2026-11-19 | production | 633a2b32f8de02ae0540e3ec160ae98e64c48e46 | ready (v1.52.0; original audit `99fd898`, same tree) | 0 | SEC-15 SEC-17 SEC-20 SEC-21 SEC-23 CMP-06 DEL-04 DEL-09 ASY-02 OPS-04 AI-02 DM-04 BR-01 BR-02 BR-03 BR-04 DEL-05 CST-02 OBS-02 OBS-03 OBS-04 OBS-07 TST-04 MNT-02 OPS-05 OPS-06 |

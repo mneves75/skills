@@ -1,0 +1,16 @@
+{
+  "spec": "economy-fallback",
+  "release": "1.52.1",
+  "tests": [
+    {"id": "glm-smoke", "command": "pi -p --mode json --model opencode-go/glm-5.3 --thinking high @brief.md (scratch dir, planted bug)", "status": "pass", "evidence": "glm-5.3 (2026-11-21): calc.py fixed, add(2,3)=5; 82 events, every one that names a model names glm-5.3, provider opencode-go. glm-5.3-flash passed the same check on 2026-11-20"},
+    {"id": "deepseek-smoke", "command": "pi -p --mode json --model opencode-go/deepseek-v4.1-flash 'Reply with the single word: ok'", "status": "pass", "evidence": "rc=0, answered ok, model deepseek-v4.1-flash"},
+    {"id": "defaults-block", "command": "tools/scripts/check-defaults-block.sh", "status": "pass", "evidence": "defaults block OK, release 1.52.1 verified 2026-11-21 (suite rc=0)"},
+    {"id": "agentskills-validate", "command": ".scratch/skills-ref/bin/agentskills validate skills/mneves-fable-orchestrator", "status": "pass", "evidence": "Valid skill: skills/mneves-fable-orchestrator (agentskills 0.1.1)"},
+    {"id": "routing-eval-check", "command": "python3 tools/scripts/routing-eval.py check", "status": "pass", "evidence": "40 cases, anchors hold (suite rc=0)"},
+    {"id": "routing-eval-unit", "command": "python3 tools/scripts/routing-eval.test.py", "status": "pass", "evidence": "suite rc=0"},
+    {"id": "routing-eval-candidate", "command": "python3 tools/scripts/routing-eval.py run <candidate> --out <dir>", "status": "partial", "evidence": "ran on the glm-5.3-flash drafts (c8c0890, 5b1b012: candidate 240/240, baseline 228/240 failing only O13 and O19, suite 55/55 on 5b1b012); reruns on the glm-5.3 release commit"},
+    {"id": "routing-eval-baseline", "command": "python3 tools/scripts/routing-eval.py run 633a2b3 --baseline --out <dir>", "status": "partial", "evidence": "ran on the glm-5.3-flash drafts (c8c0890, 5b1b012: candidate 240/240, baseline 228/240 failing only O13 and O19, suite 55/55 on 5b1b012); reruns on the glm-5.3 release commit"},
+    {"id": "global-refs-probe", "command": "fresh claude -p and codex exec sessions reading the edited global references", "status": "pass", "evidence": "claude -p and codex exec name opencode-go/glm-5.3-flash (since moved to opencode-go/glm-5.3) for the pi seat and DeepSeek only as the final fallback"},
+    {"id": "full-suite", "command": "AGENTS.md Commands list", "status": "partial", "evidence": "ran on the glm-5.3-flash drafts (c8c0890, 5b1b012: candidate 240/240, baseline 228/240 failing only O13 and O19, suite 55/55 on 5b1b012); reruns on the glm-5.3 release commit"}
+  ]
+}
