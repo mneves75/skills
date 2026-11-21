@@ -14,11 +14,19 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
-- **1.52.1 candidate**: the orchestrator's economy executor moves to GLM-5.3 on pi and a new
-  economy fallback row keeps DeepSeek v4.1 Flash as the last resort (owner, 2026-11-20); the
-  OpenCode Go allowance is shared, so a spent allowance blocks both. Routing-eval revision 12
-  (`O13` changed, new `O19`). Folds in the 1.51.5 and 1.52.0 ledger bookkeeping. Binding results
-  live in the private exact-candidate gate records and the `v1.52.1` tag message.
+- **1.52.2 candidate**: the landing page's changelog rows wrap long words, so the page no longer
+  scrolls sideways at 390px (`check-site-copy.sh` failed its overflow case on the live 1.52.0 and
+  1.52.1 sites). Folds in the 1.52.1 ledger bookkeeping and the 1.52.1 results in the
+  economy-fallback and routing-eval specs. Binding results live in the private exact-candidate gate
+  records and the `v1.52.2` tag message.
+- **1.52.1** (2026-11-21 UTC closeout): the orchestrator's economy executor moves to GLM-5.3 on
+  pi and a new economy fallback row keeps DeepSeek v4.1 Flash as the last resort (owner,
+  2026-11-20 and 2026-11-21); the OpenCode Go allowance is shared, so a spent allowance blocks
+  both. Routing-eval revision 12 (`O13` changed, new `O19`). Merged as `f91d7cb` (PR #71, audit
+  `995f940`, identical tree `5871977`), tagged `v1.52.1` after CI run 44863927813 and Pages run
+  44865530911 succeeded and served files matched byte for byte. Security WAIVED six standing
+  controls; readiness ready with 26 waivers; independent acceptance passed (one Low). The ledger
+  bookkeeping is folded into 1.52.2 (cursor `f91d7cb`).
 - **1.52.0** (2026-11-19 UTC closeout): adds native `--engine agy` to `autoreview`
   (Antigravity CLI `>= 1.5.12`,
   `gemini-4-neon-xhigh`, stdin NDJSON `stream-json`, isolated `HOME` staging auth only to block
