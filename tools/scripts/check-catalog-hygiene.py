@@ -42,6 +42,7 @@ INLINE_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 REF_DEF_RE = re.compile(r"^\s*\[([^\]]+)\]:\s*(\S+)(?:\s+.*)?$", re.MULTILINE)
 REF_USE_FULL_RE = re.compile(r"!?\[[^\]]*\]\[([^\]]*)\]")
 REF_USE_SHORT_RE = re.compile(r"!?\[([^\]]+)\](?![(\[:])")
+INLINE_CODE_RE = re.compile(r"(`+)[\s\S]*?\1")
 SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
 
@@ -99,7 +100,7 @@ def extract_relative_links(text: str, *, cited_only: bool = False) -> list[str]:
     if not cited_only:
         return links + [target for _, target in defs]
 
-    body_without_defs = REF_DEF_RE.sub("", clean)
+    body_without_defs = INLINE_CODE_RE.sub("", REF_DEF_RE.sub("", clean))
     cited = _cited_ref_labels(body_without_defs)
     return links + [target for label, target in defs if label in cited]
 

@@ -4,7 +4,7 @@
   "branch": "feat/v2-consolidation",
   "target_version": "2.0.0",
   "base_commit": "852261b",
-  "updated_at": "2026-11-24T04:34:00Z",
+  "updated_at": "2026-11-24T05:00:00Z",
   "note": "Tracked candidate checklist only. Binding exact-candidate gate results (security, production readiness, live 2-consumer routing-eval, and independent acceptance) live in the private .scratch/ gate records and the v2.0.0 annotated tag message.",
   "checks": [
     {
@@ -23,13 +23,13 @@
       "id": "check-catalog-hygiene",
       "command": "python3 tools/scripts/check-catalog-hygiene.py && python3 tools/scripts/check-catalog-hygiene.test.py",
       "status": "pass",
-      "evidence": "22 root skills, 3292 desc chars, 2427 lines, 0 warnings, 0 errors; 8/8 tests pass"
+      "evidence": "22 root skills, 3292 desc chars, 2428 lines, 0 warnings, 0 errors; 8/8 tests pass"
     },
     {
       "id": "routing-eval-check",
       "command": "python3 tools/scripts/routing-eval.py check && python3 tools/scripts/routing-eval.test.py",
       "status": "pass",
-      "evidence": "36 cases, 94 anchors hold; 38/38 tests pass"
+      "evidence": "36 cases, 96 anchors hold; 38/38 tests pass"
     },
     {
       "id": "catalog-eval-check-and-codex-live",

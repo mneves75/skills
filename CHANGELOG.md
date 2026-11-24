@@ -16,26 +16,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   explanations.
 
 ### Added
-- **Catalog hygiene, routing benchmarks, and curated install profiles:** added
-  `tools/scripts/check-catalog-hygiene.py`, `tools/scripts/catalog-eval.py` (24-case root + 12-case
-  cross-collection stress suite), `tools/scripts/baseline-delta-eval.py`, `tools/install-profiles.json`,
-  and `tools/scripts/install-skills.py` (including automatic `pstack/babysit` deduplication when
-  `babysit-pr` is present) with offline unit tests wired into CI.
-- **collections/pstack (`/reframe` and `worker.md`):** refreshed `collections/pstack` to
-  `pstack-claude` `66181d3` (`0.9.153`) and `cursor/plugins` `0b46ec3` (pstack `0.15.46`), plus
-  adaptation `12-upstream-reframe-and-hygiene.patch` importing upstream explicit-only `/reframe`
-  (`cursor/plugins@9e278fe`, pstack `0.15.48`), bringing the collection to 43 skills. Adds
-  `poteto-mode/worker.md` (aligned with local-only autonomy), native runtime tool mappings for
+- **Catalog hygiene, routing benchmarks, and curated install profiles:** added shared stdlib
+  `tools/scripts/frontmatter.py`, `tools/scripts/check-catalog-hygiene.py`,
+  `tools/scripts/catalog-eval.py` (24-case root + 13-case cross-collection stress suite),
+  `tools/scripts/baseline-delta-eval.py`, `tools/install-profiles.json`, and
+  `tools/scripts/install-skills.py` (including automatic `pstack/babysit` deduplication when
+  a usable `babysit-pr` is present) with offline unit tests wired into CI.
+- **collections/pstack (`/reframe`, `worker.md`, and REST watcher fix):** refreshed
+  `collections/pstack` to `pstack-claude` `66181d3` (`0.9.153`) and `cursor/plugins` `0b46ec3`
+  (pstack `0.15.46`), plus adaptation `12-upstream-reframe-and-hygiene.patch` importing upstream
+  explicit-only `/reframe` (`cursor/plugins@9e278fe`, pstack `0.15.48`, bringing the collection to
+  43 skills) and `13-watch-pr-app-identity.patch` preserving GitHub app/workflow identity in REST
+  `watch-pr/cloud-reader.ts` deduplication (with the offline `watch-pr` test suite wired into CI).
+  Adds `poteto-mode/worker.md` (aligned with local-only autonomy), native runtime tool mappings for
   Antigravity (`agy-tools.md`), OMP, OpenCode 2, Kimi, and Grok, prototype-first `/sharpen`, and
   native Windows + SANY error-line fixes in `/statechart`.
 
 ### Changed
 - **DeepSeek disabled everywhere:** removed `opencode-go/deepseek-v4.1-flash` and the economy
   fallback row from `mneves-fable-orchestrator` (verified `2026-11-24`; seat now reports blocked
-  when `opencode-go/glm-5.3` and all other authorized seats cannot run), updated
-  `tools/routing-eval/cases.json` revision 13 (`O19` expects `none`/`none`, and dropped deleted
-  upstream `pstack` model-role cases `P12`, `P13`, `P16`, `P18`), and excluded
-  `poteto-mode/references/dsh-tools.md` from `collections/pstack`.
+  when `opencode-go/glm-5.3` and all other authorized seats cannot run), removed `DEEPSEEK_API_KEY`
+  from `autoreview`'s Pi forwarding allowlist, updated `tools/routing-eval/cases.json` revision 13
+  (`O19` expects `none`/`none`, `P6` expects `openai/gpt-6.2-sol` at `xhigh` when present in Pi's
+  registry, and dropped deleted upstream `pstack` model-role cases `P12`, `P13`, `P16`, `P18`), and
+  excluded `poteto-mode/references/dsh-tools.md` from `collections/pstack`.
 - **Progressive-disclosure slimming of heavy root skills:** extracted 1-level-deep references for
   `mneves-security` (`references/deploy-gate.md`), `mneves-ship-deploy` (`references/phases.md`),
   `council` (`references/invocations-and-prompts.md`), `untangle-codebase`
