@@ -149,6 +149,19 @@ class CatalogHygieneTest(unittest.TestCase):
             self.assertFalse(res_orphan["ok"])
             self.assertTrue(any("unlinked reference file" in e for e in res_orphan["errors"]), res_orphan["errors"])
 
+            # Reference label inside an HTML comment or inline link title must NOT count as cited
+            for bogus in (
+                "See [guide](references/guide.md).\n<!-- [orphan] -->\n\n[orphan]: references/orphan.md\n",
+                'See [guide](references/guide.md "[orphan]").\n\n[orphan]: references/orphan.md\n',
+            ):
+                (root / "skills" / "alpha" / "SKILL.md").write_text(
+                    "---\nname: alpha\ndescription: Run alpha checks on local source files.\n---\n" + bogus,
+                    encoding="utf-8",
+                )
+                res_bogus = MOD.check_repo(root)
+                self.assertFalse(res_bogus["ok"], bogus)
+                self.assertTrue(any("unlinked reference file" in e for e in res_bogus["errors"]), res_bogus["errors"])
+
             # Reference-style sibling link inside references/ fails
             (root / "skills" / "alpha" / "SKILL.md").write_text(
                 "---\nname: alpha\ndescription: Run alpha checks on local source files.\n---\n"

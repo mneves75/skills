@@ -38,10 +38,11 @@ WARN_DESC_CHARS = 220
 MAX_DESC_CHARS = 350
 UPSTREAM_BARE_BASENAME_EXEMPT = frozenset({"security-audit"})
 
-INLINE_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
+INLINE_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)\s]+)(?:\s+(?:\"[^\"]*\"|'[^']*'|\([^)]*\)))?\)")
 REF_DEF_RE = re.compile(r"^\s*\[([^\]]+)\]:\s*(\S+)(?:\s+.*)?$", re.MULTILINE)
 REF_USE_FULL_RE = re.compile(r"!?\[[^\]]*\]\[([^\]]*)\]")
 REF_USE_SHORT_RE = re.compile(r"!?\[([^\]]+)\](?![(\[:])")
+HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
 
@@ -112,7 +113,7 @@ def _cited_ref_labels(body_without_defs: str) -> set[str]:
 
 
 def extract_relative_links(text: str, *, cited_only: bool = False) -> list[str]:
-    clean = strip_fenced_code(text)
+    clean = HTML_COMMENT_RE.sub("", strip_fenced_code(text))
     prose = _strip_inline_code(REF_DEF_RE.sub("", clean))
     links: list[str] = []
     for match in INLINE_LINK_RE.finditer(prose):
@@ -132,7 +133,7 @@ def extract_relative_links(text: str, *, cited_only: bool = False) -> list[str]:
     if not cited_only:
         return links + [target for _, target in defs]
 
-    cited = _cited_ref_labels(prose)
+    cited = _cited_ref_labels(INLINE_LINK_RE.sub("", prose))
     return links + [target for label, target in defs if label in cited]
 
 
