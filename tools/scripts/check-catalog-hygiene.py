@@ -47,13 +47,13 @@ FENCE_RE = re.compile(r"^\s*(```|~~~)")
 
 
 def _strip_inline_code(text: str) -> str:
-    """Remove CommonMark inline code spans while respecting backslash-escaped backticks."""
+    """Remove CommonMark inline code spans and neutralized backslash escapes."""
     out: list[str] = []
     i, n = 0, len(text)
     while i < n:
         ch = text[i]
-        if ch == "\\" and i + 1 < n and text[i + 1] == "`":
-            out.append(text[i : i + 2])
+        if ch == "\\" and i + 1 < n and text[i + 1] in "\\`[]()!":
+            out.append("  ")
             i += 2
             continue
         if ch == "`":
@@ -113,8 +113,9 @@ def _cited_ref_labels(body_without_defs: str) -> set[str]:
 
 def extract_relative_links(text: str, *, cited_only: bool = False) -> list[str]:
     clean = strip_fenced_code(text)
+    prose = _strip_inline_code(REF_DEF_RE.sub("", clean))
     links: list[str] = []
-    for match in INLINE_LINK_RE.finditer(clean):
+    for match in INLINE_LINK_RE.finditer(prose):
         target = match.group(1).strip().strip("<>")
         if _is_relative_target(target):
             links.append(target)
@@ -131,8 +132,7 @@ def extract_relative_links(text: str, *, cited_only: bool = False) -> list[str]:
     if not cited_only:
         return links + [target for _, target in defs]
 
-    body_without_defs = _strip_inline_code(REF_DEF_RE.sub("", clean))
-    cited = _cited_ref_labels(body_without_defs)
+    cited = _cited_ref_labels(prose)
     return links + [target for label, target in defs if label in cited]
 
 
