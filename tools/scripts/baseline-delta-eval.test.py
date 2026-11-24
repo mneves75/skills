@@ -39,12 +39,53 @@ class BaselineDeltaEvalTest(unittest.TestCase):
                                 "skill": "demo-skill",
                                 "prompt": "Do the demo task.",
                                 "rubric": "Check clarity.",
+                            },
+                            {
+                                "id": "d2",
+                                "skill": "demo-skill",
+                                "prompt": "Do the second demo task.",
+                                "rubric": "Check clarity.",
+                            },
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            bad = root / "bad.json"
+            bad.write_text(
+                json.dumps(
+                    {
+                        "schema": "baseline-delta-1",
+                        "cases": [
+                            {
+                                "id": "../escape",
+                                "skill": "../outside",
+                                "prompt": "",
+                                "rubric": "",
                             }
                         ],
                     }
                 ),
                 encoding="utf-8",
             )
+            p_bad = subprocess.run(
+                [sys.executable, str(SCRIPT), "check", "--root", str(root), "--cases", str(bad)],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(p_bad.returncode, 1)
+            self.assertIn("id must match", p_bad.stdout)
+            self.assertIn("unknown root skill", p_bad.stdout)
+
+            empty = root / "empty.json"
+            empty.write_text(json.dumps({"schema": "baseline-delta-1", "cases": []}), encoding="utf-8")
+            p_empty = subprocess.run(
+                [sys.executable, str(SCRIPT), "check", "--root", str(root), "--cases", str(empty)],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(p_empty.returncode, 1)
 
             p_chk = subprocess.run(
                 [sys.executable, str(SCRIPT), "check", "--root", str(root), "--cases", str(cases)],
@@ -100,11 +141,12 @@ class BaselineDeltaEvalTest(unittest.TestCase):
             )
             self.assertEqual(p_run.returncode, 0, p_run.stdout + p_run.stderr)
             summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
-            r = summary["results"][0]
-            self.assertEqual(r["winner"], "with_skill")
-            self.assertEqual(r["score_with_skill"], 5)
-            self.assertEqual(r["score_no_skill"], 3)
-            self.assertEqual(r["delta"], 2)
+            self.assertEqual(summary["position_balance"], {"A": 1, "B": 1})
+            for r in summary["results"]:
+                self.assertEqual(r["winner"], "with_skill")
+                self.assertEqual(r["score_with_skill"], 5)
+                self.assertEqual(r["score_no_skill"], 3)
+                self.assertEqual(r["delta"], 2)
 
 
 if __name__ == "__main__":

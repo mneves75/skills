@@ -2,7 +2,7 @@
 
 - **Baseline commit:** `633a2b32f8de02ae0540e3ec160ae98e64c48e46` (`v1.52.0`; rebased onto `v1.52.2` `852261b`)
 - **Working branch:** `feat/v2-consolidation`
-- **Status:** Phases 1–3 executed on `feat/v2-consolidation` (`v2.0.0` PR candidate; production merge remains gated on live 2-consumer `routing-eval.py` + `mneves-security` & `mneves-production-readiness` deploy gates)
+- **Status:** Phases 1–3 executed on `feat/v2-consolidation` (`v2.0.0` candidate; binding gate verdicts live in the private exact-candidate gate records and the `v2.0.0` annotated tag message)
 - **Adversarial reviews completed:** `claude-fable-5-2` (high) and `gpt-6.2-sol` (high), independent fresh contexts
 
 ---
@@ -163,8 +163,8 @@ Both `claude-fable-5-2` (high) and `gpt-6.2-sol` (high) reviewed our 6 initial c
    - `Codex`: skipped (`exit 75`, internal disk `14 GB < AGENT_MIN_FREE_GB=15`).
 
 ### Phase 3 — Breaking `v2.0.0` Retirements, Heavy-Skill Slimming & `pstack` Refresh (Executed on `feat/v2-consolidation`, 2026-11-24)
-Owner approved (`2026-11-24`) executing the breaking `v2.0.0` retirements, DeepSeek disablement, heavy-skill slimming, V3 hardening, and upstream `pstack` refresh together on `feat/v2-consolidation`:
-1. **Retired (negative zero-skill lift, zero executables):**
+Owner approved (`2026-11-24`) executing the breaking `v2.0.0` retirements directly (explicitly waiving a separate prior deprecation window for this semver-major cut), along with DeepSeek disablement, heavy-skill slimming, V3 hardening, and the upstream `pstack` refresh on `feat/v2-consolidation`:
+1. **Retired (historical single-scenario Phase 2 baseline-delta observations pinned at `fcfc1a8`, zero executables; kept separate from the post-removal 6-case `tools/catalog-eval/baseline-delta-cases.json` suite):**
    - `mneves-superaudit` (`delta = -2`), `mneves-socratic-tutor` (`delta = -2`), `mneves-eli5` (`delta = -1`). Root `skills/` drops from `25` → `22`.
 2. **Retained & upgraded:**
    - `leaving-pr-comments`, `mneves-expert-review` (+ verified primary citation checks), `mneves-teach-back-srs`, `mneves-security` (137L), `security-audit`.

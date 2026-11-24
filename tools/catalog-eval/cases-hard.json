@@ -1,6 +1,6 @@
 {
   "schema": "catalog-eval-1",
-  "description": "12 harder ambiguous, trigger-free, and 65-skill cross-collection routing stress tests (run with --include-pstack).",
+  "description": "13 harder ambiguous, trigger-free, and 65-skill cross-collection routing stress tests (run with --include-pstack).",
   "cases": [
     {
       "id": "hard-babysit-collision",
@@ -59,6 +59,14 @@
       "notes": "statechart is explicit-only and how is for tracing repository code; plain-English conceptual questions need no specialist."
     },
     {
+      "id": "hard-sharpen-explicit",
+      "cluster": "pstack-explicit",
+      "prompt": "Run /sharpen on my vague prompt: 'make the dashboard faster'.",
+      "expected": ["sharpen"],
+      "forbidden": ["none", "reframe"],
+      "notes": "Explicit /sharpen invocation continues to select sharpen."
+    },
+    {
       "id": "hard-reframe-explicit",
       "cluster": "pstack-explicit",
       "prompt": "Run /reframe on my rough description: 'a thing that keeps two browser tabs from editing the same row at once'.",
@@ -76,7 +84,7 @@
     },
     {
       "id": "hard-full-stop-tight-desc-pos",
-      "cluster": "negative-control",
+      "cluster": "explicit-invocation",
       "prompt": "Use the full-stop skill to implement CSV export on /reports, prove it with tests, and open a ready PR unattended.",
       "expected": ["full-stop"],
       "forbidden": ["none", "babysit-pr"],

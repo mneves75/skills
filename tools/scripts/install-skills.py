@@ -4,7 +4,7 @@
 Dry-run by default; pass --apply to create symlinks in --target. Never overwrites a real
 directory (protecting local edits). Automatically excludes superseded skills declared in
 tools/install-profiles.json (for example, skips collections/pstack/skills/babysit whenever
-babysit-pr is selected or already present in --target).
+a usable babysit-pr with SKILL.md is selected or already present in --target).
 
 Usage:
   python3 tools/scripts/install-skills.py --list-profiles [--root PATH]
@@ -15,45 +15,17 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-import re
 import sys
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from frontmatter import read_skill_frontmatter  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 PROFILES_PATH = ROOT / "tools/install-profiles.json"
 PROFILES_SCHEMA = "install-profiles-1"
-
-
-def parse_description(skill_md: Path) -> str:
-    text = skill_md.read_text(encoding="utf-8")
-    lines = text.splitlines()
-    if not lines or lines[0].strip() != "---":
-        return ""
-    end = None
-    for idx in range(1, len(lines)):
-        if lines[idx].strip() == "---":
-            end = idx
-            break
-    if end is None:
-        return ""
-    i = 1
-    while i < end:
-        m = re.match(r"^description:\s*(.*)$", lines[i])
-        if not m:
-            i += 1
-            continue
-        raw = m.group(1).strip()
-        if raw in (">", ">-", "|", "|-"):
-            block: list[str] = []
-            i += 1
-            while i < end and (lines[i].startswith(" ") or lines[i].startswith("\t") or not lines[i].strip()):
-                block.append(lines[i].strip())
-                i += 1
-            sep = " " if raw.startswith(">") else "\n"
-            return sep.join(part for part in block if part).strip()
-        if (raw.startswith('"') and raw.endswith('"')) or (raw.startswith("'") and raw.endswith("'")):
-            raw = raw[1:-1]
-        return raw
-    return ""
 
 
 def load_profiles(path: Path) -> dict:
@@ -72,7 +44,9 @@ def resolve_profile_entries(root: Path, spec: dict, profile_name: str) -> list[P
     seen: set[Path] = set()
     for rel in prof.get("include", []):
         p = (root / rel).resolve()
-        if (p / "SKILL.md").is_file() and p not in seen:
+        if not (p / "SKILL.md").is_file():
+            raise ValueError(f"profile {profile_name!r}: missing explicit include {rel!r} ({p / 'SKILL.md'})")
+        if p not in seen:
             seen.add(p)
             dirs.append(p)
     for pattern in prof.get("globs", []):
@@ -82,6 +56,16 @@ def resolve_profile_entries(root: Path, spec: dict, profile_name: str) -> list[P
                 seen.add(rp)
                 dirs.append(rp)
     return dirs
+
+
+def _usable_installed_names(target: Path | None) -> set[str]:
+    if target is None or not target.is_dir():
+        return set()
+    return {
+        entry.name
+        for entry in target.iterdir()
+        if entry.is_dir() and (entry / "SKILL.md").is_file()
+    }
 
 
 def plan_install(
@@ -94,14 +78,7 @@ def plan_install(
     root = root.resolve()
     excludes = set(extra_excludes or set())
     raw_dirs = resolve_profile_entries(root, spec, profile_name)
-
-    existing_names: set[str] = set()
-    if target is not None and target.is_dir():
-        for entry in target.iterdir():
-            if entry.is_dir() or entry.is_symlink():
-                existing_names.add(entry.name)
-
-    candidate_names = {d.name for d in raw_dirs} | existing_names
+    candidate_names = {d.name for d in raw_dirs} | _usable_installed_names(target)
     rules = spec.get("exclude_when_present", {})
 
     selected: list[dict] = []
@@ -129,7 +106,8 @@ def plan_install(
             skipped.append({"name": name, "source": rel, "reason": "duplicate name already selected earlier"})
             continue
         seen_names.add(name)
-        desc = parse_description(sdir / "SKILL.md")
+        fm, _ = read_skill_frontmatter(sdir / "SKILL.md")
+        desc = fm.get("description", "")
         selected.append({"name": name, "source": rel, "abs_source": str(sdir), "description_chars": len(desc)})
 
     total_chars = sum(s["description_chars"] for s in selected)
@@ -173,6 +151,30 @@ def apply_plan(plan: dict, target: Path, replace_symlinks: bool = False) -> tupl
     return linked, unchanged, conflicts
 
 
+def _print_profiles(root: Path, spec: dict, as_json: bool) -> int:
+    rows = []
+    for pname, pmeta in spec["profiles"].items():
+        pl = plan_install(root, spec, pname)
+        rows.append({
+            "profile": pname,
+            "skills": pl["selected_count"],
+            "skipped": len(pl["skipped"]),
+            "description_chars": pl["description_chars"],
+            "floor_pct": pl["floor_pct"],
+            "description": pmeta["description"],
+        })
+    if as_json:
+        print(json.dumps(rows, indent=2))
+    else:
+        for r in rows:
+            print(
+                f"{r['profile']:18s} {r['skills']:2d} skills  "
+                f"{r['description_chars']:5d} chars ({r['floor_pct']:4.1f}% of 16K floor)  "
+                f"skipped={r['skipped']}  — {r['description']}"
+            )
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Install curated mneves75/skills profiles with overlap exclusion.")
     parser.add_argument("--root", type=Path, default=ROOT)
@@ -188,27 +190,7 @@ def main() -> int:
 
     spec = load_profiles(args.profiles)
     if args.list_profiles:
-        rows = []
-        for pname, pmeta in spec["profiles"].items():
-            pl = plan_install(args.root, spec, pname)
-            rows.append({
-                "profile": pname,
-                "skills": pl["selected_count"],
-                "skipped": len(pl["skipped"]),
-                "description_chars": pl["description_chars"],
-                "floor_pct": pl["floor_pct"],
-                "description": pmeta["description"],
-            })
-        if args.as_json:
-            print(json.dumps(rows, indent=2))
-        else:
-            for r in rows:
-                print(
-                    f"{r['profile']:18s} {r['skills']:2d} skills  "
-                    f"{r['description_chars']:5d} chars ({r['floor_pct']:4.1f}% of 16K floor)  "
-                    f"skipped={r['skipped']}  — {r['description']}"
-                )
-        return 0
+        return _print_profiles(args.root, spec, args.as_json)
 
     if not args.profile:
         parser.error("provide --list-profiles or --profile NAME")

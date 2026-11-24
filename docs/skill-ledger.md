@@ -47,7 +47,7 @@ The opening counts describe the historical refresh inventory.
 
 ### Retired root skills (2.0.0)
 
-Retired based on blinded zero-skill baseline-delta evaluation (`docs/specs/catalog-consolidation/plan.md`, zero executables, negative delta against modern baseline models):
+Retired in `v2.0.0` with explicit owner approval (`2026-11-24`, waiving a separate prior deprecation window) after blinded single-scenario zero-skill baseline-delta observations pinned at `fcfc1a8` (Claude generator, Gemini judge settings recorded in `docs/specs/catalog-consolidation/plan.md`, separate from the post-removal 6-case `tools/catalog-eval/baseline-delta-cases.json` suite; zero shipped executables):
 
 | Skill | Disposition | Reason |
 |---|---|---|
@@ -80,7 +80,7 @@ Retired based on blinded zero-skill baseline-delta evaluation (`docs/specs/catal
 | `make-pr-easy-to-review` | retained | none | Unchanged. |
 | `no-comments` | retained | 01, 02, 07 | Uses the shipped `comment-sicko` brief. |
 | `poteto-help` | retained | 02 | Recipes point at the engineering references. |
-| `poteto-mode` | changed | 01, 02, 05, 06, 07, 08, 09, 10, 11, 12 | Local-only autonomy with stops before external writes (including `worker.md` in `12`); finite repair bound in Babysit; four engineering references; Codex substitutes exempt from Opus-medium (`08`) plus Agy fallback (`11`); DeepSeek Harness (`dsh-tools.md`) excluded (`12`). |
+| `poteto-mode` | changed | 01, 02, 05, 06, 07, 08, 09, 10, 11, 12, 13 | Local-only autonomy with stops before external writes (including `worker.md` in `12`); finite repair bound in Babysit; four engineering references; Codex substitutes exempt from Opus-medium (`08`) plus Agy fallback (`11`); DeepSeek Harness (`dsh-tools.md`) excluded (`12`); REST watcher check-run app-identity deduplication fix (`13`). |
 | `recall` | changed | 02, 05, 09 | Reads chat history only on request. |
 | `reflect` | changed | 05 | 2.0.0: upstream simplified to one file with no subagents/Models; `05` keeps backlog filing gated on user approval. |
 | `setup-pstack` | retained | 01, 02, 07 | Model sheet setup. |

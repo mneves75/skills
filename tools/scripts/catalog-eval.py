@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 """Skill-selection confusion-matrix eval over live skills/*/SKILL.md metadata. Python 3.11+, stdlib only.
 
-  catalog-eval.py check [--cases PATH] [--root PATH]
+  catalog-eval.py check [--cases PATH] [--root PATH] [--include-pstack]
   catalog-eval.py run --out DIR [--samples N] [--providers claude,codex] [--cases-only ID,...]
-                      [--claude-cmd CMD] [--codex-cmd CMD] [--cases PATH] [--root PATH]
+                      [--claude-cmd CMD] [--codex-cmd CMD] [--cases PATH] [--root PATH] [--include-pstack]
 
 `check` is deterministic and makes no model calls: it validates cases.json and confirms every
-named expected/forbidden skill exists under skills/ (or is "none").
+named expected/forbidden skill exists under skills/ (or is "none"), case IDs are unique and
+filename-safe, and expected/forbidden sets are disjoint.
 
 `run` builds a prompt containing ONLY the live skills/*/SKILL.md `name` and `description`
 fields (never docs/skill-routing.md or skill bodies), calls Claude and/or Codex without tools
@@ -26,11 +27,19 @@ import re
 import shlex
 import subprocess
 import sys
+import tempfile
 import time
+
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from frontmatter import read_skill_frontmatter  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 CASES = ROOT / "tools/catalog-eval/cases.json"
 CASES_SCHEMA = "catalog-eval-1"
+SAFE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 CLAUDE_MODEL, CLAUDE_EFFORT = "claude-opus-5-5", "medium"
 CODEX_MODEL, CODEX_EFFORT = "gpt-6.2-sol", "high"
@@ -52,42 +61,16 @@ User request:
 """
 
 
-def parse_frontmatter(text: str) -> dict[str, str]:
-    lines = text.splitlines()
-    if not lines or lines[0].strip() != "---":
-        return {}
-    end = None
-    for idx in range(1, len(lines)):
-        if lines[idx].strip() == "---":
-            end = idx
-            break
-    if end is None:
-        return {}
-    fields: dict[str, str] = {}
-    i = 1
-    while i < end:
-        line = lines[i]
-        m = re.match(r"^([A-Za-z0-9_-]+):\s*(.*)$", line)
-        if not m:
-            i += 1
-            continue
-        key, raw_val = m.group(1), m.group(2).strip()
-        if raw_val in (">", ">-", "|", "|-"):
-            block: list[str] = []
-            i += 1
-            while i < end and (lines[i].startswith(" ") or lines[i].startswith("\t") or not lines[i].strip()):
-                block.append(lines[i].strip())
-                i += 1
-            sep = " " if raw_val.startswith(">") else "\n"
-            fields[key] = sep.join(part for part in block if part).strip()
-            continue
-        if (raw_val.startswith('"') and raw_val.endswith('"')) or (
-            raw_val.startswith("'") and raw_val.endswith("'")
-        ):
-            raw_val = raw_val[1:-1]
-        fields[key] = raw_val
-        i += 1
-    return fields
+def is_safe_id(value: str) -> bool:
+    return bool(SAFE_ID_RE.fullmatch(value)) and ".." not in value
+
+
+def safe_child(base: Path, *parts: str) -> Path:
+    base_resolved = base.resolve()
+    candidate = base_resolved.joinpath(*parts).resolve()
+    if not candidate.is_relative_to(base_resolved) or candidate == base_resolved:
+        raise ValueError(f"path escapes output directory: {candidate}")
+    return candidate
 
 
 def load_catalog(root: Path, include_pstack: bool = False) -> list[dict[str, str]]:
@@ -103,13 +86,12 @@ def load_catalog(root: Path, include_pstack: bool = False) -> list[dict[str, str
             sfile = sdir / "SKILL.md"
             if not sfile.is_file():
                 continue
-            fm = parse_frontmatter(sfile.read_text(encoding="utf-8"))
+            fm, _ = read_skill_frontmatter(sfile)
             name = fm.get("name", sdir.name)
             if name in seen:
                 continue
             seen.add(name)
-            desc = fm.get("description", "")
-            entries.append({"name": name, "description": desc})
+            entries.append({"name": name, "description": fm.get("description", "")})
     return entries
 
 
@@ -118,16 +100,61 @@ def format_catalog(entries: list[dict[str, str]]) -> str:
 
 
 def build_schema(skill_names: list[str]) -> dict:
-    allowed = ["none", *skill_names]
     return {
         "type": "object",
         "additionalProperties": False,
         "required": ["selected", "reason"],
         "properties": {
-            "selected": {"type": "string", "enum": allowed},
+            "selected": {"type": "string", "enum": ["none", *skill_names]},
             "reason": {"type": "string"},
         },
     }
+
+
+def _validate_target_list(
+    cid: str,
+    field: str,
+    value: object,
+    valid_targets: set[str],
+    *,
+    required: bool,
+) -> tuple[set[str], list[str]]:
+    if not isinstance(value, list) or not all(isinstance(x, str) for x in value) or (required and not value):
+        req_note = "non-empty " if required else ""
+        return set(), [f"{cid}: {field} must be a {req_note}list of skill names or 'none'"]
+    problems = [
+        f"{cid}: {field} skill {name!r} not in skills/ or 'none'"
+        for name in value
+        if name not in valid_targets
+    ]
+    return set(value), problems
+
+
+def _validate_one_case(idx: int, case: object, valid_targets: set[str], seen: set[str]) -> list[str]:
+    if not isinstance(case, dict) or not isinstance(case.get("id"), str) or not case["id"]:
+        return [f"cases[{idx}]: missing string id"]
+    cid = case["id"]
+    problems: list[str] = []
+    if not is_safe_id(cid):
+        problems.append(f"{cid!r}: id must match [A-Za-z0-9][A-Za-z0-9._-]* without '..'")
+    if cid in seen:
+        problems.append(f"{cid}: duplicate case id")
+    seen.add(cid)
+    if not isinstance(case.get("cluster"), str) or not case["cluster"].strip():
+        problems.append(f"{cid}: missing cluster")
+    if not isinstance(case.get("prompt"), str) or not case["prompt"].strip():
+        problems.append(f"{cid}: missing prompt")
+
+    exp_set, exp_errs = _validate_target_list(cid, "expected", case.get("expected"), valid_targets, required=True)
+    forb_set, forb_errs = _validate_target_list(
+        cid, "forbidden", case.get("forbidden", []), valid_targets, required=False
+    )
+    problems.extend(exp_errs)
+    problems.extend(forb_errs)
+    overlap = sorted(exp_set & forb_set)
+    if overlap:
+        problems.append(f"{cid}: expected and forbidden overlap on {overlap}")
+    return problems
 
 
 def validate_cases(spec: object, skill_names: set[str]) -> list[str]:
@@ -142,31 +169,7 @@ def validate_cases(spec: object, skill_names: set[str]) -> list[str]:
     valid_targets = skill_names | {"none"}
     seen: set[str] = set()
     for idx, case in enumerate(cases):
-        if not isinstance(case, dict) or not isinstance(case.get("id"), str) or not case["id"]:
-            problems.append(f"cases[{idx}]: missing string id")
-            continue
-        cid = case["id"]
-        if cid in seen:
-            problems.append(f"{cid}: duplicate case id")
-        seen.add(cid)
-        if not isinstance(case.get("cluster"), str) or not case["cluster"].strip():
-            problems.append(f"{cid}: missing cluster")
-        if not isinstance(case.get("prompt"), str) or not case["prompt"].strip():
-            problems.append(f"{cid}: missing prompt")
-        expected = case.get("expected")
-        if not isinstance(expected, list) or not expected or not all(isinstance(x, str) for x in expected):
-            problems.append(f"{cid}: expected must be a non-empty list of skill names or 'none'")
-        else:
-            for name in expected:
-                if name not in valid_targets:
-                    problems.append(f"{cid}: expected skill {name!r} not in skills/ or 'none'")
-        forbidden = case.get("forbidden", [])
-        if not isinstance(forbidden, list) or not all(isinstance(x, str) for x in forbidden):
-            problems.append(f"{cid}: forbidden must be a list of strings")
-        else:
-            for name in forbidden:
-                if name not in valid_targets:
-                    problems.append(f"{cid}: forbidden skill {name!r} not in skills/ or 'none'")
+        problems.extend(_validate_one_case(idx, case, valid_targets, seen))
     return problems
 
 
@@ -213,6 +216,7 @@ def ask_codex(cmd: list[str], prompt: str, schema: dict, work: Path) -> tuple[in
         *cmd, "exec", "--ignore-user-config", "--ignore-rules", "--skip-git-repo-check",
         "--ephemeral", "-s", "read-only", "--disable", "shell_tool", "--json",
         "-m", CODEX_MODEL, "-c", f"model_reasoning_effort={CODEX_EFFORT}",
+        "-c", "project_doc_max_bytes=0",
         "-C", str(work), "--output-schema", str(schema_path), "-o", str(out_path), "-",
     ]
     try:
@@ -233,46 +237,50 @@ def ask_codex(cmd: list[str], prompt: str, schema: dict, work: Path) -> tuple[in
     return code, raw, answer, used
 
 
+def normalize_answer(answer: object) -> dict | None:
+    if not isinstance(answer, dict):
+        return None
+    selected = answer.get("selected")
+    if not isinstance(selected, str) or not selected.strip():
+        return None
+    reason = answer.get("reason", "")
+    return {"selected": selected.strip(), "reason": reason if isinstance(reason, str) else str(reason)}
+
+
 def grade_record(case: dict, answer: dict | None) -> tuple[bool, bool]:
-    if not isinstance(answer, dict) or not isinstance(answer.get("selected"), str):
+    norm = normalize_answer(answer)
+    if norm is None:
         return False, False
-    sel = answer["selected"].strip()
-    passed = sel in case["expected"]
+    sel = norm["selected"]
     forbidden_hit = sel in case.get("forbidden", [])
+    passed = (sel in case["expected"]) and not forbidden_hit
     return passed, forbidden_hit
 
 
+def _tally(records: list[dict]) -> dict[str, int]:
+    return {
+        "pass": sum(r["pass"] for r in records),
+        "fail": sum(not r["pass"] and not r["error"] for r in records),
+        "forbidden": sum(r["forbidden_hit"] for r in records),
+        "error": sum(r["error"] for r in records),
+        "total": len(records),
+    }
+
+
 def summarize(cases: list[dict], providers: list[str], records: list[dict]) -> dict:
-    by_provider: dict[str, dict] = {}
-    by_cluster: dict[str, dict] = {}
-    confusions: list[dict] = []
-    matrix: dict[str, dict[str, int]] = {}
-
-    for p in providers:
-        rs = [r for r in records if r["provider"] == p]
-        by_provider[p] = {
-            "pass": sum(r["pass"] for r in rs),
-            "fail": sum(not r["pass"] and not r["error"] for r in rs),
-            "forbidden": sum(r["forbidden_hit"] for r in rs),
-            "error": sum(r["error"] for r in rs),
-            "total": len(rs),
-        }
-
+    by_provider = {p: _tally([r for r in records if r["provider"] == p]) for p in providers}
+    by_cluster: dict[str, dict[str, int]] = {}
     for cluster in sorted({c["cluster"] for c in cases}):
         cids = {c["id"] for c in cases if c["cluster"] == cluster}
-        rs = [r for r in records if r["case"] in cids]
-        by_cluster[cluster] = {
-            "pass": sum(r["pass"] for r in rs),
-            "fail": sum(not r["pass"] and not r["error"] for r in rs),
-            "forbidden": sum(r["forbidden_hit"] for r in rs),
-            "error": sum(r["error"] for r in rs),
-            "total": len(rs),
-        }
+        by_cluster[cluster] = _tally([r for r in records if r["case"] in cids])
 
     case_map = {c["id"]: c for c in cases}
+    matrix: dict[str, dict[str, int]] = {}
+    confusions: list[dict] = []
     for r in records:
         exp_key = "|".join(case_map[r["case"]]["expected"])
-        sel = r["answer"]["selected"] if isinstance(r.get("answer"), dict) and "selected" in r["answer"] else "<error>"
+        norm = normalize_answer(r.get("answer"))
+        sel = norm["selected"] if norm is not None else "<error>"
         matrix.setdefault(exp_key, {})
         matrix[exp_key][sel] = matrix[exp_key].get(sel, 0) + 1
         if not r["pass"]:
@@ -284,17 +292,11 @@ def summarize(cases: list[dict], providers: list[str], records: list[dict]) -> d
                 "expected": case_map[r["case"]]["expected"],
                 "selected": sel,
                 "forbidden_hit": r["forbidden_hit"],
-                "reason": r["answer"].get("reason", "") if isinstance(r.get("answer"), dict) else "",
+                "reason": norm["reason"] if norm is not None else "",
             })
 
     return {
-        "totals": {
-            "pass": sum(r["pass"] for r in records),
-            "fail": sum(not r["pass"] and not r["error"] for r in records),
-            "forbidden": sum(r["forbidden_hit"] for r in records),
-            "error": sum(r["error"] for r in records),
-            "total": len(records),
-        },
+        "totals": _tally(records),
         "by_provider": by_provider,
         "by_cluster": by_cluster,
         "confusion_matrix": matrix,
@@ -304,15 +306,21 @@ def summarize(cases: list[dict], providers: list[str], records: list[dict]) -> d
 
 def run_one(job: tuple, schema: dict, out_dir: Path, commands: dict[str, list[str]]) -> dict:
     case, provider, n, prompt = job
-    work = out_dir / "work" / f"{case['id']}-{provider}-{n}"
-    work.mkdir(parents=True, exist_ok=True)
+    stem = f"{case['id']}-{provider}-{n}"
+    raw_path = safe_child(out_dir, f"{stem}.raw.txt")
+    rec_path = safe_child(out_dir, f"{stem}.json")
+
     ask = ask_claude if provider == "claude" else ask_codex
     started = time.time()
-    try:
-        code, raw, answer, used = ask(commands[provider], prompt, schema, work)
-    except (OSError, subprocess.TimeoutExpired, ValueError) as exc:
-        code, raw, answer, used = -1, repr(exc), None, []
-    (out_dir / f"{case['id']}-{provider}-{n}.raw.txt").write_text(raw, encoding="utf-8")
+    with tempfile.TemporaryDirectory(prefix="catalog-eval-") as tmp:
+        work = Path(tmp)
+        try:
+            code, raw, raw_answer, used = ask(commands[provider], prompt, schema, work)
+        except (OSError, subprocess.TimeoutExpired, ValueError) as exc:
+            code, raw, raw_answer, used = -1, repr(exc), None, []
+
+    answer = normalize_answer(raw_answer)
+    raw_path.write_text(raw, encoding="utf-8")
     passed, forbidden_hit = grade_record(case, answer)
     rec = {
         "case": case["id"],
@@ -327,11 +335,26 @@ def run_one(job: tuple, schema: dict, out_dir: Path, commands: dict[str, list[st
         "forbidden_hit": forbidden_hit,
         "error": answer is None,
     }
-    (out_dir / f"{case['id']}-{provider}-{n}.json").write_text(json.dumps(rec, indent=1) + "\n", encoding="utf-8")
+    rec_path.write_text(json.dumps(rec, indent=1) + "\n", encoding="utf-8")
     tag = "PASS" if rec["pass"] else ("ERROR" if rec["error"] else ("FORBIDDEN" if forbidden_hit else "FAIL"))
-    sel = answer.get("selected") if isinstance(answer, dict) else code
+    sel = answer["selected"] if answer is not None else code
     print(f"{case['id']} {provider}#{n} {tag} selected={sel} expected={case['expected']}", flush=True)
     return rec
+
+
+def _select_cases(cases: list[dict], cases_only: str) -> list[dict]:
+    if not cases_only.strip():
+        return cases
+    only = {x.strip() for x in cases_only.split(",") if x.strip()}
+    if not only:
+        sys.exit("--cases-only selected zero cases")
+    unknown = only - {c["id"] for c in cases}
+    if unknown:
+        sys.exit(f"unknown case ids: {', '.join(sorted(unknown))}")
+    selected = [c for c in cases if c["id"] in only]
+    if not selected:
+        sys.exit("--cases-only selected zero cases")
+    return selected
 
 
 def command_check(args: argparse.Namespace) -> int:
@@ -372,14 +395,7 @@ def command_run(args: argparse.Namespace) -> int:
     if problems:
         sys.exit("\n".join(problems))
 
-    cases = spec["cases"]
-    if args.cases_only:
-        only = {x.strip() for x in args.cases_only.split(",") if x.strip()}
-        unknown = only - {c["id"] for c in cases}
-        if unknown:
-            sys.exit(f"unknown case ids: {', '.join(sorted(unknown))}")
-        cases = [c for c in cases if c["id"] in only]
-
+    cases = _select_cases(spec["cases"], args.cases_only)
     catalog_text = format_catalog(catalog)
     schema = build_schema(skill_names)
     commands = {"claude": shlex.split(args.claude_cmd), "codex": shlex.split(args.codex_cmd)}
@@ -422,7 +438,8 @@ def command_run(args: argparse.Namespace) -> int:
     }
     (out_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"totals": summary["totals"], "by_provider": summary["by_provider"]}, indent=2))
-    return 0 if summary["totals"]["fail"] == 0 and summary["totals"]["error"] == 0 else 1
+    totals = summary["totals"]
+    return 0 if totals["fail"] == 0 and totals["forbidden"] == 0 and totals["error"] == 0 else 1
 
 
 def main() -> int:

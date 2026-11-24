@@ -67,11 +67,13 @@ names collide.
 
 ## Opt-in skills and their tools
 
-Six skills are new in this sync: `statechart`, `create-formal-verification-skill`,
-`maintain-formal-verification-skill`, `ketchup-video`, `in-your-own-words` and `sharpen`. The
-first four, and the `thermos` reviews, say in their description that they run only when
-invoked by name. That is an instruction to the agent, not an enforced setting: the Agent
-Skills format has no field that stops model invocation on every host.
+One skill is new in this 2.0.0 sync: `reframe` (explicit-only, imported from upstream
+`cursor/plugins@9e278fe`). Six earlier additions remain from previous syncs: `statechart`,
+`create-formal-verification-skill`, `maintain-formal-verification-skill`, `ketchup-video`,
+`in-your-own-words` and `sharpen`. `reframe`, the first four earlier additions, and the `thermos`
+reviews say in their description that they run only when invoked by name. That is an instruction to
+the agent, not an enforced setting: the Agent Skills format has no field that stops model
+invocation on every host.
 
 None of them installs anything on its own. An install runs only where the user or the host's
 policy already authorized it; otherwise the agent asks immediately before it.
@@ -133,6 +135,10 @@ the adaptation.
     `cursor/plugins@9e278fe`, drops references to excluded `dsh-tools.md` (DeepSeek disabled),
     tightens `typescript-best-practices` and `how` descriptions against false triggers, and
     aligns `poteto-mode/worker.md` with local-only autonomy.
+13. **REST check-run app identity** (`13`). Includes GitHub app (`app.id`/`app.slug`) and workflow
+    (`workflow_id`) identity in `poteto-mode/scripts/watch-pr/cloud-reader.ts` deduplication so two
+    distinct non-Actions apps sharing a check name (such as `build`) cannot drop a failing check,
+    covered by a regression test in `cloud-reader.test.ts`.
 
 Frontmatter keys outside the Agent Skills spec move under `metadata:` (`poteto-mode`'s
 `menu-description`, `typescript-best-practices`' `paths`), so strict loaders accept every

@@ -121,9 +121,11 @@ vacuous checks cannot pass. Freeze the diff and hand requirements + evidence to 
 independent reviewer and distinct-model verifier to challenge bypasses, false positives,
 and regressions. Stop on met criteria or an explicit blocker, never "100% secure."
 
-### 7. Report and deploy-gate verdict
+### 7. Report and delivery
 Return the eight-section report from [Report contract](references/report.md) with zero
 secrets or real user data. Never auto-merge or auto-deploy because an audit completed.
+
+## Deploy gate
 
 In **deploy-gate mode**, follow [Deploy gate and reproduction](references/deploy-gate.md)
 in full: freeze the exact candidate tree hash, audit all twelve areas + applicable launch

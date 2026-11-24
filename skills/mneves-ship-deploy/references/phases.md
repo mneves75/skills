@@ -79,8 +79,12 @@ Order: bind readiness → deploy pushed commit → prove live → tag. A tag nam
 1. **Bind readiness** for `staging` on the exact pushed commit, writing
    `.scratch/readiness/<commit>/staging.json` (release contract guarantee 11). A `not-ready`
    verdict stops the deploy: fix, push, and re-run the gate.
-2. **Deploy** a commit the remote already has (`scripts/release.sh staging` when present, or the
-   detected skill/documented command).
+2. **Deploy** a commit the remote already has (`scripts/release.sh staging` when present and its
+   built-in `verify-live.sh` covers every required check, or the detected skill/documented deploy
+   command). When additional proof beyond `verify-live.sh` is required (writable-binding checks,
+   independent browser/device flows, or a post-deploy observation window), complete that proof
+   before creating or pushing the release tag — wire the extra checks into `verify-live.sh` or
+   defer tagging until every required check finishes.
 3. **Prove live** (`scripts/verify-live.sh staging` when present). Verify:
    - served commit/version and deployed artifact identity match the candidate commit;
    - health response body carries expected fields;
@@ -90,8 +94,9 @@ Order: bind readiness → deploy pushed commit → prove live → tag. A tag nam
    - exercise changed UI/device flows with an independent browser/device driver (`agent-browser`,
      Playwright, Argent, or equivalent; desktop and mobile separately; signed-in when touched) and
      inspect logs for new errors. Without a driver, mark the flow `NOT TESTED`.
-   - treat an active post-deploy observation window as pending/incomplete rather than failed.
-4. **Tag** the verified commit (`<N>` starts at 1 per version; failed proofs get no tag):
+   - treat an active post-deploy observation window as pending/incomplete rather than failed; live
+     proof is incomplete and no tag is pushed until a required observation window finishes.
+4. **Tag** the verified commit (`<N>` starts at 1 per version; failed or incomplete proofs get no tag):
    ```bash
    git tag -a vX.Y.Z-beta<N> <commit> -m "vX.Y.Z-beta<N> — staging; security gate: PASS" && git push origin vX.Y.Z-beta<N>
    ```
@@ -107,9 +112,13 @@ Order: bind readiness → deploy pushed commit → prove live → tag. A tag nam
 ## Phase 5 — Production (`vX.Y.Z`) & staging teardown
 
 Enter only after explicit owner OK for the exact candidate and production target (any mismatch
-invalidates approval). Deploy the exact commit staging serves using a valid, non-expired
-production readiness record (re-run the gate if waivers were granted or the record expired),
-prove live with the same assertions, then tag:
+invalidates approval). Immediately before promoting (especially after resuming from an earlier
+`ship-staging` or waiting for approval), re-confirm the exact commit staging serves, verify
+staging is still healthy (reusing an unchanged healthy staging deployment rather than redeploying
+it), and confirm a valid, non-expired production security verdict and production readiness record
+(re-run the gate if waivers were granted or the record expired). Deploy that exact commit to
+production, complete every required live proof (including any required observation window before
+tagging), then tag:
 
 ```bash
 git tag -a vX.Y.Z <commit> -m "vX.Y.Z; security gate: PASS" && git push origin vX.Y.Z

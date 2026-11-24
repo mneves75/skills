@@ -19,6 +19,7 @@ adaptation: 09-opus55-prompt-audit.patch sha256:5eee40c6b523dc79c5249dcabe3d2ef1
 adaptation: 10-codex-prompt-guidance.patch sha256:52b242686e192a0e7af1127bb1b63190c20d8149dbf7f961c6af379298ee0fcb
 adaptation: 11-agy-yolo-fallback.patch sha256:060c9d812dfeb44f2ba4bfec00d538f308cfb651bacdde29271c10b9a96dc58a
 adaptation: 12-upstream-reframe-and-hygiene.patch sha256:3e05001b4bd8645d26856dcf58e790d581af6036f71c75e7efcda42d6c5cf694
+adaptation: 13-watch-pr-app-identity.patch sha256:f6b932acd27117419ae6e37cc864e5709db2c2c0d8c7206e1e631fe4c6b11935
 excluded: poteto-mode/references/dsh-tools.md
 excluded: statechart/scripts/test
 retired: make-bot-ui

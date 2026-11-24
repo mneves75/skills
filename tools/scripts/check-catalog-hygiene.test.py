@@ -125,12 +125,43 @@ class CatalogHygieneTest(unittest.TestCase):
             self.assertFalse(res2["ok"])
             self.assertTrue(any("reference-to-reference" in e for e in res2["errors"]), res2["errors"])
 
+    def test_unlinked_reference_and_ref_style_link_and_missing_skills_dir(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            # Missing skills/ returns full schema cleanly without KeyError
+            missing = MOD.check_repo(root)
+            self.assertFalse(missing["ok"])
+            self.assertEqual(missing["root_skill_count"], 0)
+            self.assertEqual(missing["total_description_chars"], 0)
+            self.assertEqual(missing["total_skill_lines"], 0)
+
+            make_fixture(root)
+            # Unlinked file under references/ fails
+            (root / "skills" / "alpha" / "references" / "orphan.md").write_text("# Orphan\n", encoding="utf-8")
+            res_orphan = MOD.check_repo(root)
+            self.assertFalse(res_orphan["ok"])
+            self.assertTrue(any("unlinked reference file" in e for e in res_orphan["errors"]), res_orphan["errors"])
+
+            # Reference-style sibling link inside references/ fails
+            (root / "skills" / "alpha" / "SKILL.md").write_text(
+                "---\nname: alpha\ndescription: Run alpha checks on local source files.\n---\n"
+                "See [guide][g] and [orphan][o].\n\n[g]: references/guide.md\n[o]: references/orphan.md\n",
+                encoding="utf-8",
+            )
+            (root / "skills" / "alpha" / "references" / "guide.md").write_text(
+                "See [orphan][o].\n\n[o]: orphan.md\n", encoding="utf-8"
+            )
+            res_ref = MOD.check_repo(root)
+            self.assertFalse(res_ref["ok"])
+            self.assertTrue(any("reference-to-reference" in e for e in res_ref["errors"]), res_ref["errors"])
+
     def test_fenced_code_links_ignored(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             make_fixture(root)
             (root / "skills" / "alpha" / "SKILL.md").write_text(
                 "---\nname: alpha\ndescription: Run alpha checks on local source files.\n---\n"
+                "See [guide](references/guide.md).\n"
                 "```markdown\n[fake](does/not/exist.md)\n```\n",
                 encoding="utf-8",
             )

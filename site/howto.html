@@ -830,7 +830,7 @@ checked for saying what the claim says. Security: an independent audit.</p>
 <p><strong>Example output</strong> (illustrative; a real run needs a second model and an artifact to check).</p>
 <pre tabindex="0"><code>Verdict: FAIL
 Builder: &lt;builder model id&gt; / Edit, Bash / session 3f2a
-Verifier: &lt;verifier model id&gt; / xhigh reasoning / read-only sandbox / fresh context
+Verifier: &lt;verifier model id&gt; / &lt;reasoning tier&gt; / read-only sandbox / fresh context
 Different model required: yes (touches billing)
 Different model used: yes
 Criterion 1 — refund endpoint rejects amounts above the original charge: PASS — 3 unit tests + curl with 101% amount returned 422
@@ -865,8 +865,8 @@ models and reasoning tiers live only in the skill&#39;s Defaults block.
 When no Codex account can run, the skill&#39;s Defaults block names an explicit coding fallback and an
 ordered review fallback (skipping the first fallback on client, personal or regulated data), records
 why each skipped seat could not run, and never lets a fallback review a change its own model built.
-The economy executor has its own economy fallback, the last resort: only when that executor&#39;s model
-cannot run and no other authorized seat for the role can.
+If the economy executor&#39;s model cannot run and no other authorized seat for the role can, the seat is
+reported blocked.
 The portable defaults do not change a running
 harness&#39;s main-session model. Caller overrides and actual host
 configuration take precedence; the skill&#39;s Defaults block owns its portable defaults.

@@ -166,7 +166,23 @@ function fastChecks(
     if (String(workflow?.path ?? "").startsWith("dynamic/agents/")) continue;
     const workflowName = workflow === undefined ? "" : String(workflow.name);
     const event = workflow === undefined ? "" : String(workflow.event);
-    const key = `${name}/${workflowName}/${event}`;
+    const app = isRecord(run.app) ? run.app : undefined;
+    const appKey =
+      app?.id !== undefined && app.id !== null
+        ? `app-id:${String(app.id)}`
+        : typeof app?.slug === "string" && app.slug
+          ? `app-slug:${app.slug}`
+          : "";
+    const workflowId =
+      workflow?.workflow_id !== undefined && workflow.workflow_id !== null
+        ? `wf-id:${String(workflow.workflow_id)}`
+        : workflowName;
+    const key =
+      workflow !== undefined
+        ? `wf:${name}/${workflowId}/${event}/${appKey}`
+        : appKey
+          ? `app:${name}/${appKey}`
+          : `run:${String(run.id ?? suite)}/${name}`;
     if (seen.has(key)) continue;
     seen.add(key);
     const state = text(

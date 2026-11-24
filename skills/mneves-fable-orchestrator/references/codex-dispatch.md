@@ -125,8 +125,9 @@ as `CODEX_AUTO_MODEL` are deliberate exceptions, checked in the session header.
 ## Coding and review fallback CLI (not shipped)
 
 When no Codex account can run (not installed, out of quota, not signed in, or refused by host
-policy), the orchestrator's Defaults block routes coding and review after `gpt-6.2-sol` to
-`gemini-4-neon-xhigh` through Antigravity CLI (`agy`, **not shipped with this skill**).
+policy), the orchestrator's Defaults block routes coding and review after the Codex seat to the
+coding-fallback / first review-fallback model through Antigravity CLI (`agy`, **not shipped with
+this skill**).
 `agy-yolo` is a personal wrapper/alias for `agy --dangerously-skip-permissions` (**not shipped**;
 substitute `agy --dangerously-skip-permissions` only where unattended tool execution is explicitly
 authorized).
@@ -191,7 +192,7 @@ run_agy_coding_fallback() {
   out=$(set -o pipefail; jq -Rsc '{event:"user",message:{content:.}}' < "$brief_file" \
     | agy-yolo --sandbox --settings "$settings_file" \
         --input-format stream-json --output-format stream-json \
-        --model gemini-4-neon-xhigh --print "" --print-timeout 10m) || status=$?
+        --model "$CODING_FALLBACK_MODEL" --print "" --print-timeout 10m) || status=$?
   rm -f -- "$settings_file"
   [ "$status" -eq 0 ] || return "$status"
   jq -se '

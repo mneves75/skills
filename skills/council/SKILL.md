@@ -59,12 +59,12 @@ For round `R` in `1..X`:
 
 ### 4. Review mode adjustments
 
-Review mode keeps all boundaries above and applies these five steps:
+Review mode keeps all boundaries above and applies these five steps. **Lead edit boundary:** the lead edits repository files only when the user's current task already authorizes code changes; in a review-only run, freeze the supplied diff as-is, report verified findings, and leave the working tree untouched.
 
-1. **Update first:** resolve known defects and run relevant checks before round 1 so members review current code.
+1. **Update first (only when edits are authorized):** resolve known defects and run relevant checks before round 1 so members review current code; in review-only runs, skip edits and freeze the supplied diff directly.
 2. **Freeze target:** record repo, base commit, and diff command, writing `diff-vR.patch` each round into the prompt (`claude`/`pi` have no shell). Requires repository-disclosure authorization — stop without it. Oversized diffs must be split rather than passing shell commands. Include intent, out-of-scope bounds, and observed lead check output.
 3. **Deliberate** with the review prompt template from [references/invocations-and-prompts.md](references/invocations-and-prompts.md).
-4. **Answer findings:** verify each against real code; fix agreed real bugs with the smallest change (prefer deleting/narrowing code), decline nits/scope creep with reasons, and re-run checks after fixes.
+4. **Answer findings:** verify each against real code; when edits are authorized, fix agreed real bugs with the smallest change (prefer deleting/narrowing code), decline nits/scope creep with reasons, and re-run checks after fixes (in review-only runs, report verified findings without editing).
 5. **Stop & score:** stop when every replying member answers `SHIP IT` or round `X` ends (cap is not approval — present open disagreements in 2–3 lines per side). Include the per-round score table (`no score` if omitted) in the PR body (when editable) or final reply.
 
 ### 5. Answer

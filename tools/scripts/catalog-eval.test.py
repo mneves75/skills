@@ -73,10 +73,11 @@ class CatalogEvalTest(unittest.TestCase):
                         "schema": "catalog-eval-1",
                         "cases": [
                             {
-                                "id": "b1",
+                                "id": "../escape",
                                 "cluster": "sec",
                                 "prompt": "x",
-                                "expected": ["nonexistent-skill"],
+                                "expected": ["nonexistent-skill", "alpha-sec"],
+                                "forbidden": ["alpha-sec"],
                             }
                         ],
                     }
@@ -90,6 +91,8 @@ class CatalogEvalTest(unittest.TestCase):
             )
             self.assertEqual(p2.returncode, 1)
             self.assertIn("nonexistent-skill", p2.stdout)
+            self.assertIn("id must match", p2.stdout)
+            self.assertIn("overlap", p2.stdout)
 
     def test_run_with_fake_providers_and_confusion_detection(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

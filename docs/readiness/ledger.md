@@ -5,12 +5,28 @@ Deploy artifact: `site/`, published to GitHub Pages by `.github/workflows/static
 Profile: hosted ui (static Pages artifact); distributed db, ai, user-input, external-calls and local-persistence; unit flags ui/db/ai. Unit . includes the shipped SQLite SRS and AI tools, not only site/. Stake/customer-data applicability needs owner determination; the final 1.46.0 and 1.46.1 assessments conservatively treated affected controls as blockers. Hosted stake: false is descriptive only and does not downgrade the whole unit.
 Regulated: none established; no operator-specific data, market or contract determination is invented. Local privacy copies remain applicable. The UX-07 contract gate is inactive; this is not a legal exemption claim.
 Contracts: none
-Cursors: production f91d7cb6bf692ae9df4cf87fc4020096cc23606b (2026-11-21 UTC; v1.52.1, original audit `995f9401082ea87b33b6d1516e99aae55d187420`, identical tree `5871977dd95645b7d162a49749ffd61d0f9fc67e`; previous cursor 633a2b32f8de02ae0540e3ec160ae98e64c48e46, v1.52.0, whose previous cursor was db40ae488f2c69fc251b5d666839c10fdae03fab, v1.51.5)
+Cursors: production 852261bcd8f5a4188cff61b36c0351d6454f57cb (2026-11-21 UTC; v1.52.2, original audit `78f34263c42bfb52af8821822a04f61cff3d5ecd`, identical tree `0d822c43ac7cbdc8b7bbf1d875a2fa3a2b20db5c`; previous cursor f91d7cb6bf692ae9df4cf87fc4020096cc23606b, v1.52.1, whose previous cursor was 633a2b32f8de02ae0540e3ec160ae98e64c48e46, v1.52.0)
 Baseline: 2026-11-05 at 24f387652c70c3507af5fc310d3eae5cd9c49896 (full-unit source assessment; maximum age 90 days; expires 2027-02-03T23:21:54Z). Final dispositions below come from binding-assessment.json, not the earlier not-ready baseline draft.
-Binding run for production: 2026-11-21T04:19:48Z at f91d7cb6bf692ae9df4cf87fc4020096cc23606b (v1.52.1; original audit `995f9401082ea87b33b6d1516e99aae55d187420`, identical tree `5871977dd95645b7d162a49749ffd61d0f9fc67e`) · verdict ready · 0 open blockers · independent acceptance pass · 26 WAIVED · historical record `.scratch/readiness/f91d7cb6bf692ae9df4cf87fc4020096cc23606b/production.json`, valid_until 2026-11-22T02:59:56Z. Earlier binding runs remain in Gate history.
+Binding run for production: 2026-11-21T08:22:01Z at 852261bcd8f5a4188cff61b36c0351d6454f57cb (v1.52.2; original audit `78f34263c42bfb52af8821822a04f61cff3d5ecd`, identical tree `0d822c43ac7cbdc8b7bbf1d875a2fa3a2b20db5c`) · verdict ready · 0 open blockers · independent acceptance pass · 26 WAIVED · historical record `.scratch/readiness/852261bcd8f5a4188cff61b36c0351d6454f57cb/production.json`, valid_until 2026-11-22T07:03:47Z. Earlier binding runs remain in Gate history.
 Owners: proposed roles only, none accepted · review proposed: maintainer · data proposed: maintainer · delivery and cost proposed: maintainer · on-call proposed: maintainer, backup unassigned · security patching proposed: maintainer · compliance proposed: maintainer · testing proposed: maintainer · scope proposed: maintainer · architecture proposed: maintainer · memory proposed: maintainer
 
-## Recorded 1.52.1 binding result
+## Recorded 1.52.2 binding result
+
+The production record for 1.52.2 binds audit `78f34263c42bfb52af8821822a04f61cff3d5ecd`, merged to
+production as `852261bcd8f5a4188cff61b36c0351d6454f57cb` (PR #72, identical tree
+`0d822c43ac7cbdc8b7bbf1d875a2fa3a2b20db5c`): verdict ready, zero open blockers, independent
+acceptance pass and 26 waivers (`.scratch/readiness/78f34263c42bfb52af8821822a04f61cff3d5ecd/production.json`;
+the merge record reuses it). Its per-control assessment
+(`.scratch/readiness/78f34263c42bfb52af8821822a04f61cff3d5ecd/binding-assessment.json`, cursor
+`f91d7cb`, 136 controls) kept the status and effective tier of every control in the 1.52.1
+assessment (`995f940`), so the per-control rows below keep their 1.51.3 citations. Routing text did
+not change, so AI-01 reused the 1.52.1 routing-eval proof (`.scratch/security-gate/78f34263c42bfb52af8821822a04f61cff3d5ecd/routing-eval-reuse.json`),
+and `tools/scripts/check-site-copy.sh` passed all nine cases including the 390px overflow check.
+The security gate recorded WAIVED for SEC-15, SEC-17, SEC-20, SEC-21, SEC-23 and CMP-06
+(`.scratch/security-gate/78f34263c42bfb52af8821822a04f61cff3d5ecd/production.json`). CI run
+44883138945 on `main` and GitHub Pages run 44884488471 succeeded before the `v1.52.2` tag.
+
+### Recorded 1.52.1 binding result
 
 The production record for 1.52.1 binds audit `995f9401082ea87b33b6d1516e99aae55d187420`, merged to
 production as `f91d7cb6bf692ae9df4cf87fc4020096cc23606b` (PR #71, identical tree
@@ -335,3 +351,4 @@ Totals: 136 rows · NOT APPLICABLE 66 · PASS 20 · FAIL 4 · NOT TESTED 20 · B
 | 2026-11-18 | production | db40ae488f2c69fc251b5d666839c10fdae03fab | ready (v1.51.5; original audit `bb61f2f`, same tree) | 0 | SEC-15 SEC-17 SEC-20 SEC-21 SEC-23 CMP-06 DEL-04 DEL-09 ASY-02 OPS-04 AI-02 DM-04 BR-01 BR-02 BR-03 BR-04 DEL-05 CST-02 OBS-02 OBS-03 OBS-04 OBS-07 TST-04 MNT-02 OPS-05 OPS-06 |
 | 2026-11-19 | production | 633a2b32f8de02ae0540e3ec160ae98e64c48e46 | ready (v1.52.0; original audit `99fd898`, same tree) | 0 | SEC-15 SEC-17 SEC-20 SEC-21 SEC-23 CMP-06 DEL-04 DEL-09 ASY-02 OPS-04 AI-02 DM-04 BR-01 BR-02 BR-03 BR-04 DEL-05 CST-02 OBS-02 OBS-03 OBS-04 OBS-07 TST-04 MNT-02 OPS-05 OPS-06 |
 | 2026-11-21 | production | f91d7cb6bf692ae9df4cf87fc4020096cc23606b | ready (v1.52.1; original audit `995f940`, same tree) | 0 | SEC-15 SEC-17 SEC-20 SEC-21 SEC-23 CMP-06 DEL-04 DEL-09 ASY-02 OPS-04 AI-02 DM-04 BR-01 BR-02 BR-03 BR-04 DEL-05 CST-02 OBS-02 OBS-03 OBS-04 OBS-07 TST-04 MNT-02 OPS-05 OPS-06 |
+| 2026-11-21 | production | 852261bcd8f5a4188cff61b36c0351d6454f57cb | ready (v1.52.2; original audit `78f3426`, same tree) | 0 | SEC-15 SEC-17 SEC-20 SEC-21 SEC-23 CMP-06 DEL-04 DEL-09 ASY-02 OPS-04 AI-02 DM-04 BR-01 BR-02 BR-03 BR-04 DEL-05 CST-02 OBS-02 OBS-03 OBS-04 OBS-07 TST-04 MNT-02 OPS-05 OPS-06 |

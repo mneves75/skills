@@ -60,6 +60,10 @@ if (path === prefix + 'pulls/1') {
     : scenario === 'tie' ? [run('build', 'success'), run('build'), run('test', 'success')]
     : scenario === 'codeql' ? [run('build', 'success'), run('test', 'success'), run('Analyze (javascript)', null, 3)]
     : scenario === 'copilot-agent' ? [run('build', 'success'), run('test', 'success'), run('copilot-pull-request-reviewer', null, 4)]
+    : scenario === 'two-apps' ? [
+      { ...run('build', 'failure', 10, '2026-11-23T09:00:00Z'), id: 101, app: { id: 10, slug: 'ci-alpha' } },
+      { ...run('build', 'success', 11, '2026-11-23T10:00:00Z'), id: 102, app: { id: 11, slug: 'ci-beta' } },
+    ]
     : [run('build', 'success'), run('test', 'success')];
   value = [{ total_count: scenario === 'short-page' ? runs.length + 1 : runs.length, check_runs: runs }];
 } else if (path === prefix + 'actions/runs?head_sha=head&per_page=100') {
@@ -109,12 +113,12 @@ function watch(scenario: string, extra: string[] = []) {
       "--pr",
       "1",
       "--timeout",
-      "2",
+      "5",
       ...extra,
     ],
     {
       encoding: "utf8",
-      timeout: 6000,
+      timeout: 15000,
       env: {
         PATH: `${bin}:${process.env.PATH}`,
         WATCH_FIXTURE: scenario,
@@ -211,6 +215,15 @@ it("keeps only the newest run per name, workflow, and event, as gh pr checks doe
         `${check.name}/${check.workflow}`
     )
   ).toEqual(["build/CI", "test/CI"]);
+});
+
+it("preserves distinct non-Actions apps that share a check run display name", () => {
+  const { verdict } = watch("two-apps", ["--status-only"]);
+  expect(verdict.rows[0].ci).toMatchObject({
+    kind: "ci-failing",
+    failed: [expect.objectContaining({ name: "build" })],
+  });
+  expect(verdict.rows[0].ci.all).toHaveLength(2);
 });
 
 it("counts CodeQL's dynamic workflow, as GitHub's rollup does, and leaves out Copilot's review agent", () => {

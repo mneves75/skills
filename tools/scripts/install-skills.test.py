@@ -42,8 +42,24 @@ class InstallSkillsTest(unittest.TestCase):
             self.assertEqual(d1["selected_count"], 43)
             self.assertTrue(any(s["name"] == "babysit" for s in d1["selected"]))
 
-            # Once babysit-pr exists in target, pstack/babysit is automatically skipped (42 skills)
+            # A dangling symlink or empty dir named babysit-pr must NOT suppress pstack/babysit
+            (target / "babysit-pr").symlink_to(Path(tmp) / "does-not-exist")
+            p_dangling = subprocess.run(
+                [sys.executable, str(SCRIPT), "--profile", "pstack-compatible", "--target", str(target), "--json"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(p_dangling.returncode, 0, p_dangling.stdout + p_dangling.stderr)
+            d_dang = json.loads(p_dangling.stdout)
+            self.assertEqual(d_dang["selected_count"], 43)
+            self.assertTrue(any(s["name"] == "babysit" for s in d_dang["selected"]))
+            (target / "babysit-pr").unlink()
+
+            # Once a usable babysit-pr (with SKILL.md) exists in target, pstack/babysit is skipped (42 skills)
             (target / "babysit-pr").mkdir()
+            (target / "babysit-pr" / "SKILL.md").write_text(
+                "---\nname: babysit-pr\ndescription: Watch a PR.\n---\n", encoding="utf-8"
+            )
             p2 = subprocess.run(
                 [sys.executable, str(SCRIPT), "--profile", "pstack-compatible", "--target", str(target), "--json"],
                 capture_output=True,
@@ -54,6 +70,25 @@ class InstallSkillsTest(unittest.TestCase):
             self.assertEqual(d2["selected_count"], 42)
             self.assertFalse(any(s["name"] == "babysit" for s in d2["selected"]))
             self.assertTrue(any(s["name"] == "babysit" for s in d2["skipped"]))
+
+            # Missing explicit include in a profile manifest fails loudly instead of silently dropping it
+            bad_profiles = Path(tmp) / "profiles.json"
+            bad_profiles.write_text(
+                json.dumps(
+                    {
+                        "schema": "install-profiles-1",
+                        "profiles": {"broken": {"description": "broken", "include": ["skills/does-not-exist"]}},
+                    }
+                ),
+                encoding="utf-8",
+            )
+            p_missing = subprocess.run(
+                [sys.executable, str(SCRIPT), "--profiles", str(bad_profiles), "--profile", "broken"],
+                capture_output=True,
+                text=True,
+            )
+            self.assertNotEqual(p_missing.returncode, 0)
+            self.assertIn("missing explicit include", p_missing.stderr)
 
     def test_dry_run_and_apply_and_local_dir_protection(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
