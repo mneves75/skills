@@ -70,8 +70,9 @@ These are separately installed; this skill works without them.
   it, run the fallback checks in `controls-security.md` at reduced depth and say so.
 - `mneves-ship-deploy` runs this gate in its review phase and binds the record before each
   deploy. Without it, run the binding gate yourself before any deploy and keep the record.
-- `mneves-verify` performs the independent check. Without it, use a fresh read-only subagent
-  given only the rows, their evidence and the rule; if none is available, those rows are BLOCKED.
+- `mneves-verify` performs the independent check. Without it, use a fresh read-only subagent on a
+  different model from the builder, given only the rows, their evidence and the rule; if no
+  qualifying different-model verifier is available, those rows are BLOCKED.
 
 ## Procedure
 

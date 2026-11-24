@@ -67,7 +67,10 @@ def is_safe_id(value: str) -> bool:
 
 def safe_child(base: Path, *parts: str) -> Path:
     base_resolved = base.resolve()
-    candidate = base_resolved.joinpath(*parts).resolve()
+    raw = base_resolved.joinpath(*parts)
+    if raw.is_symlink():
+        raise ValueError(f"refusing symlink output path: {raw}")
+    candidate = raw.resolve()
     if not candidate.is_relative_to(base_resolved) or candidate == base_resolved:
         raise ValueError(f"path escapes output directory: {candidate}")
     return candidate
@@ -408,8 +411,8 @@ def command_run(args: argparse.Namespace) -> int:
     ]
 
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "catalog.txt").write_text(catalog_text + "\n", encoding="utf-8")
-    (out_dir / "cases.json").write_bytes(cases_bytes)
+    safe_child(out_dir, "catalog.txt").write_text(catalog_text + "\n", encoding="utf-8")
+    safe_child(out_dir, "cases.json").write_bytes(cases_bytes)
 
     started = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     with cf.ThreadPoolExecutor(max_workers=4) as claude_pool, cf.ThreadPoolExecutor(max_workers=3) as codex_pool:
@@ -436,7 +439,7 @@ def command_run(args: argparse.Namespace) -> int:
         "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         **stats,
     }
-    (out_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    safe_child(out_dir, "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({"totals": summary["totals"], "by_provider": summary["by_provider"]}, indent=2))
     totals = summary["totals"]
     return 0 if totals["fail"] == 0 and totals["forbidden"] == 0 and totals["error"] == 0 else 1

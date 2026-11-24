@@ -136,8 +136,13 @@ class CatalogHygieneTest(unittest.TestCase):
             self.assertEqual(missing["total_skill_lines"], 0)
 
             make_fixture(root)
-            # Unlinked file under references/ fails
+            # Unlinked file under references/ fails — even if an unused link definition exists
             (root / "skills" / "alpha" / "references" / "orphan.md").write_text("# Orphan\n", encoding="utf-8")
+            (root / "skills" / "alpha" / "SKILL.md").write_text(
+                "---\nname: alpha\ndescription: Run alpha checks on local source files.\n---\n"
+                "See [guide](references/guide.md).\n\n[unused]: references/orphan.md\n",
+                encoding="utf-8",
+            )
             res_orphan = MOD.check_repo(root)
             self.assertFalse(res_orphan["ok"])
             self.assertTrue(any("unlinked reference file" in e for e in res_orphan["errors"]), res_orphan["errors"])

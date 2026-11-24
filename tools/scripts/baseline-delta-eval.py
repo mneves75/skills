@@ -82,7 +82,10 @@ def _is_safe_id(value: str) -> bool:
 
 def _safe_child(base: Path, *parts: str) -> Path:
     base_resolved = base.resolve()
-    candidate = base_resolved.joinpath(*parts).resolve()
+    raw = base_resolved.joinpath(*parts)
+    if raw.is_symlink():
+        raise ValueError(f"refusing symlink output path: {raw}")
+    candidate = raw.resolve()
     if not candidate.is_relative_to(base_resolved) or candidate == base_resolved:
         raise ValueError(f"path escapes output directory: {candidate}")
     return candidate
@@ -356,7 +359,7 @@ def command_run(args: argparse.Namespace) -> int:
         "finished_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "results": records,
     }
-    (out_dir / "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    _safe_child(out_dir, "summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     return 0 if all(r.get("error") is None for r in records) else 1
 
 

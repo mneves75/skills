@@ -40,6 +40,8 @@ UPSTREAM_BARE_BASENAME_EXEMPT = frozenset({"security-audit"})
 
 INLINE_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 REF_DEF_RE = re.compile(r"^\s*\[([^\]]+)\]:\s*(\S+)(?:\s+.*)?$", re.MULTILINE)
+REF_USE_FULL_RE = re.compile(r"!?\[[^\]]*\]\[([^\]]*)\]")
+REF_USE_SHORT_RE = re.compile(r"!?\[([^\]]+)\](?![(\[:])")
 SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
 
@@ -60,18 +62,46 @@ def _is_relative_target(target: str) -> bool:
     return bool(target) and not target.startswith("#") and not SCHEME_RE.match(target)
 
 
-def extract_relative_links(text: str) -> list[str]:
+def _cited_ref_labels(body_without_defs: str) -> set[str]:
+    labels: set[str] = set()
+    for match in REF_USE_FULL_RE.finditer(body_without_defs):
+        ref = match.group(1).strip()
+        if ref:
+            labels.add(ref.lower())
+        else:
+            # Collapsed reference `[label][]`
+            full = match.group(0)
+            inner = full[2 if full.startswith("!") else 1 : full.find("]")]
+            if inner.strip():
+                labels.add(inner.strip().lower())
+    for match in REF_USE_SHORT_RE.finditer(body_without_defs):
+        labels.add(match.group(1).strip().lower())
+    return labels
+
+
+def extract_relative_links(text: str, *, cited_only: bool = False) -> list[str]:
     clean = strip_fenced_code(text)
     links: list[str] = []
     for match in INLINE_LINK_RE.finditer(clean):
         target = match.group(1).strip().strip("<>")
         if _is_relative_target(target):
             links.append(target)
+
+    defs: list[tuple[str, str]] = []
     for match in REF_DEF_RE.finditer(clean):
+        label = match.group(1).strip().lower()
         target = match.group(2).strip().strip("<>")
         if _is_relative_target(target):
-            links.append(target)
-    return links
+            defs.append((label, target))
+
+    if not defs:
+        return links
+    if not cited_only:
+        return links + [target for _, target in defs]
+
+    body_without_defs = REF_DEF_RE.sub("", clean)
+    cited = _cited_ref_labels(body_without_defs)
+    return links + [target for label, target in defs if label in cited]
 
 
 def _resolve_link(base_dir: Path, link: str, root: Path) -> Path | None:
@@ -157,14 +187,15 @@ def _check_skill_dir(sdir: Path, root: Path, errors: list[str], warnings: list[s
     stat = _check_skill_metadata(name, text, errors, warnings)
 
     linked_targets: set[Path] = set()
-    for link in extract_relative_links(text):
+    for link in extract_relative_links(text, cited_only=False):
         rel_path = link.split("#", 1)[0]
         if not rel_path:
             continue
-        target = _resolve_link(sdir, link, root)
-        if target is None:
+        if _resolve_link(sdir, link, root) is None:
             errors.append(f"skills/{name}/SKILL.md: broken relative link {link!r}")
-        else:
+    for link in extract_relative_links(text, cited_only=True):
+        target = _resolve_link(sdir, link, root)
+        if target is not None:
             linked_targets.add(target)
 
     _check_references(name, sdir, root, linked_targets, errors)

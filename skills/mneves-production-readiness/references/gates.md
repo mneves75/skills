@@ -138,11 +138,11 @@ or teardown path (maintenance switch, feature flag, DNS cutback).
 Before writing a production record, a fresh-context verifier that did not assess the rows checks
 the evidence for every `blocker` and active `contract` row that became PASS or NOT APPLICABLE
 since the last production record, and every applicability change. At launch this covers every
-such row. Use the
-separately installed `mneves-verify` skill when present, otherwise a fresh read-only subagent
-with the rows, the evidence and this rule. If no verifier is available, those rows are BLOCKED
-until a verifier runs or the owner waives them. An audit or provisional assessment lists these
-rows as pending; the check is required only before a production record is written.
+such row. Use the separately installed `mneves-verify` skill when present, otherwise a fresh read-only
+subagent on a different model from the builder with the rows, the evidence and this rule. If no
+qualifying different-model verifier is available, those rows are BLOCKED until a verifier runs or
+the owner waives them. An audit or provisional assessment lists these rows as pending; the check is
+required only before a production record is written.
 
 ## Waivers
 
