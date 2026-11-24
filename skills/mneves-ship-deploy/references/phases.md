@@ -64,7 +64,7 @@ what CI actually executed rather than trusting an exit-0 summary.
 
 When preflight finds a documented dev environment, run it before Phase 4 in the same order:
 bind the `dev` readiness gate on the pushed commit under the staging rule, deploy, prove live
-with Phase 4 step 2 assertions plus the security gate's runtime checks, then tag:
+with Phase 4 step 3 assertions plus the security gate's runtime checks, then tag:
 
 ```bash
 git tag -a vX.Y.Z-alpha<N> <commit> -m "vX.Y.Z-alpha<N> — dev; security gate: PASS" && git push origin vX.Y.Z-alpha<N>
@@ -118,9 +118,10 @@ invalidates approval). Immediately before promoting (especially after resuming f
 staging is still healthy (reusing an unchanged healthy staging deployment rather than redeploying
 it), and confirm a valid, non-expired production security verdict and production readiness record
 (re-run the gate if waivers were granted or the record expired). Deploy that exact commit to
-production, complete every required live proof — applying the full Phase 4 step 2 assertions to
-production (health-body check, positive and negative requests, changed-flow checks, log/error
-checks, and `mneves-security` runtime checks, plus any required observation window) — then tag:
+production, complete every required live proof — applying the full Phase 4 step 3 assertions to
+production (served commit/version and deployed artifact identity matching the candidate commit,
+health-body check, positive and negative requests, changed-flow checks, log/error checks, and
+`mneves-security` runtime checks, plus any required observation window) — then tag:
 
 ```bash
 git tag -a vX.Y.Z <commit> -m "vX.Y.Z; security gate: PASS" && git push origin vX.Y.Z
