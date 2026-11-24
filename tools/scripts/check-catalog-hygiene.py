@@ -38,13 +38,14 @@ WARN_DESC_CHARS = 220
 MAX_DESC_CHARS = 350
 UPSTREAM_BARE_BASENAME_EXEMPT = frozenset({"security-audit"})
 
-INLINE_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)\s]+)(?:\s+(?:\"[^\"]*\"|'[^']*'|\([^)]*\)))?\)")
+INLINE_OPEN_RE = re.compile(r"!?\[[^\]\n]*\]\(")
 REF_DEF_RE = re.compile(r"^\s*\[([^\]]+)\]:\s*(\S+)(?:\s+.*)?$", re.MULTILINE)
 REF_USE_FULL_RE = re.compile(r"!?\[[^\]]*\]\[([^\]]*)\]")
 REF_USE_SHORT_RE = re.compile(r"!?\[([^\]]+)\](?![(\[:])")
 HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
+INDENT_CODE_RE = re.compile(r"^(?: {4}|\t)")
 
 
 def _strip_inline_code(text: str) -> str:
@@ -82,13 +83,94 @@ def _strip_inline_code(text: str) -> str:
 def strip_fenced_code(text: str) -> str:
     out: list[str] = []
     in_fence = False
+    can_indent_code = True
     for line in text.splitlines():
         if FENCE_RE.match(line):
             in_fence = not in_fence
+            can_indent_code = False
             continue
-        if not in_fence:
-            out.append(line)
+        if in_fence:
+            continue
+        if can_indent_code and INDENT_CODE_RE.match(line):
+            continue
+        out.append(line)
+        can_indent_code = not line.strip()
     return "\n".join(out)
+
+
+def _read_link_dest(prose: str, i: int) -> tuple[str, int] | None:
+    n = len(prose)
+    if i >= n:
+        return None
+    if prose[i] == "<":
+        end = prose.find(">", i + 1)
+        if end == -1 or "\n" in prose[i + 1 : end]:
+            return None
+        dest = prose[i + 1 : end].strip()
+        return (dest, end + 1) if dest else None
+    start, depth = i, 0
+    while i < n and prose[i] not in " \t\r\n":
+        if prose[i] == "(":
+            depth += 1
+        elif prose[i] == ")":
+            if depth == 0:
+                break
+            depth -= 1
+        i += 1
+    dest = prose[start:i]
+    return (dest, i) if dest else None
+
+
+def _skip_link_title(prose: str, i: int) -> int | None:
+    n = len(prose)
+    if i >= n or prose[i] not in "\"'(":
+        return i
+    close = ")" if prose[i] == "(" else prose[i]
+    i += 1
+    while i < n and prose[i] != close:
+        i += 2 if prose[i] == "\\" and i + 1 < n else 1
+    return (i + 1) if i < n else None
+
+
+def _parse_inline_link(prose: str, start: int) -> tuple[str, int] | None:
+    """Parse destination and optional title after `](`, supporting balanced parens and escaped quotes."""
+    n = len(prose)
+    i = start
+    while i < n and prose[i] in " \t":
+        i += 1
+    parsed = _read_link_dest(prose, i)
+    if parsed is None:
+        return None
+    dest, i = parsed
+    while i < n and prose[i] in " \t\r\n":
+        i += 1
+    after_title = _skip_link_title(prose, i)
+    if after_title is None:
+        return None
+    i = after_title
+    while i < n and prose[i] in " \t\r\n":
+        i += 1
+    return (dest, i + 1) if i < n and prose[i] == ")" else None
+
+
+def _scan_inline_links(prose: str) -> tuple[list[str], str]:
+    links: list[str] = []
+    kept: list[str] = []
+    pos = 0
+    for match in INLINE_OPEN_RE.finditer(prose):
+        if match.start() < pos:
+            continue
+        parsed = _parse_inline_link(prose, match.end())
+        if parsed is None:
+            continue
+        dest, end_pos = parsed
+        kept.append(prose[pos : match.start()])
+        kept.append(" ")
+        pos = end_pos
+        if _is_relative_target(dest):
+            links.append(dest)
+    kept.append(prose[pos:])
+    return links, "".join(kept)
 
 
 def _is_relative_target(target: str) -> bool:
@@ -115,11 +197,7 @@ def _cited_ref_labels(body_without_defs: str) -> set[str]:
 def extract_relative_links(text: str, *, cited_only: bool = False) -> list[str]:
     clean = HTML_COMMENT_RE.sub("", strip_fenced_code(text))
     prose = _strip_inline_code(REF_DEF_RE.sub("", clean))
-    links: list[str] = []
-    for match in INLINE_LINK_RE.finditer(prose):
-        target = match.group(1).strip().strip("<>")
-        if _is_relative_target(target):
-            links.append(target)
+    links, prose_without_inline = _scan_inline_links(prose)
 
     defs: list[tuple[str, str]] = []
     for match in REF_DEF_RE.finditer(clean):
@@ -133,7 +211,7 @@ def extract_relative_links(text: str, *, cited_only: bool = False) -> list[str]:
     if not cited_only:
         return links + [target for _, target in defs]
 
-    cited = _cited_ref_labels(INLINE_LINK_RE.sub("", prose))
+    cited = _cited_ref_labels(prose_without_inline)
     return links + [target for label, target in defs if label in cited]
 
 

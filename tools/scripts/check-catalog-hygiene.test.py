@@ -149,10 +149,12 @@ class CatalogHygieneTest(unittest.TestCase):
             self.assertFalse(res_orphan["ok"])
             self.assertTrue(any("unlinked reference file" in e for e in res_orphan["errors"]), res_orphan["errors"])
 
-            # Reference label inside an HTML comment or inline link title must NOT count as cited
+            # Reference label inside HTML comment, indented code block, or inline link title (incl. escaped quotes) must NOT count
             for bogus in (
                 "See [guide](references/guide.md).\n<!-- [orphan] -->\n\n[orphan]: references/orphan.md\n",
                 'See [guide](references/guide.md "[orphan]").\n\n[orphan]: references/orphan.md\n',
+                'See [guide](references/guide.md "say \\"[orphan]\\"").\n\n[orphan]: references/orphan.md\n',
+                "See [guide](references/guide.md).\n\n    [orphan]\n\n[orphan]: references/orphan.md\n",
             ):
                 (root / "skills" / "alpha" / "SKILL.md").write_text(
                     "---\nname: alpha\ndescription: Run alpha checks on local source files.\n---\n" + bogus,
@@ -161,6 +163,14 @@ class CatalogHygieneTest(unittest.TestCase):
                 res_bogus = MOD.check_repo(root)
                 self.assertFalse(res_bogus["ok"], bogus)
                 self.assertTrue(any("unlinked reference file" in e for e in res_bogus["errors"]), res_bogus["errors"])
+
+            # Parenthesized destination resolves intact without truncating at the inner ')'
+            (root / "skills" / "alpha" / "references" / "note(1).md").write_text("# Note\n", encoding="utf-8")
+            self.assertIn(
+                "references/note(1).md",
+                MOD.extract_relative_links("See [note](references/note(1).md).\n", cited_only=True),
+            )
+            (root / "skills" / "alpha" / "references" / "note(1).md").unlink()
 
             # Reference-style sibling link inside references/ fails
             (root / "skills" / "alpha" / "SKILL.md").write_text(
