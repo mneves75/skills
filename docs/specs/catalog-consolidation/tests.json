@@ -23,7 +23,7 @@
       "id": "check-catalog-hygiene",
       "command": "python3 tools/scripts/check-catalog-hygiene.py && python3 tools/scripts/check-catalog-hygiene.test.py",
       "status": "pass",
-      "evidence": "23 root skills, 3479 desc chars, 2533 lines, 0 warnings, 0 errors; 8/8 tests pass"
+      "evidence": "23 root skills, 3479 desc chars, 2536 lines, 0 warnings, 0 errors; 8/8 tests pass"
     },
     {
       "id": "routing-eval-check",

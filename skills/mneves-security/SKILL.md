@@ -60,10 +60,13 @@ external scanner or sibling skill required):
   `mneves-expert-review`; without them, run bounded tracks and step 4 directly. Model
   bindings come from the host/orchestrator; this skill never pins models or tiers.
 - Adversarial review & acceptance: use an optional host `code-review` skill (not shipped
-  here) or installed `autoreview` for fixed-diff critique, and installed `mneves-verify`
-  for independent acceptance (fresh context, different model from builder for security
-  acceptance). If unavailable, mark that gate `BLOCKED` (blocks production only), keep the
-  report, and never substitute self-review for independent acceptance.
+  here) or installed `autoreview` for fixed-diff critique (otherwise a fresh read-only
+  reviewer on the fixed diff), and installed `mneves-verify` for independent acceptance;
+  without `mneves-verify`, hand a fresh read-only verifier on a different model from the
+  builder the frozen criteria, exact candidate artifacts, and stopping condition. Only if
+  an independent reviewer or required distinct-model verifier is unavailable, mark that
+  gate `BLOCKED` (blocks production only), keep the report, and never substitute
+  self-review for independent acceptance.
 
 ## Execution
 
