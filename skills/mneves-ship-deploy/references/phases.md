@@ -132,7 +132,8 @@ Then finish closeout:
   work, queue consumers, workflows (deleting a staging workflow requires the same authorization
   as deleting a staging database), Durable Object alarms, and external schedulers acting on
   staging. An idle request-only staging service may stay so secrets survive. For a staging
-  database: confirm it holds nothing production lacks, verify its name and id belong to staging
+  database: confirm it holds nothing production lacks, confirm no release is currently using
+  staging, verify its name and id belong to staging
   (not production), export first, and delete only with owner authorization (standing rule or
   explicit line in the production approval packet); otherwise export and hand off the export
   path. Production is done only once staging shows zero scheduled runs and zero writes, each

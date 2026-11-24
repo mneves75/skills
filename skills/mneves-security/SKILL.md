@@ -112,8 +112,9 @@ In fix mode, reuse existing auth/validation/rate-limit infrastructure and fix at
 trusted decision point. Demonstrate the unsafe behavior with a focused failing test first
 (failing on untouched source, passing with the fix, covering both allowed and denied/
 malformed cases). Server-side proxies must authenticate/authorize, validate inputs,
-constrain upstream destinations/ops and bound cost. Never use admin/service identities to
-prove ordinary-user isolation, and never treat local policy files as applied remotely.
+constrain upstream destinations/ops and bound cost. Add policy or migration files only with
+schema confidence, tests and recovery notes. Never use admin/service identities to prove
+ordinary-user isolation, and never treat local policy files as applied remotely.
 Track disposition and fix state separately (`proposed`, `fixed-and-verified`,
 `awaiting-application`, `manual-action`, `blocked`, `waived`).
 
