@@ -118,8 +118,9 @@ invalidates approval). Immediately before promoting (especially after resuming f
 staging is still healthy (reusing an unchanged healthy staging deployment rather than redeploying
 it), and confirm a valid, non-expired production security verdict and production readiness record
 (re-run the gate if waivers were granted or the record expired). Deploy that exact commit to
-production, complete every required live proof (including any required observation window before
-tagging), then tag:
+production, complete every required live proof — applying the full Phase 4 step 2 assertions to
+production (health-body check, positive and negative requests, changed-flow checks, log/error
+checks, and `mneves-security` runtime checks, plus any required observation window) — then tag:
 
 ```bash
 git tag -a vX.Y.Z <commit> -m "vX.Y.Z; security gate: PASS" && git push origin vX.Y.Z

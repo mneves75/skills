@@ -64,8 +64,10 @@ Match the exact PR situation — do not stack overlapping PR workflows:
   and author attribution; never rewrite shared history).
 - **Unattended change to a ready PR:** route to `full-stop` ONLY when the user invoked it by name
   (fallback: implement the scoped change with tests, run an independent different-model review and
-  fresh verification, open a problem-first PR, watch CI/bots within a bounded 2-3 round limit, and
-  stop at the merge gate; mark `BLOCKED` if no independent reviewer can run).
+  fresh verification, open a problem-first PR, check PR auto-merge and merge-queue state before
+  pushing any follow-up fix and stop rather than triggering an unintended merge, watch CI/bots
+  within a bounded 2-3 round limit, and stop at the merge gate; mark `BLOCKED` if no independent
+  reviewer can run).
 - **Post GitHub comments:** route to `leaving-pr-comments` (fallback: clearly disclose that an
   agent drafted/posted the comment on the user's behalf).
 - **Hand off to another session:** route to `mneves-handoff` (fallback: write a path-free,
