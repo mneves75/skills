@@ -51,8 +51,9 @@ what CI actually executed rather than trusting an exit-0 summary.
   ```
 - In PR-first repos, open the PR (`gh pr create`) leading with the problem in plain words, the
   solution, and one line on how it was proved (sanitized before/after images for UI changes).
-- **Merge gate (latest head):** proof covers every diff change; required checks pass on the
-  actual candidate/merged commit; review bots finished and each finding is fixed or answered
+- **Merge gate (latest head):** every PR merge requires explicit merge authorization (and when a
+  merge triggers production, explicit owner approval of the exact candidate and target); proof
+  covers every diff change; required checks pass on the actual candidate/merged commit; review bots finished and each finding is fixed or answered
   with a reason; no review requests changes; GitHub reports mergeable (not `BEHIND`/`DIRTY`)
   with no base commits touching PR files after the last green run. Never use `--admin` or any
   bypass. For GitHub billing-blocked checks (zero steps + annotation starting "The job was not
