@@ -1087,7 +1087,7 @@ writes and deployments retain the host's authorization rules.
 **What it does.** An explicit-only workflow router modeled on `poteto-mode`. When invoked by name
 (`/mneves-mode`, `$mneves-mode`, or "use mneves mode"), it frames the goal and risk tier, selects
 the matching playbook from `references/playbooks.md` (feature/bug fix, scoped refactor, decision,
-PR lifecycle, release/deploy, or audit/verification), and redirects each phase to whichever
+PR lifecycle, release/deploy, audit/verification, or specialized artifacts/learning), and redirects each phase to whichever
 sibling skill is installed — falling back cleanly on single-skill installs and closing mandatory
 gates when independent reviewers or release gates are unavailable. Every standalone skill remains
 directly discoverable on its own.

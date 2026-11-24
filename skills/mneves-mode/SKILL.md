@@ -86,6 +86,7 @@ execute its steps in order:
 4. **PR lifecycle** — pick `babysit-pr`, `modernize`, `takeover`, or explicit `full-stop` -> attribute comments -> stop at merge gate.
 5. **Release and production deploy** — exact-commit `mneves-security` -> `mneves-production-readiness` -> `mneves-ship-deploy` -> prove live -> tag.
 6. **Audit or independent verification** — read-only evidence collection -> fresh-context verdict -> prioritized findings.
+7. **Specialized artifacts & learning** — route to `mneves-render`, `mneves-motion-film`, `imagegen-frontend-mobile`, or `mneves-teach-back-srs` with explicit single-skill fallbacks.
 
 ## 5. Cross-cutting rules
 

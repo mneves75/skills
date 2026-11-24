@@ -38,13 +38,13 @@ WARN_DESC_CHARS = 220
 MAX_DESC_CHARS = 350
 UPSTREAM_BARE_BASENAME_EXEMPT = frozenset({"security-audit"})
 
-INLINE_OPEN_RE = re.compile(r"!?\[[^\]\n]*\]\(")
+INLINE_SPLIT_RE = re.compile(r"\]\(")
 REF_DEF_RE = re.compile(r"^\s*\[([^\]]+)\]:\s*(\S+)(?:\s+.*)?$", re.MULTILINE)
 REF_USE_FULL_RE = re.compile(r"!?\[[^\]]*\]\[([^\]]*)\]")
 REF_USE_SHORT_RE = re.compile(r"!?\[([^\]]+)\](?![(\[:])")
 HTML_COMMENT_RE = re.compile(r"<!--.*?-->", re.DOTALL)
 SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
-FENCE_RE = re.compile(r"^\s*(```|~~~)")
+FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})")
 INDENT_CODE_RE = re.compile(r"^(?: {4}|\t)")
 
 
@@ -80,21 +80,48 @@ def _strip_inline_code(text: str) -> str:
     return "".join(out)
 
 
+def _strip_line_comments(line: str, in_comment: bool) -> tuple[str, bool]:
+    out: list[str] = []
+    pos = 0
+    while pos < len(line):
+        if in_comment:
+            end = line.find("-->", pos)
+            if end == -1:
+                return "".join(out), True
+            pos, in_comment = end + 3, False
+        else:
+            start = line.find("<!--", pos)
+            if start == -1:
+                out.append(line[pos:])
+                break
+            out.append(line[pos:start])
+            pos, in_comment = start + 4, True
+    return "".join(out), in_comment
+
+
 def strip_fenced_code(text: str) -> str:
     out: list[str] = []
-    in_fence = False
+    fence_marker: str | None = None
+    in_comment = False
     can_indent_code = True
     for line in text.splitlines():
-        if FENCE_RE.match(line):
-            in_fence = not in_fence
+        if fence_marker is not None:
+            m = FENCE_RE.match(line)
+            if m and m.group(1)[0] == fence_marker[0] and len(m.group(1)) >= len(fence_marker):
+                fence_marker = None
+            continue
+        cleaned, in_comment = _strip_line_comments(line, in_comment)
+        if not cleaned and in_comment:
+            continue
+        m = FENCE_RE.match(cleaned)
+        if m:
+            fence_marker = m.group(1)
             can_indent_code = False
             continue
-        if in_fence:
+        if can_indent_code and INDENT_CODE_RE.match(cleaned):
             continue
-        if can_indent_code and INDENT_CODE_RE.match(line):
-            continue
-        out.append(line)
-        can_indent_code = not line.strip()
+        out.append(cleaned)
+        can_indent_code = not cleaned.strip()
     return "\n".join(out)
 
 
@@ -153,18 +180,36 @@ def _parse_inline_link(prose: str, start: int) -> tuple[str, int] | None:
     return (dest, i + 1) if i < n and prose[i] == ")" else None
 
 
+def _find_link_open(prose: str, close_idx: int, min_pos: int) -> int | None:
+    depth = 0
+    for i in range(close_idx - 1, min_pos - 1, -1):
+        ch = prose[i]
+        if ch == "\n":
+            return None
+        if ch == "]":
+            depth += 1
+        elif ch == "[":
+            if depth == 0:
+                return (i - 1) if i > min_pos and prose[i - 1] == "!" else i
+            depth -= 1
+    return None
+
+
 def _scan_inline_links(prose: str) -> tuple[list[str], str]:
     links: list[str] = []
     kept: list[str] = []
     pos = 0
-    for match in INLINE_OPEN_RE.finditer(prose):
+    for match in INLINE_SPLIT_RE.finditer(prose):
         if match.start() < pos:
+            continue
+        open_idx = _find_link_open(prose, match.start(), pos)
+        if open_idx is None:
             continue
         parsed = _parse_inline_link(prose, match.end())
         if parsed is None:
             continue
         dest, end_pos = parsed
-        kept.append(prose[pos : match.start()])
+        kept.append(prose[pos:open_idx])
         kept.append(" ")
         pos = end_pos
         if _is_relative_target(dest):

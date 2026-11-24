@@ -142,6 +142,7 @@ class BaselineDeltaEvalTest(unittest.TestCase):
             self.assertEqual(p_run.returncode, 0, p_run.stdout + p_run.stderr)
             summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
             self.assertEqual(summary["position_balance"], {"A": 1, "B": 1})
+            self.assertEqual(len(summary["results"]), 2)
             for r in summary["results"]:
                 self.assertEqual(r["winner"], "with_skill")
                 self.assertEqual(r["score_with_skill"], 5)

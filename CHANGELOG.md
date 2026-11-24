@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Explicit workflow router (`skills/mneves-mode`):** added `/mneves-mode` (explicit invocation
-  only), modeled on `poteto-mode`, with six phase playbooks in `references/playbooks.md` that
+  only), modeled on `poteto-mode`, with seven phase playbooks in `references/playbooks.md` that
   redirect each phase to installed sibling skills with standalone single-skill fallbacks while
   keeping every standalone skill directly discoverable.
 - **Catalog hygiene, routing benchmarks, and curated install profiles:** added shared stdlib

@@ -103,3 +103,25 @@ Plain "ship" is never a deployment authorization. Require explicit target author
    - Completion proof against acceptance criteria: `mneves-verify`.
    - Fallback: state which sibling is missing, run direct read-only checks on the exact target,
      and label any unverified dimension `NOT TESTED` or `BLOCKED`.
+
+## 7. Specialized artifacts & learning
+
+Use the dedicated sibling when installed; on a single-skill install, follow these boundaries and
+fallbacks instead of improvising an incompatible workflow:
+
+- **Markdown -> HTML/DOCX/PDF export (`mneves-render`):**
+  - Fallback: build a minimal project-local export script using already-installed document tools
+    (such as Pandoc/WeasyPrint), reject raw active HTML/script content, and inspect rendered output
+    before claiming success; report `BLOCKED` if required document engines are absent.
+- **Product launch video (`mneves-motion-film`):**
+  - Fallback: ground every on-screen claim in verbatim product copy/URLs (never invent metrics or
+    claims), verify available media tools (such as FFmpeg/Remotion) before rendering, and check
+    output duration, codecs, and audio sync; report `BLOCKED` if rendering tools are unavailable.
+- **Mobile UI screen/flow concept images (`imagegen-frontend-mobile`):**
+  - Fallback: generate visual concept assets only (never write application code unless explicitly
+    requested), follow target iOS/Android platform conventions, and inspect generated images for
+    legibility and visual consistency; report `BLOCKED` if no image tool is available.
+- **Codebase teach-back & spaced repetition (`mneves-teach-back-srs`):**
+  - Fallback: verify the user's explanation directly against actual repository source files,
+    correct inaccuracies with exact file/line citations, and provide concise follow-up review
+    prompts in plain text (noting that persistent SQLite SM-2 scheduling requires the sibling skill).
