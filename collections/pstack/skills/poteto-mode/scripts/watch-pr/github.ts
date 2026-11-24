@@ -1,6 +1,16 @@
+import {
+  parseSuiteRead,
+  suiteReadOf,
+  unsettledSuiteChecks,
+} from "./check-suites.ts";
 import { baseRefTargetOid, text } from "./landing.ts";
+import {
+  mergeWorkflowRunChecks,
+  resolveWorkflowRunChecks,
+} from "./workflow-runs.ts";
 import { spawn } from "node:child_process";
 import { DeadlineExceeded, type WatchDeadline } from "./deadline.ts";
+import { GRAPHQL_REFUSAL, WatcherQueryError } from "./query-error.ts";
 import type * as T from "./types.ts";
 import { nonEmpty, parsePrNumber } from "./types.ts";
 export const REVIEW_THREADS_QUERY =
@@ -31,14 +41,7 @@ interface CommandResult {
   readonly stdout: string;
   readonly stderr: string;
 }
-export class WatcherQueryError extends Error {
-  readonly failure: T.QueryFailure;
-  constructor(failure: T.QueryFailure) {
-    super(failure.detail);
-    this.name = "WatcherQueryError";
-    this.failure = failure;
-  }
-}
+export { WatcherQueryError };
 export class ChecksUnavailable extends WatcherQueryError {
   constructor(detail: string) {
     super({ kind: "checks-unavailable", retryable: true, detail });
@@ -47,7 +50,7 @@ export class ChecksUnavailable extends WatcherQueryError {
 }
 const firstLine = (value: string): string =>
   value.trim().split(/\r?\n/, 1)[0]?.slice(0, 240) ?? "";
-function run(
+export function run(
   argv: readonly [string, ...string[]],
   deadline: WatchDeadline
 ): Promise<CommandResult> {
@@ -114,16 +117,27 @@ export async function runJson(
   argv: readonly [string, ...string[]],
   deadline: WatchDeadline
 ): Promise<unknown> {
-  const result = await run(argv, deadline);
+  return commandJson(await run(argv, deadline), argv.join(" "));
+}
+function commandJson(result: CommandResult, label: string): unknown {
+  // Newer gh prints a hint block on stderr before its error, so check every line.
+  const refusal = result.stderr
+    .split(/\r?\n/)
+    .find((line) => line.includes(GRAPHQL_REFUSAL));
+  if (result.code !== 0 && refusal !== undefined)
+    throw new WatcherQueryError({
+      kind: "graphql-refused",
+      retryable: false,
+      detail: `This Claude Code session refuses GitHub GraphQL, which watch-pr and ship-pr read the PR through. ${refusal.trim().slice(0, 240)}`,
+    });
   if (result.code !== 0)
     throw new WatcherQueryError({
       kind: "command-exit",
       retryable: true,
       code: result.code,
-      detail:
-        firstLine(result.stderr) || `${argv.join(" ")} exited ${result.code}`,
+      detail: firstLine(result.stderr) || `${label} exited ${result.code}`,
     });
-  return parseJson(result.stdout, argv.join(" "));
+  return parseJson(result.stdout, label);
 }
 function raw(value: unknown): string {
   try {
@@ -737,8 +751,50 @@ export class GhGitHubReader implements T.GitHubReader {
       };
     });
   }
+  async unsettledSuites(
+    context: T.PrContext,
+    head: string,
+    checksRead: T.CheckRead["kind"],
+    expectedApps: readonly string[]
+  ): Promise<T.SuiteRead> {
+    const result = await this.run([
+      "gh",
+      "api",
+      "--paginate",
+      "--slurp",
+      `repos/${context.owner}/${context.repo}/commits/${head}/check-suites?per_page=100`,
+    ]);
+    if (
+      result.code !== 0 &&
+      firstLine(result.stderr) === "unknown flag: --slurp"
+    )
+      throw new WatcherQueryError({
+        kind: "unsupported-gh",
+        retryable: false,
+        detail: "gh api rejected --slurp. Upgrade GitHub CLI to 2.48 or later.",
+      });
+    const parsed = parseSuiteRead(
+      commandJson(result, "gh api check-suites"),
+      head,
+      checksRead,
+      expectedApps
+    );
+    if (parsed.startupFailureSuites.length === 0) return suiteReadOf(parsed);
+    const workflowPages = await this.runJson([
+      "gh",
+      "api",
+      "--paginate",
+      "--slurp",
+      `repos/${context.owner}/${context.repo}/actions/runs?head_sha=${head}&per_page=100`,
+    ]);
+    return mergeWorkflowRunChecks(
+      parsed,
+      resolveWorkflowRunChecks(workflowPages, parsed, head)
+    );
+  }
 }
 
+export { unsettledSuiteChecks };
 export async function resolveChecks(
   reader: T.GitHubReader,
   context: T.PrContext

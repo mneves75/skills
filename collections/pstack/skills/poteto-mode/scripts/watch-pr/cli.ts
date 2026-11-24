@@ -12,6 +12,7 @@ import {
   discoverStack,
   resolveContext,
 } from "./github.ts";
+import { CloudSessionReader, FallbackGitHubReader } from "./cloud-reader.ts";
 import {
   NO_CHECKS_CONFIRM_SECONDS,
   runQueued,
@@ -76,6 +77,16 @@ function stackPrList(value: string): T.NonEmpty<T.PrNumber> {
   if (parsed === null) throw new InvalidArgumentError("cannot be empty");
   return parsed;
 }
+function appSlugs(
+  value: string,
+  previous: readonly string[] | undefined
+): readonly string[] {
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value))
+    throw new InvalidArgumentError(
+      "must be a GitHub App slug, such as azure-pipelines"
+    );
+  return [...(previous ?? []), value];
+}
 interface RawOptions {
   readonly owner?: string;
   readonly repo?: string;
@@ -89,6 +100,7 @@ interface RawOptions {
   readonly maxQueryErrors: number;
   readonly statusOnly: boolean;
   readonly allowDraft: boolean;
+  readonly expectApp?: readonly string[];
   readonly pretty: boolean;
 }
 export function parseArgs(
@@ -149,6 +161,11 @@ export function parseArgs(
       false
     )
     .option("--allow-draft", "do not treat a draft as a merge gate", false)
+    .option(
+      "--expect-app <slug>",
+      "a GitHub App that runs CI here; a suite it has queued on the head with no runs counts as pending, and an app that never runs waits until --timeout, which is off by default (repeatable)",
+      appSlugs
+    )
     .option("--pretty", "render human text instead of JSON", false);
   program.parse(argv, { from: "user" });
   const raw = program.opts<RawOptions>();
@@ -168,6 +185,7 @@ export function parseArgs(
       timeout: raw.timeout,
       maxQueryErrors: raw.maxQueryErrors,
       allowDraft: raw.allowDraft,
+      expectedApps: raw.expectApp,
     },
   };
 }
@@ -180,9 +198,10 @@ export interface CliRuntime {
 }
 function realRuntime(timeout: number): CliRuntime {
   const deadline = new WatchDeadline(timeout, () => performance.now() / 1_000);
+  const gh = new GhGitHubReader(deadline);
   return {
     deadline,
-    reader: new GhGitHubReader(deadline),
+    reader: new FallbackGitHubReader(gh, new CloudSessionReader(deadline, gh)),
     clock: {
       now: () => performance.now() / 1_000,
       observedAt: () => new Date().toISOString(),

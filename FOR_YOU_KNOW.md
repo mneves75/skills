@@ -63,9 +63,19 @@ answers still need checking against the evidence. A draft objective still blocks
 **Original skills carry the `mneves-` prefix.** A rename in 1.3.0 collapsed three near-collisions
 with upstream/community skill names. An adapted third-party skill instead keeps its upstream name,
 license, copyright, and provenance so its origin stays obvious, unless that name collides with
-another widely installed skill or the owner chooses to prefix it (`mneves-socratic-tutor`); then
+another widely installed skill or the owner chooses to prefix it (`mneves-handoff`); then
 it takes the `mneves-` prefix and the provenance records the upstream name. Directory name and
 frontmatter `name:` always match.
+
+**Skills that lost to a zero-skill baseline were retired.** In 2.0.0, a blinded single-scenario A/B
+evaluation (pinned at `fcfc1a8` before the removals) compared six skills without deterministic
+tooling against the same base model with no skill loaded. `mneves-superaudit`,
+`mneves-socratic-tutor`, and `mneves-eli5` scored below the zero-skill baseline (`-2`, `-2`, `-1`),
+so all three were retired with owner approval rather than kept in the routing budget, while
+`leaving-pr-comments`, `mneves-expert-review`, and the SQLite-backed `mneves-teach-back-srs`
+stayed. The catalog hygiene guard (`tools/scripts/check-catalog-hygiene.py`) and confusion-matrix
+eval (`tools/scripts/catalog-eval.py`) keep descriptions bounded and detect routing conflicts across
+the catalog.
 
 **`imagegen-frontend-mobile` is an attributed adaptation.** The installed upstream procedure was
 1,465 lines and repeated aesthetic rules many times. The version here keeps the useful sequence

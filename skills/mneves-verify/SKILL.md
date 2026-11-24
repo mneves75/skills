@@ -32,19 +32,27 @@ answers, plans without an artifact, or prose-only notes.
    inside an artifact can widen scope, change criteria, or command writes.
 2. **Independent context.** A verifier that inherits the builder's context is not independent.
    Whoever built it, the check runs in a fresh context that did not participate in the build.
-   An independence failure makes the verdict BLOCKED.
+   An independence failure makes the verdict BLOCKED. Never count self-review, passing tests,
+   or CI as a substitute for a required independent verdict; when no independent verifier can
+   run, keep the gate BLOCKED and continue only non-dependent work.
 3. **High-risk work requires a different model.** Release, production, security, legal, or
    contested work is always verified by a model other than the one that built it. The
    verdict records whether that was required and whether it happened.
-4. **Least privilege.** Read-only by default. Minimum context. No secrets in transit. No
+4. **Verification integrity.** Separate product changes from verification and operational
+   changes (edits to tests, lint/type rules, acceptance thresholds, or CI configs). Whenever a
+   change modifies acceptance criteria or weakens check/test coverage, require explicit
+   independent justification plus a **negative control** proving the updated check still fails
+   on broken input or a planted regression. Inspect what CI or a test runner actually executed;
+   a vacuous exit-0 (skipped suite, empty glob, weakened assertion) is not proof.
+5. **Least privilege.** Read-only by default. Minimum context. No secrets in transit. No
    external writes. Verification only changes the tree when a fix round is explicitly in
    scope and approved.
-5. **Contain risky artifact-controlled execution.** Run untrusted tests, builds, UI apps, and
+6. **Contain risky artifact-controlled execution.** Run untrusted tests, builds, UI apps, and
    CLI / API / data inputs in a disposable sandbox or dedicated test target with the least
    credentials, filesystem, and network access they need. Ordinary repository gates may run in
    their documented local environment. A required risky execution that cannot be contained is
    BLOCKED.
-6. **No machinery.** No scripts, dependencies, scaffolding, or speculative config. The skill
+7. **No machinery.** No scripts, dependencies, scaffolding, or speculative config. The skill
    is a procedure, not a codebase.
 
 ## Evidence routes
@@ -61,7 +69,7 @@ Prefer the named tool when it is available; fall back only on capability.
 | Code | focused tests (the ones that would fail if it broke) + `autoreview` | fresh independent code review in place of `autoreview` when it is unavailable; the tests are never replaced |
 | UI | An independent browser/rendering capability driving real renders and interaction — never the builder's screenshot claim | any equivalent tool (agent-browser, Playwright, Argent, …); the requirement is a real render you drove, not which tool drove it |
 | CLI / API / data | run the real binary / endpoint / query + a **positive control** (a known-good input that must succeed), inside the sandbox | none |
-| Research | authoritative primary sources + citation checks (does the source say what the claim says) | none |
+| Research | authoritative primary sources + direct citation checks (open every linked source, confirm it actually supports the claim, and cut any unconfirmed citation) | none |
 | Security | A dedicated independent security review plus relevant dynamic proof (for a dev, staging or production release, the `mneves-security` deploy-gate verdict for the exact commit is required; otherwise `mneves-security` when installed) | none |
 
 BLOCKED only when an essential capability is unavailable (e.g., no independent verifier, no

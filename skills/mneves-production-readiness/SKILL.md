@@ -1,6 +1,6 @@
 ---
 name: mneves-production-readiness
-description: Gate staging and production deploys on production readiness (data, recovery, money, operations, ownership); use for launch reviews, deploy gates or a readiness fix plan; security rows come from mneves-security.
+description: Assess operational launch readiness (data loss, backups, billing/money, observability, rollback, ownership) for staging/production deploys and fix plans; security controls come from mneves-security.
 license: Apache-2.0
 ---
 
@@ -70,8 +70,9 @@ These are separately installed; this skill works without them.
   it, run the fallback checks in `controls-security.md` at reduced depth and say so.
 - `mneves-ship-deploy` runs this gate in its review phase and binds the record before each
   deploy. Without it, run the binding gate yourself before any deploy and keep the record.
-- `mneves-verify` performs the independent check. Without it, use a fresh read-only subagent
-  given only the rows, their evidence and the rule; if none is available, those rows are BLOCKED.
+- `mneves-verify` performs the independent check. Without it, use a fresh read-only subagent on a
+  different model from the builder, given only the rows, their evidence and the rule; if no
+  qualifying different-model verifier is available, those rows are BLOCKED.
 
 ## Procedure
 
@@ -100,9 +101,14 @@ scope as `gates.md` describes.
 
 For each control in scope, follow its `Verify` line and record status, evidence scope, date and
 commit (`ledger.md`). Run only safe, local or read-only checks: tests, query plans on synthetic
-data, DNS and certificate lookups, dry runs. A control cannot PASS below its minimum evidence
-scope; missing runtime or owner evidence is NOT TESTED or BLOCKED. Import security rows rather
-than re-auditing them. Rows outside the scope carry forward only while their evidence is valid.
+data, DNS and certificate lookups, dry runs. Confirm that preview or staging writable bindings
+point strictly to non-production resources before running any negative or write check. Separate
+code/version rollback from persistent-state rollback (databases, KV/R2/Durable Objects,
+irreversible migrations): rolling back deployed code does not restore mutated storage state.
+Treat an active post-deploy observation window as pending (`NOT TESTED`) rather than failed. A
+control cannot PASS below its minimum evidence scope; missing runtime or owner evidence is
+NOT TESTED or BLOCKED. Import security rows rather than re-auditing them. Rows outside the
+scope carry forward only while their evidence is valid.
 
 ### 5. Check independently (production gate)
 

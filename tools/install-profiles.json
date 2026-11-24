@@ -1,0 +1,57 @@
+{
+  "schema": "install-profiles-1",
+  "claude_listing_floor_chars": 16000,
+  "exclude_when_present": {
+    "babysit": {
+      "source_prefix": "collections/pstack/skills/",
+      "superseded_by": "babysit-pr",
+      "reason": "collections/pstack/skills/babysit explicitly defers to babysit-pr and adds nothing when babysit-pr is installed."
+    }
+  },
+  "profiles": {
+    "core-dev": {
+      "description": "Essential coding, review, verification, refactoring, orchestration, handoff, and explicit workflow-router skills.",
+      "include": [
+        "skills/mneves-mode",
+        "skills/autoreview",
+        "skills/mneves-verify",
+        "skills/untangle-codebase",
+        "skills/mneves-fable-orchestrator",
+        "skills/mneves-handoff",
+        "skills/mneves-agent-readiness"
+      ]
+    },
+    "release-gates": {
+      "description": "Security, deep source audit, operational readiness, deployment, and independent verification.",
+      "include": [
+        "skills/mneves-security",
+        "skills/security-audit",
+        "skills/mneves-production-readiness",
+        "skills/mneves-ship-deploy",
+        "skills/mneves-verify"
+      ]
+    },
+    "pr-ops": {
+      "description": "PR lifecycle management: watching CI, rebasing aging PRs, taking over PRs, comment attribution, and unattended PRs.",
+      "include": [
+        "skills/babysit-pr",
+        "skills/modernize",
+        "skills/takeover",
+        "skills/leaving-pr-comments",
+        "skills/full-stop"
+      ]
+    },
+    "root-all": {
+      "description": "All 23 first-party and adapted skills from skills/.",
+      "globs": ["skills/*"]
+    },
+    "pstack-compatible": {
+      "description": "All vendored pstack skills, automatically excluding skills superseded by root skills present in the target (e.g., pstack/babysit when babysit-pr is installed).",
+      "globs": ["collections/pstack/skills/*"]
+    },
+    "full-deduped": {
+      "description": "All root skills plus vendored pstack skills with superseded overlaps automatically excluded.",
+      "globs": ["skills/*", "collections/pstack/skills/*"]
+    }
+  }
+}

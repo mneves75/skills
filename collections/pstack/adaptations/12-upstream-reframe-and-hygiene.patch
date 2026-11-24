@@ -1,0 +1,110 @@
+Adaptation 12-upstream-reframe-and-hygiene
+
+Added here, not in the fork:
+- Imports upstream `/reframe` from cursor/plugins@9e278fe (pstack 0.15.48, not yet mirrored in
+  pstack-claude 0.9.153) as an explicit-only skill and adds its row in poteto-help.
+- Removes the two mentions of excluded `poteto-mode/references/dsh-tools.md` (DeepSeek disabled).
+- Tightens `typescript-best-practices` and `how` descriptions to prevent false triggers on trivial
+  copy edits and general conceptual explanations.
+- Aligns `poteto-mode/worker.md` with adaptation 01's local-only autonomy boundary.
+
+Applies to the port's plugins/pstack/skills tree after the patches numbered before it.
+
+diff --git a/how/SKILL.md b/how/SKILL.md
+index 5a5a90d..d02faee 100644
+--- a/how/SKILL.md
++++ b/how/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: how
+-description: "Use for \"how does X work\", code walkthroughs before changing something, and placement / ownership / layering questions (\"where should this live\", \"which package owns this\", \"is this the right layer\"). Explains subsystem architecture, runtime flow, onboarding mental models. Use why for motivation."
++description: "Use for \"how does X work in this codebase\", code walkthroughs of real repository files before changing something, and placement or layering questions. Skip for general conceptual explanations not tracing repository code; use why for motivation."
+ ---
+ 
+ # How
+diff --git a/poteto-help/SKILL.md b/poteto-help/SKILL.md
+index 7d29801..de847ff 100644
+--- a/poteto-help/SKILL.md
++++ b/poteto-help/SKILL.md
+@@ -57,6 +57,7 @@ The default answer is `/poteto-mode`, which runs most of the others when its ste
+ | Do any non-trivial task with rigor | [`/poteto-mode`](../poteto-mode/SKILL.md) |
+ | Check that the agent understood their goal and the problem before it starts | [`/in-your-own-words`](../in-your-own-words/SKILL.md) |
+ | Get a prompt rewritten deeper, not bigger, before sending it: what a top professional would add, their raw material and methods, and an outside check. It returns the prompt and doesn't do the task | [`/sharpen`](../sharpen/SKILL.md) |
++| Learn the expert terms for what they are building, borrow terms from neighboring fields, and rewrite their description | [`/reframe`](../reframe/SKILL.md) |
+ | Know how code works now, or where new code should live | [`/how`](../how/SKILL.md) |
+ | Know why code is shaped this way, or where a number came from | [`/why`](../why/SKILL.md) |
+ | Understand a change or subsystem, explained plainly | [`/teach`](../teach/SKILL.md) |
+diff --git a/poteto-mode/SKILL.md b/poteto-mode/SKILL.md
+index 5a6d37a..743b097 100644
+--- a/poteto-mode/SKILL.md
++++ b/poteto-mode/SKILL.md
+@@ -9,7 +9,7 @@ Bundled skills live at `../<name>/SKILL.md` from this file, so put this file's a
+ 
+ ## Platform Adaptation
+ 
+-These skills use Claude Code tool names (the `Skill` tool, the `Agent` tool, `AskUserQuestion`) and the Claude model names the `Agent` tool accepts, as each Models section lists them. On Claude Code they work as written. On Codex, read [`references/codex-tools.md`](references/codex-tools.md) for the Codex equivalent of a Claude tool, model, or skill named by these workflows. On Pi, read [`references/pi-tools.md`](references/pi-tools.md) instead. On GitHub Copilot, read [`references/copilot-tools.md`](references/copilot-tools.md) instead. On Muse, read [`references/muse-tools.md`](references/muse-tools.md) instead. On MiniMax Code, read [`references/minimax-tools.md`](references/minimax-tools.md) instead. On Antigravity, read [`references/agy-tools.md`](references/agy-tools.md) instead. On OMP, read [`references/omp-tools.md`](references/omp-tools.md) instead. On Kimi Code CLI, read [`references/kimi-tools.md`](references/kimi-tools.md) instead. On Grok Build, read [`references/grok.md`](references/grok.md) instead. On DeepSeek Harness, read [`references/dsh-tools.md`](references/dsh-tools.md) instead. On OpenCode 2, read [`references/opencode-tools.md`](references/opencode-tools.md) instead. Other runtimes can discover the same Agent Skills tree, but they must use their own tool, model, and configuration equivalents. No one of these mappings is a cross-runtime map.
++These skills use Claude Code tool names (the `Skill` tool, the `Agent` tool, `AskUserQuestion`) and the Claude model names the `Agent` tool accepts, as each Models section lists them. On Claude Code they work as written. On Codex, read [`references/codex-tools.md`](references/codex-tools.md) for the Codex equivalent of a Claude tool, model, or skill named by these workflows. On Pi, read [`references/pi-tools.md`](references/pi-tools.md) instead. On GitHub Copilot, read [`references/copilot-tools.md`](references/copilot-tools.md) instead. On Muse, read [`references/muse-tools.md`](references/muse-tools.md) instead. On MiniMax Code, read [`references/minimax-tools.md`](references/minimax-tools.md) instead. On Antigravity, read [`references/agy-tools.md`](references/agy-tools.md) instead. On OMP, read [`references/omp-tools.md`](references/omp-tools.md) instead. On Kimi Code CLI, read [`references/kimi-tools.md`](references/kimi-tools.md) instead. On Grok Build, read [`references/grok.md`](references/grok.md) instead. On OpenCode 2, read [`references/opencode-tools.md`](references/opencode-tools.md) instead. Other runtimes can discover the same Agent Skills tree, but they must use their own tool, model, and configuration equivalents. No one of these mappings is a cross-runtime map.
+ 
+ Use the session's task-tracking tools for the todolist. On Claude Code these are `TaskCreate` and `TaskUpdate`, or `TodoWrite` when configured. Availability depends on the model; `CLAUDE_CODE_ENABLE_TODO_TOOLS=1` enables them through the environment or a project's `.claude/settings.local.json` `env` block. See the [task-tool documentation](https://code.claude.com/docs/en/tools-reference#task-tool-availability). If no task-tracking tool is available, keep an uncommitted `todo.md` Markdown checklist in the work dir, next to the decision trail, with the playbook steps verbatim and each `skip: <reason>` line. When several sessions share the checkout, name it `.audit/<task-slug>.todo.md`, beside that session's `.audit/<task-slug>.tsv` trail, so they never write one file. In the Claude desktop app, `mcp__ccd_turn__update_plan` asks for items of about seven words. Give it that short plan, and keep this checklist as well, with the playbook steps verbatim and each `skip: <reason>` line.
+ 
+diff --git a/poteto-mode/worker.md b/poteto-mode/worker.md
+index 213fd63..f108c3e 100644
+--- a/poteto-mode/worker.md
++++ b/poteto-mode/worker.md
+@@ -4,8 +4,8 @@ You are working for the operator. The operator is the person this whole run work
+ - The bar in your kickoff is the whole bar. Add no check, gate, sign-off or review round above it.
+ - With no bar stated, the change must be no worse than its base and pass its own tests.
+ - Hold or block only for a failing run at this head or a bug a user would hit. Report a problem the base already has in one line.
+-- Never call a tool that shows a person a question. Make any choice you can undo, then say what you chose and why. Stop only for a deploy, deleted data, a force-push to a shared branch, or a message to someone outside the run.
+-- Open every PR ready for review, never as a draft.
++- Never call a tool that shows a person a question. Make any reversible local choice, then say what you chose and why. Stop before any external write not already authorized by the operator or kickoff (push, opening a PR, deploy, deleted data, force-push to a shared branch, credentials, or a message to someone outside the run).
++- When opening a PR is authorized, open it ready for review, never as a draft.
+ - PR title: `type(scope): subject`.
+ - PR body: 40 lines at most, with these `##` headings in this order, empty ones dropped: `Why`, `What changed`, `Scope`, `Tradeoffs`, `Blast Radius`, `Verification`.
+ - Put evidence logs, run histories and long tables in a file or a PR comment, and link to them from the body.
+diff --git a/reframe/SKILL.md b/reframe/SKILL.md
+new file mode 100644
+index 0000000..5e9e04c
+--- /dev/null
++++ b/reframe/SKILL.md
+@@ -0,0 +1,16 @@
++---
++name: reframe
++description: "Teach the expert words for what the operator is building, borrow words from neighboring fields that solved the same problem, then rewrite their description with them. Use for /reframe. Run only when invoked by name."
++disable-model-invocation: true
++---
++
++Teach the operator the expert words for what they are building. Start from their own files, code and description, not a summary.
++
++If their description could name more than one problem, first list the two or three problems it could be, each with the one term that names it and the sign that would tell it apart from the others. Then teach the words for the most likely one and say why you picked it.
++
++1. Give 8 to 12 terms, ranked by how much each would change what gets built. For each, give the word and its meaning in one plain sentence, the part of their description it names, one real project, paper or system that uses it that way, with a link, and what it lets them ask an agent for.
++2. Pick 2 or 3 neighboring fields that solved the same shape of problem under other names. For each, say what carries over, where the analogy breaks, and which terms come back.
++3. Name what they didn't mention but should care about.
++4. Rewrite their description with the new words.
++
++Open every link and confirm it uses the term that way. Cut any citation you can't confirm. No padding.
+diff --git a/setup-pstack/references/runtimes.md b/setup-pstack/references/runtimes.md
+index b566fbf..fc93048 100644
+--- a/setup-pstack/references/runtimes.md
++++ b/setup-pstack/references/runtimes.md
+@@ -17,7 +17,6 @@ The role lines are the same everywhere. What differs is the sheet path, how the
+ | OMP | `~/.omp/pstack-models.md` (global across profiles; hook only) | read by the OMP plugin for routing | `omp models --kind chat`; model roles use OMP configuration, see [omp-tools.md](../../poteto-mode/references/omp-tools.md#model-names) | installation, skill access, and the routing toggle checked on OMP 18.16.0 with a synthetic provider; model compliance untested |
+ | Grok Build | `${GROK_HOME:-~/.grok}/pstack-models.md` | read by the agent before a role-model skill; the `session hook` line does not control the Grok routing hint | the `spawn_subagent` tool's advertised models; use overrides only at the user's explicit request; see [grok.md](../../poteto-mode/references/grok.md#model-names) | synthetic-provider plugin and skill loading tested |
+ | OpenCode 2 | `${XDG_CONFIG_HOME:-~/.config}/opencode/pstack-models.md` | add the path to the `instructions` array in `opencode.jsonc`; the plugin reads the hook setting directly | the `models` command in the session; see [opencode-tools.md](../../poteto-mode/references/opencode-tools.md#model-names) | native skill activation and routing tested on 2.2.5 with a loopback provider |
+-| DeepSeek Harness | no role sheet | use the native delegation defaults | `list_subagent_models` when exposed, see [dsh-tools.md](../../poteto-mode/references/dsh-tools.md#model-names) | skills-only; no SessionStart hook or native pstack extension |
+ | Gemini CLI | `~/.gemini/pstack-models.md` | `@~/.gemini/pstack-models.md` in `~/.gemini/GEMINI.md` | the `model` slash command in the session | from published docs, no live session |
+ | Prime Agent | no documented sheet path; Prime's configuration chooses models | | | no live session |
+ 
+diff --git a/typescript-best-practices/SKILL.md b/typescript-best-practices/SKILL.md
+index 74ac011..e6fc39e 100644
+--- a/typescript-best-practices/SKILL.md
++++ b/typescript-best-practices/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: typescript-best-practices
+-description: TypeScript best practices. Use when reading or editing any .ts or .tsx file.
++description: TypeScript type-design and boundary-validation standards for non-trivial .ts or .tsx architecture, refactors, or reviews; skip for trivial copy, typo, or label edits.
+ paths: ["**/*.ts", "**/*.tsx"]
+ ---
+ 

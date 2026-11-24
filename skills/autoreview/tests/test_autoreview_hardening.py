@@ -5308,7 +5308,6 @@ else:
                             "CLOUDFLARE_ACCOUNT_ID",
                             "CLOUDFLARE_API_TOKEN",
                             "COPILOT_GITHUB_TOKEN",
-                            "DEEPSEEK_API_KEY",
                             "GOOGLE_APPLICATION_CREDENTIALS",
                             "NODE_EXTRA_CA_CERTS",
                             "SSL_CERT_DIR",
@@ -5319,6 +5318,7 @@ else:
                             "ANTHROPIC_OAUTH_TOKEN",
                 ):
                     self.assertEqual(env[key], os.environ[key])
+                self.assertNotIn("DEEPSEEK_API_KEY", env)
                 self.assertNotIn("NODE_OPTIONS", env)
                 self.assertNotIn("NPM_TOKEN", env)
                 self.assertNotIn("SENTRY_API_KEY", env)

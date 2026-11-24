@@ -26,20 +26,18 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── imagegen-frontend-mobile/   # Mobile screen/flow image generation (MIT)
 │   ├── mneves-agent-readiness/    # Codebase readiness assessment (pairs with tools/)
 │   ├── mneves-chatgpt-search/     # ChatGPT discovery, crawler access, citations and referral attribution
-│   ├── mneves-eli5/               # Feynman explainer, audience-calibrated
 │   ├── mneves-expert-review/      # Expert-panel review/optimization pass
 │   ├── mneves-handoff/            # Discussion-first handoff prompt for another agent (MIT, adapted)
+│   ├── mneves-mode/               # Explicit workflow router (/mneves-mode) to sibling skills + playbooks
 │   ├── mneves-render/             # Project-local Markdown -> HTML, editable DOCX and PDF
 │   ├── mneves-motion-film/        # Product film from a brief: facts, music, Remotion, checks (+ scripts/, tests/)
 │   ├── mneves-production-readiness/ # Deploy gate: readiness ledger, verdict per target, fix plan (+ references/)
 │   ├── mneves-security/           # Security/privacy audit, pre-deploy gate, safe fixes and evidence (+ references/)
 │   ├── mneves-fable-orchestrator/ # Model routing; Codex reference + tools/codex-lane (+ its test)
-│   ├── mneves-superaudit/         # Bounded audit-and-ship pass (+ references/)
-│   ├── mneves-ship-deploy/         # Deploy, prove live, then tag (+ references/, contract check, reference release scripts)
-│   ├── mneves-socratic-tutor/     # Socratic tutoring to mastery on any topic (MIT, adapted)
+│   ├── mneves-ship-deploy/        # Deploy, prove live, then tag (+ references/, contract check, reference release scripts)
 │   ├── mneves-teach-back-srs/     # Spaced-repetition teach-back (+ scripts/srs_db.py)
 │   └── mneves-verify/             # Independent verification before done/fixed/shipped
-├── collections/pstack/       # 42 vendored pstack skills (MIT); sources.json + adaptations/ -> tools/scripts/sync-pstack.sh
+├── collections/pstack/       # 43 vendored pstack skills (MIT); sources.json + adaptations/ -> tools/scripts/sync-pstack.sh
 ├── tools/                    # Readiness assessor (Bun + TypeScript): readiness-check.ts + lib/
 │   ├── routing-eval/         # cases.json: frozen routing-eval cases and the anchors that decide them
 │   └── scripts/              # init.sh (setup), deploy.sh (gated merge -> CI/Pages -> served bytes -> tag), site build, sync, checks; each with its test
@@ -74,6 +72,15 @@ python3 skills/mneves-teach-back-srs/tests/test_srs_db.py    # SRS helper: concu
 python3 skills/babysit-pr/tests/test_pr_wait.py              # pr-wait watcher against a fake gh (no network)
 python3 tools/scripts/routing-eval.py check   # routing-eval cases well formed, anchors still in the text: no model call
 python3 tools/scripts/routing-eval.test.py    # routing-eval checks, grader and `run` against fake claude/codex (no quota)
+python3 tools/scripts/check-catalog-hygiene.py   # root-skill doc/routing coverage, link integrity, ref depth, char/line budgets
+python3 tools/scripts/check-catalog-hygiene.test.py  # planted-violation controls for the catalog hygiene guard
+python3 tools/scripts/catalog-eval.py check   # 25-case routing confusion-matrix cases valid against skills/ (no model call)
+python3 tools/scripts/catalog-eval.py check --include-pstack --cases tools/catalog-eval/cases-hard.json  # 13-case 66-skill hard routing check
+python3 tools/scripts/catalog-eval.test.py    # catalog-eval checks and `run` against fake claude/codex (no quota)
+python3 tools/scripts/baseline-delta-eval.py check  # 6-case blinded zero-skill baseline-delta cases valid (no model call)
+python3 tools/scripts/baseline-delta-eval.test.py   # baseline-delta unblinding tests against fake CLIs (no quota)
+python3 tools/scripts/install-skills.py --list-profiles  # curated install profiles, overlap exclusions and char budgets
+python3 tools/scripts/install-skills.test.py  # install-skills dry-run, babysit exclusion, and local-edit protection tests
 tools/scripts/check-defaults-block.sh   # model ids only inside the orchestrator's Defaults block, with its verified-on date
 bash tools/scripts/check-defaults-block.test   # planted-violation controls for that guard
 bun --bun tools/readiness-check.ts --format=html --output=report.html   # assess cwd
@@ -98,7 +105,7 @@ bash tools/scripts/statechart-runner.test   # adapted statechart runner with fak
 - Directory name == frontmatter `name:`. Original skills carry the `mneves-` prefix;
   adapted third-party skills retain their upstream name, copyright, license, and provenance,
   except that an upstream name colliding with another widely installed skill, or one the owner
-  chooses to prefix (`mneves-socratic-tutor`), takes the `mneves-` prefix, and the provenance
+  chooses to prefix (for example `mneves-handoff`), takes the `mneves-` prefix, and the provenance
   records the upstream name.
   `description:` is one short capability-and-trigger line; keyword inventories and
   procedures belong in the body or a routed reference.

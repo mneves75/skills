@@ -37,12 +37,10 @@ See [OpenAI's migration guide](https://developers.openai.com/api/docs/guides/lat
 | imagegen-frontend-mobile | Reuse supplied screens/assets/style and generate only the requested set plus justified corrections |
 | mneves-chatgpt-search | Preserve working discovery infrastructure; route audit, local fixes and measurement separately, refreshing only relevant official guidance |
 | mneves-agent-readiness | Choose one requested assessment/output mode; static/manual triage does not masquerade as a runtime maturity score |
-| mneves-eli5 | Retain checked facts across audience changes; use an analogy only when it helps |
 | mneves-expert-review | Combine challenge perspectives in one pass; compare distinct options without open-ended generation |
 | mneves-fable-orchestrator | Use ordinary or bounded workers by scope, reserve specialists for justified difficulty, and resume multi-round lanes |
 | mneves-handoff | Carry compact checked context, acceptance, authority and blockers; disclose the discussion template conditionally |
 | mneves-security | Separate audit/fix/delivery authority; keep current standards in a source reference and retain evidence without claiming untested provider controls |
-| mneves-superaudit | Delegate only substantial independent work; carry existing authority across phases while preserving requested stops |
 | mneves-teach-back-srs | Load only teach-back, review, stats or export; resolve the helper once from its installed location |
 | mneves-verify | Choose behavior probes from the frozen criteria; preserve independence and high-risk model requirements |
 

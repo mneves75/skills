@@ -7,7 +7,7 @@ set -euo pipefail
 HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOOK="$HOOK_DIR/pre-commit"
 TMP="$(mktemp -d)"
-trap 'rm -r "$TMP"' EXIT
+trap 'chmod -R u+w "$TMP" 2>/dev/null || true; rm -rf "$TMP"' EXIT
 
 fail() { echo "test FAIL: $1" >&2; exit 1; }
 

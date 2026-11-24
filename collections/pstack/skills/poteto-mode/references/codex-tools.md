@@ -19,6 +19,7 @@ pstack skills are written in Claude Code tool language (the `Skill` tool, the `A
 | Free a finished subagent slot | `close_agent`, when the session exposes it. Some Codex hosts don't. |
 | Track tasks (the todolist; `TaskCreate` / `TaskUpdate`, or `TodoWrite` on Claude Code) | `update_plan` |
 | Ask the human a fixed-choice question (`AskUserQuestion`) | Use the host's question tool when exposed. Otherwise ask in plain text. If the question can remain pending, keep working on independent steps. |
+| Read this workspace's session transcripts (Claude Code's `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/<encoded-cwd>/`) | Codex sessions live in `${CODEX_HOME:-~/.codex}/sessions/YYYY/MM/DD/`. Ordinary names end in `-<thread-id>.jsonl`; replacements after `thread/revert` end in `-<thread-id>_<rollout-id>.jsonl`. Revert keeps the old files. Resolve the current path from the state database's `threads.rollout_path`, matched by thread ID, rather than filename order or modification time. Archived sessions are in `${CODEX_HOME:-~/.codex}/archived_sessions/`. Older rollouts in both directories can end in `.jsonl.zst`; read those with `zstd -dc`. The first line of each rollout is a `session_meta` record. Keep only rollouts whose `payload.cwd` is the workspace or one of its worktrees. Never read other projects' sessions. |
 
 Subagent dispatch needs `multi_agent` enabled. Add to `~/.codex/config.toml`:
 
@@ -38,11 +39,12 @@ poteto-mode's Subagents section sets Claude-specific defaults (`subagent_type: "
 - There is no `poteto-agent` subagent type. Route an ad-hoc subagent through poteto-mode's style by dispatching a `spawn_agent` whose instructions tell it to read the `poteto-mode` skill in full first.
 - `spawn_agent` calls already run concurrently with your turn, so `run_in_background: true` has no separate flag. Issue the dispatch and continue.
 - For `session`, run `node <poteto-mode-dir>/scripts/codex-session-effort.mjs` before dispatching, with `<poteto-mode-dir>` resolved to this skill's directory. The [helper](../scripts/codex-session-effort.mjs) reads the active turn's effort from the exact runtime log identified by `CODEX_THREAD_ID`, under `$CODEX_HOME/sessions` (default `~/.codex/sessions`). It prints only the effort. Run it again on each turn; a UI effort change must not reuse the previous turn's value.
+- The helper finds the current log through `threads.rollout_path` in `$CODEX_HOME/state_*.sqlite`, or a single `-<thread-id>.jsonl` log when no indexed path is available and no replacement exists; anything else makes effort unavailable.
 - Apply poteto-mode's task adjustment to that starting level, or to the explicit role/default effort, then pass the final level as `reasoning_effort` on `spawn_agent`, including when a model is selected explicitly. An omitted effort can use a configured subagent effort or, when a model is selected, that model's default instead of the parent's level.
 - Do not guess the session's effort from the model, a config default, or a previous turn. If the helper cannot identify the active turn's effort, ask for an explicit role or `default effort` level before dispatching. Do not substitute an omitted `reasoning_effort` for the missing starting level. Automatic `session` resolution depends on the host exposing the current thread's runtime log; it is not available on every Codex host.
 - There is no `comment-sicko` subagent type either. The **no-comments** skill spawns it on Claude Code; on Codex dispatch a `spawn_agent` whose instructions tell it to read `poteto-mode/references/agents/comment-sicko.md` in full first.
 - There are no `thermo-nuclear-review-subagent` or `thermo-nuclear-code-quality-review-subagent` types. The **thermos** skill spawns both on Claude Code; on Codex dispatch two `spawn_agent` calls whose instructions tell each to read the `thermo-nuclear-review` or `thermo-nuclear-code-quality-review` skill in full first and review only the diff and file contents in its prompt.
-- Claude Code runs every subagent on this machine, so the **swarm** skill's workers and the fan-out playbooks (`orchestrate`, `autopilot-full`, `autopilot-stack`) isolate writers with worktrees. The same holds on Codex.
+- Claude Code runs every subagent on this machine, so the **swarm** skill's workers and the fan-out playbooks (`autopilot-full`, `autopilot-stack`) isolate writers with worktrees. The same holds on Codex.
 - Keep the rest of the policy unchanged. Pass file pointers not inlined context, give each worker its own worktree or branch when they write, review every subagent's diff yourself.
 
 ## Prompting on Codex
@@ -67,7 +69,7 @@ Skills name Claude defaults (a single-role default for code/prose/judgment, a wo
 - Single-model execution roles: `gpt-6.2-sol` at `high` reasoning.
 - Roles that default to the Claude worker model (`feature, refactoring`): `gpt-6.2-sol` at `high` reasoning.
 - Roles that default to the strongest Claude model (`strongest judgment`): `gpt-6.2-sol` at `high` reasoning.
-- Execution and review panels (`arena`, `interrogate`, `how` critics, `reflect`): use `gpt-6.2-sol` at `high` reasoning. Note reduced model diversity when every participant uses the same model; independent contexts do not provide cross-model independence.
+- Execution and review panels (`arena`, `interrogate`): use `gpt-6.2-sol` at `high` reasoning. Note reduced model diversity when every participant uses the same model; independent contexts do not provide cross-model independence.
 - Planning (`architect`) and read-only advice: select the host's dedicated planning/advisor route and its effort, rather than an execution alias. Never use that route for implementation or code review.
 
 These substitutes are not Opus models, so the `medium` rule for a value that resolves to an Opus model does not apply to them on Codex. On Codex the level listed above for each substitute takes the place of the sheet's `default effort` line; a level the role value names with `@` still applies.
@@ -78,7 +80,7 @@ When `gpt-6.2-sol` cannot run (no Codex quota or Codex unavailable), fall back t
 
 ## Session routing hook
 
-The native pstack plugin bundles the same `SessionStart` routing instruction as the Claude Code plugin, through `session-start.sh` on macOS and Linux and `session-start.ps1` on Windows. Codex runs the hook on startup, resume, clear, and compact after the user trusts the hook through `/hooks`. The hook reads `session hook` from the Codex sheet, at the path in [setup-pstack's runtime table](../../setup-pstack/SKILL.md#other-runtimes); `session hook: off` disables injection.
+The native pstack plugin bundles the same `SessionStart` routing instruction as the Claude Code plugin, through `session-start.sh` on macOS and Linux and `session-start.ps1` on Windows. Codex runs the hook on startup, resume, clear, and compact after the user trusts the hook through `/hooks`. The hook reads `session hook` from the Codex sheet, at the path in [setup-pstack's runtime table](../../setup-pstack/references/runtimes.md); `session hook: off` disables injection.
 
 A skills-only installation does not include plugin hooks. Request `poteto-mode` explicitly or add a standing instruction to `AGENTS.md` in that case.
 
@@ -100,7 +102,7 @@ Affected skill entry points point here. Most skills need only the tables above. 
 | Skill | On Codex |
 |-------|----------|
 | `interrogate` | The `subagent_type`/`model` dispatch fields map to `spawn_agent`; substitute your configured Codex models and keep the adversary panel model-diverse. |
-| `setup-pstack` | The skill's Other runtimes table names the Codex sheet path and how it loads; the slugs are your Codex models (see Model names above). The role rows are identical. |
+| `setup-pstack` | The skill's [Other runtimes](../../setup-pstack/references/runtimes.md) table names the Codex sheet path and how it loads; the slugs are your Codex models (see Model names above). The role rows are identical. |
 | `no-comments` | There is no `comment-sicko` subagent type; see Subagent policy above. |
 | `thermos` | There are no thermo-nuclear subagent types; see Subagent policy above. |
 | `teach` | Running `how` and `why` in parallel maps to `spawn_agent` fan-out; image generation uses the configured Codex equivalent. |
@@ -110,12 +112,14 @@ Affected skill entry points point here. Most skills need only the tables above. 
 | `maintain-formal-verification-skill` | Project skills, the formal verification skill among them, live under Codex's project-skill location. |
 | `babysit` | `loop` and `AskUserQuestion` resolve through the tables above. |
 | `automate-me` | `plugin-dev:skill-development` resolves through the skills table above. |
-| `architect` | The runner panel goes through the **arena** skill, so its `spawn_agent` fan-out and model substitution apply here too. |
+| `architect` | A large or contested design goes through the **arena** skill, so its `spawn_agent` fan-out and model substitution apply here too. |
 | `arena` | The parallel candidates and the cross-judge map to `spawn_agent`; substitute your configured Codex models for the runners and the cross-judge pool (see Model names above). |
-| `how` | The parallel explorers and the explainer map to `spawn_agent` fan-out; substitute your configured Codex models. |
-| `reflect` | The three reviewers and the synthesizer map to `spawn_agent`; substitute your configured Codex models. The transcript finder reads Claude Code's layout under `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/`, so pass the session digest step 1 allows instead. |
+| `how` | The one read-only subagent maps to `spawn_agent`. |
+| `reflect` | The transcript finder reads Claude Code's layout under `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/`, so work from the conversation in your context, as the skill allows when the finder finds nothing. For a pstack skill, never edit the installed plugin under `${CODEX_HOME:-~/.codex}/plugins/cache/`. Codex does not discover `.claude/skills/` or Claude Code's personal skills folder, so before approval show the destination in Codex's skill folders, and after approval copy the skill folder there: the repository's `.agents/skills/<skill>/` for a project copy, or `${CODEX_HOME:-~/.codex}/skills/<skill>/` for a personal one. In a skills-only install `~/.agents/skills/<skill>` is a link into a pstack checkout, so do not copy to or edit through it. Edit a project or personal skill where it already lives. Codex lists the plugin's copy as `pstack:<skill>` and the edited copy as `<skill>`, both enabled, and does not merge them. |
+| `recall` | Search this workspace's Codex rollouts (see Tool actions). Do not list or read `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/`. It holds Claude Code transcripts, not this session's history. In a rollout, chat messages are the `response_item` records whose `payload.type` is `message`, with the speaker in `payload.role`. Skip `developer` records, which are injected instructions. |
+| `show-me-your-work` | Check the log against this run's current Codex rollout, using `CODEX_THREAD_ID` and the state index as described in Tool actions. A filename suffix alone cannot select the current file after revert. If the current path is unavailable or ambiguous, report that the audit could not run instead of guessing a rollout. Do not read Claude Code's projects directory. |
 | `swarm` | Each worker is a `spawn_agent` call on your configured Codex model, and those calls already run concurrently; give each writing worker its own worktree or output directory (see Subagent policy above). |
-| `why` | The parallel investigators and the synthesizer map to `spawn_agent`; substitute your configured Codex models. List MCP servers from the tools Codex exposes to the session, not from `.mcp.json` or `claude mcp list`. |
+| `why` | List MCP servers from the tools Codex exposes to the session, not from `.mcp.json` or `claude mcp list`. |
 
 ## Vendored scripts
 

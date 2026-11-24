@@ -1,6 +1,6 @@
 ---
 name: automate-me
-description: "Use for \"automate me\", \"create/update/refresh my -mode skill\", \"turn/capture my preferences or working style into a skill\", or wanting agents to follow how the user works. Drafts or revises a personal -mode skill via plugin-dev:skill-development + writing guidance, optionally pulling fresh evidence from recent transcripts."
+description: "Use for \"automate me\", \"create/update/refresh my -mode skill\", \"turn/capture my preferences or working style into a skill\", or wanting agents to follow how the user works. Drafts or revises a personal -mode skill via plugin-dev:skill-development and the active writing preferences, optionally pulling fresh evidence from recent transcripts."
 ---
 
 # Automate me
@@ -11,9 +11,11 @@ On GitHub Copilot, read the [platform mapping](../poteto-mode/references/copilot
 
 On Muse, read the [platform mapping](../poteto-mode/references/muse-tools.md), including its per-skill notes, before following this skill.
 
+On Antigravity, read the [platform mapping](../poteto-mode/references/agy-tools.md), including its per-skill notes, before following this skill.
+
 A guided flow for turning the user's working conventions into a skill agents will follow. The output is one `-mode` skill tailored to them (e.g. `jay-mode`, `priya-mode`).
 
-This workflow combines the inline mining pass (step 1), available skill-authoring guidance, and the active writing preferences.
+This skill orchestrates an inline mining pass (see step 1), the **plugin-dev:skill-development** skill (authoring), and the active writing preferences (prose discipline). It sequences them. It doesn't replace them.
 
 ## Flow
 

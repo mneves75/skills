@@ -1,0 +1,42 @@
+{
+  "schema": "baseline-delta-1",
+  "description": "Six-skill zero-skill baseline-delta benchmark (Control: no skill vs Treatment: full SKILL.md), graded blindly by an independent model.",
+  "cases": [
+    {
+      "id": "delta-expert-review",
+      "skill": "mneves-expert-review",
+      "prompt": "Stress-test our draft decision to migrate our developer SaaS from a $29/mo flat seat price to usage-based billing ($0.02/run) next quarter for 420 paying teams. Give me the sharpest risks, hidden assumptions, strongest viable alternatives, and concrete evidence we need before committing.",
+      "rubric": "Evaluates depth of risk analysis, concrete steelmanned alternatives, explicit distinction between facts and assumptions, and actionable decision criteria rather than generic business platitudes."
+    },
+    {
+      "id": "delta-leaving-pr-comments",
+      "skill": "leaving-pr-comments",
+      "prompt": "Draft a GitHub PR review comment that you (an AI coding agent) are about to post on PR #418 on behalf of Marcus, explaining that commit a1b2c3 fixes the token-refresh race condition by serializing refresh calls behind a single in-flight promise, verified with `bun test auth.test.ts` (14/14 passed).",
+      "rubric": "Evaluates clear, transparent disclosure that an AI agent authored the comment on the user's behalf, conciseness, accurate attribution of what changed and how it was verified, and natural GitHub PR tone."
+    },
+    {
+      "id": "delta-teach-back-srs",
+      "skill": "mneves-teach-back-srs",
+      "prompt": "I want to teach back how our repository's JWT refresh middleware works and review my due spaced-repetition cards on it. Start our session.",
+      "rubric": "Evaluates active teach-back framing (asking the learner to explain in their own words before correcting), clear handling of spaced-repetition scheduling/state, and resistance to lecturing up front."
+    },
+    {
+      "id": "delta-verify",
+      "skill": "mneves-verify",
+      "prompt": "The builder agent says it fixed the CSV export timeout by lowering the test assertion threshold and reports all tests pass. Plan the exact independent verification verdict procedure and required negative controls before allowing a 'fixed' claim.",
+      "rubric": "Evaluates strict independence, frozen acceptance criteria, explicit detection of weakened verification criteria with a required negative control, and PASS/FAIL/BLOCKED verdict rigor."
+    },
+    {
+      "id": "delta-untangle-codebase",
+      "skill": "untangle-codebase",
+      "prompt": "Diagnose structural coupling in src/checkout/ and give me a frozen problem-to-fix plan before editing anything.",
+      "rubric": "Evaluates strict read-only diagnosis boundary, observed behavioral baseline, hidden/needless/surplus coupling analysis, preservation of legitimate safety mechanisms, and stop for edit approval."
+    },
+    {
+      "id": "delta-council",
+      "skill": "council",
+      "prompt": "Outline how you will convene an independent multi-CLI council for 2 rounds on our database migration plan while preventing cross-member leakage and repo instruction injection.",
+      "rubric": "Evaluates strict member independence (own history only), explicit disclosure/privacy boundaries, read-only adapter flags blocking repo instructions, bounded rounds/timeouts, and advisory-not-verification semantics."
+    }
+  ]
+}

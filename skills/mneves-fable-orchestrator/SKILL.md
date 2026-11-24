@@ -30,7 +30,6 @@ whole skill.
 | Reviewer | Independent review of a fixed Git target (`autoreview` when installed) |
 | Specialist | Deliberate comparison or capability-specific work |
 | Economy executor | Bounded, test-first tickets on a low-cost model |
-| Economy fallback | Last resort: only when the economy executor's model cannot run and no other authorized seat for the role can |
 
 The user's current instruction beats this routing. Preserve explicit caller overrides and
 specialist selections. The heavy executor is an executor: do not insert an advisor-only handoff
@@ -53,8 +52,7 @@ reviewer          = Opus, latest release (Claude subagent alias `opus`), reasoni
 planner           = Fable, latest release (Claude subagent alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (planning)
 plan advisor      = Fable, latest release (Claude `advisorModel` alias `claude-fable-5-2`) | gpt-6.2-astra, reasoning high (advice and plan review)
 specialist        = gpt-6.2-sol, reasoning high (specialist execution; a specialist review takes the reviewer seat)
-economy executor  = opencode-go/glm-5.3, reasoning high (pi on any host; a substitute when no Claude, Codex, or coding fallback seat for that role can run; only the economy fallback comes after it)
-economy fallback  = opencode-go/deepseek-v4.1-flash, reasoning high (pi on any host; the last resort: only when the economy executor's model cannot run and no other authorized seat for the role can)
+economy executor  = opencode-go/glm-5.3, reasoning high (pi on any host; the only substitute when no Claude, Codex, or coding fallback seat for that role can run)
 ```
 
 When a Codex coding seat cannot run (Codex not installed, out of quota, not signed in, or
@@ -70,9 +68,9 @@ Codex seat; without an enclosing container or VM, report the coding fallback blo
 substitution and the error each Codex account returned.
 
 When review runs, a seat never reviews what it built. That covers the workers, the heavy executor,
-the coding fallback, both economy rows, and the main session when it kept the hardest part: a
+the coding fallback, the economy executor, and the main session when it kept the hardest part: a
 change is reviewed by the reviewer value in the other column from the seat that built it, and a
-coding fallback or economy row change by either column's reviewer (never the same model).
+coding fallback or economy executor change by either column's reviewer (never the same model).
 When no reviewer value allowed for a change can run except the Codex one, and no Codex account
 can run (Codex not installed, out of quota, not signed in, or refused by host policy; a slow or
 failing run does not count), the reviewer row's first fallback reviews in its place, in a fresh
@@ -84,13 +82,13 @@ disclosure before dispatching). When `autoreview` or that first fallback is unav
 disallowed by that data or provider policy, the reviewer row's second fallback reviews in its
 place, in a fresh context, gates and security acceptance included. Record the substitution and the
 error each skipped seat returned. A fallback never reviews a change its own model built; when it is
-excluded and no other model can review, report the gate blocked, and neither economy row takes that
-review.
+excluded and no other model can review, report the gate blocked, and the economy executor does not
+take that review.
 Planning and plan advice run only on their own seats. Crossing means the change leaves for the
 other provider: authorize that disclosure as you would for any review provider before dispatching
 it.
 
-Verified against the vendor model lists on 2026-11-21; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-11-24; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file). A seat that names a versioned alias stays on that release
 when the host's short alias moves; check what each short alias resolves to on every release.
@@ -118,14 +116,8 @@ test written first. Dispatching to it sends the code to that row's provider, so:
 It is also the only substitute, apart from the coding fallback and the reviewer row's named
 fallbacks, when no authorized primary seat for a role can run: not installed, not signed in, out
 of quota, or refused by host policy. Record why each applicable primary failed, and announce the
-substitution the same way. Only the economy fallback comes after it, last in every chain.
-
-The economy fallback row is the last resort. It takes a ticket only when the economy executor's
-model cannot run and no other authorized seat for the role can; the model cannot run when its
-provider refuses, removes or does not offer it. Never choose it first, for cost or any other
-reason. When both economy rows draw on one provider allowance and that allowance is spent, the
-fallback cannot run either: report the seat blocked. Every rule above for the economy executor
-binds it too.
+substitution the same way. If its model cannot run and no other authorized seat for the role can,
+report the seat blocked.
 
 Reasoning-effort names are vendor enums and change; if one is rejected, read the CLI's `--help`
 rather than guessing a neighbouring value.
@@ -194,13 +186,18 @@ Every executor starts with zero private session context. Include:
 5. Exact proof commands and expected output.
 
 Tell the worker it is not alone in the tree, must preserve other changes, must not spawn agents,
-and must not run cross-session memory. Tell it not to call an advisor tool where the host has one
-(open questions go in its result), and to read files with bounded reads (offset and limit, or a
-line-numbered search), never a whole large file. Only the session that owns a pull request watches it: a
-delegated worker or reviewer never starts a PR watcher. Pair a hard prohibition with a safe stop condition: if an
-honest attempt cannot satisfy a gate, report the exact result instead of gaming the constraint.
-A cornered worker satisfies the letter of a rule and defeats its purpose; treat a stop-report
-as a successful run, the coordinator's decision point.
+and must not run cross-session memory. State the worker contract explicitly: the brief's acceptance
+bar is the whole bar (add no unasked gates), hold only for a failing check at the current revision
+or a real user-facing defect, report pre-existing base issues in one line, and stop before any
+unauthorized external write. When a reversible technical fork inside scope can be settled by a
+small local experiment or prototype, run it and decide from observed output rather than asking;
+leave product and preference calls to the owner. Tell the worker not to call an advisor tool where
+the host has one (open questions go in its result), and to read files with bounded reads (offset
+and limit, or a line-numbered search), never a whole large file. Only the session that owns a pull
+request watches it: a delegated worker or reviewer never starts a PR watcher. Pair a hard
+prohibition with a safe stop condition: if an honest attempt cannot satisfy a gate, report the
+exact result instead of gaming the constraint. A cornered worker satisfies the letter of a rule
+and defeats its purpose; treat a stop-report as a successful run, the coordinator's decision point.
 
 ## Accept delegated work
 
@@ -222,8 +219,12 @@ infer savings from instruction size or attribute total session usage to one task
 Retrieve bounded relevant excerpts, keeping full critical output locally when needed.
 
 Use an independent fresh-context review when risk, the repository, or the user requires it; it
-runs on the reviewer role. `autoreview` is a sibling skill in this repository, not shipped with
-this one; without it, run the reviewer model read-only on the diff with a self-contained brief.
+runs on the reviewer role. Never count self-review, passing tests, or CI as an independent review
+verdict: if no independent reviewer can run, mark the review gate blocked and continue only
+non-dependent work. When a consequential architectural assumption is disputed, consult independent
+reviewers in parallel rather than chaining speculative passes. `autoreview` is a sibling skill in
+this repository, not shipped with this one; without it, run the reviewer role read-only on the
+diff with a self-contained brief.
 
 For code review, always include an adversarial challenge to the weakest plausible assumption.
 When `cccc` is installed, collect complexity evidence for supported changed source before

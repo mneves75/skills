@@ -1,0 +1,95 @@
+{
+  "schema": "spec-tests-1",
+  "spec": "catalog-consolidation",
+  "branch": "feat/v2-consolidation",
+  "target_version": "2.0.0",
+  "base_commit": "852261b",
+  "updated_at": "2026-11-24T05:00:00Z",
+  "note": "Tracked candidate checklist only. Binding exact-candidate gate results (security, production readiness, live 2-consumer routing-eval, and independent acceptance) live in the private .scratch/ gate records and the v2.0.0 annotated tag message.",
+  "checks": [
+    {
+      "id": "agentskills-validate",
+      "command": "for d in skills/*/ collections/pstack/skills/*/; do .scratch/skills-ref/bin/agentskills validate \"$d\"; done",
+      "status": "pass",
+      "evidence": "66/66 skills validated (23 root + 43 pstack)"
+    },
+    {
+      "id": "check-defaults-block",
+      "command": "bash tools/scripts/check-defaults-block.sh && bash tools/scripts/check-defaults-block.test",
+      "status": "pass",
+      "evidence": "defaults block OK (release 2.0.0 verified 2026-11-24); 6/6 tests pass"
+    },
+    {
+      "id": "check-catalog-hygiene",
+      "command": "python3 tools/scripts/check-catalog-hygiene.py && python3 tools/scripts/check-catalog-hygiene.test.py",
+      "status": "pass",
+      "evidence": "23 root skills, 3479 desc chars, 2537 lines, 0 warnings, 0 errors; 8/8 tests pass"
+    },
+    {
+      "id": "routing-eval-check",
+      "command": "python3 tools/scripts/routing-eval.py check && python3 tools/scripts/routing-eval.test.py",
+      "status": "pass",
+      "evidence": "36 cases, 96 anchors hold; 38/38 tests pass"
+    },
+    {
+      "id": "catalog-eval-check-and-codex-live",
+      "command": "python3 tools/scripts/catalog-eval.py check && python3 tools/scripts/catalog-eval.py check --include-pstack --cases tools/catalog-eval/cases-hard.json && python3 tools/scripts/catalog-eval.test.py && catalog-eval.py run --providers codex",
+      "status": "pass",
+      "evidence": "25 root + 13 hard 66-skill valid; 2/2 unit tests pass; live Codex gpt-6.2-sol high 25/25 + 13/13 PASS (0 fails, 0 forbidden, 0 errors)"
+    },
+    {
+      "id": "baseline-delta-eval-check",
+      "command": "python3 tools/scripts/baseline-delta-eval.py check && python3 tools/scripts/baseline-delta-eval.test.py",
+      "status": "pass",
+      "evidence": "6 cases valid; 1/1 CLI test passes (path confinement, empty-suite rejection, 50/50 counterbalanced A/B)"
+    },
+    {
+      "id": "install-skills-test",
+      "command": "python3 tools/scripts/install-skills.test.py",
+      "status": "pass",
+      "evidence": "3/3 tests pass (root-all=23, pstack-compatible=43, full-deduped=65, skipped=1, dangling-symlink & missing-include guards)"
+    },
+    {
+      "id": "pstack-sync-statechart-watch-pr",
+      "command": "bash tools/scripts/sync-pstack.test && bash tools/scripts/statechart-runner.test && (cd collections/pstack/skills/poteto-mode/scripts && bun run typecheck && bun test --timeout 15000 watch-pr)",
+      "status": "pass",
+      "evidence": "sync-pstack.test 64/64 pass; statechart-runner.test 10/10 pass; watch-pr tsc + 279/279 tests pass (incl. patch 13 two-app test)"
+    },
+    {
+      "id": "readiness-catalog",
+      "command": "python3 tools/scripts/check-readiness-catalog.py && bash tools/scripts/check-readiness-catalog.test",
+      "status": "pass",
+      "evidence": "136 controls, 160 preserved items, ledger consistent (v1.52.2 folded); 29 planted + 3 valid pass"
+    },
+    {
+      "id": "build-site-and-pages",
+      "command": "tools/scripts/build-site.sh && bash tools/scripts/build-site.test && python3 tools/scripts/check-pages.test.py",
+      "status": "pass",
+      "evidence": "site build repeatable and clean; check-pages.test.py 2/2 pass"
+    },
+    {
+      "id": "cccc-complexity",
+      "command": "cccc --no-cache --min 0 --table tools/scripts/frontmatter.py tools/scripts/check-catalog-hygiene.py tools/scripts/catalog-eval.py tools/scripts/baseline-delta-eval.py tools/scripts/install-skills.py",
+      "status": "pass",
+      "evidence": "cccc 1.8.0, 5 files, 64 functions, 0 parse errors; max cognitive=28 (down from 80), median=7"
+    },
+    {
+      "id": "improve-and-code-review",
+      "command": "3 parallel read-only Codex (gpt-6.2-sol high) passes: improve + code-review Standards + code-review Spec",
+      "status": "pass",
+      "evidence": "all critical, important, and spec findings resolved and verified"
+    },
+    {
+      "id": "mneves-prune-tests",
+      "command": "Audit all 15 new/modified first-party test methods against mneves-prune-tests criteria",
+      "status": "pass",
+      "evidence": "0 pruned, 15/15 kept (each guards a distinct contract or planted violation; 0 unit tests for cccc<=5 non-regex functions)"
+    },
+    {
+      "id": "release-gates",
+      "command": "Exact-candidate mneves-security, mneves-production-readiness, live 2-consumer routing-eval.py, independent acceptance, and CI",
+      "status": "recorded_in_private_gate_records",
+      "evidence": "see private .scratch/ gate records and v2.0.0 annotated tag message"
+    }
+  ]
+}

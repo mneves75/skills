@@ -125,8 +125,9 @@ as `CODEX_AUTO_MODEL` are deliberate exceptions, checked in the session header.
 ## Coding and review fallback CLI (not shipped)
 
 When no Codex account can run (not installed, out of quota, not signed in, or refused by host
-policy), the orchestrator's Defaults block routes coding and review after `gpt-6.2-sol` to
-`gemini-4-neon-xhigh` through Antigravity CLI (`agy`, **not shipped with this skill**).
+policy), the orchestrator's Defaults block routes coding and review after the Codex seat to the
+coding-fallback / first review-fallback model through Antigravity CLI (`agy`, **not shipped with
+this skill**).
 `agy-yolo` is a personal wrapper/alias for `agy --dangerously-skip-permissions` (**not shipped**;
 substitute `agy --dangerously-skip-permissions` only where unattended tool execution is explicitly
 authorized).
@@ -181,8 +182,11 @@ accepting the output:
 
 ```bash
 # Run ONLY inside an enclosing container/VM sandbox with explicit owner/host authorization:
+# Usage: run_agy_coding_fallback <brief_file> <coding_fallback_model_from_Defaults>
 run_agy_coding_fallback() {
-  local brief_file="$1" settings_file="" out="" status=0
+  local brief_file="${1:?pass the brief file path}"
+  local model="${2:?pass the coding fallback model from the orchestrator Defaults block}"
+  local settings_file="" out="" status=0
   settings_file=$(mktemp) || return $?
   chmod 600 "$settings_file" || { rm -f -- "$settings_file"; return 1; }
   printf '{"agentMode":"","allowNonWorkspaceAccess":false,"enableTerminalSandbox":true,"permissions":{"deny":["unsandboxed(*)"]}}\n' > "$settings_file" \
@@ -191,7 +195,7 @@ run_agy_coding_fallback() {
   out=$(set -o pipefail; jq -Rsc '{event:"user",message:{content:.}}' < "$brief_file" \
     | agy-yolo --sandbox --settings "$settings_file" \
         --input-format stream-json --output-format stream-json \
-        --model gemini-4-neon-xhigh --print "" --print-timeout 10m) || status=$?
+        --model "$model" --print "" --print-timeout 10m) || status=$?
   rm -f -- "$settings_file"
   [ "$status" -eq 0 ] || return "$status"
   jq -se '
