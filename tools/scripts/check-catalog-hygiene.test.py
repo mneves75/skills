@@ -156,6 +156,7 @@ class CatalogHygieneTest(unittest.TestCase):
                 'See [guide](references/guide.md "say \\"[orphan]\\"").\n\n[orphan]: references/orphan.md\n',
                 'See [Self [label]](references/guide.md "say [orphan]").\n\n[orphan]: references/orphan.md\n',
                 "See [guide](references/guide.md).\n\n    [orphan]\n\n[orphan]: references/orphan.md\n",
+                "# Heading\n    [orphan]\n\n[orphan]: references/orphan.md\n",
             ):
                 (root / "skills" / "alpha" / "SKILL.md").write_text(
                     "---\nname: alpha\ndescription: Run alpha checks on local source files.\n---\n" + bogus,
@@ -165,11 +166,13 @@ class CatalogHygieneTest(unittest.TestCase):
                 self.assertFalse(res_bogus["ok"], bogus)
                 self.assertTrue(any("unlinked reference file" in e for e in res_bogus["errors"]), res_bogus["errors"])
 
-            # Fence marker inside an HTML comment must NOT hide a valid reference link after it
-            self.assertIn(
-                "references/guide.md",
-                MOD.extract_relative_links("<!--\n~~~\n-->\nSee [guide](references/guide.md).\n", cited_only=True),
-            )
+            # Fence marker inside an HTML comment, and `<!--` inside inline or indented code, must NOT hide real links
+            for valid_md in (
+                "<!--\n~~~\n-->\nSee [guide](references/guide.md).\n",
+                "Use `<!--` then [guide](references/guide.md).\n",
+                "    <!--\n\nSee [guide](references/guide.md).\n",
+            ):
+                self.assertIn("references/guide.md", MOD.extract_relative_links(valid_md, cited_only=True), valid_md)
 
             # Parenthesized destination resolves intact without truncating at the inner ')'
             (root / "skills" / "alpha" / "references" / "note(1).md").write_text("# Note\n", encoding="utf-8")

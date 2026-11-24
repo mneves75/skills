@@ -24,6 +24,8 @@ import argparse
 import json
 from pathlib import Path
 import re
+import shutil
+import subprocess
 import sys
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -33,10 +35,36 @@ if str(SCRIPT_DIR) not in sys.path:
 from frontmatter import parse_frontmatter  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
+MARKED_ESM = ROOT / "tools" / "node_modules" / "marked" / "lib" / "marked.esm.js"
 MAX_SKILL_LINES = 500
 WARN_DESC_CHARS = 220
 MAX_DESC_CHARS = 350
 UPSTREAM_BARE_BASENAME_EXEMPT = frozenset({"security-audit"})
+
+_MARKED_EXTRACT_JS = r"""
+import { pathToFileURL } from "node:url";
+const { marked } = await import(pathToFileURL(process.argv[1]).href);
+const raw = await new Response(Bun.stdin.stream()).text();
+const { text, citedOnly } = JSON.parse(raw);
+const tokens = marked.lexer(text);
+const hrefs = [];
+const walk = (list) => {
+  for (const t of list || []) {
+    if ((t.type === "link" || t.type === "image") && typeof t.href === "string") hrefs.push(t.href);
+    if (t.tokens) walk(t.tokens);
+    if (t.items) for (const it of t.items) walk(it.tokens);
+    if (t.header) for (const c of t.header) walk(c.tokens);
+    if (t.rows) for (const r of t.rows) for (const c of r) walk(c.tokens);
+  }
+};
+walk(tokens);
+if (!citedOnly && tokens.links) {
+  for (const v of Object.values(tokens.links)) {
+    if (v && typeof v.href === "string") hrefs.push(v.href);
+  }
+}
+process.stdout.write(JSON.stringify(hrefs));
+""".strip()
 
 INLINE_SPLIT_RE = re.compile(r"\]\(")
 REF_DEF_RE = re.compile(r"^\s*\[([^\]]+)\]:\s*(\S+)(?:\s+.*)?$", re.MULTILINE)
@@ -239,7 +267,27 @@ def _cited_ref_labels(body_without_defs: str) -> set[str]:
     return labels
 
 
+def _extract_links_with_marked(text: str, *, cited_only: bool) -> list[str] | None:
+    """Parse Markdown links via the repo's locked CommonMark lexer (`tools/node_modules/marked`)."""
+    bun = shutil.which("bun")
+    if not bun or not MARKED_ESM.is_file():
+        return None
+    proc = subprocess.run(
+        [bun, "-e", _MARKED_EXTRACT_JS, str(MARKED_ESM)],
+        input=json.dumps({"text": text, "citedOnly": cited_only}),
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode != 0:
+        return None
+    return [href for href in json.loads(proc.stdout) if _is_relative_target(href)]
+
+
 def extract_relative_links(text: str, *, cited_only: bool = False) -> list[str]:
+    parsed = _extract_links_with_marked(text, cited_only=cited_only)
+    if parsed is not None:
+        return parsed
+
     clean = HTML_COMMENT_RE.sub("", strip_fenced_code(text))
     prose = _strip_inline_code(REF_DEF_RE.sub("", clean))
     links, prose_without_inline = _scan_inline_links(prose)

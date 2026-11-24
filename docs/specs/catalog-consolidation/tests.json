@@ -71,7 +71,7 @@
       "id": "cccc-complexity",
       "command": "cccc --no-cache --min 0 --table tools/scripts/frontmatter.py tools/scripts/check-catalog-hygiene.py tools/scripts/catalog-eval.py tools/scripts/baseline-delta-eval.py tools/scripts/install-skills.py",
       "status": "pass",
-      "evidence": "cccc 1.8.0, 5 files, 63 functions, 0 parse errors; max cognitive=28 (down from 80), median=9"
+      "evidence": "cccc 1.8.0, 5 files, 64 functions, 0 parse errors; max cognitive=28 (down from 80), median=7"
     },
     {
       "id": "improve-and-code-review",
