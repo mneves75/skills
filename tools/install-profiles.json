@@ -41,7 +41,7 @@
       ]
     },
     "root-all": {
-      "description": "All 25 first-party and adapted skills from skills/.",
+      "description": "All 22 first-party and adapted skills from skills/.",
       "globs": ["skills/*"]
     },
     "pstack-compatible": {

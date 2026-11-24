@@ -22,8 +22,8 @@ class InstallSkillsTest(unittest.TestCase):
         )
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         rows = {r["profile"]: r for r in json.loads(p.stdout)}
-        self.assertEqual(rows["root-all"]["skills"], 25)
-        self.assertEqual(rows["full-deduped"]["skills"], 66)
+        self.assertEqual(rows["root-all"]["skills"], 22)
+        self.assertEqual(rows["full-deduped"]["skills"], 64)
         self.assertEqual(rows["full-deduped"]["skipped"], 1)
 
     def test_pstack_compatible_skips_babysit_only_when_babysit_pr_present(self) -> None:
@@ -31,7 +31,7 @@ class InstallSkillsTest(unittest.TestCase):
             target = Path(tmp) / "skills"
             target.mkdir()
 
-            # Without babysit-pr in target, pstack/babysit is included (42 skills)
+            # Without babysit-pr in target, pstack/babysit is included (43 skills)
             p1 = subprocess.run(
                 [sys.executable, str(SCRIPT), "--profile", "pstack-compatible", "--target", str(target), "--json"],
                 capture_output=True,
@@ -39,10 +39,10 @@ class InstallSkillsTest(unittest.TestCase):
             )
             self.assertEqual(p1.returncode, 0, p1.stdout + p1.stderr)
             d1 = json.loads(p1.stdout)
-            self.assertEqual(d1["selected_count"], 42)
+            self.assertEqual(d1["selected_count"], 43)
             self.assertTrue(any(s["name"] == "babysit" for s in d1["selected"]))
 
-            # Once babysit-pr exists in target, pstack/babysit is automatically skipped (41 skills)
+            # Once babysit-pr exists in target, pstack/babysit is automatically skipped (42 skills)
             (target / "babysit-pr").mkdir()
             p2 = subprocess.run(
                 [sys.executable, str(SCRIPT), "--profile", "pstack-compatible", "--target", str(target), "--json"],
@@ -51,7 +51,7 @@ class InstallSkillsTest(unittest.TestCase):
             )
             self.assertEqual(p2.returncode, 0, p2.stdout + p2.stderr)
             d2 = json.loads(p2.stdout)
-            self.assertEqual(d2["selected_count"], 41)
+            self.assertEqual(d2["selected_count"], 42)
             self.assertFalse(any(s["name"] == "babysit" for s in d2["selected"]))
             self.assertTrue(any(s["name"] == "babysit" for s in d2["skipped"]))
 

@@ -51,36 +51,36 @@
       "notes": "Explicit ship-staging invokes mneves-ship-deploy."
     },
     {
-      "id": "tutor-socratic-topic",
-      "cluster": "tutor-vs-explainer",
-      "prompt": "Tutor me on distributed consensus (Raft) from scratch until I master it, with a diagnostic, Socratic questions, and a final exam.",
-      "expected": ["mneves-socratic-tutor"],
-      "forbidden": ["mneves-teach-back-srs", "mneves-eli5"],
-      "notes": "General topic mastery tutoring belongs to mneves-socratic-tutor."
+      "id": "handoff-next-agent",
+      "cluster": "workflow-specialists",
+      "prompt": "Write a portable, path-free continuation handoff prompt so another coding agent can review our flaky auth test first before touching code.",
+      "expected": ["mneves-handoff"],
+      "forbidden": ["mneves-fable-orchestrator", "council"],
+      "notes": "Discussion-first continuation handoff belongs to mneves-handoff."
     },
     {
       "id": "tutor-teach-back-srs",
-      "cluster": "tutor-vs-explainer",
+      "cluster": "workflow-specialists",
       "prompt": "I want to teach back how this repository's auth middleware works and review my due spaced-repetition flashcards.",
       "expected": ["mneves-teach-back-srs"],
-      "forbidden": ["mneves-socratic-tutor", "mneves-eli5"],
+      "forbidden": ["mneves-agent-readiness", "none"],
       "notes": "Repo-backed teach-back and SQLite flashcard review belongs to mneves-teach-back-srs."
     },
     {
-      "id": "explainer-eli5",
-      "cluster": "tutor-vs-explainer",
-      "prompt": "Explain how Cloudflare Durable Objects work in plain language for a non-technical product manager.",
-      "expected": ["mneves-eli5"],
-      "forbidden": ["mneves-socratic-tutor", "mneves-teach-back-srs"],
-      "notes": "Audience-calibrated plain explanation belongs to mneves-eli5."
+      "id": "render-markdown-exports",
+      "cluster": "workflow-specialists",
+      "prompt": "Build a project-local pipeline that exports our Markdown strategy memos into responsive HTML, editable DOCX, and print-ready PDF.",
+      "expected": ["mneves-render"],
+      "forbidden": ["mneves-motion-film", "none"],
+      "notes": "Project-local Markdown HTML/DOCX/PDF export pipeline belongs to mneves-render."
     },
     {
       "id": "tutor-one-off-question",
-      "cluster": "tutor-vs-explainer",
+      "cluster": "workflow-specialists",
       "prompt": "What HTTP status code means Too Many Requests?",
       "expected": ["none"],
-      "forbidden": ["mneves-socratic-tutor", "mneves-teach-back-srs", "mneves-eli5"],
-      "notes": "Trivial factual lookup should not invoke a tutoring or ELI5 skill."
+      "forbidden": ["mneves-teach-back-srs", "mneves-expert-review"],
+      "notes": "Trivial factual lookup should not invoke a specialist skill."
     },
     {
       "id": "review-git-diff",
@@ -119,16 +119,16 @@
       "cluster": "review-vs-verify-vs-council",
       "prompt": "Diagnose structural coupling in src/checkout/ and plan a behavior-preserving refactor of that module.",
       "expected": ["untangle-codebase"],
-      "forbidden": ["mneves-superaudit", "autoreview"],
+      "forbidden": ["autoreview", "mneves-verify"],
       "notes": "Bounded structural coupling diagnosis/refactor belongs to untangle-codebase."
     },
     {
-      "id": "superaudit-repo-cleanup",
+      "id": "chatgpt-search-visibility",
       "cluster": "review-vs-verify-vs-council",
-      "prompt": "Run a bounded repo-wide cleanup pass covering AI slop, performance hotspots, agent DX, and stale PR triage.",
-      "expected": ["mneves-superaudit"],
-      "forbidden": ["untangle-codebase", "autoreview"],
-      "notes": "Repo-wide slop/perf/DX/PR-triage pass belongs to mneves-superaudit."
+      "prompt": "Audit our docs site's OAI-SearchBot crawler access, ChatGPT Search citations, and referral attribution.",
+      "expected": ["mneves-chatgpt-search"],
+      "forbidden": ["mneves-agent-readiness", "mneves-security"],
+      "notes": "ChatGPT Search discovery and crawler attribution belongs to mneves-chatgpt-search."
     },
     {
       "id": "pr-babysit",
@@ -183,7 +183,7 @@
       "cluster": "negative-control",
       "prompt": "Fix the spelling mistake 'recieve' -> 'receive' on line 14 of docs/faq.md.",
       "expected": ["none"],
-      "forbidden": ["autoreview", "mneves-superaudit", "untangle-codebase", "mneves-verify"],
+      "forbidden": ["autoreview", "untangle-codebase", "mneves-verify"],
       "notes": "Ordinary typo fix needs no specialist skill."
     },
     {

@@ -27,7 +27,7 @@ answer it, to Codex under your account; the motion-film reviewer step sends the 
 sheets to the reviewer CLI's provider.
 
 A skill is loaded when the agent decides your request matches its `description`. You can
-also name it directly: in Claude Code, `/mneves-verify` or "use the mneves-eli5 skill".
+also name it directly: in Claude Code, `/mneves-verify` or "use the autoreview skill".
 
 ### Choose by situation
 
@@ -56,14 +56,11 @@ collection does not automatically change those instructions in other projects.
 | [`mneves-production-readiness`](#mneves-production-readiness) | check an app is ready for paying customers before each staging or production deploy | "is this ready for production? give me the fix plan" |
 | [`imagegen-frontend-mobile`](#imagegen-frontend-mobile) | generate mobile screen or flow images, not code | "design a 4-screen iOS onboarding flow" |
 | [`mneves-chatgpt-search`](#mneves-chatgpt-search) | improve ChatGPT Search discovery and measure citations/referrals | "improve this site's ChatGPT Search visibility" |
-| [`mneves-eli5`](#mneves-eli5) | explain a thing to a specific audience | "explain OAuth to my dad" |
 | [`mneves-expert-review`](#mneves-expert-review) | stress-test a plan or answer before it ships | "challenge this design" |
 | [`mneves-verify`](#mneves-verify) | get an independent PASS/FAIL before "done" | "verify it", "prove it" |
 | [`mneves-fable-orchestrator`](#mneves-fable-orchestrator) | route independent work by capability | "delegate the backend to codex" |
 | [`mneves-agent-readiness`](#mneves-agent-readiness) | measure how agent-friendly a repo is | "why does the agent struggle here?" |
-| [`mneves-socratic-tutor`](#mneves-socratic-tutor) | be tutored on any topic until you master it | "tutor me on SQL window functions until I really get them" |
 | [`mneves-teach-back-srs`](#mneves-teach-back-srs) | learn a codebase with spaced repetition | "let me explain the auth flow" |
-| [`mneves-superaudit`](#mneves-superaudit) | run a bounded audit-and-cleanup pass over a repo | "superaudit this repo, slop and perf only" |
 | [`mneves-ship-deploy`](#mneves-ship-deploy) | prepare verified staging, then approve the exact candidate before production | "ship-staging" or "ship-prod" |
 
 ---
@@ -473,47 +470,6 @@ Flutter, HTML, or image-to-code does not trigger it.
   VoiceOver, Dynamic Type, keyboard behavior, or working interactions.
 - The skill is a condensed MIT-licensed adaptation of
   [Leonxlnx's upstream work](https://github.com/Leonxlnx/taste-skill/tree/main/skills/imagegen-frontend-mobile).
-
----
-
-## mneves-eli5
-
-**What it does.** Explains one idea with the Feynman method: fix the audience, state the core
-in one sentence, use an analogy when it helps, show a concrete case before naming the jargon,
-say where any analogy breaks, and end with a line the listener can repeat. It answers in the language
-you wrote in.
-
-**Triggers.** "ELI5", "like I'm five", "explain to my boss / client / mom", "in plain words",
-"explique de forma simples", or any request to re-explain something for a different audience.
-
-**Audience levels.** `child`, `layperson`, `executive`, `junior`, `expert`. Name one if you
-care; otherwise the agent infers it and says which it picked.
-
-**Example** (recorded 2026-08-26 with `claude -p` on that date's Claude review model, verbatim).
-
-> **You:** Use the mneves-eli5 skill. Explain what a database index is to a product manager.
->
-> **Agent:** Explaining for a product manager (executive level: what it is, why it matters, the decision).
->
-> **A database index is a lookup table that lets the database jump straight to the rows it needs instead of reading every row.**
->
-> Think of a 500-page book. Without an index, finding every mention of "refunds" means reading all 500 pages. With the index at the back, you flip to "refunds → pages 12, 87, 203" and go straight there. A database index does the same for a column: "customer_email → row 4,812". A query that took 3 seconds scanning 10 million rows can take 3 milliseconds.
->
-> Why it matters to you:
->
-> - **Speed is a product feature.** Slow search, slow dashboards, and timeouts under load are very often "missing index" problems, and they surface only once real data volume arrives — not in demos.
-> - **Indexes are not free.** Every index is a second copy the database must update on each write. Over-indexing slows down inserts and eats storage; the book analogy breaks here, because a book's index doesn't have to be rewritten every time you add a page.
-> - **The decision you'll face:** when an engineer says "we need an index on that field" it's a cheap, low-risk fix for read speed; when they say "too many indexes" on a write-heavy table (event logs, orders), that tradeoff is real and worth a conversation.
->
-> Takeaway to repeat: an index trades a little write cost and storage for much faster lookups on the columns you search by most.
->
-> Want the version with the mechanism (B-trees, composite indexes, why the column order matters)?
-
-**Tips.**
-- "Now for my CTO" re-explains at another level without starting over.
-- Its worked example avoids "simply" and "it's easy".
-- Mixed room? It writes for the least technical person and adds a marked "for the engineers"
-  block.
 
 ---
 
@@ -964,102 +920,6 @@ These questions find friction; they are not the assessor's nine-pillar maturity 
 
 ---
 
-## mneves-superaudit
-
-**What it does.** Turns "audit everything and clean it up" into a bounded pass with four
-selectable items — slop removal, performance wins, agent DX and verification loops, PR/issue
-triage — each ending on a falsifiable condition, run through five phases that preserve existing
-authority and requested stops. It grants no authority: commit, push, tag, release, deploy and
-PR merge require the main session's authorization for that action and target; already authorized
-steps continue without asking again.
-
-**Triggers.** "superaudit", "audit the codebase and clean it up", "hunt for performance wins",
-"find slop", "audit open PRs", or an end-to-end review → fix → verify → release pass. Not for a
-single bug fix or a one-file change.
-
-**Example** (illustrative). You point it at a repo and pick two items:
-
-```
-superaudit /path/to/myapp — items 1,2 only
-```
-
-1. It fills the brief with you, then opens `agent_planning/superaudit-2026-09-10.md` and records
-   `git status -sb` before touching anything.
-2. Three read-only explore agents sweep disjoint path sets. Discovery parallelizes; nothing is
-   edited yet.
-3. It reports ranked findings — what, `path:line`, why it's wrong, the fix, the risk, and the check
-   that would prove the fix safe. **Stop.** You pick what to cut.
-4. It implements only your selections. Items 1 and 2 touch the same files, so those run
-   partitioned by path or serialized, never as concurrent writers.
-5. It measures: baseline and candidate, same recorded conditions, one variable. Two of the three
-   "wins" land inside noise and are reported inconclusive rather than claimed.
-6. **Stop.** You read the diff. Release only happens if you then ask for it by destination.
-
-**Tips.**
-- Name the items explicitly. `items 1,2` skips agent DX and PR triage entirely, and the release
-  phase never loads.
-- Don't run it on a tree another agent is writing to. It preserves changes it doesn't own, but
-  concurrent writes make the item-2 measurements worthless.
-- Fill `Out of scope` in the brief. It is the field that most reliably prevents a three-hour run.
-- The progress file is the point of a long run, not a byproduct — it is what survives compaction,
-  and it is the deliverable for item 3.
-- Amend the skill only from failures you actually saw. Instructions added "just in case" cost
-  context on every future run.
-
----
-
-## mneves-socratic-tutor
-
-**What it does.** Teaches a topic of your choice by asking, not lecturing. It splits the topic
-into subskills, runs a short diagnostic before teaching anything, and tracks each subskill on
-a 0-5 map; a subskill the diagnostic did not reach shows `?` until it is tested. One question
-per turn. A wrong answer gets a narrower question, not the answer; after a third miss on the
-same idea it explains briefly and tests it again another way. A level rises only after
-two independent checks, one of them unprompted recall, and earlier subskills come back
-without warning. The course ends with a mixed final assessment at your target level (4/5 by
-default, 5/5 when you ask for full mastery).
-
-**When to use it.** You want to master a topic, not get one answer: "tutor me", "drill me",
-"teach me X properly". A one-off "what is X" gets a normal answer, and an ambiguous request
-gets one short question first. To explain a codebase back or review stored flashcards, use
-[`mneves-teach-back-srs`](#mneves-teach-back-srs); for one explanation at a chosen level, use
-[`mneves-eli5`](#mneves-eli5).
-
-**Prerequisites.** None. Markdown only, no helper or sibling skill. It also works pasted into
-a plain chatbot.
-
-**Commands at any time.** "show progress", "harder", "easier", "just tell me" (that answer
-then counts as told and raises no level until an unprompted re-test), "save state" and
-"resume from:". The save block holds the topic, target, each subskill's level or `?`, when
-it was last checked, what is due for review and the misconceptions noted; paste it into a
-new session to continue. An incomplete or invalid block is reported, never guessed.
-
-**Example** (illustrative; not an observed run).
-
-```text
-You: Tutor me on SQL window functions until I really get them.
-Agent: I'll start with a few questions, one at a time, to see what you already know.
-       What does ROW_NUMBER() OVER (ORDER BY created_at) return for each row?
-You: A running number 1, 2, 3 in created_at order.
-...
-Agent:
-  Topic: SQL window functions    overall: ██░░░░░░░░ 20%  (3 of 7 placed)
-  numbering             [████░░░░░░]  2/5
-  PARTITION BY          [██░░░░░░░░]  1/5  <- current focus
-  frames                [░░░░░░░░░░]  0/5
-  LAG / LEAD            [░░░░░░░░░░]  ?/5  untested
-  ... three more subskills, untested
-```
-
-**Exercises.** When the agent has tools, it checks your actual output, not your description of
-it. Anything that writes, deletes or reaches real systems you run in a scratch location and
-paste back; the agent does not run it in your project.
-
-Procedure: [SKILL.md](skills/mneves-socratic-tutor/SKILL.md).
-Source and adaptations: [UPSTREAM.md](skills/mneves-socratic-tutor/UPSTREAM.md).
-
----
-
 ## mneves-teach-back-srs
 
 **What it does.** You explain part of a codebase; the agent reads the actual code while you
@@ -1223,7 +1083,7 @@ writes and deployments retain the host's authorization rules.
 
 ## pstack collection
 
-[`collections/pstack`](collections/pstack/) adds 42 skills from Lauren Tan's pstack. It is not
+[`collections/pstack`](collections/pstack/) adds 43 skills from Lauren Tan's pstack. It is not
 part of the install above:
 
 ```bash
@@ -1232,11 +1092,12 @@ npx skills@latest add https://github.com/mneves75/skills/tree/main/collections/p
 
 Start with `poteto-mode` ("poteto mode: add rate limiting to the upload API"); it routes to the
 other pstack workflows. `how` and `why` answer "how does X work" and "why is X this way",
-`interrogate` attacks a plan or diff with several reviewers, and `swarm` fans out parallel
-workers. Without the pstack-claude plugin, dispatches to `pstack:*` agents fall back to a
+`interrogate` attacks a plan or diff with several reviewers, `swarm` fans out parallel
+workers, and `/reframe` teaches the expert terms for what you are building. Without the
+pstack-claude plugin, dispatches to `pstack:*` agents fall back to a
 general-purpose subagent; the collection README explains this and lists the overlaps with Matt
-Pocock's skills. `statechart`, the two formal-verification skills, `ketchup-video` and the
-`thermos` reviews run only when you name them ("/statechart for the checkout flow"), and none
+Pocock's skills. `statechart`, the two formal-verification skills, `ketchup-video`, `reframe`
+and the `thermos` reviews run only when you name them ("/statechart for the checkout flow"), and none
 installs a tool unless that install is already authorized or you approve it.
 [`docs/skill-ledger.md`](docs/skill-ledger.md) records why each skill is kept, changed or
 left out.
@@ -1246,6 +1107,6 @@ left out.
 A typical shipping flow: `mneves-fable-orchestrator` splits the work and dispatches it;
 `mneves-expert-review` challenges the plan before code is written; `mneves-verify` gives the
 final verdict before anything is called done. `mneves-agent-readiness` is what you run first
-on a repo where agents keep failing, and `mneves-eli5` is for the moment you have to explain
-any of this to someone else. `imagegen-frontend-mobile` is the image-only path for mobile concepts;
+on a repo where agents keep failing, and `mneves-teach-back-srs` locks in your own understanding
+of the codebase afterward. `imagegen-frontend-mobile` is the image-only path for mobile concepts;
 hand its chosen direction to the relevant implementation workflow when code is required.

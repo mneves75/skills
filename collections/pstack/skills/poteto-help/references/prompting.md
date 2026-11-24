@@ -48,5 +48,5 @@ A prompt states the intent and the check for done. The playbook supplies the ste
 ## Steer in one line
 
 - Restate the goal: "i said the goal is to repro. i did not ask for a fix yet."
-- Name the rule: "apply prove it works. show me the real output, not the build log."
-- A rule name works because the agent already read the engineering guidance. Its reply names the decision the rule changed.
+- Name the principle: "apply prove it works. show me the real output, not the build log."
+- A principle name works because the agent already read the rule. Its reply names the decision the rule changed.

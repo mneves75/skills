@@ -100,9 +100,14 @@ scope as `gates.md` describes.
 
 For each control in scope, follow its `Verify` line and record status, evidence scope, date and
 commit (`ledger.md`). Run only safe, local or read-only checks: tests, query plans on synthetic
-data, DNS and certificate lookups, dry runs. A control cannot PASS below its minimum evidence
-scope; missing runtime or owner evidence is NOT TESTED or BLOCKED. Import security rows rather
-than re-auditing them. Rows outside the scope carry forward only while their evidence is valid.
+data, DNS and certificate lookups, dry runs. Confirm that preview or staging writable bindings
+point strictly to non-production resources before running any negative or write check. Separate
+code/version rollback from persistent-state rollback (databases, KV/R2/Durable Objects,
+irreversible migrations): rolling back deployed code does not restore mutated storage state.
+Treat an active post-deploy observation window as pending (`NOT TESTED`) rather than failed. A
+control cannot PASS below its minimum evidence scope; missing runtime or owner evidence is
+NOT TESTED or BLOCKED. Import security rows rather than re-auditing them. Rows outside the
+scope carry forward only while their evidence is valid.
 
 ### 5. Check independently (production gate)
 

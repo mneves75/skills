@@ -1,6 +1,6 @@
 {
   "schema": "catalog-eval-1",
-  "description": "12 harder ambiguous, trigger-free, and 67-skill cross-collection routing stress tests (run with --include-pstack).",
+  "description": "12 harder ambiguous, trigger-free, and 65-skill cross-collection routing stress tests (run with --include-pstack).",
   "cases": [
     {
       "id": "hard-babysit-collision",
@@ -8,7 +8,7 @@
       "prompt": "Keep an eye on PR #99 until checks finish and tell me if a reviewer asks for changes.",
       "expected": ["babysit-pr"],
       "forbidden": ["babysit", "get-pr-comments"],
-      "notes": "When both babysit-pr and pstack/babysit exist in the 67-skill catalog, babysit-pr should win."
+      "notes": "When both babysit-pr and pstack/babysit exist in the combined catalog, babysit-pr should win."
     },
     {
       "id": "hard-ketchup-vs-video",
@@ -39,7 +39,7 @@
       "cluster": "ambiguous-refactor",
       "prompt": "src/billing/ has grown into a ball of circular imports and mixed concerns—map the coupling and plan a safe cleanup inside that folder.",
       "expected": ["untangle-codebase"],
-      "forbidden": ["mneves-superaudit", "autoreview"],
+      "forbidden": ["autoreview", "mneves-verify"],
       "notes": "Scoped structural coupling in one module belongs to untangle-codebase."
     },
     {
@@ -54,25 +54,25 @@
       "id": "hard-statechart-not-implicit",
       "cluster": "pstack-opt-in",
       "prompt": "Explain the states an order goes through from created to refunded in plain English.",
-      "expected": ["none", "mneves-eli5"],
-      "forbidden": ["statechart", "create-formal-verification-skill"],
-      "notes": "statechart is explicit-only; explaining order states must not invoke statechart."
+      "expected": ["none"],
+      "forbidden": ["statechart", "create-formal-verification-skill", "how"],
+      "notes": "statechart is explicit-only and how is for tracing repository code; plain-English conceptual questions need no specialist."
     },
     {
-      "id": "hard-sharpen-explicit",
+      "id": "hard-reframe-explicit",
       "cluster": "pstack-explicit",
-      "prompt": "Run /sharpen on my rough prompt: 'make our onboarding faster'.",
-      "expected": ["sharpen"],
-      "forbidden": ["none", "mneves-expert-review"],
-      "notes": "Explicit /sharpen invocation."
+      "prompt": "Run /reframe on my rough description: 'a thing that keeps two browser tabs from editing the same row at once'.",
+      "expected": ["reframe"],
+      "forbidden": ["none", "sharpen"],
+      "notes": "Explicit /reframe invocation selects the newly imported pstack reframe skill."
     },
     {
       "id": "hard-full-stop-tight-desc-neg",
       "cluster": "negative-control",
       "prompt": "Do not touch the database migrations. Full stop. Just rename the button label in Header.tsx.",
       "expected": ["none"],
-      "forbidden": ["full-stop"],
-      "notes": "Re-tests our newly tightened 180-char full-stop description against trailing 'Full stop.' punctuation."
+      "forbidden": ["full-stop", "typescript-best-practices"],
+      "notes": "Tests both tightened full-stop and tightened typescript-best-practices against trivial TSX copy edits."
     },
     {
       "id": "hard-full-stop-tight-desc-pos",
@@ -80,7 +80,7 @@
       "prompt": "Use the full-stop skill to implement CSV export on /reports, prove it with tests, and open a ready PR unattended.",
       "expected": ["full-stop"],
       "forbidden": ["none", "babysit-pr"],
-      "notes": "Re-tests our tightened 180-char full-stop description on explicit invocation."
+      "notes": "Explicit invocation selects full-stop."
     },
     {
       "id": "hard-plain-ship-casual",
@@ -91,12 +91,12 @@
       "notes": "Casual 'ship' to a working branch must not trigger mneves-ship-deploy."
     },
     {
-      "id": "hard-tutor-vs-teachback-subtle",
+      "id": "hard-teachback-srs-subtle",
       "cluster": "ambiguous-tutor",
       "prompt": "Quiz me on the payment webhook handler in this repo and update my review schedule for the parts I miss.",
       "expected": ["mneves-teach-back-srs"],
-      "forbidden": ["mneves-socratic-tutor", "mneves-eli5"],
-      "notes": "Repo-specific quiz + review schedule should select mneves-teach-back-srs over general socratic-tutor."
+      "forbidden": ["none", "how"],
+      "notes": "Repo-specific quiz + review schedule should select mneves-teach-back-srs."
     }
   ]
 }

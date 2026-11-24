@@ -88,7 +88,7 @@ Planning and plan advice run only on their own seats. Crossing means the change 
 other provider: authorize that disclosure as you would for any review provider before dispatching
 it.
 
-Verified against the vendor model lists on 2026-11-21; a release re-verifies every id above and
+Verified against the vendor model lists on 2026-11-24; a release re-verifies every id above and
 updates this date (CI requires it to match the release date, and that the values named above
 appear nowhere else in this file). A seat that names a versioned alias stays on that release
 when the host's short alias moves; check what each short alias resolves to on every release.
@@ -186,13 +186,18 @@ Every executor starts with zero private session context. Include:
 5. Exact proof commands and expected output.
 
 Tell the worker it is not alone in the tree, must preserve other changes, must not spawn agents,
-and must not run cross-session memory. Tell it not to call an advisor tool where the host has one
-(open questions go in its result), and to read files with bounded reads (offset and limit, or a
-line-numbered search), never a whole large file. Only the session that owns a pull request watches it: a
-delegated worker or reviewer never starts a PR watcher. Pair a hard prohibition with a safe stop condition: if an
-honest attempt cannot satisfy a gate, report the exact result instead of gaming the constraint.
-A cornered worker satisfies the letter of a rule and defeats its purpose; treat a stop-report
-as a successful run, the coordinator's decision point.
+and must not run cross-session memory. State the worker contract explicitly: the brief's acceptance
+bar is the whole bar (add no unasked gates), hold only for a failing check at the current revision
+or a real user-facing defect, report pre-existing base issues in one line, and stop before any
+unauthorized external write. When a reversible technical fork inside scope can be settled by a
+small local experiment or prototype, run it and decide from observed output rather than asking;
+leave product and preference calls to the owner. Tell the worker not to call an advisor tool where
+the host has one (open questions go in its result), and to read files with bounded reads (offset
+and limit, or a line-numbered search), never a whole large file. Only the session that owns a pull
+request watches it: a delegated worker or reviewer never starts a PR watcher. Pair a hard
+prohibition with a safe stop condition: if an honest attempt cannot satisfy a gate, report the
+exact result instead of gaming the constraint. A cornered worker satisfies the letter of a rule
+and defeats its purpose; treat a stop-report as a successful run, the coordinator's decision point.
 
 ## Accept delegated work
 
@@ -214,8 +219,12 @@ infer savings from instruction size or attribute total session usage to one task
 Retrieve bounded relevant excerpts, keeping full critical output locally when needed.
 
 Use an independent fresh-context review when risk, the repository, or the user requires it; it
-runs on the reviewer role. `autoreview` is a sibling skill in this repository, not shipped with
-this one; without it, run the reviewer model read-only on the diff with a self-contained brief.
+runs on the reviewer role. Never count self-review, passing tests, or CI as an independent review
+verdict: if no independent reviewer can run, mark the review gate blocked and continue only
+non-dependent work. When a consequential architectural assumption is disputed, consult independent
+reviewers in parallel rather than chaining speculative passes. `autoreview` is a sibling skill in
+this repository, not shipped with this one; without it, run the reviewer role read-only on the
+diff with a self-contained brief.
 
 For code review, always include an adversarial challenge to the weakest plausible assumption.
 When `cccc` is installed, collect complexity evidence for supported changed source before

@@ -15,7 +15,7 @@ Work in a scratch folder: the repository's git-ignored scratch directory, or the
 <skill dir>/scripts/statechart SPEC.tla [--config FILE] [--view FILE] [--out DIR]
 ```
 
-`scripts/statechart.ts` is TypeScript, so run it with a runtime that can execute TypeScript.
+`scripts/statechart.ts` is TypeScript, so run it with a runtime that can execute TypeScript. `scripts/statechart` is a POSIX shell script that picks one. On native Windows, run `node --disable-warning=ExperimentalWarning <skill dir>/scripts/statechart.ts` with Node 22.18 to 22.x, or Node 23.6 or later.
 
 The runner installs nothing. TLC and Java must already be installed through mise, or `TLA2TOOLS` must name `tla2tools.jar` and `JAVA` a Java 11 or later binary. When they are missing the runner stops and names the `mise install` command; installing them downloads from the network, so run it only where the user or the host's policy has already authorized that install, and otherwise get the user's approval immediately before running it.
 

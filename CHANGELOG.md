@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-11-24
+
+### Breaking Changes
+- **Catalog consolidation (`skills/` 25 → 22):** retired `mneves-superaudit`, `mneves-socratic-tutor`,
+  and `mneves-eli5` after blinded zero-skill baseline-delta evaluations showed negative lift (`-2`,
+  `-2`, and `-1`) with zero shipped executables. Migration: use `untangle-codebase` / `autoreview` /
+  `mneves-agent-readiness` / `mneves-verify` for scoped cleanup and audits, `mneves-teach-back-srs`
+  for codebase teach-back with SQLite SM-2 scheduling, and direct prompts for audience-calibrated
+  explanations.
+
+### Added
+- **Catalog hygiene, routing benchmarks, and curated install profiles:** added
+  `tools/scripts/check-catalog-hygiene.py`, `tools/scripts/catalog-eval.py` (24-case root + 12-case
+  cross-collection stress suite), `tools/scripts/baseline-delta-eval.py`, `tools/install-profiles.json`,
+  and `tools/scripts/install-skills.py` (including automatic `pstack/babysit` deduplication when
+  `babysit-pr` is present) with offline unit tests wired into CI.
+- **collections/pstack (`/reframe` and `worker.md`):** refreshed `collections/pstack` to
+  `pstack-claude` `66181d3` (`0.9.153`) and `cursor/plugins` `0b46ec3` (pstack `0.15.46`), plus
+  adaptation `12-upstream-reframe-and-hygiene.patch` importing upstream explicit-only `/reframe`
+  (`cursor/plugins@9e278fe`, pstack `0.15.48`), bringing the collection to 43 skills. Adds
+  `poteto-mode/worker.md` (aligned with local-only autonomy), native runtime tool mappings for
+  Antigravity (`agy-tools.md`), OMP, OpenCode 2, Kimi, and Grok, prototype-first `/sharpen`, and
+  native Windows + SANY error-line fixes in `/statechart`.
+
+### Changed
+- **DeepSeek disabled everywhere:** removed `opencode-go/deepseek-v4.1-flash` and the economy
+  fallback row from `mneves-fable-orchestrator` (verified `2026-11-24`; seat now reports blocked
+  when `opencode-go/glm-5.3` and all other authorized seats cannot run), updated
+  `tools/routing-eval/cases.json` revision 13 (`O19` expects `none`/`none`, and dropped deleted
+  upstream `pstack` model-role cases `P12`, `P13`, `P16`, `P18`), and excluded
+  `poteto-mode/references/dsh-tools.md` from `collections/pstack`.
+- **Progressive-disclosure slimming of heavy root skills:** extracted 1-level-deep references for
+  `mneves-security` (`references/deploy-gate.md`), `mneves-ship-deploy` (`references/phases.md`),
+  `council` (`references/invocations-and-prompts.md`), `untangle-codebase`
+  (`references/checklists.md`), and `babysit-pr` (`references/pr-wait-and-limits.md`), preserving
+  every safety boundary and contract while sharply reducing activation context.
+- **Hardening Protocol V3 & upstream pstack best practices in root skills:**
+  - `mneves-verify`: added verification-integrity rules (separating product vs verification/operational
+    changes, requiring independent justification + negative control for weakened checks, verifying
+    real execution vs vacuous exit-0), closed independent review gates, and verified-citation checks.
+  - `mneves-ship-deploy` & `mneves-production-readiness`: added candidate/artifact identity checks,
+    preview writable-binding verification before negative controls, pending observation-window
+    handling, and explicit persistent-state vs code rollback limits.
+  - `mneves-fable-orchestrator`: added worker-contract, prototype-first fork resolution, parallel
+    disputed-assumption consultation, and closed independent review gate rules.
+  - `mneves-expert-review`: required confirming every linked primary source supports its claim and
+    cutting unconfirmed citations.
+- **collections/pstack simplification & routing hygiene:** adopted upstream one-file rewrites of
+  `why`, `how`, `reflect`, and `architect` (net ~1,700 fewer lines), shorter `poteto-mode`
+  playbooks, and tightened `typescript-best-practices` and `how` descriptions to stop false triggers
+  on trivial copy edits and conceptual questions while preserving all Opus-medium, Codex-high,
+  read-only, explicit-opt-in, and install-consent adaptations (`01`–`12`).
+
 ## [1.52.2] - 2026-11-21
 
 ### Fixed

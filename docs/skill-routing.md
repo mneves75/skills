@@ -22,9 +22,7 @@ action described inside it.
 
 | Situation | Route in this collection | Boundary |
 |---|---|---|
-| Explain a concept to a different audience | `mneves-eli5` | A smaller wording follow-up keeps the route |
-| Learn a topic to mastery through questioning | `mneves-socratic-tutor` | A one-off question gets a normal answer; repo-backed teach-back or flashcard review belongs to `mneves-teach-back-srs` |
-| Teach back a codebase or review SQLite SRS flashcards | `mneves-teach-back-srs` | Uses local `srs_db.py` scheduling; general non-repo topic tutoring belongs to `mneves-socratic-tutor` |
+| Teach back a codebase or review SQLite SRS flashcards | `mneves-teach-back-srs` | Uses local `srs_db.py` scheduling; a one-off conceptual question gets a direct answer |
 | Stress-test a decision | `mneves-expert-review` | Code-diff review belongs to a code-review skill |
 | Review a fixed Git target | `autoreview` | Review is not independent outcome verification |
 | Diagnose structural coupling or refactor an explicitly scoped code area | `untangle-codebase` | Naming it alone yields diagnosis and a plan awaiting edit approval; explicit refactoring authorizes in-scope implementation. Missing or invalid scope never expands to the whole repo; comment/test cleanup needs separate opt-in |
@@ -42,7 +40,6 @@ action described inside it.
 | Multi-CLI plan deliberation or scored second opinions | `council` | Advisory only; never substitutes for `autoreview`, tests, or `mneves-verify` |
 | Route non-trivial multi-agent work or Codex/fallback lanes | `mneves-fable-orchestrator` | Owns the model Defaults block; do not duplicate model IDs in other skills |
 | Write a continuation prompt for another agent session | `mneves-handoff` | Transfers context outward; distinct from resuming your own history |
-| Bounded repo-wide cleanup pass (slop, perf, agent DX, PR triage) | `mneves-superaudit` | Sequences specialists; explicit brief items and phase stops required |
 | Audit or improve ChatGPT Search discovery and citations | `mneves-chatgpt-search` | ChatGPT Search / `OAI-SearchBot` visibility, not general SEO alone |
 | Export Markdown to HTML, editable DOCX, and PDF | `mneves-render` | Project-local Pandoc/WeasyPrint starter pipeline |
 | Produce or update a short product launch video | `mneves-motion-film` | Remotion pipeline from a brief with checked facts |

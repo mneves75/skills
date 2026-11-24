@@ -74,7 +74,6 @@ blockquote{margin:0 0 1rem;padding:.25rem 1rem;border-left:3px solid var(--rule)
 <li><a href="#autoreview">autoreview</a></li>
 <li><a href="#mneves-handoff">mneves-handoff</a></li>
 <li><a href="#imagegen-frontend-mobile">imagegen-frontend-mobile</a></li>
-<li><a href="#mneves-eli5">mneves-eli5</a></li>
 <li><a href="#mneves-expert-review">mneves-expert-review</a></li>
 <li><a href="#council">council</a></li>
 <li><a href="#full-stop">full-stop</a></li>
@@ -85,8 +84,6 @@ blockquote{margin:0 0 1rem;padding:.25rem 1rem;border-left:3px solid var(--rule)
 <li><a href="#mneves-verify">mneves-verify</a></li>
 <li><a href="#mneves-fable-orchestrator">mneves-fable-orchestrator</a></li>
 <li><a href="#mneves-agent-readiness">mneves-agent-readiness</a></li>
-<li><a href="#mneves-superaudit">mneves-superaudit</a></li>
-<li><a href="#mneves-socratic-tutor">mneves-socratic-tutor</a></li>
 <li><a href="#mneves-teach-back-srs">mneves-teach-back-srs</a></li>
 <li><a href="#mneves-ship-deploy">mneves-ship-deploy</a></li>
 <li><a href="#mneves-chatgpt-search">mneves-chatgpt-search</a></li>
@@ -104,7 +101,6 @@ blockquote{margin:0 0 1rem;padding:.25rem 1rem;border-left:3px solid var(--rule)
 <li><a href="#autoreview">autoreview</a></li>
 <li><a href="#mneves-handoff">mneves-handoff</a></li>
 <li><a href="#imagegen-frontend-mobile">imagegen-frontend-mobile</a></li>
-<li><a href="#mneves-eli5">mneves-eli5</a></li>
 <li><a href="#mneves-expert-review">mneves-expert-review</a></li>
 <li><a href="#council">council</a></li>
 <li><a href="#full-stop">full-stop</a></li>
@@ -115,8 +111,6 @@ blockquote{margin:0 0 1rem;padding:.25rem 1rem;border-left:3px solid var(--rule)
 <li><a href="#mneves-verify">mneves-verify</a></li>
 <li><a href="#mneves-fable-orchestrator">mneves-fable-orchestrator</a></li>
 <li><a href="#mneves-agent-readiness">mneves-agent-readiness</a></li>
-<li><a href="#mneves-superaudit">mneves-superaudit</a></li>
-<li><a href="#mneves-socratic-tutor">mneves-socratic-tutor</a></li>
 <li><a href="#mneves-teach-back-srs">mneves-teach-back-srs</a></li>
 <li><a href="#mneves-ship-deploy">mneves-ship-deploy</a></li>
 <li><a href="#mneves-chatgpt-search">mneves-chatgpt-search</a></li>
@@ -146,7 +140,7 @@ repository you point them at; codex-lane sends each delegated brief, and what Co
 answer it, to Codex under your account; the motion-film reviewer step sends the brief and contact
 sheets to the reviewer CLI&#39;s provider.</p>
 <p>A skill is loaded when the agent decides your request matches its <code>description</code>. You can
-also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use the mneves-eli5 skill&quot;.</p>
+also name it directly: in Claude Code, <code>/mneves-verify</code> or &quot;use the autoreview skill&quot;.</p>
 <h3>Choose by situation</h3>
 <p>Describe your goal; the agent should choose the most specific available skill and say why once.
 Keep that selection for small follow-ups, then reassess when the goal or phase changes—for
@@ -243,11 +237,6 @@ collection does not automatically change those instructions in other projects.</
 <td>&quot;improve this site&#39;s ChatGPT Search visibility&quot;</td>
 </tr>
 <tr>
-<td><a href="#mneves-eli5"><code>mneves-eli5</code></a></td>
-<td>explain a thing to a specific audience</td>
-<td>&quot;explain OAuth to my dad&quot;</td>
-</tr>
-<tr>
 <td><a href="#mneves-expert-review"><code>mneves-expert-review</code></a></td>
 <td>stress-test a plan or answer before it ships</td>
 <td>&quot;challenge this design&quot;</td>
@@ -268,19 +257,9 @@ collection does not automatically change those instructions in other projects.</
 <td>&quot;why does the agent struggle here?&quot;</td>
 </tr>
 <tr>
-<td><a href="#mneves-socratic-tutor"><code>mneves-socratic-tutor</code></a></td>
-<td>be tutored on any topic until you master it</td>
-<td>&quot;tutor me on SQL window functions until I really get them&quot;</td>
-</tr>
-<tr>
 <td><a href="#mneves-teach-back-srs"><code>mneves-teach-back-srs</code></a></td>
 <td>learn a codebase with spaced repetition</td>
 <td>&quot;let me explain the auth flow&quot;</td>
-</tr>
-<tr>
-<td><a href="#mneves-superaudit"><code>mneves-superaudit</code></a></td>
-<td>run a bounded audit-and-cleanup pass over a repo</td>
-<td>&quot;superaudit this repo, slop and perf only&quot;</td>
 </tr>
 <tr>
 <td><a href="#mneves-ship-deploy"><code>mneves-ship-deploy</code></a></td>
@@ -615,38 +594,6 @@ personal data; authorize the image service before private references are sent to
 VoiceOver, Dynamic Type, keyboard behavior, or working interactions.</li>
 <li>The skill is a condensed MIT-licensed adaptation of
 <a href="https://github.com/Leonxlnx/taste-skill/tree/main/skills/imagegen-frontend-mobile">Leonxlnx&#39;s upstream work</a>.</li>
-</ul>
-<hr>
-<h2 id="mneves-eli5">mneves-eli5</h2>
-<p><strong>What it does.</strong> Explains one idea with the Feynman method: fix the audience, state the core
-in one sentence, use an analogy when it helps, show a concrete case before naming the jargon,
-say where any analogy breaks, and end with a line the listener can repeat. It answers in the language
-you wrote in.</p>
-<p><strong>Triggers.</strong> &quot;ELI5&quot;, &quot;like I&#39;m five&quot;, &quot;explain to my boss / client / mom&quot;, &quot;in plain words&quot;,
-&quot;explique de forma simples&quot;, or any request to re-explain something for a different audience.</p>
-<p><strong>Audience levels.</strong> <code>child</code>, <code>layperson</code>, <code>executive</code>, <code>junior</code>, <code>expert</code>. Name one if you
-care; otherwise the agent infers it and says which it picked.</p>
-<p><strong>Example</strong> (recorded 2026-08-26 with <code>claude -p</code> on that date&#39;s Claude review model, verbatim).</p>
-<blockquote>
-<p><strong>You:</strong> Use the mneves-eli5 skill. Explain what a database index is to a product manager.</p>
-<p><strong>Agent:</strong> Explaining for a product manager (executive level: what it is, why it matters, the decision).</p>
-<p><strong>A database index is a lookup table that lets the database jump straight to the rows it needs instead of reading every row.</strong></p>
-<p>Think of a 500-page book. Without an index, finding every mention of &quot;refunds&quot; means reading all 500 pages. With the index at the back, you flip to &quot;refunds → pages 12, 87, 203&quot; and go straight there. A database index does the same for a column: &quot;customer_email → row 4,812&quot;. A query that took 3 seconds scanning 10 million rows can take 3 milliseconds.</p>
-<p>Why it matters to you:</p>
-<ul>
-<li><strong>Speed is a product feature.</strong> Slow search, slow dashboards, and timeouts under load are very often &quot;missing index&quot; problems, and they surface only once real data volume arrives — not in demos.</li>
-<li><strong>Indexes are not free.</strong> Every index is a second copy the database must update on each write. Over-indexing slows down inserts and eats storage; the book analogy breaks here, because a book&#39;s index doesn&#39;t have to be rewritten every time you add a page.</li>
-<li><strong>The decision you&#39;ll face:</strong> when an engineer says &quot;we need an index on that field&quot; it&#39;s a cheap, low-risk fix for read speed; when they say &quot;too many indexes&quot; on a write-heavy table (event logs, orders), that tradeoff is real and worth a conversation.</li>
-</ul>
-<p>Takeaway to repeat: an index trades a little write cost and storage for much faster lookups on the columns you search by most.</p>
-<p>Want the version with the mechanism (B-trees, composite indexes, why the column order matters)?</p>
-</blockquote>
-<p><strong>Tips.</strong></p>
-<ul>
-<li>&quot;Now for my CTO&quot; re-explains at another level without starting over.</li>
-<li>Its worked example avoids &quot;simply&quot; and &quot;it&#39;s easy&quot;.</li>
-<li>Mixed room? It writes for the least technical person and adds a marked &quot;for the engineers&quot;
-block.</li>
 </ul>
 <hr>
 <h2 id="mneves-expert-review">mneves-expert-review</h2>
@@ -1014,86 +961,6 @@ Style 88%, strong documentation, weaker on task discovery and product signals. T
 whose pillar structure inspired them.</li>
 </ul>
 <hr>
-<h2 id="mneves-superaudit">mneves-superaudit</h2>
-<p><strong>What it does.</strong> Turns &quot;audit everything and clean it up&quot; into a bounded pass with four
-selectable items — slop removal, performance wins, agent DX and verification loops, PR/issue
-triage — each ending on a falsifiable condition, run through five phases that preserve existing
-authority and requested stops. It grants no authority: commit, push, tag, release, deploy and
-PR merge require the main session&#39;s authorization for that action and target; already authorized
-steps continue without asking again.</p>
-<p><strong>Triggers.</strong> &quot;superaudit&quot;, &quot;audit the codebase and clean it up&quot;, &quot;hunt for performance wins&quot;,
-&quot;find slop&quot;, &quot;audit open PRs&quot;, or an end-to-end review → fix → verify → release pass. Not for a
-single bug fix or a one-file change.</p>
-<p><strong>Example</strong> (illustrative). You point it at a repo and pick two items:</p>
-<pre tabindex="0"><code>superaudit /path/to/myapp — items 1,2 only
-</code></pre>
-<ol>
-<li>It fills the brief with you, then opens <code>agent_planning/superaudit-2026-09-10.md</code> and records
-<code>git status -sb</code> before touching anything.</li>
-<li>Three read-only explore agents sweep disjoint path sets. Discovery parallelizes; nothing is
-edited yet.</li>
-<li>It reports ranked findings — what, <code>path:line</code>, why it&#39;s wrong, the fix, the risk, and the check
-that would prove the fix safe. <strong>Stop.</strong> You pick what to cut.</li>
-<li>It implements only your selections. Items 1 and 2 touch the same files, so those run
-partitioned by path or serialized, never as concurrent writers.</li>
-<li>It measures: baseline and candidate, same recorded conditions, one variable. Two of the three
-&quot;wins&quot; land inside noise and are reported inconclusive rather than claimed.</li>
-<li><strong>Stop.</strong> You read the diff. Release only happens if you then ask for it by destination.</li>
-</ol>
-<p><strong>Tips.</strong></p>
-<ul>
-<li>Name the items explicitly. <code>items 1,2</code> skips agent DX and PR triage entirely, and the release
-phase never loads.</li>
-<li>Don&#39;t run it on a tree another agent is writing to. It preserves changes it doesn&#39;t own, but
-concurrent writes make the item-2 measurements worthless.</li>
-<li>Fill <code>Out of scope</code> in the brief. It is the field that most reliably prevents a three-hour run.</li>
-<li>The progress file is the point of a long run, not a byproduct — it is what survives compaction,
-and it is the deliverable for item 3.</li>
-<li>Amend the skill only from failures you actually saw. Instructions added &quot;just in case&quot; cost
-context on every future run.</li>
-</ul>
-<hr>
-<h2 id="mneves-socratic-tutor">mneves-socratic-tutor</h2>
-<p><strong>What it does.</strong> Teaches a topic of your choice by asking, not lecturing. It splits the topic
-into subskills, runs a short diagnostic before teaching anything, and tracks each subskill on
-a 0-5 map; a subskill the diagnostic did not reach shows <code>?</code> until it is tested. One question
-per turn. A wrong answer gets a narrower question, not the answer; after a third miss on the
-same idea it explains briefly and tests it again another way. A level rises only after
-two independent checks, one of them unprompted recall, and earlier subskills come back
-without warning. The course ends with a mixed final assessment at your target level (4/5 by
-default, 5/5 when you ask for full mastery).</p>
-<p><strong>When to use it.</strong> You want to master a topic, not get one answer: &quot;tutor me&quot;, &quot;drill me&quot;,
-&quot;teach me X properly&quot;. A one-off &quot;what is X&quot; gets a normal answer, and an ambiguous request
-gets one short question first. To explain a codebase back or review stored flashcards, use
-<a href="#mneves-teach-back-srs"><code>mneves-teach-back-srs</code></a>; for one explanation at a chosen level, use
-<a href="#mneves-eli5"><code>mneves-eli5</code></a>.</p>
-<p><strong>Prerequisites.</strong> None. Markdown only, no helper or sibling skill. It also works pasted into
-a plain chatbot.</p>
-<p><strong>Commands at any time.</strong> &quot;show progress&quot;, &quot;harder&quot;, &quot;easier&quot;, &quot;just tell me&quot; (that answer
-then counts as told and raises no level until an unprompted re-test), &quot;save state&quot; and
-&quot;resume from:&quot;. The save block holds the topic, target, each subskill&#39;s level or <code>?</code>, when
-it was last checked, what is due for review and the misconceptions noted; paste it into a
-new session to continue. An incomplete or invalid block is reported, never guessed.</p>
-<p><strong>Example</strong> (illustrative; not an observed run).</p>
-<pre tabindex="0"><code class="language-text">You: Tutor me on SQL window functions until I really get them.
-Agent: I&#39;ll start with a few questions, one at a time, to see what you already know.
-       What does ROW_NUMBER() OVER (ORDER BY created_at) return for each row?
-You: A running number 1, 2, 3 in created_at order.
-...
-Agent:
-  Topic: SQL window functions    overall: ██░░░░░░░░ 20%  (3 of 7 placed)
-  numbering             [████░░░░░░]  2/5
-  PARTITION BY          [██░░░░░░░░]  1/5  &lt;- current focus
-  frames                [░░░░░░░░░░]  0/5
-  LAG / LEAD            [░░░░░░░░░░]  ?/5  untested
-  ... three more subskills, untested
-</code></pre>
-<p><strong>Exercises.</strong> When the agent has tools, it checks your actual output, not your description of
-it. Anything that writes, deletes or reaches real systems you run in a scratch location and
-paste back; the agent does not run it in your project.</p>
-<p>Procedure: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-socratic-tutor/SKILL.md">SKILL.md</a>.
-Source and adaptations: <a href="https://github.com/mneves75/skills/blob/main/skills/mneves-socratic-tutor/UPSTREAM.md">UPSTREAM.md</a>.</p>
-<hr>
 <h2 id="mneves-teach-back-srs">mneves-teach-back-srs</h2>
 <p><strong>What it does.</strong> You explain part of a codebase; the agent reads the actual code while you
 talk, asks three to five follow-up questions aimed at what you got wrong or skipped, and turns
@@ -1246,17 +1113,18 @@ documented ranking requirement. Valid schema does not guarantee citations. Live 
 writes and deployments retain the host&#39;s authorization rules.</p>
 <hr>
 <h2 id="pstack-collection">pstack collection</h2>
-<p><a href="https://github.com/mneves75/skills/blob/main/collections/pstack/"><code>collections/pstack</code></a> adds 42 skills from Lauren Tan&#39;s pstack. It is not
+<p><a href="https://github.com/mneves75/skills/blob/main/collections/pstack/"><code>collections/pstack</code></a> adds 43 skills from Lauren Tan&#39;s pstack. It is not
 part of the install above:</p>
 <pre tabindex="0"><code class="language-bash">npx skills@latest add https://github.com/mneves75/skills/tree/main/collections/pstack/skills
 </code></pre>
 <p>Start with <code>poteto-mode</code> (&quot;poteto mode: add rate limiting to the upload API&quot;); it routes to the
 other pstack workflows. <code>how</code> and <code>why</code> answer &quot;how does X work&quot; and &quot;why is X this way&quot;,
-<code>interrogate</code> attacks a plan or diff with several reviewers, and <code>swarm</code> fans out parallel
-workers. Without the pstack-claude plugin, dispatches to <code>pstack:*</code> agents fall back to a
+<code>interrogate</code> attacks a plan or diff with several reviewers, <code>swarm</code> fans out parallel
+workers, and <code>/reframe</code> teaches the expert terms for what you are building. Without the
+pstack-claude plugin, dispatches to <code>pstack:*</code> agents fall back to a
 general-purpose subagent; the collection README explains this and lists the overlaps with Matt
-Pocock&#39;s skills. <code>statechart</code>, the two formal-verification skills, <code>ketchup-video</code> and the
-<code>thermos</code> reviews run only when you name them (&quot;/statechart for the checkout flow&quot;), and none
+Pocock&#39;s skills. <code>statechart</code>, the two formal-verification skills, <code>ketchup-video</code>, <code>reframe</code>
+and the <code>thermos</code> reviews run only when you name them (&quot;/statechart for the checkout flow&quot;), and none
 installs a tool unless that install is already authorized or you approve it.
 <a href="https://github.com/mneves75/skills/blob/main/docs/skill-ledger.md"><code>docs/skill-ledger.md</code></a> records why each skill is kept, changed or
 left out.</p>
@@ -1264,8 +1132,8 @@ left out.</p>
 <p>A typical shipping flow: <code>mneves-fable-orchestrator</code> splits the work and dispatches it;
 <code>mneves-expert-review</code> challenges the plan before code is written; <code>mneves-verify</code> gives the
 final verdict before anything is called done. <code>mneves-agent-readiness</code> is what you run first
-on a repo where agents keep failing, and <code>mneves-eli5</code> is for the moment you have to explain
-any of this to someone else. <code>imagegen-frontend-mobile</code> is the image-only path for mobile concepts;
+on a repo where agents keep failing, and <code>mneves-teach-back-srs</code> locks in your own understanding
+of the codebase afterward. <code>imagegen-frontend-mobile</code> is the image-only path for mobile concepts;
 hand its chosen direction to the relevant implementation workflow when code is required.</p>
 </main>
 </div>

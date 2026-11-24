@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-1.52.2-blue)
+![Version](https://img.shields.io/badge/version-2.0.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -33,7 +33,6 @@ artifacts.
 | [leaving-pr-comments](skills/leaving-pr-comments/) | Format and attribute the GitHub comments an agent posts for you |
 | [imagegen-frontend-mobile](skills/imagegen-frontend-mobile/) | Generate coherent iOS or Android screen and flow images, with platform conventions, visual QA, and no code |
 | [mneves-chatgpt-search](skills/mneves-chatgpt-search/) | Improve ChatGPT Search discovery, citations and referral attribution using official guidance, separate search/training policies and verifiable evidence |
-| [mneves-eli5](skills/mneves-eli5/) | Feynman-technique explainer calibrated to the listener (child, layperson, executive, junior, expert), answered in the user's language |
 | [mneves-agent-readiness](skills/mneves-agent-readiness/) | Evaluate codebase readiness for AI agents: 9 pillars, maturity levels L1–L5, local-only |
 | [mneves-expert-review](skills/mneves-expert-review/) | Scoped stress test: objective, first principles, relevant research, one combined challenge, distinct alternatives, improved deliverable |
 | [mneves-handoff](skills/mneves-handoff/) | Clipboard-ready, path-free prompt that hands a task to another agent for independent review and discussion first |
@@ -43,9 +42,7 @@ artifacts.
 | [security-audit](skills/security-audit/) | Six-phase, coverage-led source audit with independent candidate and final verification, three finding verdicts, a schema-checked ledger and machine-readable findings; ships its Node validators and tests, and is not a deploy gate |
 | [mneves-production-readiness](skills/mneves-production-readiness/) | Gate staging and production deploys on production readiness: a ledger of evidence-backed controls (data, recovery, money, operations, ownership), a verdict per target and a detailed fix plan; security rows delegate to `mneves-security` |
 | [mneves-fable-orchestrator](skills/mneves-fable-orchestrator/) | The main session plans, advises and reviews; executors build from a written spec. Models live in one Defaults block, including an economy executor seat; ships [`codex-lane`](skills/mneves-fable-orchestrator/tools/codex-lane) |
-| [mneves-superaudit](skills/mneves-superaudit/) | Bounded audit-and-ship pass: slop, performance, agent DX, PR triage — falsifiable completion criteria, existing authority and requested stops |
 | [mneves-ship-deploy](skills/mneves-ship-deploy/) | Deploy the pushed commit, prove it live, then tag, through dev (when present) and staging without redundant confirmation; explicit approval of the exact candidate before production; ships a release-contract check |
-| [mneves-socratic-tutor](skills/mneves-socratic-tutor/) | Socratic tutoring to mastery on any topic: diagnostic first, a 0-5 skill map that marks untested subskills, one question per turn, levels earned on repeated checks that include unprompted recall, spaced review, a final assessment and a paste-able save state; adapted from Jane Street (MIT) |
 | [mneves-teach-back-srs](skills/mneves-teach-back-srs/) | Spaced-repetition learning through codebase teach-back sessions (SM-2 + SQLite) |
 | [mneves-verify](skills/mneves-verify/) | Independent verification before done/fixed/shipped: fresh context checks the artifact against criteria, PASS/FAIL/BLOCKED |
 
@@ -62,7 +59,7 @@ Third-party skill packs vendored with their upstream names and licenses. They si
 
 | Collection | Skills | Install |
 |---|---|---|
-| [pstack](collections/pstack/) | 42 engineering workflow skills from Lauren Tan's pstack, via the pstack-claude port and pinned to the official upstream: `poteto-mode`, `architect`, `interrogate`, `swarm`, `how`, `why` and more | `npx skills@latest add https://github.com/mneves75/skills/tree/main/collections/pstack/skills` |
+| [pstack](collections/pstack/) | 43 engineering workflow skills from Lauren Tan's pstack, via the pstack-claude port and pinned to the official upstream: `poteto-mode`, `architect`, `interrogate`, `swarm`, `reframe`, `how`, `why` and more | `npx skills@latest add https://github.com/mneves75/skills/tree/main/collections/pstack/skills` |
 
 Its README lists the deviations from upstream and the name collisions with Matt Pocock's
 skills (`tdd`, `teach`).
@@ -173,7 +170,7 @@ from CI and merge approval; their current tracked assessment is in [the readines
 
 Original work in this repository is Apache-2.0. The adapted skills (`autoreview`, `babysit-pr`,
 `council`, `full-stop`, `imagegen-frontend-mobile`, `leaving-pr-comments`, `mneves-handoff`,
-`mneves-socratic-tutor`, `modernize`, `security-audit`, `takeover` and `untangle-codebase`) and the [`pstack`](collections/pstack/) collection
+`modernize`, `security-audit`, `takeover` and `untangle-codebase`) and the [`pstack`](collections/pstack/) collection
 retain their upstream MIT licenses and copyrights; see the `LICENSE` file in each directory and
 [`NOTICE`](NOTICE).
 

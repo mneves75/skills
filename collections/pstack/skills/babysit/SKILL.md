@@ -11,6 +11,8 @@ On GitHub Copilot, read the [platform mapping](../poteto-mode/references/copilot
 
 On Muse, read the [platform mapping](../poteto-mode/references/muse-tools.md), including its per-skill notes, before following this skill.
 
+On Antigravity, read the [platform mapping](../poteto-mode/references/agy-tools.md), including its per-skill notes, before following this skill.
+
 Claude Code analog of Cursor's built-in `/babysit`. The implementation is a loop over `gh` CLI, paced by the Claude Code `loop` skill when it is installed.
 
 When the `babysit-pr` skill is installed, use it instead: its watcher is the authoritative one, and this skill adds nothing to it. The steps below are the complete fallback for an install that has only this skill and `gh`.

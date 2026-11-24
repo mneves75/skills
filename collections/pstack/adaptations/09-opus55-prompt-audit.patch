@@ -5,31 +5,28 @@ found text written for older models or pointing at things that no longer exist:
 
 - poteto-mode and no-comments named `pstack:*` agent types that a skills-only install does not
   have (this collection's README says so); both now name the `general-purpose` fallback.
-- poteto-mode referred to an upstream "external actions proceed without asking" line that no
-  longer appears anywhere; the rule now states its own precedence.
 - setup-pstack said Claude Code has no auto-applied rules mechanism; it does (`rules/`).
 - thermo-nuclear-code-quality-review carried a thoroughness booster, "Non-Negotiable" emphasis,
   and a phrase list labelled "Good phrases" that the model copied into its prose report.
 - recall, deslop and what-did-i-get-done capped output with fixed numbers and pressure words.
-- technical-writing's "That skill" referred to nothing after an earlier rewrite.
 
 Applies to the port's plugins/pstack/skills tree after the patches numbered before it.
 
 diff --git a/deslop/SKILL.md b/deslop/SKILL.md
-index 1b3827c..b1945a8 100644
+index af3d03e..88bebec 100644
 --- a/deslop/SKILL.md
 +++ b/deslop/SKILL.md
-@@ -19,4 +19,4 @@ Check the diff against main and remove AI-generated slop introduced in the branc
- 
- - Keep behavior unchanged unless fixing a clear bug.
+@@ -21,4 +21,4 @@ Check the diff against the branch's base and remove AI-generated slop introduced
  - Prefer minimal, focused edits over broad rewrites.
+ - After editing, rerun the checks that verified the change (tests, type check, and the driver skill for UI work) and report their results.
+ - Revert any edit whose check fails.
 -- Keep the final summary concise (1-3 sentences).
 +- End with a short summary of what you removed and why.
 diff --git a/no-comments/SKILL.md b/no-comments/SKILL.md
-index c740c90..b63a53a 100644
+index ec4bedb..4bd1793 100644
 --- a/no-comments/SKILL.md
 +++ b/no-comments/SKILL.md
-@@ -21,7 +21,7 @@ Use the caller's files or diff. Otherwise use the current diff against the base
+@@ -23,7 +23,7 @@ Use the caller's files or diff. Otherwise use the current diff against the base
  
  ## Steps
  
@@ -37,34 +34,25 @@ index c740c90..b63a53a 100644
 +1. Spawn `Agent` with `subagent_type: "pstack:comment-sicko"`. In a skills-only install, which has no `pstack:*` types, spawn `general-purpose` and tell it to read `../poteto-mode/references/agents/comment-sicko.md` in full first. Pass the scope. Pick each subagent's reasoning level for the job, per the Subagents section of the **poteto-mode** skill. Do not restate its rules.
  
     Set `model` to the `no-comments reviewer` line in `pstack-models.md`, or to the default in [Models](#models) if the sheet or that line is missing. Leave `model` unset when the value is `auto` or `inherit-parent`. If the `Agent` tool rejects a slug, use the default and say so. If it rejects the default, use the closest valid slug of the same family from its error message.
- 2. Inspect its report and diff. Reject application-code edits, scope escapes, exception-protected deletions, misstated `MUST KILL` reasons, and flags that treat kept intentional code as guilty. Reshape flags on our-code surprises stay actionable. Do not restore those comments. A keep survives only with proof it is about something we cannot change. Audit missed scoped lint and TypeScript suppressions. Correctness or safety suppressions stay actionable `MUST KILL`s. Restore deletions only with exact exceptions and scoped proof. Before accepting thin `IMPORTANT` or `do not remove` kills or keeps, run `/how` or `/why` on their symbol. If a kill is ambiguous, do not restore. If a keep is refuted or still ambiguous, delete it. Revert and rerun one rejected report with the failure named. Reject a second, report it open, and fail `/no-comments` for that report's rejected findings, not for the run.
+ 2. Inspect its report and diff. Reject application-code edits, scope escapes, exception-protected deletions, misstated `MUST KILL` reasons, and flags that treat kept intentional code as guilty. Reshape flags on our-code surprises stay actionable. Do not restore those comments. A keep survives only with proof it is about something we cannot change. Audit missed scoped lint and TypeScript suppressions. Correctness or safety suppressions stay actionable `MUST KILL`s. Restore deletions only with exact exceptions and scoped proof. Before accepting thin `IMPORTANT` or `do not remove` kills or keeps, trace their symbol or run `/why` on it. If a kill is ambiguous, do not restore. If a keep is refuted or still ambiguous, delete it. Revert and rerun one rejected report with the failure named. Reject a second, report it open, and fail `/no-comments` for that report's rejected findings, not for the run.
 diff --git a/poteto-mode/SKILL.md b/poteto-mode/SKILL.md
-index 190855b..f67409b 100644
+index 317f61d..5a6d37a 100644
 --- a/poteto-mode/SKILL.md
 +++ b/poteto-mode/SKILL.md
-@@ -55,7 +55,7 @@ mandatory preflight reads.
- 
- **Just do it, locally.** Use any MCP tool. Reversible work on this machine proceeds without asking: write code, edit notes, run builds, tests, typechecks and linters, split tasks, spin up local sketches.
- 
--**Always pause** before anything that leaves the machine or cannot be undone: push, deploy, publish, send, any external write (team chat, ticket updates, customer messages), force-push to shared branches, data deletion, credentials or private data, and any expansion past the stated scope. Kicking off an eval that only runs locally is local work; one that posts or spends is not. This overrides the upstream "external actions proceed without asking" line, and it is the operator's own Autonomy & permissions rule.
-+**Always pause** before anything that leaves the machine or cannot be undone: push, deploy, publish, send, any external write (team chat, ticket updates, customer messages), force-push to shared branches, data deletion, credentials or private data, and any expansion past the stated scope. Kicking off an eval that only runs locally is local work; one that posts or spends is not. This is the operator's own Autonomy & permissions rule, and it wins over any pstack text that lets external actions proceed without asking.
- 
- **Session overrides do not cross that line.** "Run until done" authorizes continuing without check-ins; it does not authorize an external write that was not already sanctioned.
- 
-@@ -65,7 +65,7 @@ mandatory preflight reads.
+@@ -59,7 +59,7 @@ mandatory preflight reads.
  
  ## Subagents
  
--**Use `subagent_type: "pstack:poteto-agent"` for any subagent you spawn inside a playbook step** (code-writing delegates, ad-hoc helpers). Plugin agents register under the plugin namespace. The bare name `poteto-agent` errors. The chat that receives `/poteto-mode` runs the playbook. Never spawn a `poteto-agent` to run the playbook itself. Routed workflow skills (`how`, `why`, `interrogate`, `reflect`, `swarm`) set their own `subagent_type` for diverse-model review. Respect what the skill prescribes, don't override to `poteto-agent`.
-+**Use `subagent_type: "pstack:poteto-agent"` for any subagent you spawn inside a playbook step** (code-writing delegates, ad-hoc helpers). Plugin agents register under the plugin namespace. The bare name `poteto-agent` errors. A skills-only install has no `pstack:*` agent types: use `general-purpose` and tell the subagent to read this skill in full first. The chat that receives `/poteto-mode` runs the playbook. Never spawn a `poteto-agent` to run the playbook itself. Routed workflow skills (`how`, `why`, `interrogate`, `reflect`, `swarm`) set their own `subagent_type` for diverse-model review. Respect what the skill prescribes, don't override to `poteto-agent`.
+-**Use `subagent_type: "pstack:poteto-agent"` for any subagent you spawn directly inside a playbook step.** Plugin agents register under the plugin namespace. The bare name `poteto-agent` errors. The chat that receives `/poteto-mode` runs the playbook itself. Routed workflow skills (`interrogate`, `swarm`) set their own `subagent_type`. Respect it.
++**Use `subagent_type: "pstack:poteto-agent"` for any subagent you spawn directly inside a playbook step.** Plugin agents register under the plugin namespace. The bare name `poteto-agent` errors. A skills-only install has no `pstack:*` agent types: use `general-purpose` and tell the subagent to read this skill in full first. The chat that receives `/poteto-mode` runs the playbook itself. Routed workflow skills (`interrogate`, `swarm`) set their own `subagent_type`. Respect it.
  
- **Defaults for every `Agent` call.** `run_in_background: true` (a steer or resume of a running agent too, because a foreground call holds your turn while other reports wait), full tool access (do not pick a subagent_type that strips MCP), file pointers not inlined context, explicit model per role (configurable via `/setup-pstack`. Role defaults in [Models](#models), with "judgment and prose" covering prose and judgment). Code delegates tier by difficulty. The hardest changes (cross-cutting design, gnarly concurrency, subtle algorithms) go to your strongest-judgment model (default in [Models](#models)), whether the task needs judgment on vague intent or is a precisely specified sequence of steps to execute to the letter. Trivial mechanical edits go to your fast code model, the worker model. Every other code change uses its playbook's role line, and prose and judgment use the single-role default. Multi-model panels run the configured panel for diversity, with defaults enumerated in each panel skill's Models section (`arena`, `architect`, `interrogate`). Per-role `/setup-pstack` lines override these defaults and the model choices in the routed skills (`how`, `why`, `arena`, `swarm`, `architect`, `interrogate`, `reflect`). A role with no line keeps its default, and a role line of `inherit-parent` or `auto` runs that role on the parent session's model (omit `model` on the `Agent` call).
+ **Defaults for every `Agent` call.** `run_in_background: true`, full tool access (do not pick a subagent_type that strips MCP), file pointers not inlined context, and an explicit model per role, background workers included. `/setup-pstack` writes `pstack-models.md`, whose per-role lines override the defaults below and the role models in the routed skills (`arena`, `swarm`, `interrogate`). A role with no line keeps its default. A line of `inherit-parent` or `auto` runs the role on the parent model, so omit `model` on the `Agent` call. `poteto-agent` sets no model of its own, so it then runs on the parent model. Each code playbook reads its own line (`feature, refactoring`, `bug-fix`, `perf-issue`, or `hillclimb`), prose and judgment read `judgment and prose`, and trivial mechanical edits read `swarm workers`.
  
 diff --git a/recall/SKILL.md b/recall/SKILL.md
-index 91977a1..305d108 100644
+index 05294a7..b451d07 100644
 --- a/recall/SKILL.md
 +++ b/recall/SKILL.md
-@@ -29,9 +29,9 @@ Transcripts live at `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/<encoded-cwd>/
+@@ -33,9 +33,9 @@ Transcripts live at `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/<encoded-cwd>/
  
  Lead with the capsule, then the thread status, then the problems, then the next move. Deeper detail goes below or gets cut.
  
@@ -77,31 +65,18 @@ index 91977a1..305d108 100644
  
  An adjacent feature or ticket stays out unless it blocks this one. When the capsule and thread lines outgrow a screen, cut detail before you cut threads. Write the brief through the active writing preferences, cite chat findings by UUID and shared-record findings by their source (PR #, ticket ID, chat permalink, error-tracker issue), and sanitize private context before any public output.
 diff --git a/setup-pstack/SKILL.md b/setup-pstack/SKILL.md
-index adeafd3..350e751 100644
+index ee1a46a..7b6b8e4 100644
 --- a/setup-pstack/SKILL.md
 +++ b/setup-pstack/SKILL.md
-@@ -17,7 +17,7 @@ On another runtime, read [Other runtimes](#other-runtimes) below for where the s
+@@ -17,7 +17,7 @@ Write the current runtime's per-role model override sheet. Each pstack skill nam
  
- Write the current runtime's per-role model override sheet, using the path in [Other runtimes](#other-runtimes). Each pstack skill names a default model inline; the override sheet adapts those defaults to the models you actually have access to.
+ On any runtime other than Claude Code, read [Other runtimes](references/runtimes.md) first. Its table gives the sheet path, how the sheet loads, and how to list models, and your runtime's section says which steps change. The rest of this file describes Claude Code.
  
--Claude Code has no auto-applied "rules" mechanism like Cursor's `.mdc`. The Claude Code config directory is `$CLAUDE_CONFIG_DIR` when that variable is set and `~/.claude` otherwise. This skill calls it `<config>`. Inclusion is explicit: the user adds a line to `<config>/CLAUDE.md` (or their project `CLAUDE.md`) such as:
-+The Claude Code config directory is `$CLAUDE_CONFIG_DIR` when that variable is set and `~/.claude` otherwise. This skill calls it `<config>`. Inclusion is explicit: the user adds a line to `<config>/CLAUDE.md` (or their project `CLAUDE.md`) such as:
+-On Claude Code the config directory is `$CLAUDE_CONFIG_DIR` when that variable is set and `~/.claude` otherwise. This skill calls it `<config>`, and the user sheet is `<config>/pstack-models.md`. A project sheet, `.claude/pstack-models.md` at the repository root (`git rev-parse --show-toplevel`; outside a repository, the directory Claude Code starts in), is committed with the repository and replaces the user sheet in that project. The session hook reads it whenever it exists. The model rows defer to it through the line step 6 writes under its heading, so a hand-written project sheet needs that line too. Claude Code has no auto-applied "rules" mechanism like Cursor's `.mdc`, so inclusion is explicit: the user adds a line to `<config>/CLAUDE.md` such as:
++On Claude Code the config directory is `$CLAUDE_CONFIG_DIR` when that variable is set and `~/.claude` otherwise. This skill calls it `<config>`, and the user sheet is `<config>/pstack-models.md`. A project sheet, `.claude/pstack-models.md` at the repository root (`git rev-parse --show-toplevel`; outside a repository, the directory Claude Code starts in), is committed with the repository and replaces the user sheet in that project. The session hook reads it whenever it exists. The model rows defer to it through the line step 6 writes under its heading, so a hand-written project sheet needs that line too. Inclusion is explicit: the user adds a line to `<config>/CLAUDE.md` such as:
  
  ```text
  @<config>/pstack-models.md
-diff --git a/technical-writing/SKILL.md b/technical-writing/SKILL.md
-index 3e5f9d6..86749db 100644
---- a/technical-writing/SKILL.md
-+++ b/technical-writing/SKILL.md
-@@ -89,7 +89,7 @@ Don't mix modes: no reference tables inside a tutorial, no tutorial hand-holding
- 
- ## Voice and repo specifics
- 
--- Apply the active writing preferences to every doc this skill touches. That skill owns the slop-pattern catalog: AI vocabulary, filler, hedging, formatting tells.
-+- Apply the active writing preferences to every doc this skill touches. Those preferences own the slop-pattern catalog: AI vocabulary, filler, hedging, formatting tells.
- - PR descriptions and commit messages are writing too. Every layer except Diátaxis applies to them. A PR body is a briefing that a reviewer can read in under a minute. Do not paste swarm logs, SHA lists, or metric tables. Link them.
- - Product UI strings are not documentation. Use your product's copy guidelines for those.
- - Indent code snippets with tabs. Write real paths. Make every count or tree claim true at the commit that lands it, and include the command that regenerates it.
 diff --git a/thermo-nuclear-code-quality-review/SKILL.md b/thermo-nuclear-code-quality-review/SKILL.md
 index 63d72dd..331fce8 100644
 --- a/thermo-nuclear-code-quality-review/SKILL.md

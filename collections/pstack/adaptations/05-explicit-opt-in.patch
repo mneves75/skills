@@ -10,10 +10,10 @@ Fork source: https://github.com/mneves75/pstack-claude commits none (this reposi
 Applies to the port's plugins/pstack/skills tree after the patches numbered before it.
 
 diff --git a/automate-me/SKILL.md b/automate-me/SKILL.md
-index 274494b9dad87649717dc996b923f8bd1bde2f49..6ab2f923579b92e131779d542c24eaf4b47b5a80 100644
+index 8d832de..201d781 100644
 --- a/automate-me/SKILL.md
 +++ b/automate-me/SKILL.md
-@@ -31,6 +31,8 @@ Update mode changes the rest of the flow:
+@@ -33,6 +33,8 @@ Update mode changes the rest of the flow:
  
  ### 1. Mine their history
  
@@ -22,7 +22,7 @@ index 274494b9dad87649717dc996b923f8bd1bde2f49..6ab2f923579b92e131779d542c24eaf4
  Locate the active workspace's transcripts before fanning out. Claude Code stores them at `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/<encoded-cwd>/*.jsonl`. Run `node <plugin>/skills/reflect/scripts/claude-project-dir.mjs` to print this session's directory rather than building `<encoded-cwd>` by hand. Use only that path. Don't glob across `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/`. That crosses workspace boundaries and reads private chats from unrelated projects.
  
  Survey recent agent conversations within that scope for recurring patterns. Run multiple parallel subagents across slices of history (e.g. last 2-4 weeks, split into 3 slices so each has enough material). Pick each subagent's reasoning level for the job, per the Subagents section of the **poteto-mode** skill. Each slice mining subagent reads transcripts from the workspace-scoped path the parent provides, looks for the signals below, and returns a short structured list of patterns it saw with evidence pointers. Default signals worth hunting:
-@@ -85,7 +87,7 @@ Show the draft to the user and take feedback. Expect multiple iterations. Cut ru
+@@ -87,7 +89,7 @@ Show the draft to the user and take feedback. Expect multiple iterations. Cut ru
  
  ### 6. Land it
  
@@ -32,7 +32,7 @@ index 274494b9dad87649717dc996b923f8bd1bde2f49..6ab2f923579b92e131779d542c24eaf4
  ## Guardrails
  
 diff --git a/correct/SKILL.md b/correct/SKILL.md
-index 815d4f1b86696ee28a2b5961a21abdc125fed2b8..8ec4517b801afb06089ed86d575bef90de60b93e 100644
+index 815d4f1..8ec4517 100644
 --- a/correct/SKILL.md
 +++ b/correct/SKILL.md
 @@ -1,6 +1,6 @@
@@ -52,7 +52,7 @@ index 815d4f1b86696ee28a2b5961a21abdc125fed2b8..8ec4517b801afb06089ed86d575bef90
  
  **Reply:** each class with its evidence, the level you picked, and why a higher level didn't work.
 diff --git a/create-formal-verification-skill/SKILL.md b/create-formal-verification-skill/SKILL.md
-index 07f3885427c539e74128158ae435b9fe8cafe71d..d7ffdba3d2beb0e496907a296f328ef9d479c854 100644
+index 42afcd1..abf3c24 100644
 --- a/create-formal-verification-skill/SKILL.md
 +++ b/create-formal-verification-skill/SKILL.md
 @@ -1,6 +1,6 @@
@@ -64,7 +64,7 @@ index 07f3885427c539e74128158ae435b9fe8cafe71d..d7ffdba3d2beb0e496907a296f328ef9
  
  # Create a formal verification skill
 diff --git a/get-pr-comments/SKILL.md b/get-pr-comments/SKILL.md
-index 396aad5ff7cbe981124e9540ae786a120af77149..0b1cb77c022e90d2409d44526e9fbdb9ec80e843 100644
+index 396aad5..0b1cb77 100644
 --- a/get-pr-comments/SKILL.md
 +++ b/get-pr-comments/SKILL.md
 @@ -12,7 +12,7 @@ Need a concise, actionable summary of feedback on the active pull request.
@@ -77,7 +77,7 @@ index 396aad5ff7cbe981124e9540ae786a120af77149..0b1cb77c022e90d2409d44526e9fbdb9
  4. Return a concise action list.
  
 diff --git a/ketchup-video/SKILL.md b/ketchup-video/SKILL.md
-index 0da7c1eb0a317c5a92e25835c3aa4c635b35f872..396b0848a6f2d6ea9a8304703b74b7386901251f 100644
+index 0da7c1e..396b084 100644
 --- a/ketchup-video/SKILL.md
 +++ b/ketchup-video/SKILL.md
 @@ -1,6 +1,6 @@
@@ -89,7 +89,7 @@ index 0da7c1eb0a317c5a92e25835c3aa4c635b35f872..396b0848a6f2d6ea9a8304703b74b738
  
  # Ketchup video
 diff --git a/maintain-formal-verification-skill/SKILL.md b/maintain-formal-verification-skill/SKILL.md
-index 47decb766e084529e3ec30021ef32b0b808802b7..78c8615d3417a0d7c5be8b42b3b9ee8658f6691a 100644
+index d8a6261..9cf17f9 100644
 --- a/maintain-formal-verification-skill/SKILL.md
 +++ b/maintain-formal-verification-skill/SKILL.md
 @@ -1,6 +1,6 @@
@@ -101,7 +101,7 @@ index 47decb766e084529e3ec30021ef32b0b808802b7..78c8615d3417a0d7c5be8b42b3b9ee86
  
  # Maintain a formal verification skill
 diff --git a/poteto-mode/playbooks/worktree-cleanup.md b/poteto-mode/playbooks/worktree-cleanup.md
-index a37306fc2433bd0fb9bff65c24a9d02ce5adc57f..e01dba2b056f69d5554ba0c7a0e73bc43860879b 100644
+index e91d3fd..64c5d65 100644
 --- a/poteto-mode/playbooks/worktree-cleanup.md
 +++ b/poteto-mode/playbooks/worktree-cleanup.md
 @@ -1,5 +1,7 @@
@@ -113,7 +113,7 @@ index a37306fc2433bd0fb9bff65c24a9d02ce5adc57f..e01dba2b056f69d5554ba0c7a0e73bc4
  2. The bucket is advice, not permission. The pinned and active chats are the real artifact ([verification guidance](../references/engineering-verification.md)). Get that set from the user or your own session list and cross-check every candidate. The lever has marked `safe` a worktree the user had pinned, so the pinned set wins.
  3. Verify usage before deleting. For every `verify-recent-chat` row, or anything you doubt, fan subagents out to read the transcripts and report whether the chat is pinned or ongoing and which worktrees it touches ([coordination guidance](../references/engineering-coordination.md), transcripts are bulk). A pinned chat spawns arena and repro trees into sibling worktrees via background subagents, and those are in use even when their names never hit the session list. Pick each subagent's reasoning level for the job, per the Subagents section.
 diff --git a/recall/SKILL.md b/recall/SKILL.md
-index 70b34a5443a451d1de01f4898e57f5629ad97dc5..91977a12eecbf1c1a5401e1c606caa22004707a8 100644
+index 181f041..05294a7 100644
 --- a/recall/SKILL.md
 +++ b/recall/SKILL.md
 @@ -1,6 +1,6 @@
@@ -125,20 +125,20 @@ index 70b34a5443a451d1de01f4898e57f5629ad97dc5..91977a12eecbf1c1a5401e1c606caa22
  
  # Recall
 diff --git a/reflect/SKILL.md b/reflect/SKILL.md
-index 15c70fe2043e2126638e47f0314d5bb5a3823db0..aae0951f8d1341724c65872864e4c909f5f30300 100644
+index dcb12f2..6dc34a4 100644
 --- a/reflect/SKILL.md
 +++ b/reflect/SKILL.md
-@@ -72,7 +72,7 @@ Short list, no preamble:
+@@ -27,7 +27,7 @@ dir=$(node <plugin>/skills/reflect/scripts/claude-project-dir.mjs) && node <plug
  
- - Edits applied: `<skill path>`. What changed, one line each.
- - New skills created: `<skill path>`. One line each (rare).
--- Backlog filed to the devex tracker: `<issue title>` (`<tags>`). One line each.
-+- Backlog prepared for the devex tracker: `<issue title>` (`<tags>`), and whether it was filed with the user's authorization. One line each.
- - Dropped: one line per rejected finding + reason from the synthesizer.
+ It prints the first path whose opening typed prompt carries the fragment. Do not reimplement the scan by hand, because a transcript's first line is session metadata and files run to several megabytes. If the line exits 1, work from the conversation in your context and say that the transcript was not found.
  
- ## Models
+-Present Accepted (problem, proposal, skill), Rejected (reason) and Backlog, and wait for approval before editing any skill.
++Present Accepted (problem, proposal, skill), Rejected (reason) and Backlog, and wait for approval before editing any skill or filing any backlog item.
+ 
+ 
+ Never edit a skill under `plugins/cache/`. Before approval, show its destination, `.claude/skills/<skill>/` or `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/skills/<skill>/`. For a pstack skill, also say that the copy becomes a separate skill named `<skill>`, beside the plugin's own copy (`pstack:<skill>` on Claude Code). pstack's routing can keep invoking the plugin's copy, so the edit is certain to apply only when the copy is invoked by its own name. After approval, copy the skill folder there and edit the copy. Never open a PR or push.
 diff --git a/statechart/SKILL.md b/statechart/SKILL.md
-index 9b3e00ebab9a667679825335128a2f277b9ab1a3..46150386e595bed867cdbfec50c7bc527bb843b1 100644
+index 4cd2cf8..48254de 100644
 --- a/statechart/SKILL.md
 +++ b/statechart/SKILL.md
 @@ -1,6 +1,6 @@
@@ -151,7 +151,7 @@ index 9b3e00ebab9a667679825335128a2f277b9ab1a3..46150386e595bed867cdbfec50c7bc52
  # Statechart
 @@ -17,7 +17,7 @@ Work in a scratch folder outside the repo. Write a TLA+ spec and its config. The
  
- `scripts/statechart.ts` is TypeScript, so run it with a runtime that can execute TypeScript.
+ `scripts/statechart.ts` is TypeScript, so run it with a runtime that can execute TypeScript. `scripts/statechart` is a POSIX shell script that picks one. On native Windows, run `node --disable-warning=ExperimentalWarning <skill dir>/scripts/statechart.ts` with Node 22.18 to 22.x, or Node 23.6 or later.
  
 -The first run installs TLC and Java with mise and needs the network.
 +The runner installs nothing. TLC and Java must already be installed through mise, or `TLA2TOOLS` must name `tla2tools.jar` and `JAVA` a Java 11 or later binary. When they are missing the runner stops and names the `mise install` command; installing them downloads from the network, so run it only with the user's go-ahead.
@@ -159,10 +159,10 @@ index 9b3e00ebab9a667679825335128a2f277b9ab1a3..46150386e595bed867cdbfec50c7bc52
  ## Write the spec
  
 diff --git a/statechart/scripts/run.ts b/statechart/scripts/run.ts
-index f636a7dcd4ccee8951c078cb5357003bd983b007..e9cce737e62cf38b324f71055c837382ee2a8fc1 100644
+index c8eb3d6..7e012e4 100644
 --- a/statechart/scripts/run.ts
 +++ b/statechart/scripts/run.ts
-@@ -242,15 +242,12 @@ async function findTlc(cwd: string) {
+@@ -235,15 +235,12 @@ async function findTlc(cwd: string) {
      runChild("mise", args, { cwd, env: childEnv({ MISE_CEILING_PATHS: cwd }) });
    const where = () =>
      Promise.all([mise("where", TLC_TOOL), mise("which", "java", "--tool", JAVA_TOOL)]);
@@ -185,7 +185,7 @@ index f636a7dcd4ccee8951c078cb5357003bd983b007..e9cce737e62cf38b324f71055c837382
      jar: path.join(found[0].stdout.trim(), "tla2tools.jar"),
      java: JAVA || found[1].stdout.trim(),
 diff --git a/thermo-nuclear-code-quality-review/SKILL.md b/thermo-nuclear-code-quality-review/SKILL.md
-index 4d9176be4ac90728c24eb9b29125f45d8d8aecd1..63d72dde88661f22756cbc4e5731922d5ad1c999 100644
+index 4d9176b..63d72dd 100644
 --- a/thermo-nuclear-code-quality-review/SKILL.md
 +++ b/thermo-nuclear-code-quality-review/SKILL.md
 @@ -1,6 +1,6 @@
@@ -197,7 +197,7 @@ index 4d9176be4ac90728c24eb9b29125f45d8d8aecd1..63d72dde88661f22756cbc4e5731922d
  
  # Thermo-Nuclear Code Quality Review
 diff --git a/thermo-nuclear-review/SKILL.md b/thermo-nuclear-review/SKILL.md
-index dedf2a22a889878cdd5fdd6638cd8bcf53697f41..9f1a114c3aae0c18299497126e33739e92531c2e 100644
+index dedf2a2..9f1a114 100644
 --- a/thermo-nuclear-review/SKILL.md
 +++ b/thermo-nuclear-review/SKILL.md
 @@ -1,6 +1,6 @@
@@ -209,7 +209,7 @@ index dedf2a22a889878cdd5fdd6638cd8bcf53697f41..9f1a114c3aae0c18299497126e33739e
  
  # Thermo Nuclear Review
 diff --git a/thermos/SKILL.md b/thermos/SKILL.md
-index 56952909ac014852e1098c4e193527ffc8e2c51b..6ced422773c73482391ace1dd39542d2322e7446 100644
+index 6d63f19..37fb58e 100644
 --- a/thermos/SKILL.md
 +++ b/thermos/SKILL.md
 @@ -1,6 +1,6 @@

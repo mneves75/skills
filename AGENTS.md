@@ -26,7 +26,6 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── imagegen-frontend-mobile/   # Mobile screen/flow image generation (MIT)
 │   ├── mneves-agent-readiness/    # Codebase readiness assessment (pairs with tools/)
 │   ├── mneves-chatgpt-search/     # ChatGPT discovery, crawler access, citations and referral attribution
-│   ├── mneves-eli5/               # Feynman explainer, audience-calibrated
 │   ├── mneves-expert-review/      # Expert-panel review/optimization pass
 │   ├── mneves-handoff/            # Discussion-first handoff prompt for another agent (MIT, adapted)
 │   ├── mneves-render/             # Project-local Markdown -> HTML, editable DOCX and PDF
@@ -34,12 +33,10 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── mneves-production-readiness/ # Deploy gate: readiness ledger, verdict per target, fix plan (+ references/)
 │   ├── mneves-security/           # Security/privacy audit, pre-deploy gate, safe fixes and evidence (+ references/)
 │   ├── mneves-fable-orchestrator/ # Model routing; Codex reference + tools/codex-lane (+ its test)
-│   ├── mneves-superaudit/         # Bounded audit-and-ship pass (+ references/)
-│   ├── mneves-ship-deploy/         # Deploy, prove live, then tag (+ references/, contract check, reference release scripts)
-│   ├── mneves-socratic-tutor/     # Socratic tutoring to mastery on any topic (MIT, adapted)
+│   ├── mneves-ship-deploy/        # Deploy, prove live, then tag (+ references/, contract check, reference release scripts)
 │   ├── mneves-teach-back-srs/     # Spaced-repetition teach-back (+ scripts/srs_db.py)
 │   └── mneves-verify/             # Independent verification before done/fixed/shipped
-├── collections/pstack/       # 42 vendored pstack skills (MIT); sources.json + adaptations/ -> tools/scripts/sync-pstack.sh
+├── collections/pstack/       # 43 vendored pstack skills (MIT); sources.json + adaptations/ -> tools/scripts/sync-pstack.sh
 ├── tools/                    # Readiness assessor (Bun + TypeScript): readiness-check.ts + lib/
 │   ├── routing-eval/         # cases.json: frozen routing-eval cases and the anchors that decide them
 │   └── scripts/              # init.sh (setup), deploy.sh (gated merge -> CI/Pages -> served bytes -> tag), site build, sync, checks; each with its test
@@ -107,7 +104,7 @@ bash tools/scripts/statechart-runner.test   # adapted statechart runner with fak
 - Directory name == frontmatter `name:`. Original skills carry the `mneves-` prefix;
   adapted third-party skills retain their upstream name, copyright, license, and provenance,
   except that an upstream name colliding with another widely installed skill, or one the owner
-  chooses to prefix (`mneves-socratic-tutor`), takes the `mneves-` prefix, and the provenance
+  chooses to prefix (for example `mneves-handoff`), takes the `mneves-` prefix, and the provenance
   records the upstream name.
   `description:` is one short capability-and-trigger line; keyword inventories and
   procedures belong in the body or a routed reference.

@@ -7,7 +7,7 @@ Fork source: https://github.com/mneves75/pstack-claude commits d13480d.
 Applies to the port's plugins/pstack/skills tree after the patches numbered before it.
 
 diff --git a/tdd/SKILL.md b/tdd/SKILL.md
-index 67d91899a44c094d999eda716fa9877de245e109..b285cd94e161fe72492f18611eab02a9b40b11cc 100644
+index 67d9189..b285cd9 100644
 --- a/tdd/SKILL.md
 +++ b/tdd/SKILL.md
 @@ -1,22 +1,22 @@

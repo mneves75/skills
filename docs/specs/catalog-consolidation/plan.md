@@ -1,8 +1,8 @@
 # Catalog Consolidation, Deduplication & Routing-Hygiene Plan
 
-- **Baseline commit:** `633a2b32f8de02ae0540e3ec160ae98e64c48e46` (`v1.52.0`)
-- **Working branch:** `feat/catalog-consolidation-phase1`
-- **Status:** Phase 1 executed on branch; Phases 2–3 gated on measured eval data and owner decisions
+- **Baseline commit:** `633a2b32f8de02ae0540e3ec160ae98e64c48e46` (`v1.52.0`; rebased onto `v1.52.2` `852261b`)
+- **Working branch:** `feat/v2-consolidation`
+- **Status:** Phases 1–3 executed on `feat/v2-consolidation` (`v2.0.0` PR candidate; production merge remains gated on live 2-consumer `routing-eval.py` + `mneves-security` & `mneves-production-readiness` deploy gates)
 - **Adversarial reviews completed:** `claude-fable-5-2` (high) and `gpt-6.2-sol` (high), independent fresh contexts
 
 ---
@@ -162,15 +162,14 @@ Both `claude-fable-5-2` (high) and `gpt-6.2-sol` (high) reviewed our 6 initial c
    - `Claude Opus 5.5 medium`: **10/12 PASS**, `0` forbidden confusions (`hard-babysit-collision -> babysit-pr` PASS; tightened `full-stop` description passed both positive and negative tests!). The 2 misses exposed genuine `pstack` over-triggering traps when all 67 skills compete: `pstack/typescript-best-practices` fired on a trivial `.tsx` button label rename, and `pstack/how` fired on a plain-English order-states question.
    - `Codex`: skipped (`exit 75`, internal disk `14 GB < AGENT_MIN_FREE_GB=15`).
 
-### Phase 3 — Breaking `v2.0.0` Retirements (Requires Explicit Owner Approval Before `git rm`)
-Based strictly on Phase 2's blinded zero-skill A/B data (NOT intuition):
-1. **Recommended retirements (negative lift, zero executable tooling):**
-   - `mneves-superaudit` (`delta = -2`, decisive loss to zero-skill)
-   - `mneves-socratic-tutor` (`delta = -2`, decisive loss to zero-skill — or rewrite to remove turn-1 rigidity if you prefer keeping it)
-   - `mneves-eli5` (`delta = -1`, base model already scores 5/5)
-2. **Recommended keeps (proven positive lift or executable state):**
-   - `leaving-pr-comments` (`delta = +2`, decisive win)
-   - `mneves-expert-review` (`delta = +1`, win)
-   - `mneves-teach-back-srs` (unique SQLite SM-2 engine; tool-less fallback fixed in Phase 2)
-   - Both `mneves-security` (137L slimmed) and `security-audit` (read-only Cloudflare harness)
-3. Update `CHANGELOG.md`, `docs/skill-ledger.md`, `README.md`, `HOWTO.md`, `AGENTS.md`, `docs/skill-routing.md`, bump `VERSION` to `2.0.0`, rebuild `site/`, and sync `~/.agents` only after explicit owner sign-off on the exact retirement list.
+### Phase 3 — Breaking `v2.0.0` Retirements, Heavy-Skill Slimming & `pstack` Refresh (Executed on `feat/v2-consolidation`, 2026-11-24)
+Owner approved (`2026-11-24`) executing the breaking `v2.0.0` retirements, DeepSeek disablement, heavy-skill slimming, V3 hardening, and upstream `pstack` refresh together on `feat/v2-consolidation`:
+1. **Retired (negative zero-skill lift, zero executables):**
+   - `mneves-superaudit` (`delta = -2`), `mneves-socratic-tutor` (`delta = -2`), `mneves-eli5` (`delta = -1`). Root `skills/` drops from `25` → `22`.
+2. **Retained & upgraded:**
+   - `leaving-pr-comments`, `mneves-expert-review` (+ verified primary citation checks), `mneves-teach-back-srs`, `mneves-security` (137L), `security-audit`.
+   - Slimmed heavy `SKILL.md` bodies via 1-level-deep `references/`: `mneves-ship-deploy` (`references/phases.md`), `council` (`references/invocations-and-prompts.md`), `untangle-codebase` (`references/checklists.md`), `babysit-pr` (`references/pr-wait-and-limits.md`).
+   - Folded Hardening Protocol V3 & upstream `pstack` discipline into `mneves-verify`, `mneves-ship-deploy`, `mneves-production-readiness`, and `mneves-fable-orchestrator` (plus DeepSeek disabled across the entire repository).
+3. **Refreshed `collections/pstack` (`42 → 43` skills):**
+   - Updated `sources.json` to `pstack-claude@66181d3` (`0.9.153`) and `cursor/plugins@0b46ec3` (pstack `0.15.46`), excluded `poteto-mode/references/dsh-tools.md`, rebased adaptations `01`–`11`, and added `12-upstream-reframe-and-hygiene.patch` (importing explicit-only `/reframe` from `cursor/plugins@9e278fe`, tightening `typescript-best-practices` and `how` descriptions to fix the Phase 2 cross-catalog false-fire bugs, and aligning `poteto-mode/worker.md` with local-only autonomy).
+4. **Updated docs, profiles, evals, `VERSION` (`2.0.0`), `CHANGELOG.md`, and rebuilt `site/`.** Production merge via `tools/scripts/deploy.sh` stays gated on live 2-consumer `routing-eval.py run` (Claude + Codex) plus exact-candidate `mneves-security` and `mneves-production-readiness` deploy gates.
