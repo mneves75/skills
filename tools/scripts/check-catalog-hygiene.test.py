@@ -136,11 +136,12 @@ class CatalogHygieneTest(unittest.TestCase):
             self.assertEqual(missing["total_skill_lines"], 0)
 
             make_fixture(root)
-            # Unlinked file under references/ fails — even if an unused link definition is mentioned in inline code
+            # Unlinked file under references/ fails — even after an escaped backtick and inline code span
             (root / "skills" / "alpha" / "references" / "orphan.md").write_text("# Orphan\n", encoding="utf-8")
             (root / "skills" / "alpha" / "SKILL.md").write_text(
                 "---\nname: alpha\ndescription: Run alpha checks on local source files.\n---\n"
-                "See [guide](references/guide.md) and literal `[unused]` code.\n\n[unused]: references/orphan.md\n",
+                "See [guide](references/guide.md), an escaped \\` backtick, and literal `[unused]` code.\n\n"
+                "[unused]: references/orphan.md\n",
                 encoding="utf-8",
             )
             res_orphan = MOD.check_repo(root)

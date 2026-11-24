@@ -42,9 +42,40 @@ INLINE_LINK_RE = re.compile(r"!?\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 REF_DEF_RE = re.compile(r"^\s*\[([^\]]+)\]:\s*(\S+)(?:\s+.*)?$", re.MULTILINE)
 REF_USE_FULL_RE = re.compile(r"!?\[[^\]]*\]\[([^\]]*)\]")
 REF_USE_SHORT_RE = re.compile(r"!?\[([^\]]+)\](?![(\[:])")
-INLINE_CODE_RE = re.compile(r"(`+)[\s\S]*?\1")
 SCHEME_RE = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
+
+
+def _strip_inline_code(text: str) -> str:
+    """Remove CommonMark inline code spans while respecting backslash-escaped backticks."""
+    out: list[str] = []
+    i, n = 0, len(text)
+    while i < n:
+        ch = text[i]
+        if ch == "\\" and i + 1 < n and text[i + 1] == "`":
+            out.append(text[i : i + 2])
+            i += 2
+            continue
+        if ch == "`":
+            j = i
+            while j < n and text[j] == "`":
+                j += 1
+            ticks = text[i:j]
+            close = text.find(ticks, j)
+            while close != -1 and (
+                (close > 0 and text[close - 1] == "`")
+                or (close + len(ticks) < n and text[close + len(ticks)] == "`")
+            ):
+                close = text.find(ticks, close + 1)
+            if close != -1:
+                i = close + len(ticks)
+                continue
+            out.append(ticks)
+            i = j
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
 
 
 def strip_fenced_code(text: str) -> str:
@@ -100,7 +131,7 @@ def extract_relative_links(text: str, *, cited_only: bool = False) -> list[str]:
     if not cited_only:
         return links + [target for _, target in defs]
 
-    body_without_defs = INLINE_CODE_RE.sub("", REF_DEF_RE.sub("", clean))
+    body_without_defs = _strip_inline_code(REF_DEF_RE.sub("", clean))
     cited = _cited_ref_labels(body_without_defs)
     return links + [target for label, target in defs if label in cited]
 
