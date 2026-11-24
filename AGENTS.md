@@ -28,6 +28,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── mneves-chatgpt-search/     # ChatGPT discovery, crawler access, citations and referral attribution
 │   ├── mneves-expert-review/      # Expert-panel review/optimization pass
 │   ├── mneves-handoff/            # Discussion-first handoff prompt for another agent (MIT, adapted)
+│   ├── mneves-mode/               # Explicit workflow router (/mneves-mode) to sibling skills + playbooks
 │   ├── mneves-render/             # Project-local Markdown -> HTML, editable DOCX and PDF
 │   ├── mneves-motion-film/        # Product film from a brief: facts, music, Remotion, checks (+ scripts/, tests/)
 │   ├── mneves-production-readiness/ # Deploy gate: readiness ledger, verdict per target, fix plan (+ references/)
@@ -73,8 +74,8 @@ python3 tools/scripts/routing-eval.py check   # routing-eval cases well formed, 
 python3 tools/scripts/routing-eval.test.py    # routing-eval checks, grader and `run` against fake claude/codex (no quota)
 python3 tools/scripts/check-catalog-hygiene.py   # root-skill doc/routing coverage, link integrity, ref depth, char/line budgets
 python3 tools/scripts/check-catalog-hygiene.test.py  # planted-violation controls for the catalog hygiene guard
-python3 tools/scripts/catalog-eval.py check   # 24-case routing confusion-matrix cases valid against skills/ (no model call)
-python3 tools/scripts/catalog-eval.py check --include-pstack --cases tools/catalog-eval/cases-hard.json  # 13-case 65-skill hard routing check
+python3 tools/scripts/catalog-eval.py check   # 25-case routing confusion-matrix cases valid against skills/ (no model call)
+python3 tools/scripts/catalog-eval.py check --include-pstack --cases tools/catalog-eval/cases-hard.json  # 13-case 66-skill hard routing check
 python3 tools/scripts/catalog-eval.test.py    # catalog-eval checks and `run` against fake claude/codex (no quota)
 python3 tools/scripts/baseline-delta-eval.py check  # 6-case blinded zero-skill baseline-delta cases valid (no model call)
 python3 tools/scripts/baseline-delta-eval.test.py   # baseline-delta unblinding tests against fake CLIs (no quota)

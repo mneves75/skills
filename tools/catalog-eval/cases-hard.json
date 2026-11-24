@@ -1,6 +1,6 @@
 {
   "schema": "catalog-eval-1",
-  "description": "13 harder ambiguous, trigger-free, and 65-skill cross-collection routing stress tests (run with --include-pstack).",
+  "description": "13 harder ambiguous, trigger-free, and 66-skill cross-collection routing stress tests (run with --include-pstack).",
   "cases": [
     {
       "id": "hard-babysit-collision",

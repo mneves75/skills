@@ -10,8 +10,9 @@
   },
   "profiles": {
     "core-dev": {
-      "description": "Essential coding, review, verification, refactoring, orchestration, and handoff skills.",
+      "description": "Essential coding, review, verification, refactoring, orchestration, handoff, and explicit workflow-router skills.",
       "include": [
+        "skills/mneves-mode",
         "skills/autoreview",
         "skills/mneves-verify",
         "skills/untangle-codebase",
@@ -41,7 +42,7 @@
       ]
     },
     "root-all": {
-      "description": "All 22 first-party and adapted skills from skills/.",
+      "description": "All 23 first-party and adapted skills from skills/.",
       "globs": ["skills/*"]
     },
     "pstack-compatible": {

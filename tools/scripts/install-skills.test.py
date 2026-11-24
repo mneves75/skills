@@ -22,8 +22,8 @@ class InstallSkillsTest(unittest.TestCase):
         )
         self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
         rows = {r["profile"]: r for r in json.loads(p.stdout)}
-        self.assertEqual(rows["root-all"]["skills"], 22)
-        self.assertEqual(rows["full-deduped"]["skills"], 64)
+        self.assertEqual(rows["root-all"]["skills"], 23)
+        self.assertEqual(rows["full-deduped"]["skills"], 65)
         self.assertEqual(rows["full-deduped"]["skipped"], 1)
 
     def test_pstack_compatible_skips_babysit_only_when_babysit_pr_present(self) -> None:

@@ -14,17 +14,18 @@ measure whether a *target* codebase is ready for agents.
 
 ## Where things stand
 
-- **2.0.0 candidate**: semver-major catalog consolidation, DeepSeek disablement, heavy-skill slimming,
-  Hardening Protocol V3 integration, and `collections/pstack` upstream refresh (`pstack 0.15.46` +
-  `/reframe` from `0.15.48`, `pstack-claude 0.9.153`, 43 skills). Retires negative-lift root skills
-  (`mneves-superaudit`, `mneves-socratic-tutor`, `mneves-eli5`: `25 → 22` root skills), slims
-  `mneves-security`, `mneves-ship-deploy`, `council`, `untangle-codebase`, and `babysit-pr` behind
-  one-level-deep `references/`, disables DeepSeek across root skills and `collections/pstack`
-  (removing the economy fallback row and `dsh-tools.md`), adds CI catalog-hygiene guard
-  (`check-catalog-hygiene.py`), confusion-matrix eval (`catalog-eval.py`), zero-skill baseline-delta
-  eval (`baseline-delta-eval.py`), and curated install profiles (`install-skills.py`), and updates
-  routing-eval to revision 13 (36 cases, 94 anchors). Binding results live in the private
-  exact-candidate gate records and the `v2.0.0` tag message.
+- **2.0.0 candidate**: semver-major catalog consolidation, explicit `/mneves-mode` workflow router,
+  DeepSeek disablement, heavy-skill slimming, Hardening Protocol V3 integration, and
+  `collections/pstack` upstream refresh (`pstack 0.15.46` + `/reframe` from `0.15.48`,
+  `pstack-claude 0.9.153`, 43 skills). Retires negative-lift root skills (`mneves-superaudit`,
+  `mneves-socratic-tutor`, `mneves-eli5`) and adds explicit-only `mneves-mode` (`25 → 23` root
+  skills), slims `mneves-security`, `mneves-ship-deploy`, `council`, `untangle-codebase`, and
+  `babysit-pr` behind one-level-deep `references/`, disables DeepSeek across root skills and
+  `collections/pstack` (removing the economy fallback row and `dsh-tools.md`), adds CI
+  catalog-hygiene guard (`check-catalog-hygiene.py`), confusion-matrix eval (`catalog-eval.py`),
+  zero-skill baseline-delta eval (`baseline-delta-eval.py`), and curated install profiles
+  (`install-skills.py`), and updates routing-eval to revision 13 (36 cases, 96 anchors). Binding
+  results live in the private exact-candidate gate records and the `v2.0.0` tag message.
 - **1.52.2** (2026-11-21 UTC closeout): merged as `852261b` (PR #72, tagged `v1.52.2`); the landing
   page's changelog rows wrap long words so the page no longer scrolls sideways at 390px, and folds
   in the 1.52.1 ledger bookkeeping and spec results.

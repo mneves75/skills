@@ -11,7 +11,7 @@
       "id": "agentskills-validate",
       "command": "for d in skills/*/ collections/pstack/skills/*/; do .scratch/skills-ref/bin/agentskills validate \"$d\"; done",
       "status": "pass",
-      "evidence": "65/65 skills validated (22 root + 43 pstack)"
+      "evidence": "66/66 skills validated (23 root + 43 pstack)"
     },
     {
       "id": "check-defaults-block",
@@ -23,7 +23,7 @@
       "id": "check-catalog-hygiene",
       "command": "python3 tools/scripts/check-catalog-hygiene.py && python3 tools/scripts/check-catalog-hygiene.test.py",
       "status": "pass",
-      "evidence": "22 root skills, 3292 desc chars, 2428 lines, 0 warnings, 0 errors; 8/8 tests pass"
+      "evidence": "23 root skills, 3479 desc chars, 2532 lines, 0 warnings, 0 errors; 8/8 tests pass"
     },
     {
       "id": "routing-eval-check",
@@ -35,7 +35,7 @@
       "id": "catalog-eval-check-and-codex-live",
       "command": "python3 tools/scripts/catalog-eval.py check && python3 tools/scripts/catalog-eval.py check --include-pstack --cases tools/catalog-eval/cases-hard.json && python3 tools/scripts/catalog-eval.test.py && catalog-eval.py run --providers codex",
       "status": "pass",
-      "evidence": "24 root + 13 hard 65-skill valid; 2/2 unit tests pass; live Codex gpt-6.2-sol high 24/24 + 13/13 PASS (0 fails, 0 forbidden, 0 errors)"
+      "evidence": "25 root + 13 hard 66-skill valid; 2/2 unit tests pass; live Codex gpt-6.2-sol high 25/25 + 13/13 PASS (0 fails, 0 forbidden, 0 errors)"
     },
     {
       "id": "baseline-delta-eval-check",
@@ -47,7 +47,7 @@
       "id": "install-skills-test",
       "command": "python3 tools/scripts/install-skills.test.py",
       "status": "pass",
-      "evidence": "3/3 tests pass (root-all=22, pstack-compatible=43, full-deduped=64, skipped=1, dangling-symlink & missing-include guards)"
+      "evidence": "3/3 tests pass (root-all=23, pstack-compatible=43, full-deduped=65, skipped=1, dangling-symlink & missing-include guards)"
     },
     {
       "id": "pstack-sync-statechart-watch-pr",

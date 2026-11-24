@@ -1,6 +1,6 @@
 {
   "schema": "catalog-eval-1",
-  "description": "Frozen 24-case routing confusion-matrix benchmark over live skills/*/SKILL.md metadata (names + descriptions only).",
+  "description": "Frozen 25-case routing confusion-matrix benchmark over live skills/*/SKILL.md metadata (names + descriptions only).",
   "cases": [
     {
       "id": "sec-pre-deploy-gate",
@@ -183,16 +183,24 @@
       "cluster": "negative-control",
       "prompt": "Fix the spelling mistake 'recieve' -> 'receive' on line 14 of docs/faq.md.",
       "expected": ["none"],
-      "forbidden": ["autoreview", "untangle-codebase", "mneves-verify"],
-      "notes": "Ordinary typo fix needs no specialist skill."
+      "forbidden": ["autoreview", "untangle-codebase", "mneves-verify", "mneves-mode"],
+      "notes": "Ordinary typo fix needs no specialist skill and must not implicitly invoke mneves-mode."
     },
     {
       "id": "explicit-full-stop",
       "cluster": "negative-control",
       "prompt": "Run full-stop on this task: add pagination to /api/users, verify tests, and open a ready PR unattended.",
       "expected": ["full-stop"],
-      "forbidden": ["none", "babysit-pr"],
+      "forbidden": ["none", "babysit-pr", "mneves-mode"],
       "notes": "Explicitly invoking full-stop by name selects full-stop."
+    },
+    {
+      "id": "explicit-mneves-mode",
+      "cluster": "explicit-invocation",
+      "prompt": "/mneves-mode add rate limiting to POST /api/login, review the diff, and verify it before opening a PR.",
+      "expected": ["mneves-mode"],
+      "forbidden": ["none", "autoreview", "mneves-verify"],
+      "notes": "Explicit /mneves-mode invocation selects the mneves-mode workflow router."
     }
   ]
 }

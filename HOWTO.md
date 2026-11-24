@@ -49,6 +49,7 @@ collection does not automatically change those instructions in other projects.
 | [`babysit-pr`](#babysit-pr) | monitor a pull request through review and CI | "babysit this PR" |
 | [`leaving-pr-comments`](#leaving-pr-comments) | format and attribute GitHub comments an agent posts for you | "leave a review comment on this PR" |
 | [`mneves-handoff`](#mneves-handoff) | hand a task to another agent, review first | "handoff the flaky login test" |
+| [`mneves-mode`](#mneves-mode) | run an explicit workflow mode that picks a playbook and redirects each phase to sibling skills | "/mneves-mode add rate limiting to /api/login" |
 | [`mneves-render`](#mneves-render) | build repeatable HTML, Word and PDF exports from Markdown | "write a renderer for my Markdown reports" |
 | [`mneves-motion-film`](#mneves-motion-film) | make or update a short product film from a brief | "make a launch video for this product" |
 | [`mneves-security`](#mneves-security) | hunt vulnerabilities, audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy | "audit security and privacy; fix confirmed local issues; do not deploy" |
@@ -1078,6 +1079,28 @@ an OpenAI crawl; a `chatgpt.com` UTM counts attributed clicks rather than all ci
 `ChatGPT-User` is for user-initiated visits. `llms.txt` is optional documentation, not a
 documented ranking requirement. Valid schema does not guarantee citations. Live security
 writes and deployments retain the host's authorization rules.
+
+---
+
+## mneves-mode
+
+**What it does.** An explicit-only workflow router modeled on `poteto-mode`. When invoked by name
+(`/mneves-mode`, `$mneves-mode`, or "use mneves mode"), it frames the goal and risk tier, selects
+the matching playbook from `references/playbooks.md` (feature/bug fix, scoped refactor, decision,
+PR lifecycle, release/deploy, or audit/verification), and redirects each phase to whichever
+sibling skill is installed — falling back cleanly on single-skill installs and closing mandatory
+gates when independent reviewers or release gates are unavailable. Every standalone skill remains
+directly discoverable on its own.
+
+**When to use it.** You want one entrypoint to drive a multi-phase task through your engineering
+workflow without manually naming each specialist at every phase boundary. It never auto-triggers
+on ordinary requests and grants no deployment, merge, or destructive permissions.
+
+**Illustrative request:**
+
+```text
+/mneves-mode add rate limiting to POST /api/login, review the diff adversarially, and verify it before opening a PR.
+```
 
 ---
 

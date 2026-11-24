@@ -8,17 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [2.0.0] - 2026-11-24
 
 ### Breaking Changes
-- **Catalog consolidation (`skills/` 25 → 22):** retired `mneves-superaudit`, `mneves-socratic-tutor`,
-  and `mneves-eli5` after blinded zero-skill baseline-delta evaluations showed negative lift (`-2`,
-  `-2`, and `-1`) with zero shipped executables. Migration: use `untangle-codebase` / `autoreview` /
-  `mneves-agent-readiness` / `mneves-verify` for scoped cleanup and audits, `mneves-teach-back-srs`
-  for codebase teach-back with SQLite SM-2 scheduling, and direct prompts for audience-calibrated
-  explanations.
+- **Catalog consolidation (`skills/` 25 → 23: 3 retired, 1 added):** retired `mneves-superaudit`,
+  `mneves-socratic-tutor`, and `mneves-eli5` after blinded zero-skill baseline-delta evaluations
+  showed negative lift (`-2`, `-2`, and `-1`) with zero shipped executables. Migration: use
+  `untangle-codebase` / `autoreview` / `mneves-agent-readiness` / `mneves-verify` for scoped
+  cleanup and audits, `mneves-teach-back-srs` for codebase teach-back with SQLite SM-2 scheduling,
+  and direct prompts for audience-calibrated explanations.
 
 ### Added
+- **Explicit workflow router (`skills/mneves-mode`):** added `/mneves-mode` (explicit invocation
+  only), modeled on `poteto-mode`, with six phase playbooks in `references/playbooks.md` that
+  redirect each phase to installed sibling skills with standalone single-skill fallbacks while
+  keeping every standalone skill directly discoverable.
 - **Catalog hygiene, routing benchmarks, and curated install profiles:** added shared stdlib
   `tools/scripts/frontmatter.py`, `tools/scripts/check-catalog-hygiene.py`,
-  `tools/scripts/catalog-eval.py` (24-case root + 13-case cross-collection stress suite),
+  `tools/scripts/catalog-eval.py` (25-case root + 13-case cross-collection stress suite),
   `tools/scripts/baseline-delta-eval.py`, `tools/install-profiles.json`, and
   `tools/scripts/install-skills.py` (including automatic `pstack/babysit` deduplication when
   a usable `babysit-pr` is present) with offline unit tests wired into CI.
