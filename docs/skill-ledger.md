@@ -82,9 +82,9 @@ Retired in `v2.0.0` with explicit owner approval (`2026-11-24`, waiving a separa
 | `make-pr-easy-to-review` | retained | none | Unchanged. |
 | `no-comments` | retained | 01, 02, 07 | Uses the shipped `comment-sicko` brief. |
 | `poteto-help` | retained | 02 | Recipes point at the engineering references. |
-| `poteto-mode` | changed | 01, 02, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14 | Local-only autonomy with stops before external writes (including `worker.md` in `12`); finite repair bound in Babysit; four engineering references; Codex substitutes exempt from Opus-medium (`08`) plus Agy fallback (`11`); DeepSeek Harness (`dsh-tools.md`) excluded (`12`); REST watcher check-run app-identity deduplication fix (`13`); explicit-trigger description, Codex `allow_implicit_invocation: false` and an operator-mode boundary (`14`). |
+| `poteto-mode` | changed | 01, 02, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15 | Local-only autonomy with stops before external writes (including `worker.md` in `12`); finite repair bound in Babysit; four engineering references; Codex substitutes exempt from Opus-medium (`08`) plus Agy fallback (`11`); DeepSeek Harness (`dsh-tools.md`) excluded (`12`); REST watcher check-run app-identity deduplication fix (`13`); explicit-trigger description, Codex `allow_implicit_invocation: false` and an operator-mode boundary (`14`); a route to a bundled skill missing from a trimmed install is skipped and named, never improvised (`15`). |
 | `recall` | changed | 02, 05, 09 | Reads chat history only on request. |
-| `reflect` | changed | 05 | 2.0.0: upstream simplified to one file with no subagents/Models; `05` keeps backlog filing gated on user approval. |
+| `reflect` | changed | 05, 15 | 2.0.0: upstream simplified to one file with no subagents/Models; `05` keeps backlog filing gated on user approval; `15` finds its scripts in the skill's own folder, not a plugin root. |
 | `setup-pstack` | retained | 01, 02, 07 | Model sheet setup. |
 | `show-me-your-work` | retained | 02 | Links repaired. |
 | `swarm` | retained | 01, 07 | Model routing. |

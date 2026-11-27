@@ -21,6 +21,8 @@ Use the playbook that matches the requested outcome. Apply its relevant steps;
 do not expand an ordinary change into an architecture panel, a comment-removal
 pass, or a separate review workflow unless the task or demonstrated risk calls
 for it. Existing authorization and the user's output format take precedence.
+A route below names a bundled skill; when `../<name>/SKILL.md` is absent from this
+install, skip that route, say which skill was missing, and do not improvise it.
 
 - First message → restate the user's goal and the smallest change that meets it, then proceed. Open each subagent brief, PR `## Why`, and final report with the goal.
 - Starting any agent, whether an `Agent` subagent or a background worker → the first line of its kickoff is `Read <path>/worker.md before anything else.`, with `<path>` the absolute path of this skill's folder. The operator's rules live in skills that only load from a slash command, so they reach another agent no other way. Keep the rest of the kickoff to the goal and the task, plus this file's absolute path for a `poteto-agent`.
