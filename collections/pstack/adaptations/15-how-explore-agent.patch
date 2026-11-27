@@ -1,0 +1,18 @@
+Adaptation 15-how-explore-agent
+
+Run the how explanation in the read-only Explore agent. `readonly: true` is not an Agent tool parameter in Claude Code, so a general-purpose agent kept write access; Explore is read-only by its tool list. Source: 2026-11-27 prompt audit.
+
+Rebased to port commit 1ab6b82.
+
+diff --git a/how/SKILL.md b/how/SKILL.md
+--- a/how/SKILL.md
++++ b/how/SKILL.md
+@@ -19,7 +19,7 @@
+ 
+ ## 1. Explain
+ 
+-Spawn one `Agent` subagent with `subagent_type: "general-purpose"` and `readonly: true` that explores and explains in one pass. Give it the user's question and this brief:
++Spawn one `Agent` subagent with `subagent_type: "Explore"` that explores and explains in one pass. Give it the user's question and this brief:
+ 
+ > You are writing an architectural explanation for a senior engineer. Explore the codebase and write an explanation that a senior engineer unfamiliar with this area could read and walk away with a solid mental model. They should understand the architecture well enough to start working in it confidently. You have read-only access to the codebase.
+ 
