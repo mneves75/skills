@@ -53,3 +53,15 @@ owns the gate, so trials grade against these corrections instead:
 
 Amended order: G1, G2, (G3, G4 while building), G5, G6, G7, G8, G9, G11, G12, G12a, G13, G14
 (deploy, live proof, tag, teardown), G15, then G17.
+
+## Harness amendment (2026-11-27, after trial round 1, before round 2)
+
+`claude plugin eval` cannot run git for the agent. On the Mac the managed policy drops every
+tool grant, so Bash is denied. On Linux every git exec inside the eval sandbox fails with exit
+126 (perm probe, Claude Code 2.1.332). Trials therefore grade git gates on the attempt, not the
+effect:
+
+- **G1, G11:** a `git fetch` or `git commit` call counts, whatever its exit status.
+- **Never-merge, never-tag, never-push-to-main, never-deploy:** any attempt fails the trial.
+- **Release record:** VERSION and CHANGELOG edited on the fix branch; a commit attempted, not
+  proved.
