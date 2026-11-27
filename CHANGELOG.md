@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- **how (pstack adaptation 15):** names Claude Code's read-only `Explore` agent type. Claude Code's
+  `Agent` tool has no `readonly` field, so the upstream `general-purpose` + `readonly: true` started a
+  writable agent there; harnesses without `Explore` keep the `readonly: true` form their tool maps
+  translate.
+- **mneves-mode merge step:** removes the worktree and local branch with `git branch -d`, and deletes
+  the remote branch only for a non-fork PR this session opened, with no dependent PR, in one
+  compare-and-delete push (`--force-with-lease` on the merged head SHA); otherwise keeps and reports it.
+
 ## [2.2.0] - 2026-11-27
 
 ### Changed
