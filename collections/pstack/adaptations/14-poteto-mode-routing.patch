@@ -5,7 +5,7 @@ Require explicit invocation in the description and Codex metadata. When modes ov
 Rebased to port commit 1ab6b82.
 
 diff --git a/poteto-mode/SKILL.md b/poteto-mode/SKILL.md
-index 37f3829..ac9495d 100644
+index 37f3829..704c1b4 100644
 --- a/poteto-mode/SKILL.md
 +++ b/poteto-mode/SKILL.md
 @@ -1,10 +1,12 @@
@@ -17,7 +17,7 @@ index 37f3829..ac9495d 100644
  
  # Poteto mode
  
-+When another operator mode is active (for example, mneves-mode), that mode selects the skills and gates. Use the poteto playbooks to execute the steps they cover. When both modes set a gate, apply the stricter one.
++When another operator mode is active (for example, mneves-mode), that mode selects the skills, gates and playbook. Use a poteto playbook only for a step that mode's playbook does not cover. When both modes set a gate, apply the stricter one.
 +
  Bundled skills live at `../<name>/SKILL.md` from this file, so put this file's absolute path in every `poteto-agent` prompt.
  

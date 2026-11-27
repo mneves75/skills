@@ -1,7 +1,8 @@
 Adaptation 01-model-routing-and-autonomy
 
-Claude-side roles run on Opus and Fable only at xhigh effort, Codex on Sol at high; planning and advice take the
-host's advisor route. poteto-mode works without asking only on the local machine and pauses before push,
+Claude-side roles run on Opus and Fable only (Fable at xhigh effort; patch 07 runs Opus at medium),
+Codex on Sol at high; planning and advice take the host's advisor route. Pi's `fable` row keeps
+the extension's Astra resolution. poteto-mode works without asking only on the local machine and pauses before push,
 deploy, publish, send, any external write, credentials or scope expansion. Updated for pstack 0.15.46 /
 pstack-claude 0.9.153 where architect, how, reflect and why no longer carry separate Models sections.
 Use a model-neutral example to show reasoning suffix syntax.
@@ -117,7 +118,7 @@ index 89dea8a..4df5018 100644
  `/setup-pstack` writes the configured model list. On Codex, set it to your Codex model slugs.
  
 diff --git a/poteto-mode/references/copilot-tools.md b/poteto-mode/references/copilot-tools.md
-index ca691e0..4060082 100644
+index ca691e0..bbe52f9 100644
 --- a/poteto-mode/references/copilot-tools.md
 +++ b/poteto-mode/references/copilot-tools.md
 @@ -52,7 +52,7 @@ Skills name Claude Code model aliases in their Models sections. Those aliases ar
@@ -125,25 +126,23 @@ index ca691e0..4060082 100644
  `setup-pstack` lists the models from the `model` enum of the `task` tool and writes only IDs it saw there. After it writes the sheet, it runs its `check-sheet.sh` script, which applies the hook's checks.
  
 -Run `setup-pstack`, and the parent session that orchestrates a panel, on a model at least as strong as gpt-5.4-mini or a Sonnet-class Claude model. On a Haiku-class model, setup picked models the user never chose in about half of the smoke runs.
-+Run `setup-pstack`, and the parent session that orchestrates a panel, on a model at least as strong as gpt-5.4-mini or an Opus-class Claude model. On a weaker model, setup picked models the user never chose in about half of the smoke runs.
++Run `setup-pstack`, and the parent session that orchestrates a panel, on a model at least as strong as gpt-5.4-mini or an Opus-class Claude model. On a Haiku-class model, setup picked models the user never chose in about half of the smoke runs.
  
  ## Session routing hook
  
 diff --git a/poteto-mode/references/pi-tools.md b/poteto-mode/references/pi-tools.md
-index 8db0222..3f636d9 100644
+index 8db0222..0937f41 100644
 --- a/poteto-mode/references/pi-tools.md
 +++ b/poteto-mode/references/pi-tools.md
-@@ -56,15 +56,13 @@ Skills name models by the Claude aliases in their Models sections. On Pi, pass t
- | Alias | `anthropic` | `openai` | `openai-codex` |
+@@ -57,14 +57,12 @@ Skills name models by the Claude aliases in their Models sections. On Pi, pass t
  | --- | --- | --- | --- |
  | `opus` | `anthropic/claude-opus-5-5` | `openai/gpt-6.1-sol` | `openai-codex/gpt-6.1-sol` |
--| `fable` | `anthropic/claude-fable-5-2` | `openai/gpt-6-astra` | `openai-codex/gpt-6-astra` |
+ | `fable` | `anthropic/claude-fable-5-2` | `openai/gpt-6-astra` | `openai-codex/gpt-6-astra` |
 -| `sonnet` | `anthropic/claude-sonnet-5-5` | `openai/gpt-6.1-sol` | `openai-codex/gpt-6.1-sol` |
 -| `haiku` | `anthropic/claude-haiku-5-5` | `openai/gpt-6-luna` | `openai-codex/gpt-6-luna` |
-+| `fable` | `anthropic/claude-fable-5-2` | `openai/gpt-6.1-sol` | `openai-codex/gpt-6.1-sol` |
  
 -On the two OpenAI providers, Pi first looks for the Codex default (`gpt-6.2-sol` for `opus`), worker (`gpt-6.2-sol` for `sonnet`), or strongest model (`gpt-6.2-astra` for `fable`) in the session's model registry. When that model is absent, Pi uses the ID in the table.
-+On the two OpenAI providers, Pi first looks for the Codex default (`gpt-6.2-sol` for `opus` and `fable`) in the session's model registry. When that model is absent, Pi uses the ID in the table.
++On the two OpenAI providers, Pi first looks for the Codex default (`gpt-6.2-sol` for `opus`) or strongest model (`gpt-6.2-astra` for `fable`) in the session's model registry. When that model is absent, Pi uses the ID in the table.
  
  Pi warns that Anthropic bills Claude used through Pi per token, as extra usage, even on a Claude subscription. Pi shows that warning only in interactive mode, never for the `pi --mode rpc` children the `agent` tool runs.
  
@@ -195,9 +194,18 @@ index 375e198..dfce63a 100644
 +- Default reasoning effort: `xhigh`
  - Single-role default: `opus`
 diff --git a/setup-pstack/copilot.md b/setup-pstack/copilot.md
-index b46bf0e..17d9294 100644
+index b46bf0e..3edc12f 100644
 --- a/setup-pstack/copilot.md
 +++ b/setup-pstack/copilot.md
+@@ -2,7 +2,7 @@
+ 
+ On GitHub Copilot this file replaces the model, effort, and hook questions in steps 1, 3, and 4 of [setup-pstack](SKILL.md), the sheet header in step 6, and step 7. Steps 2, 5, 8, 9, and 10 still apply. pstack ships no Copilot model defaults, so every model in the sheet comes from the user's answers. Never pick a model the user has not chosen, and never write the Claude Code names in [Models](SKILL.md#models) or step 6's values into a Copilot sheet.
+ 
+-Run setup on a model at least as strong as gpt-5.4-mini or a Sonnet-class Claude model. On a Haiku-class model, setup picked models the user never chose in about half of the smoke runs.
++Run setup on a model at least as strong as gpt-5.4-mini or an Opus-class Claude model. On a Haiku-class model, setup picked models the user never chose in about half of the smoke runs.
+ 
+ ## Asking
+ 
 @@ -25,7 +25,7 @@ A Copilot sheet uses step 6's role lines and settings under this header in place
  ```markdown
  # pstack model configuration

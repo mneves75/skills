@@ -7,20 +7,20 @@ official-commit: b7b93c36be9bcc36a74db438e0fd385d660bc559
 component: cursor-team-kit e46364b8be46000b7df0f260550cd712afbb8d36 cursor-team-kit/skills (identical at official-commit)
 component: pstack ca782ed8b3c2c521cead8e1720d55c3a5dbf2347 pstack (identical at official-commit)
 component: thermos 118e73b0e196e4d49d5aade7ce6dd8985a621f68 thermos (identical at official-commit)
-adaptation: 01-model-routing-and-autonomy.patch sha256:e642f6210fa5b2307f5989d6dff3863337afeeb08d35be412e636ae8b07315cb
-adaptation: 02-principle-consolidation.patch sha256:700d9b188bb84661e9ad4d7761c4db6efe4238347934ad3b904aa7e9d1f58cdc
+adaptation: 01-model-routing-and-autonomy.patch sha256:01315f0856db2e580102808ae6fb9eeb8a21f5d19e2242d79469da66bfb8fc91
+adaptation: 02-principle-consolidation.patch sha256:eaa1842ea5f0346a9c75c306f4a5ec904371850926d57e26ae77d0760113b78c
 adaptation: 03-tdd-test-first.patch sha256:82f67072dbb1978e01d00101caab2286f672c540df6558969d85294dd27645b5
 adaptation: 04-readonly-why-bounded-babysit.patch sha256:c526b1711e6e51ab1d7e5c150761e438839b1b500b7b9d3ab5071abb49a00026
 adaptation: 05-explicit-opt-in.patch sha256:c61bdcab71f37c3075cc27c4061b62e220737bd3ffadd22db8e2808ded368ed7
 adaptation: 06-render-and-install-consent.patch sha256:6c99e427bb9b367b4b9acc0da5da2a004b791c42da57c190292bb73cd15048a0
-adaptation: 07-opus-medium-effort.patch sha256:646f34a0a91b7716789b93f5ca111d6d688ad50e8ab62c02f8172adf446005d6
+adaptation: 07-opus-medium-effort.patch sha256:503891108cdee5ab356e7d76d1c841933d261b271ccf19f32d1d9c47c32e07e8
 adaptation: 08-codex-substitutes-not-opus.patch sha256:ca4fb9f3070f5c18458b0767244facd1bf62a057d164ddf9f44d8feec91a0c8d
 adaptation: 09-opus55-prompt-audit.patch sha256:38b6b62102d6189f3256894c588f09d3f7adb608b1c6618fb2cb536e133779f1
 adaptation: 10-codex-prompt-guidance.patch sha256:c374ac9bffd67d445f6abbbf6d52f368c57daa9ccb3911137fcd2b41ea1ecd21
 adaptation: 11-agy-yolo-fallback.patch sha256:b3d7e46aff02ab3ff84d049e312bfba5930ae29dbf4c519d0e6f73553c19a8d0
 adaptation: 12-upstream-reframe-and-hygiene.patch sha256:fe16f667a8d0f001b7c3aa0abd1feaaf17b9fed22ce358279f22682d2549d973
 adaptation: 13-watch-pr-app-identity.patch sha256:00629773c285ead2051be3d01030956fc8d0610c17d48dbc1b5ea1bfce14e784
-adaptation: 14-poteto-mode-routing.patch sha256:e9d36265371434837c33b4acfd28f0e354d15073e766446236dbb1c5b57e90af
+adaptation: 14-poteto-mode-routing.patch sha256:f21c1417d2078abe4d94c7fe3ec4f331fd5a125caa990a5376fa3dfb46ff0849
 excluded: poteto-mode/references/dsh-tools.md
 excluded: principle-attack-the-premise
 excluded: principle-boundary-discipline

@@ -4,6 +4,8 @@ The 24 principle-* skills and the always-on unslop skill are retired. Source exc
 principle directories and this patch removes unslop. Their guidance lives in four
 conditional references, poteto-mode/references/engineering-{design,evolution,verification,coordination}.md,
 which the other skills link to; poteto-mode routes by task instead of mandating panels for routine work.
+Cites of a retired principle are reworded or dropped (arena and the feature and prototype playbooks
+named the Laziness Protocol, whose guidance is now in engineering-evolution.md).
 Rebased onto pstack 0.15.46 / pstack-claude 0.9.153 (including the new agy/omp/opencode/kimi/grok
 mappings and shortened playbooks).
 
@@ -11,7 +13,7 @@ Fork source: https://github.com/mneves75/pstack-claude commits 296c78d, d13480d,
 Applies to the port's plugins/pstack/skills tree after the patches numbered before it.
 
 diff --git a/arena/SKILL.md b/arena/SKILL.md
-index c36dc07..60bfad5 100644
+index c36dc07..9eb9cb4 100644
 --- a/arena/SKILL.md
 +++ b/arena/SKILL.md
 @@ -22,7 +22,7 @@ Every candidate gets the same prompt, so the prompt is the contract.
@@ -23,7 +25,12 @@ index c36dc07..60bfad5 100644
  
  ## Phase B: Fan out
  
-@@ -42,13 +42,13 @@ Pick the base a future maintainer can extend most easily without breaking invari
+@@ -38,17 +38,17 @@ After all Phase B candidates complete, spawn one readonly judge from the `arena
+ 
+ Read every candidate end to end before picking. Score each against the rubric criterion by criterion, not on holistic feel, and compare with the cross-judge when Phase C ran one. Agreement on the base confirms the pick. Disagreement means one of you is biased or the rubric was ambiguous. Read both rationales before deciding.
+ 
+-Pick the base a future maintainer can extend most easily without breaking invariants. When two feel tied, prefer the cleaner boundary or smaller API, per the Laziness Protocol.
++Pick the base a future maintainer can extend most easily without breaking invariants. When two feel tied, prefer the cleaner boundary or smaller API.
  
  ## Phase E: Graft
  
@@ -95,10 +102,17 @@ index b8a6213..3a79137 100644
  
  **Reply:** the writeup above, with the one safety fact either proven or marked unproven.
 diff --git a/figure-it-out/SKILL.md b/figure-it-out/SKILL.md
-index 910322c..8fd381c 100644
+index 910322c..24d7f94 100644
 --- a/figure-it-out/SKILL.md
 +++ b/figure-it-out/SKILL.md
-@@ -21,26 +21,26 @@ Open a todolist whose first item is to read the Principles section of the **pote
+@@ -15,32 +15,32 @@ When the task matches no playbook, design one. The deliverable before any code i
+ 
+ ## Start
+ 
+-Open a todolist whose first item is to read the Principles section of the **poteto-mode** skill. Then add the phases below as todos.
++Open a todolist whose first item is to read the **Conditional engineering guidance** section of the **poteto-mode** skill. Then add the phases below as todos.
+ 
+ ## Phase A: Frame
  
  Ground first, then commit. Don't start the run until you can state:
  
@@ -362,7 +376,7 @@ index 1d21c2a..805fe3e 100644
  
  For any bug fix, run `architect` in step 3 before implementing changes to interfaces, ownership, schema, migration behavior, concurrency or transaction guarantees, or deployment or routing contracts, even within one function. Before marking the fix merge-ready, require an independent correctness reviewer for changes to code that enforces a security or data-integrity invariant, including an atomic eligibility guard, even when the fix preserves that invariant. Follow the closed-review-gate rule in Subagents if a reviewer cannot run.
 diff --git a/poteto-mode/playbooks/feature.md b/poteto-mode/playbooks/feature.md
-index a582f07..567eb52 100644
+index a582f07..baa9ff9 100644
 --- a/poteto-mode/playbooks/feature.md
 +++ b/poteto-mode/playbooks/feature.md
 @@ -7,12 +7,12 @@
@@ -373,7 +387,7 @@ index a582f07..567eb52 100644
 +   - **Shared mutable state.** Default to splitting the target ([coordination guidance](../references/engineering-coordination.md)). Serialize only for real invariants.
     - **Smallest safe decomposition.** If one worker is best, name why.
 -4. Delegate code-writing to a subagent using your configured feature model (default in poteto-mode's Models section) with a specific scope (file paths, named data shape and its organizing structure per **principle-model-the-domain**, a state machine over scattered booleans, a table/registry over branching, a typed model over repeated shape assumptions, chosen before the delegate writes logic, and success criteria). Pick each subagent's reasoning level for the job, per the Subagents section. When the implementation admits multiple valid shapes (error handling, abstraction layer, test structure), delegate via the **arena** skill instead so the runners surface the alternatives and the cross-judge guards the pick. Mandatory: no skip-with-reason escape, and Laziness Protocol does not override it (the gain is review separation, not lines saved). A subagent forbidden to spawn satisfies this by owning the diff directly with the same review separation. No "standing by" reply that waits on a nested agent. **Give every file-writing delegate its own worktree** (spawn it with `isolation: "worktree"`, or hand it an exclusive branch), and do not write files or run a suite in a worktree a delegate still holds. On Claude Code, `isolation: "worktree"` branches from the remote default branch unless the `worktree.baseRef` setting is `"head"`. When the delegate builds on commits the default branch lacks, commit them, create its worktree with `git worktree add <path> -b <delegate-branch> HEAD`, and name that base commit in the brief. Fencing a file in the brief's prose is not a lock (**principle-separate-before-serializing-shared-state**). Surgical edits, re-ground against the source for upstream-derived files. Port shared-primitive improvements to all consumers and verify each. Commit liberally.
-+4. Delegate code-writing to a subagent using your configured feature model (default in poteto-mode's Models section) with a specific scope (file paths, named data shape and its organizing structure per [design guidance](../references/engineering-design.md), a state machine over scattered booleans, a table/registry over branching, a typed model over repeated shape assumptions, chosen before the delegate writes logic, and success criteria). Pick each subagent's reasoning level for the job, per the Subagents section. When the implementation admits multiple valid shapes (error handling, abstraction layer, test structure), delegate via the **arena** skill instead so the runners surface the alternatives and the cross-judge guards the pick. Mandatory: no skip-with-reason escape, and Laziness Protocol does not override it (the gain is review separation, not lines saved). A subagent forbidden to spawn satisfies this by owning the diff directly with the same review separation. No "standing by" reply that waits on a nested agent. **Give every file-writing delegate its own worktree** (spawn it with `isolation: "worktree"`, or hand it an exclusive branch), and do not write files or run a suite in a worktree a delegate still holds. On Claude Code, `isolation: "worktree"` branches from the remote default branch unless the `worktree.baseRef` setting is `"head"`. When the delegate builds on commits the default branch lacks, commit them, create its worktree with `git worktree add <path> -b <delegate-branch> HEAD`, and name that base commit in the brief. Fencing a file in the brief's prose is not a lock ([coordination guidance](../references/engineering-coordination.md)). Surgical edits, re-ground against the source for upstream-derived files. Port shared-primitive improvements to all consumers and verify each. Commit liberally.
++4. Delegate code-writing to a subagent using your configured feature model (default in poteto-mode's Models section) with a specific scope (file paths, named data shape and its organizing structure per [design guidance](../references/engineering-design.md), a state machine over scattered booleans, a table/registry over branching, a typed model over repeated shape assumptions, chosen before the delegate writes logic, and success criteria). Pick each subagent's reasoning level for the job, per the Subagents section. When the implementation admits multiple valid shapes (error handling, abstraction layer, test structure), delegate via the **arena** skill instead so the runners surface the alternatives and the cross-judge guards the pick. Mandatory: no skip-with-reason escape, and the smallest-change rule does not override it (the gain is review separation, not lines saved). A subagent forbidden to spawn satisfies this by owning the diff directly with the same review separation. No "standing by" reply that waits on a nested agent. **Give every file-writing delegate its own worktree** (spawn it with `isolation: "worktree"`, or hand it an exclusive branch), and do not write files or run a suite in a worktree a delegate still holds. On Claude Code, `isolation: "worktree"` branches from the remote default branch unless the `worktree.baseRef` setting is `"head"`. When the delegate builds on commits the default branch lacks, commit them, create its worktree with `git worktree add <path> -b <delegate-branch> HEAD`, and name that base commit in the brief. Fencing a file in the brief's prose is not a lock ([coordination guidance](../references/engineering-coordination.md)). Surgical edits, re-ground against the source for upstream-derived files. Port shared-primitive improvements to all consumers and verify each. Commit liberally.
  5. Verify on the matching surface. "Inconclusive" or wrong-surface is not a pass. Flag it.
  6. Rebase into small, ordered commits. Stack follow-ups.
 -   Use the **sequence-verifiable-units** principle skill, building, verifying, and committing each small unit before the next.
@@ -456,10 +470,16 @@ index f241afa..a160d7b 100644
  5. Cite the measurement in the PR.
  6. Run **Opening a PR**.
 diff --git a/poteto-mode/playbooks/prototype.md b/poteto-mode/playbooks/prototype.md
-index 91c6e68..1616374 100644
+index 91c6e68..ef6c4f0 100644
 --- a/poteto-mode/playbooks/prototype.md
 +++ b/poteto-mode/playbooks/prototype.md
-@@ -7,7 +7,7 @@ The one playbook where the Laziness Protocol's "smallest change" and the verific
+@@ -2,12 +2,12 @@
+ 
+ **You own the design decision, not the code. The prototype is a throwaway instrument. The real build follows Feature.**
+ 
+-The one playbook where the Laziness Protocol's "smallest change" and the verification bar invert. Speed over polish, code quality does not matter, no planning. The rigor is in picking the right design cheaply. Propose variations the user didn't ask for, throw an approach away and try another.
++The one playbook where the "smallest change" rule and the verification bar invert. Speed over polish, code quality does not matter, no planning. The rigor is in picking the right design cheaply. Propose variations the user didn't ask for, throw an approach away and try another.
+ 
  1. Scope the decision the prototype exists to make: which layout, which interaction, which density, or for an empirical fork which behavior, timing, or approach. No decision means no prototype. Route to Feature.
  2. Gather references when the design space is open. Search for prior art, summarize a moodboard of themes, palettes, and layouts, let the user pick directions before building. Skip when the direction is set.
  3. Build throwaway in an isolated scratch dir, separate from production source. For a visual decision, vanilla HTML/CSS/JS or the lightest stack that renders the idea, CDN deps, a dev server with hot reload. For a behavioral or timing decision, the smallest script that exercises the question. No production framework, no tests, no abstractions.
@@ -584,7 +604,7 @@ index 18fd74c..e91d3fd 100644
  5. Prune the confirmed set. Per path, `git worktree remove --force <path>`. If the dir survives on ignored build artifacts, `rm -rf` it, then `git worktree prune`. Branch refs survive, so commits on the worktree's branch are kept. The worktree's HEAD reflog goes with it, so a commit only that reflog reaches is lost. Commits made inside a submodule are stored with the worktree and go with it. Confirm with `df -h /` and re-list.
  6. Simulators and other reclaimers. Simulators are usually the next-biggest win. `xcrun simctl --set testing delete all` (XCTestDevices clones), `xcrun simctl delete unavailable`, and `xcrun simctl runtime list` then `runtime delete <id>` for old runtimes. More when needed: Xcode `DerivedData` and `iOS DeviceSupport`, your editor's application-support caches, `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/shell-snapshots/` and old `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/` transcripts (keep the recent ones the **recall** skill and Session pickup read), package caches (pnpm, uv, brew, yarn). Clear only caches the user has not said to keep.
 diff --git a/poteto-mode/references/agy-tools.md b/poteto-mode/references/agy-tools.md
-index e45c389..05edef7 100644
+index e45c389..fce562f 100644
 --- a/poteto-mode/references/agy-tools.md
 +++ b/poteto-mode/references/agy-tools.md
 @@ -54,7 +54,7 @@ Antigravity runs the plugin's `SessionStart` hook when a new session starts. The
@@ -596,7 +616,12 @@ index e45c389..05edef7 100644
  
  | Skill or driver named in pstack | On Antigravity |
  |---------------------------------|----------------|
-@@ -86,7 +86,7 @@ Most skills need only the tables above. These need one more mapping:
+@@ -81,12 +81,10 @@ Most skills need only the tables above. These need one more mapping:
+ | `swarm` | Each worker is an `invoke_subagent` call; use `Workspace: "share"` or `git worktree add` for writing workers. |
+ | `teach` | Running `how` and `why` in parallel maps to two `invoke_subagent` calls in one response; image generation uses `image-generator` via `invoke_subagent`. |
+ | `why` | List MCP servers from the tools Antigravity exposes to the session, not from Claude Code's MCP files. |
+-| `figure-it-out` | Each principle skill it names resolves like any other skill (Tool actions above). |
+-| `typescript-best-practices` | Each principle skill it names resolves like any other skill (Tool actions above). |
  | `recall` | Read Antigravity transcripts under `~/.gemini/antigravity-cli/brain/<conversation-id>/.system_generated/logs/transcript.jsonl` instead of `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/`. |
  | `reflect` | Pass the current session's transcript path (`<appDataDir>/brain/<conversation-id>/.system_generated/logs/transcript.jsonl`) to the transcript reading the skill does. |
  | `show-me-your-work` | Check the log against this session's transcript or context, not a Claude Code transcript. |
@@ -636,7 +661,7 @@ index 4df5018..add1489 100644
  ## Vendored scripts
  
 diff --git a/poteto-mode/references/copilot-tools.md b/poteto-mode/references/copilot-tools.md
-index 4060082..29c4776 100644
+index bbe52f9..00ffff0 100644
 --- a/poteto-mode/references/copilot-tools.md
 +++ b/poteto-mode/references/copilot-tools.md
 @@ -96,7 +96,7 @@ In poteto-mode's playbooks, the Eval playbook reads candidate transcripts from C
@@ -648,6 +673,15 @@ index 4060082..29c4776 100644
  
  | Skill or driver named in pstack | On GitHub Copilot |
  |---------------------------------|-------------------|
+@@ -121,8 +121,6 @@ Affected skill entry points point here. Most skills need only the tables above.
+ | `swarm` | Workers are `task` calls with `mode: "background"`, each on its own worktree; in the app, `create_session` per worker. |
+ | `teach` | Running `how` and `why` in parallel maps to `task` fan-out; image generation uses whatever image tool you have, or skip it and say so. |
+ | `why` | Available MCP servers appear in your tool list; there is no `mcp__` prefix convention to scan for. |
+-| `figure-it-out` | Each principle skill it names resolves like any other skill (Tool actions above). |
+-| `typescript-best-practices` | Each principle skill it names resolves like any other skill (Tool actions above). |
+ | `reflect` | Run `find-transcript.mjs <session-state directory> '<opening prompt fragment>' <workspace directory>` with the absolute session-state path under `${COPILOT_HOME:-~/.copilot}`. That directory is outside the workspace, so the call takes the normal permission flow. The workspace defaults to the current directory when omitted. The finder checks the session header's `cwd` against that workspace before reading Copilot's `user.message` records, so matching prompts in other projects are skipped. For a conversation in a related worktree, pass that worktree's directory explicitly. Skill paths under `.claude/skills/` and `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/` mean the Copilot skill locations below. |
+ | `recall` | Search Copilot session state scoped to the current workspace (Transcripts above), not `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/`. |
+ | `show-me-your-work` | The end-of-run check reads this session's `events.jsonl` (Transcripts above). |
 diff --git a/poteto-mode/references/engineering-coordination.md b/poteto-mode/references/engineering-coordination.md
 new file mode 100644
 index 0000000..e65372b
@@ -832,6 +866,19 @@ index 0000000..7ca4ab9
 +Encode a recurring, concrete failure in a type, test, or lint rule when that
 +prevents it reliably. Demonstrate the gate catches the actual violation before
 +adding it. Otherwise retain a short conditional explanation at the owning code.
+diff --git a/poteto-mode/references/kimi-tools.md b/poteto-mode/references/kimi-tools.md
+index ba0459d..d317cf6 100644
+--- a/poteto-mode/references/kimi-tools.md
++++ b/poteto-mode/references/kimi-tools.md
+@@ -25,7 +25,7 @@ Kimi's `AgentSwarm` runs only while the user has enabled swarm mode. When it is
+ 
+ The plugin contributes routing instructions to the system prompt while enabled. A custom agent prompt must include `${plugin_sections}` or the effective default prompt to receive them. Disable the plugin with `/plugins disable pstack` to stop both routing and its skills, then reload or start a new session. Unlike pstack's shell hooks, this static contribution does not read the `session hook` setting. A resumed session can retain its previous prompt until Kimi rebuilds it.
+ 
+-Kimi does not load Claude Code plugin agent definitions through this package. Kimi's skill parser does not document Claude Code's `user-invocable` flag, so principle skills may appear in its picker; this has not been tested in a session. These limitations and any unverified tool behavior must be reported rather than treated as equivalent to Claude Code.
++Kimi does not load Claude Code plugin agent definitions through this package. These limitations and any unverified tool behavior must be reported rather than treated as equivalent to Claude Code.
+ 
+ ## Model names
+ 
 diff --git a/poteto-mode/references/minimax-tools.md b/poteto-mode/references/minimax-tools.md
 index ffefbf5..ff4cd0a 100644
 --- a/poteto-mode/references/minimax-tools.md
@@ -859,7 +906,7 @@ index ca90675..ee65ed4 100644
  | Skill or driver named in pstack | On Muse |
  |---------------------------------|---------|
 diff --git a/poteto-mode/references/pi-tools.md b/poteto-mode/references/pi-tools.md
-index 3f636d9..5155172 100644
+index 0937f41..153e4cb 100644
 --- a/poteto-mode/references/pi-tools.md
 +++ b/poteto-mode/references/pi-tools.md
 @@ -74,7 +74,7 @@ Without the extension nothing is injected. Request `poteto-mode` explicitly with

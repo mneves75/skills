@@ -5,7 +5,7 @@ description: "Use the pstack engineering workflow playbooks when the user types 
 
 # Poteto mode
 
-When another operator mode is active (for example, mneves-mode), that mode selects the skills and gates. Use the poteto playbooks to execute the steps they cover. When both modes set a gate, apply the stricter one.
+When another operator mode is active (for example, mneves-mode), that mode selects the skills, gates and playbook. Use a poteto playbook only for a step that mode's playbook does not cover. When both modes set a gate, apply the stricter one.
 
 Bundled skills live at `../<name>/SKILL.md` from this file, so put this file's absolute path in every `poteto-agent` prompt.
 
