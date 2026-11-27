@@ -398,10 +398,13 @@ def load_extra(path: Path | None, external: set[str]) -> list[dict[str, str]]:
         return []
     entries = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(entries, list) or not all(
-        isinstance(e, dict) and isinstance(e.get("name"), str) and isinstance(e.get("description"), str)
+        isinstance(e, dict)
+        and isinstance(e.get("name"), str)
+        and isinstance(e.get("description"), str)
+        and e["description"].strip()
         for e in entries
     ):
-        sys.exit(f"--catalog-extra {path}: expected a JSON list of {{name, description}}")
+        sys.exit(f"--catalog-extra {path}: expected a JSON list of {{name, description}} with nonblank descriptions")
     names = [e["name"] for e in entries]
     if len(set(names)) != len(names) or set(names) != external:
         sys.exit(f"--catalog-extra {path}: names must match the cases' external list {sorted(external)} exactly")

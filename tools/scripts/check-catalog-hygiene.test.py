@@ -230,19 +230,38 @@ class CatalogHygieneTest(unittest.TestCase):
                 f.write("| Run the mode | `mneves-mode` | None |\n")
 
         good_row = "| `beta-ext` | `someone/skills` | Testing | Do it by hand |\n"
+        url_row = "| `gamma-ext` | https://example.com/skills | Testing | Do it by hand |\n"
+        ghost = "unknown skill token `zz-ghost`"
+        pstack = "collections/pstack/skills"
         cases = {
-            "valid": ("Use `alpha`, `beta-ext`, `pstack` and `BLOCKED`.", good_row, {}, None),
-            "unknown token": ("Use `alpha` and `delegate-wave`.", good_row, {}, "unknown skill token `delegate-wave`"),
+            "valid": ("Use `alpha`, ` alpha `, `/alpha`, `$beta-ext`, `alpha/SKILL.md`, `gamma-ext.`, `pstack`, "
+                      "`BLOCKED`, `--mode x` and `git branch -d`.", good_row + url_row, {}, None, {}),
+            "unknown token": ("Use `alpha` and `delegate-wave`.", good_row, {}, "unknown skill token `delegate-wave`", {}),
+            "padded span": ("Use ` zz-ghost `.", good_row, {}, ghost, {}),
+            "slash form": ("Type `/zz-ghost`.", good_row, {}, ghost, {}),
+            "dollar form": ("Use `$zz-ghost`.", good_row, {}, ghost, {}),
+            "skill path": ("Open `zz-ghost/SKILL.md`.", good_row, {}, ghost, {}),
+            "trailing period": ("Use `zz-ghost.`", good_row, {}, ghost, {}),
             "row without fallback": ("Use `beta-ext`.", "| `beta-ext` | `someone/skills` | Testing |  |\n", {},
-                                     "needs a public source and a fallback"),
-            "oversize body": ("line\n" * 161, good_row, {}, "router SKILL.md over"),
-            "oversize playbook": ("Use `alpha`.", good_row, {"playbook-big.md": "word " * 520}, "playbook over"),
-            "oversize total": ("Use `alpha`.", good_row, {"notes.md": "word " * 6200}, "SKILL.md plus references over"),
+                                     "needs a public source", {}),
+            "placeholder source": ("Use `beta-ext`.", "| `beta-ext` | TBD | Testing | Do it by hand |\n", {},
+                                   "needs a public source", {}),
+            "pstack skill": ("Use `gamma`.", good_row, {}, None, {f"{pstack}/gamma/SKILL.md": "# gamma\n"}),
+            "pstack dir without SKILL.md": ("Use `zz-ghost`.", good_row, {}, ghost,
+                                            {f"{pstack}/zz-ghost/assets/x.txt": "x\n"}),
+            "openai.yaml ghost": ("Use `alpha`.", good_row, {}, "unknown skill token `$zz-ghost`",
+                                  {"skills/mneves-mode/agents/openai.yaml": 'default_prompt: "Use $zz-ghost."\n'}),
+            "oversize body": ("line\n" * 161, good_row, {}, "router SKILL.md over", {}),
+            "oversize playbook": ("Use `alpha`.", good_row, {"playbook-big.md": "word " * 520}, "playbook over", {}),
+            "oversize total": ("Use `alpha`.", good_row, {"notes.md": "word " * 6200}, "SKILL.md plus references over", {}),
         }
-        for label, (body, rows, extra, expected) in cases.items():
+        for label, (body, rows, extra, expected, tree) in cases.items():
             with self.subTest(label), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 build(root, body, rows, extra)
+                for rel, text in tree.items():
+                    (root / rel).parent.mkdir(parents=True, exist_ok=True)
+                    (root / rel).write_text(text, encoding="utf-8")
                 res = MOD.check_repo(root)
                 if expected is None:
                     self.assertTrue(res["ok"], res["errors"])

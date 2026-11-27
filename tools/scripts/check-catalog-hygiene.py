@@ -48,7 +48,10 @@ ROUTER_MAX_BODY_BYTES = 10 * 1024
 ROUTER_MAX_BODY_LINES = 160
 ROUTER_MAX_PLAYBOOK_BYTES = 2560
 ROUTER_MAX_TOTAL_BYTES = 30 * 1024
-ROUTER_TOKEN_RE = re.compile(r"`([a-z][a-z0-9]*(?:-[a-z0-9]+)*)`")
+ROUTER_SPAN_RE = re.compile(r"`([^`\n]+)`")
+ROUTER_TOKEN_RE = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
+ROUTER_YAML_TOKEN_RE = re.compile(r"\$([a-z][a-z0-9]*(?:-[a-z0-9]+)*)")
+SIBLING_SOURCE_RE = re.compile(r"`[\w.-]+/[\w.-]+`|https://\S+")
 SIBLING_ROW_RE = re.compile(r"^\|\s*`([a-z0-9-]+)`\s*\|(.*)$", re.MULTILINE)
 
 _MARKED_EXTRACT_JS = r"""
@@ -445,14 +448,15 @@ def _check_router(root: Path, skill_names: list[str], errors: list[str]) -> None
     known = set(skill_names) | ROUTER_TOKEN_ALLOWLIST
     pstack = root / "collections" / "pstack" / "skills"
     if pstack.is_dir():
-        known |= {p.name for p in pstack.iterdir() if p.is_dir()}
+        known |= {p.name for p in pstack.iterdir() if (p / "SKILL.md").is_file()}
     siblings = rdir / "references" / "optional-siblings.md"
     if siblings.is_file():
         for name, rest in SIBLING_ROW_RE.findall(siblings.read_text(encoding="utf-8")):
             cells = [c.strip() for c in rest.split("|")]
-            if len(cells) < 3 or not cells[0] or not cells[2]:
+            if len(cells) < 3 or not SIBLING_SOURCE_RE.search(cells[0]) or not cells[2]:
                 errors.append(
-                    f"skills/{ROUTER}/references/optional-siblings.md: `{name}` needs a public source and a fallback"
+                    f"skills/{ROUTER}/references/optional-siblings.md: `{name}` needs a public source "
+                    "(`owner/repo` or an https URL) and a fallback"
                 )
             known.add(name)
     total = 0
@@ -465,8 +469,15 @@ def _check_router(root: Path, skill_names: list[str], errors: list[str]) -> None
             errors.append(f"{rel}: router SKILL.md over {ROUTER_MAX_BODY_BYTES} bytes or {ROUTER_MAX_BODY_LINES} lines")
         if path.name.startswith("playbook-") and size > ROUTER_MAX_PLAYBOOK_BYTES:
             errors.append(f"{rel}: playbook over {ROUTER_MAX_PLAYBOOK_BYTES} bytes ({size})")
-        for token in sorted(set(ROUTER_TOKEN_RE.findall(text)) - known):
+        # A code span names a skill in any form a reader would type or open: padded, `/name`,
+        # `$name`, `name/SKILL.md`, or with trailing punctuation inside the backticks.
+        spans = (s.strip().lstrip("/$").removesuffix("/SKILL.md").rstrip(".,:;") for s in ROUTER_SPAN_RE.findall(text))
+        for token in sorted({s for s in spans if ROUTER_TOKEN_RE.fullmatch(s)} - known):
             errors.append(f"{rel}: unknown skill token `{token}` (add an optional-siblings.md row or drop it)")
+    yaml_path = rdir / "agents" / "openai.yaml"
+    if yaml_path.is_file():
+        for token in sorted(set(ROUTER_YAML_TOKEN_RE.findall(yaml_path.read_text(encoding="utf-8"))) - known):
+            errors.append(f"skills/{ROUTER}/agents/openai.yaml: unknown skill token `${token}`")
     if total > ROUTER_MAX_TOTAL_BYTES:
         errors.append(f"skills/{ROUTER}: SKILL.md plus references over {ROUTER_MAX_TOTAL_BYTES} bytes ({total})")
 

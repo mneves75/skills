@@ -59,7 +59,30 @@ What follows:
   (with the router) is not run, because no routing claim is made. Only native trials, graded
   against the checklist, can show whether the gates run.
 
+## Reviews
+
+A cross-model review and a fresh-context reviewer each read the branch. Every finding was
+checked against the files before it was fixed.
+
+- **Gate order.**
+  - A deploying push now waits for the verdict.
+  - A merge that lands a new tree needs a new verdict.
+  - A merge that deploys production waits for the staging proof and the owner's approval.
+  - Staging is torn down only after production.
+- **Read-only paths.**
+  - The fetch runs before editing only.
+  - `domain-modeling` writes only when edits are allowed.
+  - `code-review` runs on committed work.
+- **Explicit-only list.**
+  - `statechart` added.
+  - `thermo-nuclear-code-quality-review` removed: its own description accepts a described harsh-maintainability request, which is what the frozen case expects.
+- **PR follow-ups.** The check of auto-merge and merge-queue state before a push is restored. 2.0.0 had it; v3 dropped it.
+- **Rot guard.** It now reads every code-span form (padded, `/name`, `$name`, `name/SKILL.md`, trailing punctuation) and `agents/openai.yaml`. pstack names need a `SKILL.md`, and sibling sources must be `owner/repo` or an https URL. Each change has a planted control, and each control fails against the earlier checker.
+- **Gate checklist.** Amended with a dated section before any trial ran; the frozen rows are unchanged.
+
 ## Run notes
+
+- Skill dispositions, one row per shipped skill: [skill-dispositions.md](skill-dispositions.md).
 
 - Branches: `feat/router-v3` (this one) and `feat/pstack-repin`, each from `origin/main` `ce8a4d6`.
 - See [tests.json](tests.json) for the status of each check.

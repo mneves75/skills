@@ -205,7 +205,7 @@ collection does not automatically change those instructions in other projects.</
 </tr>
 <tr>
 <td><a href="#mneves-mode"><code>mneves-mode</code></a></td>
-<td>run an explicit workflow mode that picks a playbook and redirects each phase to sibling skills</td>
+<td>run one task from change to release with every gate in order</td>
 <td>&quot;/mneves-mode add rate limiting to /api/login&quot;</td>
 </tr>
 <tr>
@@ -1120,16 +1120,24 @@ documented ranking requirement. Valid schema does not guarantee citations. Live 
 writes and deployments retain the host&#39;s authorization rules.</p>
 <hr>
 <h2 id="mneves-mode">mneves-mode</h2>
-<p><strong>What it does.</strong> An explicit-only workflow router modeled on <code>poteto-mode</code>. When invoked by name
-(<code>/mneves-mode</code>, <code>$mneves-mode</code>, or &quot;use mneves mode&quot;), it frames the goal and risk tier, selects
-the matching playbook from <code>references/playbooks.md</code> (feature/bug fix, scoped refactor, decision,
-PR lifecycle, release/deploy, audit/verification, or specialized artifacts/learning), and redirects each phase to whichever
-sibling skill is installed — falling back cleanly on single-skill installs and closing mandatory
-gates when independent reviewers or release gates are unavailable. Every standalone skill remains
-directly discoverable on its own.</p>
-<p><strong>When to use it.</strong> You want one entrypoint to drive a multi-phase task through your engineering
-workflow without manually naming each specialist at every phase boundary. It never auto-triggers
-on ordinary requests and grants no deployment, merge, or destructive permissions.</p>
+<p><strong>What it does.</strong> An explicit-only operator mode, modeled on <code>poteto-mode</code>. When invoked by name
+(<code>/mneves-mode</code>, <code>$mneves-mode</code>, or &quot;use mneves mode&quot;), it:</p>
+<ul>
+<li>frames the goal, the smallest verifiable change and the risk tier, and reconciles with the
+remote first;</li>
+<li>opens one playbook per phase (build or fix, refactor, decide, audit, PR lifecycle, release,
+specialized artifacts);</li>
+<li>runs the gates in a fixed order: test first, review, verification, release record, pre-deploy
+security, then merge, deploy and cleanup only when authorized.</li>
+</ul>
+<p>Each gate goes to the installed skill. A third-party one, such as Matt Pocock&#39;s <code>tdd</code> or
+<code>code-review</code>, is listed in <code>references/optional-siblings.md</code> with its source and fallback. A
+missing skill is named once and its fallback runs. A required independent gate that cannot run is
+reported <code>BLOCKED</code>. It keeps no skill inventory: the host&#39;s own listing picks among installed
+skills, and every skill stays directly discoverable without it.</p>
+<p><strong>When to use it.</strong> You want one command to run a task through your whole engineering workflow,
+instead of pasting the same list of skills and gates every time. It never auto-triggers on an
+ordinary request, and it grants no merge, deploy or destructive permission.</p>
 <p><strong>Illustrative request:</strong></p>
 <pre tabindex="0"><code class="language-text">/mneves-mode add rate limiting to POST /api/login, review the diff adversarially, and verify it before opening a PR.
 </code></pre>

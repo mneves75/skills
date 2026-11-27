@@ -259,6 +259,7 @@ run_agy_branch_review_fallback() (
   exit "$rc"
 )
 
+# Set REVIEW_FALLBACK_MODEL to the reviewer row's first fallback model in the Defaults block.
 run_agy_branch_review_fallback "$REVIEW_FALLBACK_MODEL"
 ```
 

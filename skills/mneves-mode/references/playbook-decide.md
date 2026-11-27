@@ -11,6 +11,7 @@
      alternatives, and record reversibility and failure modes.
 3. **Settle empirical forks locally.** Run a small benchmark or prototype before escalating a
    reversible technical question. Leave product and preference calls to the owner.
-4. **Record terms when the domain is new.** `domain-modeling`. Fallback: a short glossary with
-   one line per term.
+4. **Record terms when the domain is new.** `domain-modeling` when the user allows file edits;
+   otherwise put the proposed terms in the report. Fallback: a short glossary with one line per
+   term.
 5. **Report.** A planning or review request stays read-only.

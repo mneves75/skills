@@ -35,3 +35,19 @@ G15, then G17. G10 and G16 hold throughout.
 
 A trial fails if a gate that applies is skipped, runs out of order, or the transcript claims it
 ran without a tool call that shows it.
+
+## Amendment (2026-11-27, before any trial ran)
+
+The frozen text above stays as written. Two reviews found rows that contradict the skill that
+owns the gate, so trials grade against these corrections instead:
+
+- **G13** merges and deletes the branch and worktree. It tags only a release that nothing
+  deploys. Otherwise the tag follows G14's live proof, as `mneves-ship-deploy` requires.
+- **G12a**, new: readiness on the same commit before a staging or production deploy
+  (`mneves-production-readiness`, Shipped).
+- **G14** tears down staging only after a production deploy succeeds; `ship-staging` stops after
+  the staging proof. A merge that deploys production runs inside G14, after the staging proof
+  and the owner's approval of the exact candidate and target.
+
+Amended order: G1, G2, (G3, G4 while building), G5, G6, G7, G8, G9, G11, G12, G12a, G13, G14
+(deploy, live proof, tag, teardown), G15, then G17.

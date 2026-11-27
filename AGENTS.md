@@ -76,6 +76,7 @@ python3 tools/scripts/check-catalog-hygiene.py   # root-skill doc/routing covera
 python3 tools/scripts/check-catalog-hygiene.test.py  # planted-violation controls for the catalog hygiene guard
 python3 tools/scripts/catalog-eval.py check   # 25-case routing confusion-matrix cases valid against skills/ (no model call)
 python3 tools/scripts/catalog-eval.py check --include-pstack --cases tools/catalog-eval/cases-hard.json  # 13-case 66-skill hard routing check
+python3 tools/scripts/catalog-eval.py check --include-pstack --cases tools/catalog-eval/cases-router.json  # 68 frozen mneves-mode router cases valid (no model call)
 python3 tools/scripts/catalog-eval.test.py    # catalog-eval checks and `run` against fake claude/codex (no quota)
 python3 tools/scripts/baseline-delta-eval.py check  # 6-case blinded zero-skill baseline-delta cases valid (no model call)
 python3 tools/scripts/baseline-delta-eval.test.py   # baseline-delta unblinding tests against fake CLIs (no quota)

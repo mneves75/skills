@@ -16,5 +16,6 @@ Match the PR's situation. Do not stack workflows that overlap.
   local paths, stating the goal, the verified facts and the open questions.
 - **Unattended change to a ready PR:** `full-stop`, only when the user typed it.
 
-Every PR workflow ends at the merge gate. Never merge, force-push shared history or change
-auto-merge settings without the user's explicit authorization.
+Every PR workflow ends at the merge gate. Before pushing a follow-up fix, check the PR's
+auto-merge and merge-queue state, and stop if the push could merge it. Never merge, force-push
+shared history or change auto-merge settings without the user's explicit authorization.

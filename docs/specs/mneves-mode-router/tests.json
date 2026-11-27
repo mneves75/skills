@@ -19,7 +19,7 @@
   {
    "name": "frozen router cases",
    "status": "PASS",
-   "evidence": "tools/catalog-eval/cases-router.json sha256 a74066eb…; gate-checklist.md sha256 0d957ed7…; both frozen before any v3 text; 68 cases, blind second labeller, top-pick agreement 67/68, 0 conflicts"
+   "evidence": "tools/catalog-eval/cases-router.json sha256 a74066eb…; gate-checklist.md sha256 0d957ed7…; both frozen before any v3 text; 68 cases, blind second labeller, top-pick agreement 67/68, 0 conflicts; gate-checklist amended 2026-11-27 before any trial (dated section, frozen rows unchanged): tag after live proof, readiness gate G12a, staging teardown after production only; amended sha256 79e98d6c…"
   },
   {
    "name": "Stage 1 selection eval (A0 vs A2)",
@@ -33,7 +33,7 @@
   {
    "name": "hygiene rot guard + planted controls",
    "status": "PASS",
-   "evidence": "check-catalog-hygiene.test.py test_router_rot_guard: 6 subtests (valid, unknown token, row without fallback, oversize body, oversize playbook, oversize total) pass; lifting ROUTER_MAX_PLAYBOOK_BYTES or ROUTER_MAX_TOTAL_BYTES makes its control fail; real tree: catalog-hygiene OK, 0 errors"
+   "evidence": "check-catalog-hygiene.test.py test_router_rot_guard: 15 subtests pass (valid incl. every code-span form of known names, unknown token, padded span, /name, $name, name/SKILL.md, trailing period, row without fallback, placeholder source, pstack skill, pstack dir without SKILL.md, openai.yaml ghost, oversize body/playbook/total); the 8 new controls fail against the previous checker; real tree: catalog-hygiene OK, 0 errors"
   },
   {
    "name": "skill dispositions (66 skills)",

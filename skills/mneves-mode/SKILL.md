@@ -16,9 +16,9 @@ mode adds the order of phases and the gates between them.
   read-only, and a mandatory gate stays closed until it passes or the authority its rule names
   waives it.
 - **Explicit-only skills stay explicit.** Never start one yourself: `full-stop`, `poteto-mode`,
-  `thermos`, `thermo-nuclear-review`, `thermo-nuclear-code-quality-review`, `reframe`,
-  `automate-me`, or a deploy through `mneves-ship-deploy`. Name it and let the user type it.
-  Plain "ship" never deploys.
+  `statechart`, `thermos`, `thermo-nuclear-review`, `reframe`, `automate-me`, any skill whose own
+  description says it runs only by name, or a deploy through `mneves-ship-deploy`. Name it and
+  let the user type it. Plain "ship" never deploys.
 - **Host overlays.** The user's own instructions may name an overlay that adds skills, gates or
   ordering for their machine. An overlay can add or tighten a gate, never relax one.
 
@@ -33,8 +33,8 @@ Before touching files or picking a skill:
    - **Standard:** reversible work inside the repository.
    - **Risky:** a release or deploy, security or privacy, permissions or secrets, production or
      client data, money, legal terms, or a contested result.
-4. In a repository, fetch the remote first. Reconcile the working branch with its upstream before
-   editing, and never stash, reset or switch someone else's uncommitted work to do it.
+4. Before editing in a repository, fetch the remote and reconcile the working branch with its
+   upstream. Never stash, reset or switch someone else's uncommitted work to do it.
 
 ## 3. Pick skills from the live catalog
 
@@ -73,22 +73,27 @@ when it does not apply to the task; say which ones you skipped and why.
 2. **Frame:** goal, smallest verifiable change, risk tier.
 3. **Test first:** behavior changes get a failing test before the fix (`tdd`).
 4. **Improvement survey:** only when the user asks for one (`improve`).
-5. **Standards and spec review** of the diff (`code-review`, else `autoreview`).
+5. **Standards and spec review** of the diff (`code-review`, else `autoreview`). Commit on the
+   working branch first: `code-review` reads committed history only.
 6. **Source security audit:** only when the user asks for one. Use `security-audit` for the audit
    and `mneves-security` for the fixes.
 7. **Independent verification** in a fresh context (`mneves-verify`). Fix what it finds and run
    it again until it passes.
-8. **Release record:** version, changelog and docs updated, committed and pushed on a working
-   branch.
+8. **Release record:** version, changelog and docs updated and committed on a working branch.
+   Check which pushes, merges and tags trigger a deploy; push now only if the push deploys
+   nothing.
 9. **Pre-deploy security verdict** on the exact commit (`mneves-security`), before any deploying
-   push, merge or tag.
+   push, merge or tag. It binds to the audited tree, so a merge that lands a different tree
+   needs a new verdict before it deploys.
 10. **Readiness** on the same commit before a staging or production deploy
     (`mneves-production-readiness`).
-11. **Merge:** only with the user's authorization in this request. Then delete the branch and
-    the worktree the task created. Tag here only when no deploy follows.
+11. **Merge:** only with the user's authorization in this request. A merge that deploys
+    production belongs to step 12: it waits for the staging proof and the owner's approval of the
+    exact candidate and target. Then delete the branch and the worktree the task created. Tag
+    here only when no deploy follows.
 12. **Deploy:** only on an explicit `ship-staging` or `ship-prod` (`mneves-ship-deploy`). It
-    proves the release live, then tags it, then tears down the staging resources the task
-    started.
+    proves the release live, then tags it. After production succeeds, it tears down the staging
+    resources the task started; `ship-staging` stops after the staging proof.
 13. **Cleanup:** remove the scratch files, worktrees and caches the task created. List what is
     left with its exact removal command.
 14. **Report** (section 7).
