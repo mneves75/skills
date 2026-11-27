@@ -23,7 +23,7 @@ note outside this repository; only totals appear here.
   router came from editing them in this repository, except one installed-path `poteto-mode`
   read, also inside a session on this repository.
 - **What directs skills today.** It is a pasted standing prompt, repeated across sessions. It
-  names `improve`, Pocock's `code-review`, `tdd` with a complexity floor, `mneves-prune-tests`,
+  names `improve`, Pocock's `code-review`, `tdd` with a complexity floor, a private test-pruning skill,
   `mneves-verify` to 100%, `mneves-security` and `mneves-ship-deploy`.
 - **Wrong-pick corrections.** None found ("no, use X"). The mining script was not validated on a
   planted positive, so this is absence of evidence only.

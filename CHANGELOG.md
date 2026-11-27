@@ -31,9 +31,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   or without arguments), a `plugin:name`, or a path into a skill (`skills/name/...`,
   `name/SKILL.md`, `name/references/...`, `name/`), across a line break and with surrounding
   quotes or punctuation. It also fails on a sibling row without a source or with a placeholder
-  fallback, and on the size caps (the 30 KB cap counts every file in the skill). Fenced and
-  indented code blocks and HTML `<code>` are not scanned. Span boundaries match CommonMark on
-  single lines (a differential fuzz against pandoc's reader: 0 mismatches in 40,000 lines).
+  fallback, and on the size caps (the 30 KB cap counts every file in the skill). Code blocks
+  and HTML `<code>` are not parsed as code: a name in them is checked only where backticks
+  around it form a span, so a bare name in a tilde-fenced or indented block, or in `<code>`,
+  is not caught. Span boundaries match CommonMark on single lines (a differential fuzz against
+  pandoc's reader: 0 mismatches in 40,000 lines).
 - **catalog-eval:** `--catalog-extra` and `--name-only`, and an `external` list in a cases file
   for skills outside the catalog, used by the 68 frozen router cases in
   `tools/catalog-eval/cases-router.json` (CI checks them without a model call).

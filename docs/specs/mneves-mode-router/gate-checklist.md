@@ -19,7 +19,7 @@ Each gate sits in one bin:
 | G5 | Survey for improvements and fix what is in scope | Sibling | `improve` (shadcn); fallback: main-session survey | when the owner names it |
 | G6 | Standards and spec review of the diff | Sibling | `code-review` (Pocock); fallback `autoreview` | code changes |
 | G7 | Full source security audit and fixes | Shipped | `security-audit`, then `mneves-security` for fixes | when the owner names it |
-| G8 | Trim tests that guard no behavior | Overlay | `mneves-prune-tests` (not shipped here) | after implementing and testing |
+| G8 | Trim tests that guard no behavior | Overlay | owner test-pruning skill (not shipped here) | after implementing and testing |
 | G9 | Independent verification until it passes | Shipped | `mneves-verify` | after G8 |
 | G10 | Track status in `tests.json` and progress in `progress.md`; `init.sh` if needed | Overlay | rule | long tasks |
 | G11 | Version bump, changelog and docs, commit, push | Shipped | rule | release |

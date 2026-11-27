@@ -7,7 +7,7 @@
   "diagnosing-bugs",
   "grilling",
   "domain-modeling",
-  "mneves-prune-tests"
+  "prune-tests"
  ],
  "cases": [
   {
@@ -645,7 +645,7 @@
    "cluster": "test-first",
    "prompt": "Our suite has a lot of tests that check nothing real. Trim them, with evidence for each one.",
    "expected": [
-    "mneves-prune-tests"
+    "prune-tests"
    ],
    "forbidden": [
     "deslop"
