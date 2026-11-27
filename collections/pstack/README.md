@@ -17,7 +17,7 @@ the agent (see [Support by agent](#support-by-agent)).
 The sync refuses a port whose upstream pins have fallen behind the official commit:
 [`UPSTREAM`](UPSTREAM) records each port component (`pstack` at `ca782ed`, `cursor-team-kit`,
 `thermos`) as identical, on the paths the port takes, to that official commit. On top of the
-port, the sync applies the fourteen patches in [`adaptations/`](adaptations/), in name order; each
+port, the sync applies the fifteen patches in [`adaptations/`](adaptations/), in name order; each
 patch opens with what it changes and where it came from (including preserving GitHub app/workflow
 identity in REST `watch-pr/cloud-reader.ts` deduplication). Upstream `0.9.153` also retired
 `poteto-mode/scripts/check-plan.mjs` when simplifying `multi-phase-plan.md` to prose. `UPSTREAM`

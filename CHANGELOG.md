@@ -8,7 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- **pstack adaptation 15:** `poteto-mode` skips, and names, a route whose bundled skill a trimmed
+- **pstack `how`:** adaptation 15 names the Claude Code equivalent of `readonly: true`, the
+  read-only `Explore` agent; Claude Code's `Agent` tool has no `readonly` parameter, so the
+  `general-purpose` agent upstream named kept write access. Other hosts keep their mappings.
+- **pstack adaptation 16:** `poteto-mode` skips, and names, a route whose bundled skill a trimmed
   install does not carry instead of improvising it; `reflect` runs its transcript finder from its
   own `scripts/` folder, where a standalone skill install puts it, not from a plugin root.
 
