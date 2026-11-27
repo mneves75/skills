@@ -111,6 +111,17 @@ amendment in [gate-checklist.md](gate-checklist.md).
   These are recorded as failures, not re-graded. A release trial that can execute git needs a
   harness with git in the sandbox, or the `claude -p` fixture fallback.
 
+## Independent verification (2026-11-27)
+
+- **Verifier:** gpt-6.2-astra at high effort, a fresh context per round, run on an archive of
+  the exact commit against the plan's 11 frozen criteria.
+- **Rounds 1-4 failed.** They found:
+  - a private skill name in the shipped cases and specs, now renamed;
+  - CHANGELOG claims that overstated what the rot guard skips and which fixes this release made, now corrected;
+  - a hygiene test that needs the locked `marked` devDependency. It fails the same way on `origin/main` and passes after `bun install`, as CI runs it.
+- **Round 5, at `aa2032f`:** PASS on all 11 criteria. The Ubuntu CI steps passed on the same head.
+- **Still unproven:** end-to-end release execution. The native release trial could not run git.
+
 ## Run notes
 
 - Skill dispositions, one row per shipped skill: [skill-dispositions.md](skill-dispositions.md).

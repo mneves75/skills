@@ -53,7 +53,8 @@
   },
   {
    "name": "mneves-verify",
-   "status": "PENDING"
+   "status": "PASS",
+   "evidence": "gpt-6.2-astra high via codex-auto, fresh context, 11 frozen criteria from the plan, run on git archive of aa2032f: PASS 11/11. Rounds 1-4 (be4ca5a, 7aeda30, dd04232, 77029fb) failed on a private skill name in shipped cases and specs, inaccurate CHANGELOG claims (code-block scanning, disposition attribution) and an archive without the locked marked dependency (also fails on origin/main; passes after bun install as CI runs it); each fixed or disproved, and @mneves75 in the ledger was accepted as the required public waiver owner. Ubuntu CI steps passed on aa2032f."
   }
  ]
 }
