@@ -1,9 +1,11 @@
 ---
 name: poteto-mode
-description: "Use the Pstack playbooks when the user requests poteto mode or its engineering workflow style."
+description: "Use the pstack engineering workflow playbooks when the user types /poteto-mode or asks for poteto mode."
 ---
 
 # Poteto mode
+
+When another operator mode is active (for example, mneves-mode), that mode selects the skills, gates and playbook. Use a poteto playbook only for a step that mode's playbook does not cover. When both modes set a gate, apply the stricter one.
 
 Bundled skills live at `../<name>/SKILL.md` from this file, so put this file's absolute path in every `poteto-agent` prompt.
 
@@ -106,4 +108,4 @@ Role defaults, stamped from `plugins/pstack/models.json` (edit there, rerun `too
 
 ## Reasoning effort
 
-A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. A value without `@` that resolves to an Opus model runs at `medium`, whatever that line or a platform mapping says. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
+A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. A value without `@` that resolves to an Opus model runs at `medium`, whatever that line or a platform mapping says. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Codex, pass `model` and `reasoning_effort` only as the platform mapping's schema check allows. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.

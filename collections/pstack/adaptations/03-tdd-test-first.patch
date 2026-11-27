@@ -6,6 +6,8 @@ config, and names the check it used when no cheap test exists.
 Fork source: https://github.com/mneves75/pstack-claude commits d13480d.
 Applies to the port's plugins/pstack/skills tree after the patches numbered before it.
 
+Rebased to port commit 1ab6b82.
+
 diff --git a/tdd/SKILL.md b/tdd/SKILL.md
 index 67d9189..b285cd9 100644
 --- a/tdd/SKILL.md

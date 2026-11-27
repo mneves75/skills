@@ -1,14 +1,16 @@
 Adaptation 12-upstream-reframe-and-hygiene
 
 Added here, not in the fork:
-- Imports upstream `/reframe` from cursor/plugins@9e278fe (pstack 0.15.48, not yet mirrored in
-  pstack-claude 0.9.153) as an explicit-only skill and adds its row in poteto-help.
+- Keeps explicit-only invocation for `/reframe`, originally imported from cursor/plugins@9e278fe
+  (pstack 0.15.48). The port now supplies the skill body and poteto-help row.
 - Removes the two mentions of excluded `poteto-mode/references/dsh-tools.md` (DeepSeek disabled).
 - Tightens `typescript-best-practices` and `how` descriptions to prevent false triggers on trivial
   copy edits and general conceptual explanations.
 - Aligns `poteto-mode/worker.md` with adaptation 01's local-only autonomy boundary.
 
 Applies to the port's plugins/pstack/skills tree after the patches numbered before it.
+
+Rebased to port commit 1ab6b82.
 
 diff --git a/how/SKILL.md b/how/SKILL.md
 index 5a5a90d..d02faee 100644
@@ -22,20 +24,8 @@ index 5a5a90d..d02faee 100644
  ---
  
  # How
-diff --git a/poteto-help/SKILL.md b/poteto-help/SKILL.md
-index 7d29801..de847ff 100644
---- a/poteto-help/SKILL.md
-+++ b/poteto-help/SKILL.md
-@@ -57,6 +57,7 @@ The default answer is `/poteto-mode`, which runs most of the others when its ste
- | Do any non-trivial task with rigor | [`/poteto-mode`](../poteto-mode/SKILL.md) |
- | Check that the agent understood their goal and the problem before it starts | [`/in-your-own-words`](../in-your-own-words/SKILL.md) |
- | Get a prompt rewritten deeper, not bigger, before sending it: what a top professional would add, their raw material and methods, and an outside check. It returns the prompt and doesn't do the task | [`/sharpen`](../sharpen/SKILL.md) |
-+| Learn the expert terms for what they are building, borrow terms from neighboring fields, and rewrite their description | [`/reframe`](../reframe/SKILL.md) |
- | Know how code works now, or where new code should live | [`/how`](../how/SKILL.md) |
- | Know why code is shaped this way, or where a number came from | [`/why`](../why/SKILL.md) |
- | Understand a change or subsystem, explained plainly | [`/teach`](../teach/SKILL.md) |
 diff --git a/poteto-mode/SKILL.md b/poteto-mode/SKILL.md
-index 5a6d37a..743b097 100644
+index fcc723e..37f3829 100644
 --- a/poteto-mode/SKILL.md
 +++ b/poteto-mode/SKILL.md
 @@ -9,7 +9,7 @@ Bundled skills live at `../<name>/SKILL.md` from this file, so put this file's a
@@ -63,27 +53,18 @@ index 213fd63..f108c3e 100644
  - PR body: 40 lines at most, with these `##` headings in this order, empty ones dropped: `Why`, `What changed`, `Scope`, `Tradeoffs`, `Blast Radius`, `Verification`.
  - Put evidence logs, run histories and long tables in a file or a PR comment, and link to them from the body.
 diff --git a/reframe/SKILL.md b/reframe/SKILL.md
-new file mode 100644
-index 0000000..5e9e04c
---- /dev/null
+index 1b93550..5e9e04c 100644
+--- a/reframe/SKILL.md
 +++ b/reframe/SKILL.md
-@@ -0,0 +1,16 @@
-+---
-+name: reframe
+@@ -1,6 +1,7 @@
+ ---
+ name: reframe
+-description: "Teach the expert words for what the operator is building, borrow words from neighboring fields that solved the same problem, then rewrite their description with them. Use for /reframe."
 +description: "Teach the expert words for what the operator is building, borrow words from neighboring fields that solved the same problem, then rewrite their description with them. Use for /reframe. Run only when invoked by name."
 +disable-model-invocation: true
-+---
-+
-+Teach the operator the expert words for what they are building. Start from their own files, code and description, not a summary.
-+
-+If their description could name more than one problem, first list the two or three problems it could be, each with the one term that names it and the sign that would tell it apart from the others. Then teach the words for the most likely one and say why you picked it.
-+
-+1. Give 8 to 12 terms, ranked by how much each would change what gets built. For each, give the word and its meaning in one plain sentence, the part of their description it names, one real project, paper or system that uses it that way, with a link, and what it lets them ask an agent for.
-+2. Pick 2 or 3 neighboring fields that solved the same shape of problem under other names. For each, say what carries over, where the analogy breaks, and which terms come back.
-+3. Name what they didn't mention but should care about.
-+4. Rewrite their description with the new words.
-+
-+Open every link and confirm it uses the term that way. Cut any citation you can't confirm. No padding.
+ ---
+ 
+ Teach the operator the expert words for what they are building. Start from their own files, code and description, not a summary.
 diff --git a/setup-pstack/references/runtimes.md b/setup-pstack/references/runtimes.md
 index b566fbf..fc93048 100644
 --- a/setup-pstack/references/runtimes.md
@@ -97,7 +78,7 @@ index b566fbf..fc93048 100644
  | Prime Agent | no documented sheet path; Prime's configuration chooses models | | | no live session |
  
 diff --git a/typescript-best-practices/SKILL.md b/typescript-best-practices/SKILL.md
-index 74ac011..e6fc39e 100644
+index 28f9215..11115de 100644
 --- a/typescript-best-practices/SKILL.md
 +++ b/typescript-best-practices/SKILL.md
 @@ -1,6 +1,6 @@

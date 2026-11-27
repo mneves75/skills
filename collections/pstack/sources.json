@@ -1,7 +1,7 @@
 {
   "port": {
     "url": "https://github.com/michael-denyer/pstack-claude",
-    "commit": "66181d3c70fb605a670578a1b46c23ff0f3caebb",
+    "commit": "1ab6b82cbacb04897094e1a3870357882e1e616d",
     "skills": "plugins/pstack/skills",
     "manifest": "plugins/pstack/.claude-plugin/plugin.json",
     "pins": "tools/upstream.json",
@@ -9,11 +9,35 @@
   },
   "official": {
     "url": "https://github.com/cursor/plugins",
-    "commit": "0b46ec399d55f2829e88822998f53b84944837d3"
+    "commit": "b7b93c36be9bcc36a74db438e0fd385d660bc559"
   },
   "exclude": {
     "statechart/scripts/test": "upstream's 3.7 MB compiler test corpus; the runner does not read it, and the tests run upstream",
-    "poteto-mode/references/dsh-tools.md": "DeepSeek Harness mapping excluded per owner directive disabling DeepSeek across all skills"
+    "poteto-mode/references/dsh-tools.md": "DeepSeek Harness mapping excluded per owner directive disabling DeepSeek across all skills",
+    "principle-attack-the-premise": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-boundary-discipline": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-build-the-lever": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-encode-lessons-in-structure": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-exhaust-the-design-space": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-experience-first": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-explain-the-number": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-fix-root-causes": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-foundational-thinking": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-guard-the-context-window": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-laziness-protocol": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-make-operations-idempotent": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-migrate-callers-then-delete-legacy-apis": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-minimize-reader-load": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-model-the-domain": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-never-block-on-the-human": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-outcome-oriented-execution": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-prove-it-works": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-redesign-from-first-principles": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-separate-before-serializing-shared-state": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-sequence-verifiable-units": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-subtract-before-you-add": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-test-behavior-not-implementation": "retired skill; guidance consolidated by 02-principle-consolidation.patch",
+    "principle-type-system-discipline": "retired skill; guidance consolidated by 02-principle-consolidation.patch"
   },
   "retired": {
     "principle-*": "consolidated into poteto-mode/references/engineering-*.md by 02-principle-consolidation.patch",
