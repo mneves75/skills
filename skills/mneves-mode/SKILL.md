@@ -89,8 +89,12 @@ when it does not apply to the task; say which ones you skipped and why.
     (`mneves-production-readiness`).
 11. **Merge:** only with the user's authorization in this request. A merge that deploys
     production belongs to step 12: it waits for the staging proof and the owner's approval of the
-    exact candidate and target. Then delete the branch and the worktree the task created. Tag
-    here only when no deploy follows.
+    exact candidate and target. Then remove the worktree and the local branch the task created
+    (`git branch -d`, never `-D`). Delete the remote branch only when this session opened the PR
+    from a branch it created, the PR is not from a fork and no open PR uses the branch as its base:
+    `git push --force-with-lease=refs/heads/<branch>:<merged head SHA> origin --delete <branch>`.
+    If the push is refused or any condition fails, keep the branch and report it. Tag here only
+    when no deploy follows.
 12. **Deploy:** only on an explicit `ship-staging` or `ship-prod` (`mneves-ship-deploy`). It
     proves the release live, then applies that target's tag (beta for staging, `vX.Y.Z` for
     production). After production succeeds, it tears down the staging resources the task
