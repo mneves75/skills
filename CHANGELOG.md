@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the new `agents/openai.yaml`) never reach the tree. The `setup-pstack` effort examples become
   model-neutral (`model-id @xhigh`). Upstream `watch-pr` now stops with a merge conflict, instead
   of retrying, when the head is marked conflicting and no checks were reported.
+- **mneves-fable-orchestrator:** every id in the Defaults block re-verified against the
+  vendors' current model lists on 2026-11-27; no id changed.
 
 ### Added
 - **`poteto-mode` routing (adaptation `14`):** an explicit-trigger description, Codex
