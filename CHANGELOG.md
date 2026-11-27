@@ -8,9 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
-- **pstack `how`:** adaptation 15 runs the explanation in the read-only `Explore` agent; the
-  upstream `readonly: true` is not an Agent tool parameter in Claude Code, so the
-  `general-purpose` agent it named kept write access.
+- **pstack `how`:** adaptation 15 names the Claude Code equivalent of `readonly: true`, the
+  read-only `Explore` agent; Claude Code's `Agent` tool has no `readonly` parameter, so the
+  `general-purpose` agent upstream named kept write access. Other hosts keep their mappings.
 
 ## [2.2.0] - 2026-11-27
 
