@@ -79,6 +79,13 @@ checked against the files before it was fixed.
 - **PR follow-ups.** The check of auto-merge and merge-queue state before a push is restored. 2.0.0 had it; v3 dropped it.
 - **Rot guard.** It now reads every code-span form (padded, `/name`, `$name`, `name/SKILL.md`, trailing punctuation) and `agents/openai.yaml`. pstack names need a `SKILL.md`, and sibling sources must be `owner/repo` or an https URL. Each change has a planted control, and each control fails against the earlier checker.
 - **Gate checklist.** Amended with a dated section before any trial ran; the frozen rows are unchanged.
+- **Follow-up rounds.** Three cross-model passes over the fix commits found 4, 2 and 2 more:
+  - a `ship-staging` tag gap: each target's tag is now named;
+  - code-span edge cases: escaped backticks, backslashes inside spans, a span right after an escape;
+  - source-slug edge cases: relative paths, `owner/.repo`, dot-only repo names.
+
+  The scanner is now one CommonMark-style pass. A differential fuzz against pandoc's CommonMark reader (40,000 random lines) found 0 mismatches; the scanner before it had 48 in 5,000.
+- **Audit playbook.** Branch standards-and-spec reviews now route to `code-review` first, matching G6 and the frozen case.
 
 ## Run notes
 
