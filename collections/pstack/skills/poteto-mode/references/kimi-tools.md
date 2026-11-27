@@ -25,7 +25,7 @@ Kimi's `AgentSwarm` runs only while the user has enabled swarm mode. When it is 
 
 The plugin contributes routing instructions to the system prompt while enabled. A custom agent prompt must include `${plugin_sections}` or the effective default prompt to receive them. Disable the plugin with `/plugins disable pstack` to stop both routing and its skills, then reload or start a new session. Unlike pstack's shell hooks, this static contribution does not read the `session hook` setting. A resumed session can retain its previous prompt until Kimi rebuilds it.
 
-Kimi does not load Claude Code plugin agent definitions through this package. Kimi's skill parser does not document Claude Code's `user-invocable` flag, so principle skills may appear in its picker; this has not been tested in a session. These limitations and any unverified tool behavior must be reported rather than treated as equivalent to Claude Code.
+Kimi does not load Claude Code plugin agent definitions through this package. These limitations and any unverified tool behavior must be reported rather than treated as equivalent to Claude Code.
 
 ## Model names
 

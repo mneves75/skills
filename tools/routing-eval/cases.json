@@ -13,7 +13,8 @@
   "10: 1.51.2 changes no routing text; only the Defaults block's verified-on date moves, so every case runs again on the candidate. O14 is no longer marked changed: 1.51.1 already sets its expectation, so the 1.51.1 baseline must pass it. No expectation changed.",
   "11: 1.51.5 folds in the unreleased 1.51.4 (whose routing values equal 1.51.3's) and moves every Codex Sol route to gpt-6.2-sol at high and the Codex planner and plan advisor to gpt-6.2-astra at high (owner, 2026-11-17); Pi rows keep the 6.1 ids because Pi lists no 6.2 model. Changed against the 1.51.3 baseline (9d90d4a): O4 and O8 (gpt-6.2-sol, high), P19 (gpt-6.2-sol at high, no longer clarified: adaptation 08 now says the Codex mapping's level takes the place of the sheet's default effort line) and new O15 (the Codex plan advisor, gpt-6.2-astra at high). The orchestrator anchors follow the edited Defaults rows, and O3's scenario names the builder as gpt-6.2-sol (wording only; O3 stays unchanged); every other expectation is unchanged. The Codex consumer moves to gpt-6.2-sol at high, so the baseline run uses that consumer too.",
   "12: 1.52.1 moves the economy executor to opencode-go/glm-5.3 at reasoning high and adds an economy fallback row, opencode-go/deepseek-v4.1-flash at reasoning high, the last resort: only when the economy executor's model cannot run and no other authorized seat for the role can (owner, 2026-11-20). Changed against the 1.52.0 baseline (633a2b3): O13 (glm-5.3-flash, high) and new O19 (the economy fallback, deepseek-v4.1-flash at high). O8, O14 and O17 are no longer marked changed: 1.52.0 already sets their expectations (it added O16-O18 and changed O8, O14 and O17 without a revision line), so the 1.52.0 baseline must pass them. The O13 anchor follows the edited Defaults row; every other expectation is unchanged.",
-  "13: v2.0.0 disables DeepSeek and removes the economy fallback row (owner, 2026-11-23), and refreshes collections/pstack to pstack 0.15.46 / pstack-claude 0.9.153. O13 still expects opencode-go/glm-5.3 at high (unchanged against 1.52.2; anchor follows the edited Defaults row) and O19 now expects none/none (changed against 1.52.2: the skill reports the seat blocked instead of falling back to DeepSeek). P6 is marked changed against 1.52.2 because upstream pi-tools.md now prefers openai/gpt-6.2-sol over openai/gpt-6.1-sol when present in Pi's model registry (effort remains xhigh). Dropped P12 (architect), P13 (how), P16 (reflect) and P18 (why) because upstream simplified those four skills to single-file workflows with no Models/Reasoning effort sections, and updated P8/P9 pi-tools.md panel anchors to (`arena`, `interrogate`)."
+  "13: v2.0.0 disables DeepSeek and removes the economy fallback row (owner, 2026-11-23), and refreshes collections/pstack to pstack 0.15.46 / pstack-claude 0.9.153. O13 still expects opencode-go/glm-5.3 at high (unchanged against 1.52.2; anchor follows the edited Defaults row) and O19 now expects none/none (changed against 1.52.2: the skill reports the seat blocked instead of falling back to DeepSeek). P6 is marked changed against 1.52.2 because upstream pi-tools.md now prefers openai/gpt-6.2-sol over openai/gpt-6.1-sol when present in Pi's model registry (effort remains xhigh). Dropped P12 (architect), P13 (how), P16 (reflect) and P18 (why) because upstream simplified those four skills to single-file workflows with no Models/Reasoning effort sections, and updated P8/P9 pi-tools.md panel anchors to (`arena`, `interrogate`).",
+  "14: 2.1.0 re-pins collections/pstack to pstack-claude 1ab6b82 / cursor/plugins b7b93c3. pi-tools.md now sends `fable` on the two OpenAI providers to the strongest model (gpt-6.2-astra when the session's registry has it, the table's openai/gpt-6-astra otherwise) instead of the Codex default. New P20 is changed against the 2.0.0 baseline (ce8a4d6): openai/gpt-6.2-astra at xhigh, where 2.0.0 gave openai/gpt-6.2-sol. P6 and O19 are no longer marked changed: 2.0.0 already sets their expectations. The P6/P7 registry anchors and the P8 fable-row anchor follow the edited text; every other expectation is unchanged."
  ],
  "purpose": "Expected-outcome eval of the routing text: does an agent reading the shipped skill text dispatch the expected model and reasoning effort for each seat? Expectations come from the owner's rules and the orchestrator's Defaults block, frozen before any run.",
  "threshold": "Candidate: every sample of every case passes on both consumers. Baseline control (the previous release's text, run with --baseline): every case marked changed fails on every sample, and every unchanged case passes, and no sample errors; a changed case that passes on the baseline does not discriminate: the control fails until the case is replaced or no longer marked changed. A case marked changed \"clarified\" had its source reworded to remove an ambiguity without changing its expected answer: a candidate run judges it like any case, and a baseline run records its counts in clarified_on_baseline and fails it only on an errored sample. Only a full run (every case on both consumers) can meet either threshold.",
@@ -272,7 +273,7 @@
     "collections/pstack/skills/poteto-mode/SKILL.md",
     "collections/pstack/skills/poteto-mode/references/pi-tools.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Runtime: Pi, and the session's current model comes from the `openai` provider with `gpt-6.2-sol` present in the session's model registry; the Pi platform mapping in pi-tools.md applies. The pstack override sheet contains exactly these role lines: `thermos reviewers: opus` and `default effort: xhigh`. You dispatch one thermos reviewer. Treat this job as needing no per-job raise or lower of the reasoning level. Report in `model` the provider/id the child actually runs on, and the `effort` it runs at (`none` if none is passed).",
    "expected": {
     "model": [
@@ -340,6 +341,25 @@
     ]
    },
    "known_failure": "Opus 5.5 at xhigh because Pi's panel line or the sheet's default wins over the Opus rule."
+  },
+  {
+   "id": "P20-pi-openai-fable-alias",
+   "sources": [
+    "collections/pstack/skills/arena/SKILL.md",
+    "collections/pstack/skills/poteto-mode/SKILL.md",
+    "collections/pstack/skills/poteto-mode/references/pi-tools.md"
+   ],
+   "changed": true,
+   "scenario": "Runtime: Pi, and the session's current model comes from the `openai` provider with both `gpt-6.2-sol` and `gpt-6.2-astra` present in the session's model registry; the Pi platform mapping in pi-tools.md applies. The pstack override sheet contains exactly these role lines: `arena runners: opus, fable` and `default effort: xhigh`. Treat this job as needing no per-job raise or lower of the reasoning level. Report in `model` the provider/id the runner from the `fable` entry actually runs on, and the `effort` it runs at (`none` if none is passed).",
+   "expected": {
+    "model": [
+     "openai/gpt-6.2-astra"
+    ],
+    "effort": [
+     "xhigh"
+    ]
+   },
+   "known_failure": "openai/gpt-6.2-sol (the 2.0.0 mapping, which sent `fable` to the Codex default), or medium leaking onto the `fable` entry."
   },
   {
    "id": "P10-opus-hardest-job",
@@ -645,7 +665,7 @@
    "sources": [
     "skills/mneves-fable-orchestrator/SKILL.md"
    ],
-   "changed": true,
+   "changed": false,
    "scenario": "Following this skill, you hand a bounded, test-first ticket to the seat that runs on pi. Its provider refuses that seat's model with a model-not-available error while its other models still answer, and no Claude, Codex or coding fallback seat for the role can run. Report the exact model id the text names to take the ticket in that case (`none` if it names none) and the reasoning effort it sets for it (`none` if it names none). `how` is dispatch-parameter.",
    "expected": {
     "model": [
@@ -824,7 +844,7 @@
    },
    {
     "path": "collections/pstack/skills/poteto-mode/references/pi-tools.md",
-    "text": "On the two OpenAI providers, Pi first looks for the Codex default (`gpt-6.2-sol` for `opus` and `fable`) in the session's model registry. When that model is absent, Pi uses the ID in the table."
+    "text": "On the two OpenAI providers, Pi first looks for the Codex default (`gpt-6.2-sol` for `opus`) or strongest model (`gpt-6.2-astra` for `fable`) in the session's model registry. When that model is absent, Pi uses the ID in the table."
    },
    {
     "path": "collections/pstack/skills/poteto-mode/references/pi-tools.md",
@@ -850,7 +870,7 @@
    },
    {
     "path": "collections/pstack/skills/poteto-mode/references/pi-tools.md",
-    "text": "On the two OpenAI providers, Pi first looks for the Codex default (`gpt-6.2-sol` for `opus` and `fable`) in the session's model registry. When that model is absent, Pi uses the ID in the table."
+    "text": "On the two OpenAI providers, Pi first looks for the Codex default (`gpt-6.2-sol` for `opus`) or strongest model (`gpt-6.2-astra` for `fable`) in the session's model registry. When that model is absent, Pi uses the ID in the table."
    },
    {
     "path": "collections/pstack/skills/poteto-mode/references/pi-tools.md",
@@ -872,7 +892,7 @@
    },
    {
     "path": "collections/pstack/skills/poteto-mode/references/pi-tools.md",
-    "text": "| `fable` | `anthropic/claude-fable-5-2` | `openai/gpt-6.1-sol` | `openai-codex/gpt-6.1-sol` |"
+    "text": "| `fable` | `anthropic/claude-fable-5-2` | `openai/gpt-6-astra` | `openai-codex/gpt-6-astra` |"
    },
    {
     "path": "collections/pstack/skills/poteto-mode/references/pi-tools.md",
@@ -1113,6 +1133,32 @@
    {
     "path": "skills/mneves-fable-orchestrator/SKILL.md",
     "text": "If its model cannot run and no other authorized seat for the role can,\nreport the seat blocked."
+   }
+  ],
+  "P20-pi-openai-fable-alias": [
+   {
+    "path": "collections/pstack/skills/arena/SKILL.md",
+    "text": "A value without `@` that resolves to an Opus model runs at `medium`, whatever that line or a platform mapping says."
+   },
+   {
+    "path": "collections/pstack/skills/arena/SKILL.md",
+    "text": "- arena runners: `opus`, `fable`"
+   },
+   {
+    "path": "collections/pstack/skills/poteto-mode/SKILL.md",
+    "text": "A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line."
+   },
+   {
+    "path": "collections/pstack/skills/poteto-mode/references/pi-tools.md",
+    "text": "| `fable` | `anthropic/claude-fable-5-2` | `openai/gpt-6-astra` | `openai-codex/gpt-6-astra` |"
+   },
+   {
+    "path": "collections/pstack/skills/poteto-mode/references/pi-tools.md",
+    "text": "Execution and review panels (`arena`, `interrogate`) use `xhigh` reasoning, except an entry that resolves to an Opus model, which runs at `medium`."
+   },
+   {
+    "path": "collections/pstack/skills/poteto-mode/references/pi-tools.md",
+    "text": "On the two OpenAI providers, Pi first looks for the Codex default (`gpt-6.2-sol` for `opus`) or strongest model (`gpt-6.2-astra` for `fable`) in the session's model registry. When that model is absent, Pi uses the ID in the table."
    }
   ]
  }

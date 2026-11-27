@@ -5,7 +5,7 @@ babysit defers to an installed babysit-pr, keeps one owner per PR, writes only c
 PR's head branch, reads every page of review comments, and reports the round cap as blocked, never ready.
 Updated for pstack 0.15.46's one-file why skill.
 
-Fork source: https://github.com/mneves75/pstack-claude commits 2d6b8b8, 3151149 (rebased to 66181d3).
+Fork source: https://github.com/mneves75/pstack-claude commits 2d6b8b8, 3151149 (rebased to 1ab6b82).
 Applies to the port's plugins/pstack/skills tree after the patches numbered before it.
 
 diff --git a/babysit/SKILL.md b/babysit/SKILL.md

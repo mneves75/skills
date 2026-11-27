@@ -1,0 +1,6 @@
+interface:
+  display_name: "Poteto Mode"
+  short_description: "Run pstack engineering workflow playbooks"
+  default_prompt: "Use $poteto-mode to run the pstack playbook for this task and verify the requested outcome."
+policy:
+  allow_implicit_invocation: false

@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-11-27
+
+### Changed
+- **collections/pstack re-pinned:** `collections/pstack` now follows `pstack-claude` `1ab6b82`
+  (`0.9.158`) and `cursor/plugins` `b7b93c3` (pstack `0.15.48`). All 13 adaptations are rebased
+  onto the new upstream wording (Codex dispatch steps, structured-question guidance, the
+  effort sentence in six skills). `12` no longer creates `/reframe`, which the port now ships,
+  and keeps only its explicit-only invocation. The 24 retired `principle-*` directories move
+  from deletions in `02` to `sources.json` excludes, so files upstream adds under them (such as
+  the new `agents/openai.yaml`) never reach the tree. The `setup-pstack` effort examples become
+  model-neutral (`model-id @xhigh`). Upstream `watch-pr` now stops with a merge conflict, instead
+  of retrying, when the head is marked conflicting and no checks were reported.
+- **mneves-fable-orchestrator:** every id in the Defaults block re-verified against the
+  vendors' current model lists on 2026-11-27; no id changed.
+
+### Added
+- **`poteto-mode` routing (adaptation `14`):** an explicit-trigger description, Codex
+  `agents/openai.yaml` with `allow_implicit_invocation: false`, and a boundary paragraph: when
+  another operator mode such as `mneves-mode` is active, that mode selects the skills, gates and
+  playbook, a poteto playbook runs only a step that mode's playbook does not cover, and the
+  stricter gate wins.
+
+### Fixed
+- **Retired principle skills:** the Copilot and Antigravity tables in `poteto-mode` no longer
+  route `figure-it-out` and `typescript-best-practices` to principle skills. Kimi's note no
+  longer mentions them, and `figure-it-out` now points to poteto-mode's engineering guidance
+  section. `arena` and the feature and prototype playbooks no longer cite the retired Laziness
+  Protocol (`02`).
+- **Pi `fable` mapping:** `pi-tools.md` now matches the Pi extension, which resolves `fable` to
+  `gpt-6.2-astra` and falls back to `gpt-6-astra`. It no longer claims Sol (`01`). New routing
+  case `P20` covers the change, and the `P6`-`P8` anchors follow the edited text.
+- **Copilot setup floor:** both Copilot files name the same Opus-class floor, and the smoke-run
+  evidence says Haiku-class again (`01`).
+- **Model ids:** every id in the `mneves-fable-orchestrator` Defaults block was re-checked against
+  the vendor lists on 2026-11-27. The Codex model cache, `pi --list-models`, `agy models` and
+  Anthropic's model overview all list them.
+
 ## [2.0.0] - 2026-11-24
 
 ### Breaking Changes
