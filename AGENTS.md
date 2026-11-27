@@ -28,7 +28,7 @@ Users install with `npx skills@latest add mneves75/skills` or a plain `git clone
 │   ├── mneves-chatgpt-search/     # ChatGPT discovery, crawler access, citations and referral attribution
 │   ├── mneves-expert-review/      # Expert-panel review/optimization pass
 │   ├── mneves-handoff/            # Discussion-first handoff prompt for another agent (MIT, adapted)
-│   ├── mneves-mode/               # Explicit workflow router (/mneves-mode) to sibling skills + playbooks
+│   ├── mneves-mode/               # Explicit operator mode (/mneves-mode): phase order, gates, playbooks
 │   ├── mneves-render/             # Project-local Markdown -> HTML, editable DOCX and PDF
 │   ├── mneves-motion-film/        # Product film from a brief: facts, music, Remotion, checks (+ scripts/, tests/)
 │   ├── mneves-production-readiness/ # Deploy gate: readiness ledger, verdict per target, fix plan (+ references/)
@@ -76,6 +76,7 @@ python3 tools/scripts/check-catalog-hygiene.py   # root-skill doc/routing covera
 python3 tools/scripts/check-catalog-hygiene.test.py  # planted-violation controls for the catalog hygiene guard
 python3 tools/scripts/catalog-eval.py check   # 25-case routing confusion-matrix cases valid against skills/ (no model call)
 python3 tools/scripts/catalog-eval.py check --include-pstack --cases tools/catalog-eval/cases-hard.json  # 13-case 66-skill hard routing check
+python3 tools/scripts/catalog-eval.py check --include-pstack --cases tools/catalog-eval/cases-router.json  # 68 frozen mneves-mode router cases valid (no model call)
 python3 tools/scripts/catalog-eval.test.py    # catalog-eval checks and `run` against fake claude/codex (no quota)
 python3 tools/scripts/baseline-delta-eval.py check  # 6-case blinded zero-skill baseline-delta cases valid (no model call)
 python3 tools/scripts/baseline-delta-eval.test.py   # baseline-delta unblinding tests against fake CLIs (no quota)
@@ -210,7 +211,10 @@ authority that rule names.
 Selection grants no permissions: review-only requests stay read-only, and required gates remain.
 
 Keep independently useful skills discoverable; group related modes inside their existing
-skill, not behind a global umbrella. See [the routing guide](docs/skill-routing.md) for adoption
+skill, not behind a global umbrella. An explicit-only router (`mneves-mode`) may name skills and
+order phases; no skill may need it to be discovered or run, and every backticked skill name it
+uses must resolve to this repository or an `optional-siblings.md` row with a fallback (the
+hygiene check enforces this). See [the routing guide](docs/skill-routing.md) for adoption
 and evaluation; a repository instruction does not configure other repositories or agents.
 
 ### Issue tracker

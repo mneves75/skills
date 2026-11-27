@@ -1,0 +1,870 @@
+{
+ "schema": "catalog-eval-1",
+ "description": "68 router cases over the root, pstack and named third-party skills (run with --include-pstack and --catalog-extra). Drafted 2026-11-27 by the main session and labelled blind by a fresh-context labeller that saw only prompts and the catalog; expected is the union of both label sets. Not owner-labelled.",
+ "external": [
+  "code-review",
+  "improve",
+  "diagnosing-bugs",
+  "grilling",
+  "domain-modeling",
+  "prune-tests"
+ ],
+ "cases": [
+  {
+   "id": "rv-branch-before-pr",
+   "cluster": "review",
+   "prompt": "Review the changes on this branch since main before I open the PR.",
+   "expected": [
+    "autoreview",
+    "code-review"
+   ],
+   "forbidden": [
+    "thermo-nuclear-review",
+    "thermos",
+    "mneves-expert-review"
+   ],
+   "notes": "Labeller (medium): code-review matches 'review since main' exactly; autoreview also fits as an explicitly requested review of a Git target."
+  },
+  {
+   "id": "rv-standards-and-spec",
+   "cluster": "review",
+   "prompt": "Check whether this branch follows our documented coding standards and actually does what issue #42 asked for.",
+   "expected": [
+    "code-review"
+   ],
+   "forbidden": [
+    "thermo-nuclear-review",
+    "thermos",
+    "mneves-expert-review"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "rv-other-model",
+   "cluster": "review",
+   "prompt": "Get a different model to review commit a1b2c3d; I don't want the model that wrote it grading it.",
+   "expected": [
+    "autoreview",
+    "council"
+   ],
+   "forbidden": [
+    "thermos",
+    "thermo-nuclear-review",
+    "mneves-expert-review"
+   ],
+   "notes": "Labeller (medium): An independent single-model review points to autoreview; council also covers second-opinion change review across agent CLIs."
+  },
+  {
+   "id": "rv-challenge",
+   "cluster": "review",
+   "prompt": "Challenge this code hard and find the blind spots before we merge.",
+   "expected": [
+    "interrogate"
+   ],
+   "forbidden": [
+    "thermos",
+    "thermo-nuclear-review",
+    "mneves-expert-review",
+    "grilling"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "rv-thermo-by-name",
+   "cluster": "review",
+   "prompt": "Run a thermo-nuclear review on this branch.",
+   "expected": [
+    "thermo-nuclear-review"
+   ],
+   "forbidden": [
+    "thermos",
+    "security-audit"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "rv-plan-tear-apart",
+   "cluster": "review",
+   "prompt": "Here's my plan for moving billing to the new provider. Tear it apart: alternatives, evidence, trade-offs.",
+   "expected": [
+    "mneves-expert-review",
+    "grilling",
+    "interrogate"
+   ],
+   "forbidden": [
+    "autoreview",
+    "code-review",
+    "thermo-nuclear-review"
+   ],
+   "notes": "Labeller (medium): 'Alternatives, evidence, trade-offs' on a plan matches expert-review; 'tear it apart' is also an interrogate trigger for designs."
+  },
+  {
+   "id": "rv-cli-deliberation",
+   "cluster": "review",
+   "prompt": "Have three different agent CLIs deliberate on whether we should split this service, two rounds at most.",
+   "expected": [
+    "council"
+   ],
+   "forbidden": [
+    "swarm",
+    "arena"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "rv-harsh-maintainability",
+   "cluster": "review",
+   "prompt": "This module is a 3,000-line file full of nested conditionals. Give me the harshest maintainability review you can.",
+   "expected": [
+    "thermo-nuclear-code-quality-review"
+   ],
+   "forbidden": [
+    "thermo-nuclear-review",
+    "thermos"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "sec-predeploy-verdict",
+   "cluster": "security",
+   "prompt": "We deploy to production tomorrow. Give me the pre-deploy security verdict on this commit.",
+   "expected": [
+    "mneves-security"
+   ],
+   "forbidden": [
+    "security-audit",
+    "mneves-ship-deploy",
+    "thermo-nuclear-review"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "sec-full-audit",
+   "cluster": "security",
+   "prompt": "Do a full, deep security audit of this whole codebase with machine-readable findings.",
+   "expected": [
+    "security-audit"
+   ],
+   "forbidden": [
+    "thermo-nuclear-review",
+    "mneves-security"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "sec-authorized-fix",
+   "cluster": "security",
+   "prompt": "Fix the IDOR in the invoices endpoint we found yesterday. You're authorized to change the code.",
+   "expected": [
+    "mneves-security",
+    "tdd"
+   ],
+   "forbidden": [
+    "security-audit"
+   ],
+   "notes": "Labeller (medium): mneves-security covers authorized security fixes; tdd also fits because this is a bug fix."
+  },
+  {
+   "id": "sec-launch-ops",
+   "cluster": "security",
+   "prompt": "Before launch: do we have backups, rollback, billing safety, and someone on call?",
+   "expected": [
+    "mneves-production-readiness"
+   ],
+   "forbidden": [
+    "mneves-security",
+    "mneves-ship-deploy",
+    "security-audit"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "sec-branch-only",
+   "cluster": "security",
+   "prompt": "Check the security of this branch's changes only, not the whole repository.",
+   "expected": [
+    "mneves-security"
+   ],
+   "forbidden": [
+    "thermo-nuclear-review",
+    "security-audit",
+    "thermos"
+   ],
+   "notes": "Labeller (medium): thermo-nuclear-review matches a branch-diff security scope but runs only when named; security-audit covers the whole codebase."
+  },
+  {
+   "id": "sec-trust-boundaries",
+   "cluster": "security",
+   "prompt": "Check the trust boundaries and privacy controls for the new user-upload feature.",
+   "expected": [
+    "mneves-security"
+   ],
+   "forbidden": [
+    "security-audit"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "sec-pentest-source",
+   "cluster": "security",
+   "prompt": "Pen test this repository's source end to end.",
+   "expected": [
+    "security-audit"
+   ],
+   "forbidden": [
+    "mneves-production-readiness",
+    "thermo-nuclear-review"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "ho-paste-prompt",
+   "cluster": "handoff",
+   "prompt": "Write me a prompt I can paste into another agent so it can continue this work.",
+   "expected": [
+    "mneves-handoff"
+   ],
+   "forbidden": [
+    "ketchup",
+    "recall"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "ho-catch-up",
+   "cluster": "handoff",
+   "prompt": "I was away for an hour. What happened in this chat and what's waiting on me?",
+   "expected": [
+    "ketchup"
+   ],
+   "forbidden": [
+    "ketchup-video",
+    "mneves-handoff"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "ho-lost-session",
+   "cluster": "handoff",
+   "prompt": "I lost my session yesterday. Rebuild what I was working on from my history.",
+   "expected": [
+    "recall"
+   ],
+   "forbidden": [
+    "ketchup",
+    "ketchup-video"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "ho-takeover-credit",
+   "cluster": "handoff",
+   "prompt": "Ana started PR #318 and went on leave. Finish it, but keep her credit.",
+   "expected": [
+    "takeover"
+   ],
+   "forbidden": [
+    "modernize"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "ho-standup",
+   "cluster": "handoff",
+   "prompt": "Summarize what I committed over the last two weeks for my standup.",
+   "expected": [
+    "what-did-i-get-done"
+   ],
+   "forbidden": [
+    "ketchup",
+    "recall"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "ho-plain-words",
+   "cluster": "handoff",
+   "prompt": "Say what you just told me again in plain words, no jargon.",
+   "expected": [
+    "bro"
+   ],
+   "forbidden": [
+    "ketchup",
+    "in-your-own-words"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "pr-watch",
+   "cluster": "pr-ops",
+   "prompt": "Watch PR #77 until CI finishes and tell me if anyone requests changes.",
+   "expected": [
+    "babysit-pr"
+   ],
+   "forbidden": [
+    "babysit",
+    "get-pr-comments"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "pr-red-ci",
+   "cluster": "pr-ops",
+   "prompt": "CI is red on my PR. Find the failing check and fix it.",
+   "expected": [
+    "fix-ci"
+   ],
+   "forbidden": [
+    "babysit-pr"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "pr-summarize-comments",
+   "cluster": "pr-ops",
+   "prompt": "What did reviewers say on the current PR? Just summarize the comments.",
+   "expected": [
+    "get-pr-comments"
+   ],
+   "forbidden": [
+    "babysit-pr",
+    "leaving-pr-comments",
+    "babysit"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "pr-old-rebase",
+   "cluster": "pr-ops",
+   "prompt": "This PR is six weeks old. Rebase it onto main and tell me if it should still exist.",
+   "expected": [
+    "modernize"
+   ],
+   "forbidden": [
+    "fix-merge-conflicts",
+    "takeover"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "pr-reviewable",
+   "cluster": "pr-ops",
+   "prompt": "Clean up my PR's commit history and description so it's easier to review.",
+   "expected": [
+    "make-pr-easy-to-review"
+   ],
+   "forbidden": [
+    "modernize"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "pr-conflicts",
+   "cluster": "pr-ops",
+   "prompt": "git merge left conflicts in three files. Resolve them and make sure the tests still pass.",
+   "expected": [
+    "fix-merge-conflicts"
+   ],
+   "forbidden": [
+    "modernize"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "pr-post-reply",
+   "cluster": "pr-ops",
+   "prompt": "Post a reply on the GitHub PR thread explaining why we kept the retry loop.",
+   "expected": [
+    "leaving-pr-comments"
+   ],
+   "forbidden": [
+    "get-pr-comments"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "pr-drive-mergeable",
+   "cluster": "pr-ops",
+   "prompt": "Drive PR #12 to mergeable: fix failing CI and handle the simple review comments as they come in.",
+   "expected": [
+    "babysit",
+    "babysit-pr"
+   ],
+   "forbidden": [
+    "get-pr-comments"
+   ],
+   "notes": "Labeller (medium): babysit-pr is a near-duplicate, but its description covers monitoring only, not fixing CI or comments."
+  },
+  {
+   "id": "pl-sketch-types",
+   "cluster": "planning",
+   "prompt": "Before writing any code, sketch the types and module boundaries for the new sync engine.",
+   "expected": [
+    "architect"
+   ],
+   "forbidden": [],
+   "notes": ""
+  },
+  {
+   "id": "pl-auditable-migration",
+   "cluster": "planning",
+   "prompt": "We need to move 40 services from REST to gRPC this quarter. Design a plan someone can audit after stepping away.",
+   "expected": [
+    "figure-it-out"
+   ],
+   "forbidden": [
+    "swarm",
+    "full-stop"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "pl-deeper",
+   "cluster": "planning",
+   "prompt": "Make this task deeper, not bigger, and rewrite my prompt.",
+   "expected": [
+    "sharpen"
+   ],
+   "forbidden": [],
+   "notes": ""
+  },
+  {
+   "id": "pl-grill",
+   "cluster": "planning",
+   "prompt": "Grill me on this plan until it holds up.",
+   "expected": [
+    "grilling"
+   ],
+   "forbidden": [],
+   "notes": ""
+  },
+  {
+   "id": "pl-own-words",
+   "cluster": "planning",
+   "prompt": "Before you start, tell me in your own words what you think I'm trying to achieve.",
+   "expected": [
+    "in-your-own-words"
+   ],
+   "forbidden": [
+    "bro"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "pl-survey-handoff",
+   "cluster": "planning",
+   "prompt": "Survey this repo and give me prioritized improvement plans another agent can implement. Don't change any code.",
+   "expected": [
+    "improve"
+   ],
+   "forbidden": [
+    "untangle-codebase",
+    "mneves-agent-readiness"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "pl-tangled-modules",
+   "cluster": "planning",
+   "prompt": "The payments and notifications modules are tangled together. Plan a behavior-preserving refactor of just that area.",
+   "expected": [
+    "untangle-codebase"
+   ],
+   "forbidden": [
+    "improve"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "pl-agent-friction",
+   "cluster": "planning",
+   "prompt": "How ready is this repo for AI agents to work in? What friction will they hit?",
+   "expected": [
+    "mneves-agent-readiness"
+   ],
+   "forbidden": [
+    "improve",
+    "mneves-production-readiness"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "pl-glossary",
+   "cluster": "planning",
+   "prompt": "Let's settle the terminology for this codebase and write it down in a glossary.",
+   "expected": [
+    "domain-modeling"
+   ],
+   "forbidden": [
+    "reframe",
+    "technical-writing"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "dl-dispatch-codex",
+   "cluster": "delegation",
+   "prompt": "Split this implementation across agents, send the backend part to Codex, and review what comes back.",
+   "expected": [
+    "mneves-fable-orchestrator"
+   ],
+   "forbidden": [
+    "swarm",
+    "arena"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "dl-fan-out-report",
+   "cluster": "delegation",
+   "prompt": "Fan out 8 workers to check every endpoint for missing auth, then give me one report.",
+   "expected": [
+    "swarm"
+   ],
+   "forbidden": [
+    "arena",
+    "council"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "dl-best-of-n",
+   "cluster": "delegation",
+   "prompt": "Have four agents each attempt the parser rewrite, then merge the best parts of each.",
+   "expected": [
+    "arena"
+   ],
+   "forbidden": [
+    "swarm"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "dl-multi-day",
+   "cluster": "delegation",
+   "prompt": "This is a multi-day implementation. Set it up so the work keeps going across many rounds.",
+   "expected": [
+    "mneves-fable-orchestrator"
+   ],
+   "forbidden": [
+    "full-stop"
+   ],
+   "notes": "Labeller (medium): Orchestrator covers long-running implementation; figure-it-out is a weaker fit because a narrower skill applies."
+  },
+  {
+   "id": "dl-decision-log",
+   "cluster": "delegation",
+   "prompt": "Keep a decision log for this unattended overnight run so I can audit it in the morning.",
+   "expected": [
+    "show-me-your-work"
+   ],
+   "forbidden": [
+    "full-stop"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "db-500s",
+   "cluster": "debugging",
+   "prompt": "The export endpoint started throwing 500s after yesterday's deploy. Diagnose it.",
+   "expected": [
+    "diagnosing-bugs"
+   ],
+   "forbidden": [],
+   "notes": ""
+  },
+  {
+   "id": "db-why-ttl",
+   "cluster": "debugging",
+   "prompt": "Why does the cache use a 37-second TTL? Who picked that, and based on what?",
+   "expected": [
+    "why"
+   ],
+   "forbidden": [
+    "how"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "db-how-auth",
+   "cluster": "debugging",
+   "prompt": "How does request authentication flow through this codebase, file by file?",
+   "expected": [
+    "how"
+   ],
+   "forbidden": [
+    "why"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "db-blast-radius",
+   "cluster": "debugging",
+   "prompt": "Before I ship this config change, what else could it break outside the diff?",
+   "expected": [
+    "blast-radius"
+   ],
+   "forbidden": [],
+   "notes": ""
+  },
+  {
+   "id": "db-vet-benchmark",
+   "cluster": "debugging",
+   "prompt": "I measured a 30% speedup on the new index. Vet that number before I tell the team.",
+   "expected": [
+    "benchmark-checklist"
+   ],
+   "forbidden": [],
+   "notes": ""
+  },
+  {
+   "id": "db-slow-regression",
+   "cluster": "debugging",
+   "prompt": "Search got 3x slower this week. Find out what regressed.",
+   "expected": [
+    "diagnosing-bugs",
+    "why"
+   ],
+   "forbidden": [],
+   "notes": ""
+  },
+  {
+   "id": "tf-failing-first",
+   "cluster": "test-first",
+   "prompt": "Fix the off-by-one in pagination, and write the failing test first.",
+   "expected": [
+    "tdd"
+   ],
+   "forbidden": [
+    "mneves-verify"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "tf-prune",
+   "cluster": "test-first",
+   "prompt": "Our suite has a lot of tests that check nothing real. Trim them, with evidence for each one.",
+   "expected": [
+    "prune-tests"
+   ],
+   "forbidden": [
+    "deslop"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "tf-verdict",
+   "cluster": "test-first",
+   "prompt": "Prove the migration actually worked. I want an independent verdict, not a review.",
+   "expected": [
+    "mneves-verify"
+   ],
+   "forbidden": [
+    "autoreview",
+    "code-review"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "tf-verification-skill",
+   "cluster": "test-first",
+   "prompt": "Generate a project-local skill that drives our app the way a user does, to verify features.",
+   "expected": [
+    "create-verification-skill"
+   ],
+   "forbidden": [
+    "create-formal-verification-skill",
+    "maintain-verification-skill"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "tf-make-impossible",
+   "cluster": "test-first",
+   "prompt": "Agents keep making the same mistake with our date handling. Make it impossible to repeat.",
+   "expected": [
+    "correct"
+   ],
+   "forbidden": [],
+   "notes": ""
+  },
+  {
+   "id": "ex-ship-it",
+   "cluster": "explicit-only",
+   "prompt": "Ship it.",
+   "expected": [
+    "none"
+   ],
+   "forbidden": [
+    "mneves-ship-deploy",
+    "full-stop"
+   ],
+   "notes": "Plain ship authorizes no deploy and is not /full-stop. Labeller (medium): Plain 'ship' explicitly does not invoke mneves-ship-deploy, and no other catalog skill covers a bare ship request."
+  },
+  {
+   "id": "ex-full-stop-punctuation",
+   "cluster": "explicit-only",
+   "prompt": "That's the plan. Full stop.",
+   "expected": [
+    "none"
+   ],
+   "forbidden": [
+    "full-stop"
+   ],
+   "notes": "Trailing 'Full stop.' is punctuation."
+  },
+  {
+   "id": "ex-ready-pr-unnamed",
+   "cluster": "explicit-only",
+   "prompt": "Take this change all the way to a ready PR without stopping to ask me.",
+   "expected": [
+    "none",
+    "mneves-fable-orchestrator"
+   ],
+   "forbidden": [
+    "full-stop",
+    "mneves-mode"
+   ],
+   "notes": "full-stop needs its name. Labeller (medium): full-stop fits the intent but runs only when invoked by name; show-me-your-work is a weak alternative for unattended runs."
+  },
+  {
+   "id": "ex-expert-term",
+   "cluster": "explicit-only",
+   "prompt": "What's the expert term for a thing that holds settings? Teach me the vocabulary.",
+   "expected": [
+    "none",
+    "technical-writing"
+   ],
+   "forbidden": [
+    "reframe"
+   ],
+   "notes": "reframe runs only when invoked by name. Labeller (medium): reframe matches the intent but runs only by name; teach and domain-modeling target codebase work, not a general vocabulary question."
+  },
+  {
+   "id": "ex-harsh-unnamed",
+   "cluster": "explicit-only",
+   "prompt": "Give this branch a harsh review for bugs.",
+   "expected": [
+    "autoreview",
+    "code-review",
+    "interrogate"
+   ],
+   "forbidden": [
+    "thermo-nuclear-review",
+    "thermos",
+    "thermo-nuclear-code-quality-review"
+   ],
+   "notes": "thermo reviews need their name. Labeller (medium): Thermo reviews require naming, and the code-quality one is about maintainability, not bugs; autoreview or adversarial interrogate fit."
+  },
+  {
+   "id": "no-rename",
+   "cluster": "no-specialist",
+   "prompt": "Rename the variable `tmp` to `retryCount` in utils.ts.",
+   "expected": [
+    "none"
+   ],
+   "forbidden": [
+    "typescript-best-practices"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "no-typo",
+   "cluster": "no-specialist",
+   "prompt": "Fix the typo in the README heading.",
+   "expected": [
+    "none"
+   ],
+   "forbidden": [],
+   "notes": ""
+  },
+  {
+   "id": "no-concept",
+   "cluster": "no-specialist",
+   "prompt": "What's the difference between a mutex and a semaphore?",
+   "expected": [
+    "none"
+   ],
+   "forbidden": [
+    "how",
+    "why",
+    "teach"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "no-small-flag",
+   "cluster": "no-specialist",
+   "prompt": "Add a `--verbose` flag to the CLI that prints each step.",
+   "expected": [
+    "none",
+    "tdd"
+   ],
+   "forbidden": [],
+   "notes": "Labeller (medium): Small feature; tdd's description covers any feature change, but skipping a skill is also reasonable."
+  },
+  {
+   "id": "ph-confirm-done",
+   "cluster": "phase-change",
+   "prompt": "Implementation's done and tests pass. Now independently confirm it works before I call it finished.",
+   "expected": [
+    "mneves-verify"
+   ],
+   "forbidden": [
+    "autoreview"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "ph-deploy-prod",
+   "cluster": "phase-change",
+   "prompt": "It's ready. Deploy it to production now; this is my project.",
+   "expected": [
+    "mneves-ship-deploy"
+   ],
+   "forbidden": [
+    "full-stop"
+   ],
+   "notes": ""
+  },
+  {
+   "id": "ph-red-team-plan",
+   "cluster": "phase-change",
+   "prompt": "The plan is approved. Before we build, red-team its riskiest assumption.",
+   "expected": [
+    "mneves-expert-review",
+    "grilling",
+    "interrogate"
+   ],
+   "forbidden": [
+    "code-review",
+    "thermo-nuclear-review"
+   ],
+   "notes": "Labeller (medium): Stress-testing a decision fits expert-review; interrogate also covers adversarial attacks on a design."
+  },
+  {
+   "id": "ph-pr-body",
+   "cluster": "phase-change",
+   "prompt": "The feature is built. Now write the PR description.",
+   "expected": [
+    "make-pr-easy-to-review",
+    "none",
+    "technical-writing"
+   ],
+   "forbidden": [],
+   "notes": "Labeller (medium): technical-writing explicitly covers PR descriptions; make-pr-easy-to-review is for improving an existing PR."
+  },
+  {
+   "id": "ph-staging-readiness",
+   "cluster": "phase-change",
+   "prompt": "We're about to deploy to staging. Check operational readiness first.",
+   "expected": [
+    "mneves-production-readiness"
+   ],
+   "forbidden": [
+    "mneves-ship-deploy"
+   ],
+   "notes": ""
+  }
+ ]
+}

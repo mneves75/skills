@@ -1,6 +1,6 @@
 # Skills
 
-![Version](https://img.shields.io/badge/version-2.1.0-blue)
+![Version](https://img.shields.io/badge/version-2.2.0-blue)
 ![License](https://img.shields.io/badge/license-Apache--2.0%20%2B%20MIT-green)
 ![CI](https://github.com/mneves75/skills/actions/workflows/ci.yml/badge.svg)
 ![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-purple)
@@ -36,7 +36,7 @@ artifacts.
 | [mneves-agent-readiness](skills/mneves-agent-readiness/) | Evaluate codebase readiness for AI agents: 9 pillars, maturity levels L1–L5, local-only |
 | [mneves-expert-review](skills/mneves-expert-review/) | Scoped stress test: objective, first principles, relevant research, one combined challenge, distinct alternatives, improved deliverable |
 | [mneves-handoff](skills/mneves-handoff/) | Clipboard-ready, path-free prompt that hands a task to another agent for independent review and discussion first |
-| [mneves-mode](skills/mneves-mode/) | Explicit workflow router (`/mneves-mode` or "use mneves mode") that picks a playbook and redirects each phase to installed sibling skills with standalone fallbacks |
+| [mneves-mode](skills/mneves-mode/) | Explicit operator mode (`/mneves-mode` or "use mneves mode") that frames a task, orders its phases from change to release, and runs each gate through the installed skill or a stated fallback |
 | [mneves-render](skills/mneves-render/) | Build project-local Markdown renderers for HTML, editable DOCX and PDF, with shared design, tested starter templates and content/visual verification |
 | [mneves-motion-film](skills/mneves-motion-film/) | Make a short product film from a brief: text quoted from the product's pages, synthesized music on a beat grid, Remotion render, and scripted checks for facts, contrast, loudness, codecs and audio sync, reviewed by a fresh reviewer for up to five rounds, then delivered with any open problem listed |
 | [mneves-security](skills/mneves-security/) | Evidence-backed security/privacy audit and vulnerability hunting (candidates must name a crossed boundary and survive a fresh disprover), ordered remediation, authorized safe fixes and the mandatory gate before every staging or production deploy, using current OWASP guidance, adversarial review and independent acceptance |

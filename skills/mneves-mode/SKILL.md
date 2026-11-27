@@ -1,105 +1,142 @@
 ---
 name: mneves-mode
-description: Explicit workflow router (/mneves-mode or "use mneves mode") that picks a playbook and redirects each phase to the right sibling skill with standalone fallbacks. Explicit invocation only.
+description: Explicit operator mode (/mneves-mode, "use mneves mode") that frames a task, orders its phases, and runs each phase's gate through the installed skill or a stated fallback. Use only when invoked by name.
 license: Apache-2.0
 ---
 
 # mneves-mode
 
-Explicit workflow entrypoint for `mneves75/skills`. Use only when the user invokes `/mneves-mode`,
-`$mneves-mode`, or explicitly asks for "mneves mode" or "the mneves-mode skill". Never auto-trigger
-on ordinary prompts: every standalone skill in this collection remains directly discoverable on its
-own.
+Use only when the user types `/mneves-mode` or `$mneves-mode`, or asks for "mneves mode" by name.
+Never start it from an ordinary prompt. Every skill stays directly discoverable without it; this
+mode adds the order of phases and the gates between them.
 
-## 1. Frame the task
+## 1. Authority
 
-Before touching files or routing a specialist:
+- **No new permissions.** Invoking this mode grants nothing. A review-only request stays
+  read-only, and a mandatory gate stays closed until it passes or the authority its rule names
+  waives it.
+- **Explicit-only skills stay explicit.** Never start one yourself: `full-stop`, `poteto-mode`,
+  `statechart`, `thermos`, `thermo-nuclear-review`, `reframe`, `automate-me`, any skill whose own
+  description says it runs only by name, or a deploy through `mneves-ship-deploy`. Name it and
+  let the user type it. Plain "ship" never deploys.
+- **Host overlays.** The user's own instructions may name an overlay that adds skills, gates or
+  ordering for their machine. An overlay can add or tighten a gate, never relax one.
 
-1. Restate the user's goal and the smallest correct, verifiable change that meets it.
-2. Classify the **phase** (plan/decide, build/refactor, review/audit, PR lifecycle, release/deploy)
-   and **risk tier**:
-   - **Standard:** reversible in-repo work.
-   - **Risky:** any release or deploy, security/privacy boundary, permissions or secrets, production
-     or client data, money, legal terms, or a contested result.
-3. Preserve explicit scope, format, language, and review-only boundaries. Invoking `/mneves-mode`
-   grants no permissions: review-only requests stay read-only, and mandatory gates stay closed.
+## 2. Frame
 
-## 2. Check installed siblings before redirecting
+Before touching files or picking a skill:
 
-Sibling skills in a full install live beside this folder at `../<name>/SKILL.md` (or in the host's
-active skill catalog). A single-skill install ships only this folder.
+1. Restate the goal, the smallest correct change that meets it, and how it will be checked.
+2. Name the phase: plan or decide, build or fix, refactor, review or audit, PR lifecycle,
+   release or deploy, or a specialized artifact.
+3. Name the risk tier.
+   - **Standard:** reversible work inside the repository.
+   - **Risky:** a release or deploy, security or privacy, permissions or secrets, production or
+     client data, money, legal terms, or a contested result.
+4. Before editing in a repository, fetch the remote and reconcile the working branch with its
+   upstream. Never stash, reset or switch someone else's uncommitted work to do it.
 
-- **Installed sibling:** read its `SKILL.md` and follow its procedure for that phase; state the
-  routed skill and reason once.
-- **Missing sibling:** say so once and follow the standalone fallback in
-  [`references/playbooks.md`](references/playbooks.md). Never imply an unavailable skill ran.
-- **Closed mandatory gates:** if a required independent review, security gate, or readiness gate
-  cannot run, mark that gate `BLOCKED` and continue only non-dependent work. Never count
-  self-review, passing tests, or CI as an independent verdict.
+## 3. Pick skills from the live catalog
 
-## 3. Redirect table
+The host's skill listing is the catalog; this file keeps no inventory of it.
 
-Pick the most specific sibling for the current phase. Reassess whenever the goal or phase changes
-(for example, implementation -> review -> verification -> release). Keep the same route for small
-follow-ups within the same phase.
-
-| Situation / Phase | Sibling skill | Boundary & standalone rule |
-|---|---|---|
-| Stress-test a high-stakes plan, memo, or decision | `mneves-expert-review` | Not for code diffs; verify every linked source |
-| Multi-CLI plan deliberation or scored second opinion | `council` | Advisory only; never substitutes for tests or verification |
-| Assess why coding agents struggle in a repository | `mneves-agent-readiness` | Developer/agent DX, not production launch readiness |
-| Audit ChatGPT Search discovery, crawlers, or citations | `mneves-chatgpt-search` | Separate search, training, citations, and referrals |
-| Split non-trivial work across agents or lanes | `mneves-fable-orchestrator` | Owns model defaults; keep framing and acceptance in main session |
-| Diagnose coupling or refactor a named code area | `untangle-codebase` | Diagnosis first; explicit authorization needed to edit; never expand scope |
-| Build HTML/DOCX/PDF exports from Markdown | `mneves-render` | Project-local Pandoc/WeasyPrint starter pipeline |
-| Produce or update a short product launch film | `mneves-motion-film` | Checked product facts, Remotion render, scripted QA |
-| Generate mobile app UI screen/flow concepts | `imagegen-frontend-mobile` | Concept images only, never application code |
-| Learn a codebase via teach-back + spaced repetition | `mneves-teach-back-srs` | Local SQLite SM-2 scheduling; skip for one-off lookups |
-| Independent AI code review of a fixed Git target | `autoreview` | Include adversarial challenge and local `cccc` when available |
-| Deep read-only six-phase source security audit | `security-audit` | Strictly read-only with Node validators; never a deploy gate |
-| Independent PASS/FAIL/BLOCKED check before "done" | `mneves-verify` | Fresh context; separates product vs verification edits |
-| Watch a PR through CI and review bots | `babysit-pr` | Fixes real findings; never merges or force-pushes |
-| Rebase an aging PR and decide keep vs close | `modernize` | Assesses base-branch relevance before rebasing |
-| Finish someone else's PR, branch, or thread | `takeover` | Keeps original author credit; never merges |
-| Format agent-authored GitHub PR comments | `leaving-pr-comments` | Applies only when posting GitHub comments for the user |
-| Unattended change to a proven, ready PR | `full-stop` | Explicit invocation by name only; never merges |
-| Hand off context to another agent session | `mneves-handoff` | Portable, path-free, review-first continuation prompt |
-| Security audit, safe fixes, or pre-deploy security gate | `mneves-security` | Mandatory exact-commit gate before every staging/prod deploy |
-| Operational launch or deployment readiness gate | `mneves-production-readiness` | Imports security rows from `mneves-security`; never re-audits them |
-| Deploy pushed commit, prove live, then tag | `mneves-ship-deploy` | Explicit `ship-staging` / `ship-prod` only; plain "ship" does not deploy |
-
-**Optional sibling collection (`pstack`, if installed):** for deep code walkthroughs (`how`),
-design rationale (`why`), interface sketching before cross-boundary code (`architect`), parallel
-competing implementations (`arena`), adversarial multi-model diff interrogation (`interrogate`),
-test-first bug fixes (`tdd`), vocabulary reframing (`reframe`), prompt deepening (`sharpen`), or
-post-task skill reflection (`reflect`), route to those skills when present. Never require them;
-fall back to direct work or the root equivalents above.
+- An explicit request for a skill wins. Otherwise pick the most specific listed skill for the
+  current phase. A skill listed by name without a description still counts as installed.
+- Read the chosen `SKILL.md` before following, describing or skipping any of its steps.
+- If a skill the playbook names is missing, say so once and use the playbook's fallback. Never
+  imply a skill ran when it did not.
+- Third-party siblings this mode can use, with their sources and fallbacks, are listed in
+  [references/optional-siblings.md](references/optional-siblings.md).
+- Reassess when the phase changes (build, then review, then verification, then release). Keep the
+  same skill for small follow-ups inside one phase.
 
 ## 4. Playbooks
 
-Match the request to one playbook in [`references/playbooks.md`](references/playbooks.md) and
-execute its steps in order:
+Open only the playbook for the current phase and run its steps in order.
 
-1. **Feature or bug fix** — frame -> build/test (or delegate) -> adversarial review -> fresh verification.
-2. **Scoped refactor** — baseline -> diagnosis & plan -> bounded edits -> regression + review + verification.
-3. **High-stakes decision or plan** — frame -> stress-test / deliberate -> prototype reversible forks -> decide.
-4. **PR lifecycle** — pick `babysit-pr`, `modernize`, `takeover`, or explicit `full-stop` -> attribute comments -> stop at merge gate.
-5. **Release and production deploy** — exact-commit `mneves-security` -> `mneves-production-readiness` -> `mneves-ship-deploy` -> prove live -> tag.
-6. **Audit or independent verification** — read-only evidence collection -> fresh-context verdict -> prioritized findings.
-7. **Specialized artifacts & learning** — route to `mneves-render`, `mneves-motion-film`, `imagegen-frontend-mobile`, or `mneves-teach-back-srs` with explicit single-skill fallbacks.
+| Phase | Playbook |
+|---|---|
+| Build or fix | [playbook-build.md](references/playbook-build.md) |
+| Scoped refactor | [playbook-refactor.md](references/playbook-refactor.md) |
+| Plan or high-stakes decision | [playbook-decide.md](references/playbook-decide.md) |
+| Review, audit or verification | [playbook-audit.md](references/playbook-audit.md) |
+| PR lifecycle | [playbook-pr.md](references/playbook-pr.md) |
+| Release and deploy | [playbook-release.md](references/playbook-release.md) |
+| Specialized artifacts and learning | [playbook-artifacts.md](references/playbook-artifacts.md) |
 
-## 5. Cross-cutting rules
+## 5. Gate order for a full task
 
-- **Local autonomy, hard stops:** reversible in-repo work (reading, searching, editing, tests,
-  builds, linters, commits on a working branch) proceeds without asking. Always stop before:
-  deleting unowned files or data; force-pushing or rewriting history; merging, tagging, releasing,
-  deploying to production, or submitting to app stores; out-of-repo or cloud mutations; handling
-  unnamed credentials or secrets; opening client/personal records; external messages or purchases;
-  or materially expanding scope. "Run until done" never crosses this line.
-- **Prototype reversible forks:** when a reversible technical choice inside scope can be settled by
-  a small local test or measurement, run it and decide from observed output rather than guessing.
-- **No duplicated model IDs:** keep model names and reasoning tiers out of this skill; defer
-  model selection to `mneves-fable-orchestrator` (when installed) or the user's host configuration.
-- **Honest closure:** lead with the outcome, state commands run with exact results, separate facts
-  from assumptions and unknowns, list anything unverified or blocked, and never claim completion on
-  a failing or skipped gate.
+When one request runs from change to release, the gates run in this order. Skip a gate only
+when it does not apply to the task; say which ones you skipped and why.
+
+1. **Origin:** reconciled before work (section 2, step 4).
+2. **Frame:** goal, smallest verifiable change, risk tier.
+3. **Test first:** behavior changes get a failing test before the fix (`tdd`).
+4. **Improvement survey:** only when the user asks for one (`improve`).
+5. **Standards and spec review** of the diff (`code-review`, else `autoreview`). Commit on the
+   working branch first: `code-review` reads committed history only.
+6. **Source security audit:** only when the user asks for one. Use `security-audit` for the audit
+   and `mneves-security` for the fixes.
+7. **Independent verification** in a fresh context (`mneves-verify`). Fix what it finds and run
+   it again until it passes.
+8. **Release record:** version, changelog and docs updated and committed on a working branch.
+   Check which pushes, merges and tags trigger a deploy; push now only if the push deploys
+   nothing.
+9. **Pre-deploy security verdict** on the exact commit (`mneves-security`), before any deploying
+   push, merge or tag. It binds to the audited tree, so a merge that lands a different tree
+   needs a new verdict before it deploys.
+10. **Readiness** on the same commit before a staging or production deploy
+    (`mneves-production-readiness`).
+11. **Merge:** only with the user's authorization in this request. A merge that deploys
+    production belongs to step 12: it waits for the staging proof and the owner's approval of the
+    exact candidate and target. Then delete the branch and the worktree the task created. Tag
+    here only when no deploy follows.
+12. **Deploy:** only on an explicit `ship-staging` or `ship-prod` (`mneves-ship-deploy`). It
+    proves the release live, then applies that target's tag (beta for staging, `vX.Y.Z` for
+    production). After production succeeds, it tears down the staging resources the task
+    started; `ship-staging` stops after the staging proof and its beta tag.
+13. **Cleanup:** remove the scratch files, worktrees and caches the task created. List what is
+    left with its exact removal command.
+14. **Report** (section 7).
+
+Two rules hold throughout. On a long task, keep the status in a checked-in file, so the work
+survives a lost context. Stop before any action under section 8's hard stops.
+
+## 6. Independent gates
+
+- Review and verification run in a fresh context that did not build the change. Self-review,
+  passing tests and green CI never count as an independent verdict.
+- If a required review, security or readiness gate cannot run, mark it `BLOCKED` and continue
+  only work that does not depend on it. Never fabricate or backfill a gate record.
+- Risky work always gets an adversarial challenge to its weakest assumption before it is called
+  done.
+
+## 7. Report
+
+Lead with the outcome. Then give the commands run with their exact results, what remains
+unverified, the decisions made, and what you need from the user. Separate facts from
+assumptions, and never claim done on a failing or skipped gate.
+
+## 8. Cross-cutting rules
+
+- **Local autonomy, hard stops.** Reversible work in the repository proceeds without asking:
+  reading, searching, editing, tests, builds, linters, and commits on a working branch. Always
+  stop before any of these:
+  - deleting files or data you did not create;
+  - force-pushing or rewriting history;
+  - merging, tagging, releasing, deploying, or submitting to a store;
+  - changes outside the repository;
+  - handling credentials the task does not name;
+  - opening client or personal records;
+  - external messages or purchases;
+  - materially expanding scope.
+
+  "Run until done" never crosses this line.
+- **Prototype reversible forks.** When a small local experiment can settle a reversible technical
+  choice inside scope, run it and decide from what it shows. Product and preference calls stay
+  with the user.
+- **No model ids here.** Model and effort choices belong to `mneves-fable-orchestrator` when it
+  is installed, otherwise to the host's configuration.
+- **poteto-mode boundary.** If `poteto-mode` is active too, this mode selects the skills, gates
+  and playbook. Use a poteto playbook only for a step this playbook does not cover. When both
+  modes set a gate, apply the stricter one.

@@ -144,3 +144,11 @@ links, section anchors and consumer symlinks were preserved, and the canonical f
 budget. A pre-existing unrelated host edit was preserved. Those private host files are not in
 this repository's diff. The task-owned browser and preview server were stopped; the 158 MiB
 browser profile was removed. Small private evidence is retained.
+
+## Amendment (2.2.0)
+
+"No new dispatcher or umbrella skill is needed" still holds for discovery: the no-router probe
+for the router work scored 68 of 68. The owner asked for a single command that runs a task
+through every gate, which descriptions cannot hold. `AGENTS.md` now allows an explicit-only
+router that names skills and orders phases, as long as no skill needs it to be discovered or run.
+See [the router spec](../mneves-mode-router/progress.md).

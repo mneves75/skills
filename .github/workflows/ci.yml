@@ -142,6 +142,7 @@ jobs:
           python3 tools/scripts/check-catalog-hygiene.test.py
           python3 tools/scripts/catalog-eval.py check
           python3 tools/scripts/catalog-eval.py check --include-pstack --cases tools/catalog-eval/cases-hard.json
+          python3 tools/scripts/catalog-eval.py check --include-pstack --cases tools/catalog-eval/cases-router.json
           python3 tools/scripts/catalog-eval.test.py
           python3 tools/scripts/baseline-delta-eval.py check
           python3 tools/scripts/baseline-delta-eval.test.py

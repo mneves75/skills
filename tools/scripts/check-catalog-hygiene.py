@@ -40,6 +40,26 @@ MAX_SKILL_LINES = 500
 WARN_DESC_CHARS = 220
 MAX_DESC_CHARS = 350
 UPSTREAM_BARE_BASENAME_EXEMPT = frozenset({"security-audit"})
+# mneves-mode names skills in backticks. Every kebab-case token must resolve to a root skill, a
+# pstack skill, an optional-siblings.md row or this allowlist, so a private name fails closed.
+ROUTER = "mneves-mode"
+ROUTER_TOKEN_ALLOWLIST = frozenset({"pstack", "ship-staging", "ship-prod"})
+ROUTER_MAX_BODY_BYTES = 10 * 1024
+ROUTER_MAX_BODY_LINES = 160
+ROUTER_MAX_PLAYBOOK_BYTES = 2560
+ROUTER_MAX_TOTAL_BYTES = 30 * 1024
+# Code-span scanning (see _router_spans): backtick runs, blank lines, and the next character
+# that can change scanner state.
+ROUTER_RUN_RE = re.compile(r"`+")
+ROUTER_BLANK_RE = re.compile(r"(?=(\n[ \t]*\n))")
+ROUTER_STOP_RE = re.compile(r"[\\`]")
+# Path segments after a skill name that mean the span points into that skill's directory.
+ROUTER_SKILL_SUBPATHS = frozenset({"", "SKILL.md", "references", "agents"})
+ROUTER_PLACEHOLDER_RE = re.compile(r"[\W_]*|(?i:tbd|todo|tba|n/?a|none)")
+ROUTER_TOKEN_RE = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
+ROUTER_YAML_TOKEN_RE = re.compile(r"\$([a-z][a-z0-9]*(?:-[a-z0-9]+)*)")
+SIBLING_SOURCE_RE = re.compile(r"`[A-Za-z0-9][\w.-]*/(?!\.+`)[\w.-]+`|https://\S+")
+SIBLING_ROW_RE = re.compile(r"^\|\s*`([a-z0-9-]+)`\s*\|(.*)$", re.MULTILINE)
 
 _MARKED_EXTRACT_JS = r"""
 import { pathToFileURL } from "node:url";
@@ -428,6 +448,126 @@ def _check_index_docs(root: Path, skill_names: list[str], errors: list[str]) -> 
                 errors.append(f"{rel_doc}: missing root skill `{name}`")
 
 
+def _router_word_name(word: str) -> str:
+    """The skill one span word names: `plugin:name`, `skills/name/...`, `name/SKILL.md`, `name/`."""
+    word = word.rsplit(":", 1)[-1]
+    parts = word.split("/")
+    if "skills" in parts[:-1]:
+        return parts[parts.index("skills") + 1]
+    if len(parts) > 1 and parts[1] in ROUTER_SKILL_SUBPATHS:
+        return parts[0]
+    return word
+
+
+def _router_spans(text: str) -> list[str]:
+    """Code-span contents, CommonMark inline rules, scanned left to right in linear time.
+
+    Outside a span a backslash escapes the next character; a span opens on a backtick run and
+    closes on the next maximal run of the same length, and backslashes inside it are literal. A
+    span may cross a line break but not a blank line. A run with no closer is text. Openers only
+    move right, so one forward pointer per run length finds the next closer and one more finds
+    the next blank line; neither moves back (a lazy regular expression rescans the paragraph for
+    each unclosed run, which is quadratic)."""
+    closers: dict[int, list[int]] = {}
+    for m in ROUTER_RUN_RE.finditer(text):
+        closers.setdefault(len(m[0]), []).append(m.start())
+    nxt: dict[int, int] = {}
+    blanks = [(m.start(), m.start() + len(m[1])) for m in ROUTER_BLANK_RE.finditer(text)]
+    b = 0
+    spans: list[str] = []
+    i = 0
+    while m := ROUTER_STOP_RE.search(text, i):
+        i = m.start()
+        if text[i] == "\\":
+            i += 2
+            continue
+        end = ROUTER_RUN_RE.match(text, i).end()
+        # A run right after an escaped backtick is shorter than its maximal run, so it may have
+        # no closers of its own length.
+        same = closers.get(end - i, [])
+        k = nxt.get(end - i, 0)
+        while k < len(same) and same[k] < end:
+            k += 1
+        nxt[end - i] = k
+        if k < len(same):
+            close = same[k]
+            # Blank-line ends grow with their starts, so the first blank after the opener decides.
+            while b < len(blanks) and blanks[b][0] < end:
+                b += 1
+            if b == len(blanks) or blanks[b][1] > close:
+                spans.append(text[end:close])
+                i = close + (end - i)
+                continue
+        i = end
+    return spans
+
+
+def _router_span_names(content: str) -> set[str]:
+    """Skill-shaped names a code span shows a reader. A multi-word span names a skill only as a
+    `/name` or `$name` command; other multi-word spans are shell commands or prose."""
+    text = " ".join(content.split()).strip("\"'()[]<>").rstrip(".,:;").strip("\"'()")
+    words = text.split(" ")
+    if text[:1] in "/$":
+        name = _router_word_name(words[0][1:])
+    elif len(words) == 1:
+        name = _router_word_name(words[0])
+    else:
+        return set()
+    return {name} if ROUTER_TOKEN_RE.fullmatch(name) else set()
+
+
+def _router_known(root: Path, rdir: Path, skill_names: list[str], files: set[Path], errors: list[str]) -> set[str]:
+    known = set(skill_names) | ROUTER_TOKEN_ALLOWLIST
+    pstack = root / "collections" / "pstack" / "skills"
+    if pstack.is_dir():
+        known |= {p.name for p in pstack.iterdir() if (p / "SKILL.md").is_file()}
+    siblings = rdir / "references" / "optional-siblings.md"
+    if siblings in files:
+        for name, rest in SIBLING_ROW_RE.findall(siblings.read_text(encoding="utf-8")):
+            cells = [c.strip() for c in rest.split("|")]
+            if len(cells) < 3 or not SIBLING_SOURCE_RE.search(cells[0]) or ROUTER_PLACEHOLDER_RE.fullmatch(cells[2]):
+                errors.append(
+                    f"skills/{ROUTER}/references/optional-siblings.md: `{name}` needs a public source "
+                    "(`owner/repo` or an https URL) and a fallback"
+                )
+            known.add(name)
+    return known
+
+
+def _check_router(root: Path, skill_names: list[str], errors: list[str]) -> None:
+    rdir = root / "skills" / ROUTER
+    if not rdir.is_dir():
+        return
+    # Classify first: only regular files are ever read, so nothing is followed out of the skill.
+    files: set[Path] = set()
+    for p in sorted(rdir.rglob("*")):
+        rel = p.relative_to(root).as_posix()
+        if p.is_symlink():
+            errors.append(f"{rel}: symlink in the router skill (ship regular files only)")
+        elif p.is_file():
+            files.add(p)
+    known = _router_known(root, rdir, skill_names, files, errors)
+    total = sum(p.stat().st_size for p in files)
+    if total > ROUTER_MAX_TOTAL_BYTES:
+        errors.append(f"skills/{ROUTER}: SKILL.md plus references over {ROUTER_MAX_TOTAL_BYTES} bytes ({total})")
+    refs = sorted(p for p in files if p.is_relative_to(rdir / "references") and p.suffix in {".md", ".txt"})
+    for path in [p for p in [rdir / "SKILL.md", *refs] if p in files]:
+        text = path.read_text(encoding="utf-8")
+        rel = path.relative_to(root).as_posix()
+        size = len(text.encode("utf-8"))
+        if path.name == "SKILL.md" and (size > ROUTER_MAX_BODY_BYTES or len(text.splitlines()) > ROUTER_MAX_BODY_LINES):
+            errors.append(f"{rel}: router SKILL.md over {ROUTER_MAX_BODY_BYTES} bytes or {ROUTER_MAX_BODY_LINES} lines")
+        if path.name.startswith("playbook-") and size > ROUTER_MAX_PLAYBOOK_BYTES:
+            errors.append(f"{rel}: playbook over {ROUTER_MAX_PLAYBOOK_BYTES} bytes ({size})")
+        names = set().union(*(_router_span_names(span) for span in _router_spans(text)))
+        for token in sorted(names - known):
+            errors.append(f"{rel}: unknown skill token `{token}` (add an optional-siblings.md row or drop it)")
+    yaml_path = rdir / "agents" / "openai.yaml"
+    if yaml_path in files:
+        for token in sorted(set(ROUTER_YAML_TOKEN_RE.findall(yaml_path.read_text(encoding="utf-8"))) - known):
+            errors.append(f"skills/{ROUTER}/agents/openai.yaml: unknown skill token `${token}`")
+
+
 def check_repo(root: Path) -> dict:
     root = root.resolve()
     skills_dir = root / "skills"
@@ -458,6 +598,7 @@ def check_repo(root: Path) -> dict:
             skill_stats.append(stat)
 
     _check_index_docs(root, skill_names, errors)
+    _check_router(root, skill_names, errors)
 
     return {
         "ok": not errors,

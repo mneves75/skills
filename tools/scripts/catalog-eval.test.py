@@ -154,6 +154,80 @@ class CatalogEvalTest(unittest.TestCase):
             self.assertEqual(summary["confusion_matrix"]["alpha-sec"]["beta-audit"], 1)
             self.assertEqual(len(summary["misses"]), 1)
 
+    def test_external_names_catalog_extra_and_name_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "repo"
+            cases = make_repo(root)
+            spec = json.loads(cases.read_text(encoding="utf-8"))
+            spec["external"] = ["gamma-ext"]
+            spec["cases"].append(
+                {"id": "c3", "cluster": "ext", "prompt": "Use the third-party one.", "expected": ["gamma-ext"]}
+            )
+            cases.write_text(json.dumps(spec), encoding="utf-8")
+
+            def run(*extra: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.run([sys.executable, str(SCRIPT), *extra], capture_output=True, text=True)
+
+            p = run("check", "--root", str(root), "--cases", str(cases))
+            self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+
+            clash = Path(tmp) / "clash.json"
+            clash.write_text(json.dumps({**spec, "external": ["gamma-ext", "alpha-sec"]}), encoding="utf-8")
+            p = run("check", "--root", str(root), "--cases", str(clash))
+            self.assertEqual(p.returncode, 1)
+            self.assertIn("also in the catalog", p.stdout)
+
+            fake_claude = Path(tmp) / "fake-claude"
+            make_executable(
+                fake_claude,
+                "#!/usr/bin/env python3\n"
+                "import json, sys\n"
+                "req = sys.stdin.read().split('User request:', 1)[-1]\n"
+                "sel = 'gamma-ext' if 'third-party' in req else 'alpha-sec' if 'deploy gate' in req else 'none'\n"
+                "print(json.dumps({'is_error': False, 'structured_output': {'selected': sel, 'reason': 'ok'}}))\n",
+            )
+            base = ["run", "--root", str(root), "--cases", str(cases), "--providers", "claude",
+                    "--claude-cmd", str(fake_claude)]
+
+            p = run(*base, "--out", str(Path(tmp) / "no-extra"))
+            self.assertNotEqual(p.returncode, 0)
+            self.assertIn("pass --catalog-extra", p.stderr)
+
+            wrong = Path(tmp) / "wrong.json"
+            wrong.write_text(json.dumps([{"name": "delta-ext", "description": "Other."}]), encoding="utf-8")
+            p = run(*base, "--out", str(Path(tmp) / "wrong"), "--catalog-extra", str(wrong))
+            self.assertNotEqual(p.returncode, 0)
+            self.assertIn("must match", p.stderr)
+
+            broken = Path(tmp) / "broken.json"
+            broken.write_text("[{", encoding="utf-8")
+            p = run(*base, "--out", str(Path(tmp) / "broken"), "--catalog-extra", str(broken))
+            self.assertNotEqual(p.returncode, 0)
+            self.assertIn("not valid JSON", p.stderr)
+            self.assertNotIn("Traceback", p.stderr)
+
+            blank = Path(tmp) / "blank.json"
+            blank.write_text(json.dumps([{"name": "gamma-ext", "description": "  "}]), encoding="utf-8")
+            p = run(*base, "--out", str(Path(tmp) / "blank"), "--catalog-extra", str(blank))
+            self.assertNotEqual(p.returncode, 0)
+            self.assertIn("nonblank descriptions", p.stderr)
+
+            extra = Path(tmp) / "extra.json"
+            extra.write_text(json.dumps([{"name": "gamma-ext", "description": "Third-party thing."}]), encoding="utf-8")
+            out = Path(tmp) / "out"
+            p = run(*base, "--out", str(out), "--catalog-extra", str(extra), "--name-only", "beta-audit")
+            self.assertEqual(p.returncode, 0, p.stdout + p.stderr)
+            lines = (out / "catalog.txt").read_text(encoding="utf-8").splitlines()
+            self.assertIn("- gamma-ext: Third-party thing.", lines)
+            self.assertIn("- beta-audit", lines)
+            summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+            self.assertEqual(summary["name_only"], ["beta-audit"])
+            self.assertEqual(summary["by_provider"]["claude"]["pass"], 3)
+
+            p = run(*base, "--out", str(Path(tmp) / "unknown"), "--catalog-extra", str(extra), "--name-only", "nope")
+            self.assertNotEqual(p.returncode, 0)
+            self.assertIn("not in the catalog", p.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

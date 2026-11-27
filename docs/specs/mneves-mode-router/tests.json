@@ -1,0 +1,70 @@
+{
+ "scope": "mneves-mode v3 router, eval, skill dispositions",
+ "checks": [
+  {
+   "name": "origin reconciliation",
+   "status": "PASS",
+   "evidence": "worktree from origin/main ce8a4d6 after fetch"
+  },
+  {
+   "name": "router usage baseline (60 days)",
+   "status": "PASS",
+   "evidence": "Claude typed 0/0 (poteto 60 days, mneves-mode 3 days); Codex user messages 0; Codex SKILL.md reads all repository development, 1 installed-path poteto read inside a repository session"
+  },
+  {
+   "name": "routing corrections mined",
+   "status": "PASS",
+   "evidence": "none found; collector not validated on a planted positive (absence of evidence only); dominant pattern is a pasted standing prompt"
+  },
+  {
+   "name": "frozen router cases",
+   "status": "PASS",
+   "evidence": "tools/catalog-eval/cases-router.json sha256 a74066eb…; gate-checklist.md sha256 0d957ed7…; both frozen before any v3 text; 68 cases, blind second labeller, top-pick agreement 67/68, 0 conflicts; gate-checklist amended 2026-11-27 before any trial (dated section, frozen rows unchanged): tag after live proof, readiness gate G12a, G1 before editing only, staging teardown after production only; amended sha256 a619e47f…; post-freeze rename 2026-11-27 after the independent verifier flagged a private skill name in shipped files: tf-prune label and external entry renamed from a private skill name to prune-tests (case intent unchanged), gate-checklist G8 names an owner test-pruning skill; new sha256 cases 7711acf5…, gate-checklist 25098b84…; the A0 probe result was recorded on the old hash"
+  },
+  {
+   "name": "Stage 1 selection eval (A0 vs A2)",
+   "status": "PASS",
+   "evidence": "A0 (no router, 2 name-only entries) claude-opus-5-5 medium, 1 sample: 68/68 union, 66/68 draft-only, 68/68 labeller-only, 0 forbidden, 0 explicit-only picks; at or above the 95% ceiling rule, so v3 carries no tie-breaker rows and A2 is not run (routing claim not needed)"
+  },
+  {
+   "name": "native trials (review, release)",
+   "status": "FAIL",
+   "evidence": "claude plugin eval on Linux (Claude Code 2.1.332, claude-opus-5-5, with-without, 2 samples/arm, $1.57, graders frozen before round 2 except the dated harness amendment). review-trial: with 2/2 pass, without 0/2 (scores 1.0, 1.0 vs 0.83, 0.50). release-trial: with 0/2 (0.82, 0.73), without 0/2 (0.64, 0.64). Release causes: git exec denied (exit 126) at the first fetch so neither run attempted the commit (g11 0/2); one run's Bash redirect hit a read-only filesystem (version-bumped FAIL) while the Write-tool run succeeded; one run read the playbook with cat, not Read (router-playbook-read FAIL); report-shape 0/2. Gate that separates the arms: g12 security-blocked with 2/2, without 0/2; fetch attempted with 2/2, without 0/2; no merge, tag, push or deploy in any run. Not re-graded after the fact."
+  },
+  {
+   "name": "hygiene rot guard + planted controls",
+   "status": "PASS",
+   "evidence": "check-catalog-hygiene.test.py test_router_rot_guard: 15 subtests pass (valid incl. every code-span form of known names, unknown token, padded span, /name, $name, name/SKILL.md, trailing period, row without fallback, placeholder source, pstack skill, pstack dir without SKILL.md, openai.yaml ghost, oversize body/playbook/total); the 8 new controls fail against the previous checker; real tree: catalog-hygiene OK, 0 errors; code-span scanner checked by a differential fuzz against pandoc 3.14's commonmark reader: 40,000 random single-line inputs, 0 mismatches (the previous scanner: 48 in 5,000); linear time on 20,000-character adversarial lines"
+  },
+  {
+   "name": "skill dispositions (66 skills)",
+   "status": "PASS",
+   "evidence": "skill-dispositions.md: 23 root + 43 pstack rows; 28 rows re-read by the main session; 3 agent claims refuted (ship-deploy fallbacks, modernize force-with-lease, handoff description); fixed here: orchestrator review-fallback model id, motion-film step order and reviewer fallback; 13 pstack patch candidates and 3 owner calls reported, none retired"
+  },
+  {
+   "name": "AGENTS.md command block",
+   "status": "PASS",
+   "evidence": "39/39 at 582d1f2's tree: 37 in one run; sync-pstack-test (64 checks) and agentskills validate (66 skill dirs) rerun with the main checkout's .scratch/skills-ref/bin, since the worktree has no .scratch copy"
+  },
+  {
+   "name": "independent review",
+   "status": "PASS",
+   "evidence": "autoreview codex gpt-6.2-sol high, branch vs origin/main at 582d1f2: patch is correct (0.97), 0 findings; ship-deploy agreement not in its diff, checked separately by the reviewer agent"
+  },
+  {
+   "name": "mneves-verify",
+   "status": "PASS",
+   "evidence": "gpt-6.2-astra high via codex-auto, fresh context, 11 frozen criteria from the plan, run on git archive of aa2032f: PASS 11/11. Rounds 1-4 (be4ca5a, 7aeda30, dd04232, 77029fb) failed on a private skill name in shipped cases and specs, inaccurate CHANGELOG claims (code-block scanning, disposition attribution) and an archive without the locked marked dependency (also fails on origin/main; passes after bun install as CI runs it); each fixed or disproved, and @mneves75 in the ledger was accepted as the required public waiver owner. Ubuntu CI steps passed on aa2032f."
+  },
+  {
+   "name": "security gate fixes",
+   "status": "PASS",
+   "evidence": "Distinct-model security acceptance (gpt-6.2-astra) on 5fec7f7 found no Critical or High issue and three fixes: the quadratic code-span regex (36 s on 40,000 characters) was replaced by a length-indexed scanner (0 mismatches against the old regex in 300,000 random strings; 184 ms on 80,000 characters; test_router_span_scan_is_linear fails in 33 s with the old regex planted back); symlinks in the router skill now fail the check (planted control fails on the old checker); duplicate skill names now name their source."
+  },
+  {
+   "name": "security gate round 2 fixes",
+   "status": "PASS",
+   "evidence": "Distinct-model security acceptance (gpt-6.2-astra) on 8f8d794 found no Critical or High issue and failed on n log n span scanning, a quadratic file lookup and reads of a symlinked optional-siblings.md or agents/openai.yaml. Forward pointers make the scan linear (7 adversarial shapes: 4.00x calls for 4x input; 0 mismatches against the original regex in 300,000 cases); files are classified before any read; the two new symlink cases fail on the earlier checker and pass now."
+  }
+ ]
+}

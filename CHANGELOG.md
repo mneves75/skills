@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-11-27
+
+### Changed
+- **mneves-mode v3:** an explicit-only operator mode (`/mneves-mode` or "use mneves mode") that
+  frames a task, reconciles with origin first, opens one `references/playbook-<phase>.md` per
+  phase (build, refactor, audit, decide, PR, release, artifacts) and runs the gates in a fixed
+  order from test first to release and cleanup. Third-party siblings move to
+  `references/optional-siblings.md`, each with a public source and a fallback. Codex gets
+  `agents/openai.yaml` with `allow_implicit_invocation: false`. The no-router probe scored 68/68
+  on the frozen router cases, so v3 carries no routing tie-breakers. `references/playbooks.md`
+  is replaced by the per-phase files.
+- **Release order:** mneves-mode runs the readiness gate before staging and production deploys,
+  tags only after the deploy proves the release live, and names each target's tag (`ship-staging`
+  applies the beta tag and stops; production gets `vX.Y.Z`), matching `mneves-ship-deploy`.
+- **Routing rule (`AGENTS.md`):** an explicit-only router may name skills and order phases; no
+  skill may need it to be discovered or run.
+- **mneves-fable-orchestrator:** the agy review fallback in `codex-dispatch.md` takes its model
+  from the Defaults block instead of naming one.
+
+### Added
+- **Rot guard:** `check-catalog-hygiene.py` fails when an inline code span in mneves-mode's
+  `SKILL.md` or `references/` names a skill that does not resolve to this repository or an
+  `optional-siblings.md` row. It reads a span that is a name, a `/name` or `$name` command (with
+  or without arguments), a `plugin:name`, or a path into a skill (`skills/name/...`,
+  `name/SKILL.md`, `name/references/...`, `name/`), across a line break and with surrounding
+  quotes or punctuation. It also fails on a sibling row without a source or with a placeholder
+  fallback, and on the size caps (the 30 KB cap counts every file in the skill). Code blocks
+  and HTML `<code>` are not parsed as code: a name in them is checked only where backticks
+  around it form a span, so a bare name in a tilde-fenced or indented block, or in `<code>`,
+  is not caught. Span boundaries match CommonMark on single lines (a differential fuzz against
+  pandoc's reader: 0 mismatches in 40,000 lines). The scan runs in linear time. A
+  symlink anywhere in the skill fails the check, and only regular files are read.
+- **catalog-eval:** `--catalog-extra` and `--name-only`, and an `external` list in a cases file
+  for skills outside the catalog, used by the 68 frozen router cases in
+  `tools/catalog-eval/cases-router.json` (CI checks them without a model call).
+- **Skill dispositions:** `docs/specs/mneves-mode-router/skill-dispositions.md` reviews all 66
+  repository and pstack skills (keep, fix, merge or retire). Rows marked fixed were fixed in this
+  release or, for pstack skills, by the 2.1.0 re-pin; merges and retirements are proposals only.
+
+### Fixed
+- **mneves-motion-film:** step 4 no longer depends on step 5's fact check, and a review round
+  with no second model is reported as blocked instead of skipped.
+
 ## [2.1.0] - 2026-11-27
 
 ### Changed

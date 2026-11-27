@@ -49,7 +49,7 @@ collection does not automatically change those instructions in other projects.
 | [`babysit-pr`](#babysit-pr) | monitor a pull request through review and CI | "babysit this PR" |
 | [`leaving-pr-comments`](#leaving-pr-comments) | format and attribute GitHub comments an agent posts for you | "leave a review comment on this PR" |
 | [`mneves-handoff`](#mneves-handoff) | hand a task to another agent, review first | "handoff the flaky login test" |
-| [`mneves-mode`](#mneves-mode) | run an explicit workflow mode that picks a playbook and redirects each phase to sibling skills | "/mneves-mode add rate limiting to /api/login" |
+| [`mneves-mode`](#mneves-mode) | run one task from change to release with every gate in order | "/mneves-mode add rate limiting to /api/login" |
 | [`mneves-render`](#mneves-render) | build repeatable HTML, Word and PDF exports from Markdown | "write a renderer for my Markdown reports" |
 | [`mneves-motion-film`](#mneves-motion-film) | make or update a short product film from a brief | "make a launch video for this product" |
 | [`mneves-security`](#mneves-security) | hunt vulnerabilities, audit security/privacy, plan remediation, apply authorized safe fixes and gate every staging or production deploy | "audit security and privacy; fix confirmed local issues; do not deploy" |
@@ -1084,17 +1084,24 @@ writes and deployments retain the host's authorization rules.
 
 ## mneves-mode
 
-**What it does.** An explicit-only workflow router modeled on `poteto-mode`. When invoked by name
-(`/mneves-mode`, `$mneves-mode`, or "use mneves mode"), it frames the goal and risk tier, selects
-the matching playbook from `references/playbooks.md` (feature/bug fix, scoped refactor, decision,
-PR lifecycle, release/deploy, audit/verification, or specialized artifacts/learning), and redirects each phase to whichever
-sibling skill is installed — falling back cleanly on single-skill installs and closing mandatory
-gates when independent reviewers or release gates are unavailable. Every standalone skill remains
-directly discoverable on its own.
+**What it does.** An explicit-only operator mode, modeled on `poteto-mode`. When invoked by name
+(`/mneves-mode`, `$mneves-mode`, or "use mneves mode"), it:
+- frames the goal, the smallest verifiable change and the risk tier, and reconciles with the
+  remote first;
+- opens one playbook per phase (build or fix, refactor, decide, audit, PR lifecycle, release,
+  specialized artifacts);
+- runs the gates in a fixed order: test first, review, verification, release record, pre-deploy
+  security, then merge, deploy and cleanup only when authorized.
 
-**When to use it.** You want one entrypoint to drive a multi-phase task through your engineering
-workflow without manually naming each specialist at every phase boundary. It never auto-triggers
-on ordinary requests and grants no deployment, merge, or destructive permissions.
+Each gate goes to the installed skill. A third-party one, such as Matt Pocock's `tdd` or
+`code-review`, is listed in `references/optional-siblings.md` with its source and fallback. A
+missing skill is named once and its fallback runs. A required independent gate that cannot run is
+reported `BLOCKED`. It keeps no skill inventory: the host's own listing picks among installed
+skills, and every skill stays directly discoverable without it.
+
+**When to use it.** You want one command to run a task through your whole engineering workflow,
+instead of pasting the same list of skills and gates every time. It never auto-triggers on an
+ordinary request, and it grants no merge, deploy or destructive permission.
 
 **Illustrative request:**
 

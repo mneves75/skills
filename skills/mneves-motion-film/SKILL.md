@@ -49,12 +49,13 @@ start `film/`, and add [assets/eslint.film.mjs](assets/eslint.film.mjs) to the E
    table names every shot, line (as fact id), key press and what the viewer learns.
 4. **Timing and copy.** Put scenes, cues and the music sections in `timing.json`: every scene
    starts on a beat and carries a `swish` cue on that frame; clicks and hits sit on eighth
-   notes. Put each on-screen line in `copy.json` as `{text, fact}`. Done when
-   `check_facts.py` passes once the scenes exist.
+   notes. Put each on-screen line in `copy.json` as `{text, fact}`. Done when every shot in the
+   table has its scene and cues in `timing.json` and every line has a `copy.json` entry.
 5. **Build the scenes.** One component per scene, every string through `line()`, every
    timing from `timing.json`. Rebuild the product's screens as live UI with its real text.
    Look at stills (`npx remotion still`) at frame 0, at every key press and at the last frame
-   before the first full render.
+   before the first full render. Done when
+   `check_facts.py film/facts.json film/copy.json src` passes and the stills show every line.
 6. **Build and check.** `python3 -B film/scripts/build.py --composition <id> --site <url> --page <page.html>...`
    runs, in order: facts freshness (the pages still give `facts.json`), facts trace, the project's ESLint (JSX literals), contrast, music, loudness (mix and music alone), render, mux, muted copy,
    media checks, sync, contact sheets. Done when it exits 0. Read every contact sheet

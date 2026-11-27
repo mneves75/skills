@@ -1,0 +1,6 @@
+interface:
+  display_name: "mneves mode"
+  short_description: "Frame a task, order its phases, and run each gate"
+  default_prompt: "Use $mneves-mode to frame this task, pick the playbook, and run its gates in order."
+policy:
+  allow_implicit_invocation: false

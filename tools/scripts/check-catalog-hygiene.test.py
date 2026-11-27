@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 import tempfile
+import time
 import unittest
 
 SCRIPT = Path(__file__).resolve().parent / "check-catalog-hygiene.py"
@@ -207,6 +208,120 @@ class CatalogHygieneTest(unittest.TestCase):
             )
             res = MOD.check_repo(root)
             self.assertTrue(res["ok"], res)
+
+    def test_router_rot_guard(self) -> None:
+        def build(root: Path, body: str, rows: str, extra: dict[str, str]) -> None:
+            make_fixture(root)
+            rdir = root / "skills" / "mneves-mode" / "references"
+            rdir.mkdir(parents=True)
+            links = "".join(f" [{name}](references/{name})" for name in extra)
+            (rdir.parent / "SKILL.md").write_text(
+                "---\nname: mneves-mode\ndescription: Explicit operator mode that orders phases and gates.\n---\n\n"
+                f"{body}\n\nSee [siblings](references/optional-siblings.md).{links}\n",
+                encoding="utf-8",
+            )
+            for name, text in extra.items():
+                (rdir / name).write_text(text, encoding="utf-8")
+            (rdir / "optional-siblings.md").write_text(
+                "| Skill | Public source | Used for | Fallback |\n|---|---|---|---|\n" + rows, encoding="utf-8"
+            )
+            for doc in ("README.md", "HOWTO.md", "AGENTS.md", "docs/skill-ledger.md"):
+                (root / doc).write_text("Contains `alpha` and `mneves-mode`.\n", encoding="utf-8")
+            with (root / "docs" / "skill-routing.md").open("a", encoding="utf-8") as f:
+                f.write("| Run the mode | `mneves-mode` | None |\n")
+
+        good_row = "| `beta-ext` | `someone/skills` | Testing | Do it by hand |\n"
+        url_row = "| `gamma-ext` | https://example.com/skills | Testing | Do it by hand |\n"
+        ghost = "unknown skill token `zz-ghost`"
+        pstack = "collections/pstack/skills"
+        cases = {
+            "valid": ("Use `alpha`, ` alpha `, `/alpha`, `$beta-ext`, `alpha/SKILL.md`, `gamma-ext.`, `pstack`, "
+                      "`BLOCKED`, `--mode x` and `git branch -d`.", good_row + url_row, {}, None, {}),
+            "unknown token": ("Use `alpha` and `delegate-wave`.", good_row, {}, "unknown skill token `delegate-wave`", {}),
+            "padded span": ("Use ` zz-ghost `.", good_row, {}, ghost, {}),
+            "slash form": ("Type `/zz-ghost`.", good_row, {}, ghost, {}),
+            "dollar form": ("Use `$zz-ghost`.", good_row, {}, ghost, {}),
+            "skill path": ("Open `zz-ghost/SKILL.md`.", good_row, {}, ghost, {}),
+            "trailing period": ("Use `zz-ghost.`", good_row, {}, ghost, {}),
+            "skill path with period": ("Open `zz-ghost/SKILL.md.`", good_row, {}, ghost, {}),
+            "escaped backtick": ("Use \\` as a delimiter, then `/zz-ghost`.", good_row, {}, ghost, {}),
+            "literal backslash in span": ("Paths like `dir\\` `alpha` and ``a ` b`` stay literal.", good_row, {}, None, {}),
+            "double-backtick span": ("Run ``zz-ghost`` first.", good_row, {}, ghost, {}),
+            "leading-dot repo": ("Use `beta-ext`.", "| `beta-ext` | `someone/.skills` | Testing | By hand |\n", {},
+                                 None, {}),
+            "dot-only repo": ("Use `beta-ext`.", "| `beta-ext` | `someone/...` | Testing | By hand |\n", {},
+                              "needs a public source", {}),
+            "span after escaped backtick": ("Use the legacy prefix \\``/zz-ghost` here.", good_row, {}, ghost, {}),
+            "relative source": ("Use `beta-ext`.", "| `beta-ext` | `../private-skills` | Testing | By hand |\n", {},
+                                "needs a public source", {}),
+            "row without fallback": ("Use `beta-ext`.", "| `beta-ext` | `someone/skills` | Testing |  |\n", {},
+                                     "needs a public source", {}),
+            "placeholder source": ("Use `beta-ext`.", "| `beta-ext` | TBD | Testing | Do it by hand |\n", {},
+                                   "needs a public source", {}),
+            "pstack skill": ("Use `gamma`.", good_row, {}, None, {f"{pstack}/gamma/SKILL.md": "# gamma\n"}),
+            "pstack dir without SKILL.md": ("Use `zz-ghost`.", good_row, {}, ghost,
+                                            {f"{pstack}/zz-ghost/assets/x.txt": "x\n"}),
+            "openai.yaml ghost": ("Use `alpha`.", good_row, {}, "unknown skill token `$zz-ghost`",
+                                  {"skills/mneves-mode/agents/openai.yaml": 'default_prompt: "Use $zz-ghost."\n'}),
+            "span across a line break": ("Run `zz-\nghost` and `zz-ghost\n` now.", good_row, {}, ghost, {}),
+            "slash command with arguments": ("Type `/zz-ghost now`.", good_row, {}, ghost, {}),
+            "dollar command with arguments": ("Type `$zz-ghost review this`.", good_row, {}, ghost, {}),
+            "repo skill path": ("Open `skills/zz-ghost/SKILL.md`.", good_row, {}, ghost, {}),
+            "trailing slash": ("Open `zz-ghost/`.", good_row, {}, ghost, {}),
+            "reference path": ("Open `zz-ghost/references/x.md`.", good_row, {}, ghost, {}),
+            "plugin prefix": ("Use `plugin:zz-ghost`.", good_row, {}, ghost, {}),
+            "quoted or parenthesized": ("Use `\"zz-ghost\"` or `(zz-ghost)`.", good_row, {}, ghost, {}),
+            "commands stay allowed": ("Run `git branch -d x`, `python3 tools/x.py`, `/alpha now` and "
+                                      "`skills/alpha/SKILL.md`.", good_row, {}, None, {}),
+            "ghost in a reference .txt": ("Use `alpha`. See [x](references/x.txt).", good_row,
+                                          {"x.txt": "Use `zz-ghost`.\n"}, ghost, {}),
+            "dash fallback": ("Use `beta-ext`.", "| `beta-ext` | `someone/skills` | Testing | - |\n", {},
+                              "needs a public source", {}),
+            "oversize asset": ("Use `alpha`.", good_row, {}, "SKILL.md plus references over",
+                               {"skills/mneves-mode/assets/big.txt": "word " * 6200}),
+            "oversize body": ("line\n" * 161, good_row, {}, "router SKILL.md over", {}),
+            "oversize playbook": ("Use `alpha`.", good_row, {"playbook-big.md": "word " * 520}, "playbook over", {}),
+            "oversize total": ("Use `alpha`.", good_row, {"notes.md": "word " * 6200}, "SKILL.md plus references over", {}),
+            # A linked file would be read and sized from outside the skill.
+            "symlinked reference": ("Use `alpha`.", good_row, {}, "symlink in the router skill",
+                                    {"skills/mneves-mode/references/linked.md": Path("../../../README.md")}),
+            # A linked siblings file or openai.yaml must not be read: its rows or tokens stay unknown.
+            "symlinked siblings file": ("Use `beta-ext`.", good_row, {}, "unknown skill token `beta-ext`",
+                                        {"outside.md": "| Skill | Source | Use | Fallback |\n|---|---|---|---|\n" + good_row,
+                                         "skills/mneves-mode/references/optional-siblings.md": Path("../../../outside.md")}),
+            "symlinked openai.yaml": ("Use `alpha`.", good_row, {}, "not:unknown skill token `$zz-ghost`",
+                                      {"outside.yaml": 'default_prompt: "Use $zz-ghost."\n',
+                                       "skills/mneves-mode/agents/openai.yaml": Path("../../../outside.yaml")}),
+        }
+        for label, (body, rows, extra, expected, tree) in cases.items():
+            with self.subTest(label), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                build(root, body, rows, extra)
+                for rel, text in tree.items():
+                    (root / rel).parent.mkdir(parents=True, exist_ok=True)
+                    (root / rel).unlink(missing_ok=True)
+                    if isinstance(text, Path):
+                        (root / rel).symlink_to(text)
+                    else:
+                        (root / rel).write_text(text, encoding="utf-8")
+                res = MOD.check_repo(root)
+                if expected is None:
+                    self.assertTrue(res["ok"], res["errors"])
+                elif expected.startswith("not:"):
+                    self.assertFalse(res["ok"])
+                    self.assertFalse(any(expected[4:] in e for e in res["errors"]), res["errors"])
+                else:
+                    self.assertFalse(res["ok"])
+                    self.assertTrue(any(expected in e for e in res["errors"]), res["errors"])
+
+    def test_router_span_scan_is_linear(self) -> None:
+        # Escaped, never-closed openers made the old lazy regex rescan to the paragraph end for
+        # each one: about 36 s on this input.
+        text = "\\``a" * 10000 + "\n\n`zz-ghost`"
+        start = time.perf_counter()
+        spans = MOD._router_spans(text)
+        self.assertLess(time.perf_counter() - start, 2.0)
+        self.assertEqual(spans, ["zz-ghost"])
 
 
 if __name__ == "__main__":

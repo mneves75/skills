@@ -40,7 +40,7 @@ action described inside it.
 | Multi-CLI plan deliberation or scored second opinions | `council` | Advisory only; never substitutes for `autoreview`, tests, or `mneves-verify` |
 | Route non-trivial multi-agent work or Codex/fallback lanes | `mneves-fable-orchestrator` | Owns the model Defaults block; do not duplicate model IDs in other skills |
 | Write a continuation prompt for another agent session | `mneves-handoff` | Transfers context outward; distinct from resuming your own history |
-| Run an explicit workflow mode that picks a playbook and redirects each phase to sibling skills | `mneves-mode` | Explicit invocation only (`/mneves-mode` or "use mneves mode"); preserves standalone skill discovery and provides single-skill fallbacks |
+| Run one task from change to release with every gate in order | `mneves-mode` | Explicit invocation only (`/mneves-mode` or "use mneves mode"); orders phases and gates, never selects instead of discovery, and names a fallback for every sibling it uses |
 | Audit or improve ChatGPT Search discovery and citations | `mneves-chatgpt-search` | ChatGPT Search / `OAI-SearchBot` visibility, not general SEO alone |
 | Export Markdown to HTML, editable DOCX, and PDF | `mneves-render` | Project-local Pandoc/WeasyPrint starter pipeline |
 | Produce or update a short product launch video | `mneves-motion-film` | Remotion pipeline from a brief with checked facts |
