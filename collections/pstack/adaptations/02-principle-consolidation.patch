@@ -1,16 +1,17 @@
 Adaptation 02-principle-consolidation
 
-The 24 principle-* skills and the always-on unslop skill are retired. Their guidance lives in four
+The 24 principle-* skills and the always-on unslop skill are retired. Source exclusions remove the
+principle directories and this patch removes unslop. Their guidance lives in four
 conditional references, poteto-mode/references/engineering-{design,evolution,verification,coordination}.md,
 which the other skills link to; poteto-mode routes by task instead of mandating panels for routine work.
 Rebased onto pstack 0.15.46 / pstack-claude 0.9.153 (including the new agy/omp/opencode/kimi/grok
 mappings and shortened playbooks).
 
-Fork source: https://github.com/mneves75/pstack-claude commits 296c78d, d13480d, 3017177 (rebased to 66181d3).
+Fork source: https://github.com/mneves75/pstack-claude commits 296c78d, d13480d, 3017177 (rebased to 1ab6b82).
 Applies to the port's plugins/pstack/skills tree after the patches numbered before it.
 
 diff --git a/arena/SKILL.md b/arena/SKILL.md
-index 9753ef0..c87b861 100644
+index c36dc07..60bfad5 100644
 --- a/arena/SKILL.md
 +++ b/arena/SKILL.md
 @@ -22,7 +22,7 @@ Every candidate gets the same prompt, so the prompt is the contract.
@@ -94,10 +95,10 @@ index b8a6213..3a79137 100644
  
  **Reply:** the writeup above, with the one safety fact either proven or marked unproven.
 diff --git a/figure-it-out/SKILL.md b/figure-it-out/SKILL.md
-index 3909ee0..e0c336d 100644
+index 910322c..8fd381c 100644
 --- a/figure-it-out/SKILL.md
 +++ b/figure-it-out/SKILL.md
-@@ -15,26 +15,26 @@ Open a todolist whose first item is to read the Principles section of the **pote
+@@ -21,26 +21,26 @@ Open a todolist whose first item is to read the Principles section of the **pote
  
  Ground first, then commit. Don't start the run until you can state:
  
@@ -130,7 +131,7 @@ index 3909ee0..e0c336d 100644
  
  - Verify by inspecting the artifact, never a self-report. When something passes too easily, suspect the observation method before the system.
  - Pair delegated work with a judge. If a worker games the gate, reset and harden the contract. If the gate itself is wrong, fix the gate in its own change rather than routing around it.
-@@ -46,6 +46,6 @@ Log the run via the **show-me-your-work** skill. figure-it-out's work is usually
+@@ -52,6 +52,6 @@ Log the run via the **show-me-your-work** skill. figure-it-out's work is usually
  
  ## Phase E: Verify and hand back
  
@@ -139,7 +140,7 @@ index 3909ee0..e0c336d 100644
  
  **Reply:** the playbook you designed, the rigor level and why, the decision-trail path, what's verified against the predicate, and what's still open.
 diff --git a/no-comments/SKILL.md b/no-comments/SKILL.md
-index b96df38..0a5cbb1 100644
+index ced57c2..6dec98a 100644
 --- a/no-comments/SKILL.md
 +++ b/no-comments/SKILL.md
 @@ -30,7 +30,7 @@ Use the caller's files or diff. Otherwise use the current diff against the base
@@ -152,10 +153,10 @@ index b96df38..0a5cbb1 100644
  6. Report the deletion count, restored comments, `HOLD` comments, reruns, architect sketch, fixes, encoding offers, encodings, unenforced constraints, and other open work.
  
 diff --git a/poteto-help/SKILL.md b/poteto-help/SKILL.md
-index dacb524..7d29801 100644
+index 01789ee..3c8524b 100644
 --- a/poteto-help/SKILL.md
 +++ b/poteto-help/SKILL.md
-@@ -71,7 +71,6 @@ The default answer is `/poteto-mode`, which runs most of the others when its ste
+@@ -72,7 +72,6 @@ The default answer is `/poteto-mode`, which runs most of the others when its ste
  | Fix a bug test-first when a cheap local test exists | [`/tdd`](../tdd/SKILL.md) |
  | Apply TypeScript rules to `.ts` or `.tsx` work | [`/typescript-best-practices`](../typescript-best-practices/SKILL.md) |
  | Strip comments before review, using a reviewer that didn't write them | [`/no-comments`](../no-comments/SKILL.md) |
@@ -163,7 +164,7 @@ index dacb524..7d29801 100644
  | Write docs, an RFC, a README, a PR description, or a commit message to a standard | [`/technical-writing`](../technical-writing/SKILL.md) |
  | Hear the last reply again in plain words | [`/bro`](../bro/SKILL.md) |
  | Give agents a scripted way to drive the app and prove behavior | [`/create-verification-skill`](../create-verification-skill/SKILL.md) |
-@@ -88,7 +87,7 @@ The default answer is `/poteto-mode`, which runs most of the others when its ste
+@@ -89,7 +88,7 @@ The default answer is `/poteto-mode`, which runs most of the others when its ste
  | Stop agents from repeating the same mistakes in this repo | [`/correct`](../correct/SKILL.md) |
  | Find their way around pstack | `/poteto-help` |
  
@@ -172,7 +173,7 @@ index dacb524..7d29801 100644
  
  Close calls:
  
-@@ -100,7 +99,7 @@ Close calls:
+@@ -101,7 +100,7 @@ Close calls:
  
  Not in pstack:
  
@@ -181,17 +182,17 @@ index dacb524..7d29801 100644
  - `/loop` is a Claude Code bundled skill, and the **plugin-dev:skill-development** skill is Claude Code's skill-authoring guidance.
  - pstack has no orchestrate skill. If the slash menu shows an orchestrate command, another plugin provides it.
  
-@@ -119,7 +118,7 @@ Without `/poteto-mode`, a phrase such as "babysit this pr" can start pstack's st
+@@ -120,7 +119,7 @@ Without `/poteto-mode`, a phrase such as "babysit this pr" can start pstack's st
  
  pstack has no planning skill. Claude Code's plan mode works alongside it. For work that spans phases or stacked PRs, asking `/poteto-mode` for a plan runs the [Multi-phase plan playbook](../poteto-mode/playbooks/multi-phase-plan.md), which writes the plan and doesn't implement it. For a design question, the Prototype playbook or `/architect` settles it in code first.
  
--Principles are one-rule skills that `/poteto-mode` reads and cites in its replies. The user rarely invokes one. They steer with the names instead, as in "apply prove it works. show me the real output." On Claude Code the `principle-*` leaves are hidden from the slash menu and `/poteto-mode` reads them by path; other runtimes may list them in their skill picker. The [Principles index](../poteto-mode/SKILL.md#principles) lists them.
+-Principles are one-rule skills that `/poteto-mode` reads and cites in its replies. The user rarely invokes one. They steer with the names instead, as in "apply prove it works. show me the real output." On Claude Code the `principle-*` leaves are hidden from the slash menu and `/poteto-mode` reads them by path. On Codex they are left out of the model's skill list and read by path through the [Codex mapping](../poteto-mode/references/codex-tools.md). Other runtimes may list them in their skill picker. The [Principles index](../poteto-mode/SKILL.md#principles) lists them.
 +Engineering principles live in four conditional references under [Conditional engineering guidance](../poteto-mode/SKILL.md#conditional-engineering-guidance) (`engineering-design.md`, `engineering-evolution.md`, `engineering-verification.md`, `engineering-coordination.md`), loaded only when relevant to a decision.
  
  ## Fix a run that went wrong
  
 diff --git a/poteto-mode/SKILL.md b/poteto-mode/SKILL.md
-index 962d543..eafc66e 100644
+index 269276c..4ff3e66 100644
 --- a/poteto-mode/SKILL.md
 +++ b/poteto-mode/SKILL.md
 @@ -1,6 +1,6 @@
@@ -583,7 +584,7 @@ index 18fd74c..e91d3fd 100644
  5. Prune the confirmed set. Per path, `git worktree remove --force <path>`. If the dir survives on ignored build artifacts, `rm -rf` it, then `git worktree prune`. Branch refs survive, so commits on the worktree's branch are kept. The worktree's HEAD reflog goes with it, so a commit only that reflog reaches is lost. Commits made inside a submodule are stored with the worktree and go with it. Confirm with `df -h /` and re-list.
  6. Simulators and other reclaimers. Simulators are usually the next-biggest win. `xcrun simctl --set testing delete all` (XCTestDevices clones), `xcrun simctl delete unavailable`, and `xcrun simctl runtime list` then `runtime delete <id>` for old runtimes. More when needed: Xcode `DerivedData` and `iOS DeviceSupport`, your editor's application-support caches, `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/shell-snapshots/` and old `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/` transcripts (keep the recent ones the **recall** skill and Session pickup read), package caches (pnpm, uv, brew, yarn). Clear only caches the user has not said to keep.
 diff --git a/poteto-mode/references/agy-tools.md b/poteto-mode/references/agy-tools.md
-index c7c31de..fce562f 100644
+index e45c389..05edef7 100644
 --- a/poteto-mode/references/agy-tools.md
 +++ b/poteto-mode/references/agy-tools.md
 @@ -54,7 +54,7 @@ Antigravity runs the plugin's `SessionStart` hook when a new session starts. The
@@ -595,7 +596,7 @@ index c7c31de..fce562f 100644
  
  | Skill or driver named in pstack | On Antigravity |
  |---------------------------------|----------------|
-@@ -84,7 +84,7 @@ Most skills need only the tables above. These need one more mapping:
+@@ -86,7 +86,7 @@ Most skills need only the tables above. These need one more mapping:
  | `recall` | Read Antigravity transcripts under `~/.gemini/antigravity-cli/brain/<conversation-id>/.system_generated/logs/transcript.jsonl` instead of `${CLAUDE_CONFIG_DIR:-$HOME/.claude}/projects/`. |
  | `reflect` | Pass the current session's transcript path (`<appDataDir>/brain/<conversation-id>/.system_generated/logs/transcript.jsonl`) to the transcript reading the skill does. |
  | `show-me-your-work` | Check the log against this session's transcript or context, not a Claude Code transcript. |
@@ -605,10 +606,18 @@ index c7c31de..fce562f 100644
  | `maintain-verification-skill` | The parallel per-feature source readers map to `invoke_subagent` fan-out; the project-local skill lives under `.agents/skills/`. |
  | `create-formal-verification-skill` | Write the generated skill to `.agents/skills/<area>/`, named for the area it verifies. |
 diff --git a/poteto-mode/references/codex-tools.md b/poteto-mode/references/codex-tools.md
-index debbaf3..a818a68 100644
+index 4df5018..add1489 100644
 --- a/poteto-mode/references/codex-tools.md
 +++ b/poteto-mode/references/codex-tools.md
-@@ -67,7 +67,7 @@ A skills-only installation does not include plugin hooks. Request `poteto-mode`
+@@ -13,7 +13,6 @@ pstack skills are written in Claude Code tool language (the `Skill` tool, the `A
+ | Fetch a URL | `shell` with `curl` / `wget` |
+ | Search the web | `web_search` |
+ | Invoke a skill (the `Skill` tool, `/command`) | Skills load natively. Follow the instructions presented. |
+-| Read a principle leaf (the **principle-<title>** skill, or the **<title>** principle skill, a pstack skill names) | Principle leaves are left out of Codex's skill list by their `agents/openai.yaml`. Read the leaf with `shell` at `<poteto-mode-dir>/../principle-<title>/SKILL.md`, with `<poteto-mode-dir>` resolved to the `poteto-mode` skill's directory and `<title>` in kebab case, or the explicit name a Principles entry gives. |
+ | Dispatch a subagent (the `Agent`/`Task` tool) | `spawn_agent` |
+ | Dispatch N parallel subagents in one turn | N `spawn_agent` calls in one response |
+ | Wait for a subagent result | Use `wait_agent` as described under [Agent lifecycle](#agent-lifecycle). |
+@@ -74,7 +73,7 @@ A skills-only installation does not include plugin hooks. Request `poteto-mode`
  
  ## Driver and bundled skills pstack references
  
@@ -617,8 +626,17 @@ index debbaf3..a818a68 100644
  
  | Skill or driver named in pstack | On Codex |
  |---------------------------------|----------|
+@@ -108,8 +107,6 @@ Affected skill entry points point here. Most skills need only the tables above.
+ | `show-me-your-work` | Check the log against this run's current Codex rollout, using `CODEX_THREAD_ID` and the state index as described in Tool actions. A filename suffix alone cannot select the current file after revert. If the current path is unavailable or ambiguous, report that the audit could not run instead of guessing a rollout. Do not read Claude Code's projects directory. |
+ | `swarm` | Each worker is a `spawn_agent` call on your configured Codex model, and those calls already run concurrently; give each writing worker its own worktree or output directory (see Subagent policy above). |
+ | `why` | List MCP servers from the tools Codex exposes to the session, not from `.mcp.json` or `claude mcp list`. |
+-| `figure-it-out` | Read each principle skill it names through the principle-leaf row in Tool actions, since Codex does not list principle leaves. |
+-| `typescript-best-practices` | Read each principle skill it names through the principle-leaf row in Tool actions, since Codex does not list principle leaves. |
+ 
+ ## Vendored scripts
+ 
 diff --git a/poteto-mode/references/copilot-tools.md b/poteto-mode/references/copilot-tools.md
-index c0416f7..cd7dd69 100644
+index 4060082..29c4776 100644
 --- a/poteto-mode/references/copilot-tools.md
 +++ b/poteto-mode/references/copilot-tools.md
 @@ -96,7 +96,7 @@ In poteto-mode's playbooks, the Eval playbook reads candidate transcripts from C
@@ -841,10 +859,10 @@ index ca90675..ee65ed4 100644
  | Skill or driver named in pstack | On Muse |
  |---------------------------------|---------|
 diff --git a/poteto-mode/references/pi-tools.md b/poteto-mode/references/pi-tools.md
-index 6a29fba..260a2ac 100644
+index 3f636d9..5155172 100644
 --- a/poteto-mode/references/pi-tools.md
 +++ b/poteto-mode/references/pi-tools.md
-@@ -73,7 +73,7 @@ Without the extension nothing is injected. Request `poteto-mode` explicitly with
+@@ -74,7 +74,7 @@ Without the extension nothing is injected. Request `poteto-mode` explicitly with
  
  ## Driver and bundled skills pstack references
  
@@ -853,494 +871,6 @@ index 6a29fba..260a2ac 100644
  
  | Skill or driver named in pstack | On Pi |
  |---------------------------------|-------|
-diff --git a/principle-attack-the-premise/SKILL.md b/principle-attack-the-premise/SKILL.md
-deleted file mode 100644
-index 30cd433..0000000
---- a/principle-attack-the-premise/SKILL.md
-+++ /dev/null
-@@ -1,15 +0,0 @@
-----
--name: principle-attack-the-premise
--description: "Apply when two or more fixes that share one premise have failed the same gate. Write the premise down and test it directly before you write another fix that assumes it."
--user-invocable: false
-----
--
--# Attack the Premise
--
--When two or more fixes that share one premise have failed the same gate, suspect the premise, not the fixes.
--
--- Write the premise down: the one sentence every failed fix assumed.
--- Test it before the next fix. Find an observation that would come out differently if the premise were false, and make it. Look at how the failures are distributed, not only at how large they are.
--- If the evidence contradicts the premise, look for what the failures share that it did not predict. If one part always lands on the losing side, change what puts it there instead of adding a mechanism that cleans up after it.
--
--Do not start the next fix before the premise is written down and tested.
-diff --git a/principle-boundary-discipline/SKILL.md b/principle-boundary-discipline/SKILL.md
-deleted file mode 100644
-index 94c8c33..0000000
---- a/principle-boundary-discipline/SKILL.md
-+++ /dev/null
-@@ -1,11 +0,0 @@
-----
--name: principle-boundary-discipline
--description: "Apply when wiring validation, error handling, or framework adapters. Concentrate guards at system boundaries (CLI, config, network, external APIs); trust internal types and keep business logic in pure functions."
--user-invocable: false
-----
--
--# Boundary Discipline
--
--Validate, narrow types, and handle errors where data crosses a system boundary (CLI args, config files, external APIs, network). Inside, trust the types: no re-validation and no redundant nil checks. Parse raw data into domain types at the boundary, and keep transport and framework types out of the public surface. Business logic lives in pure functions with no framework dependencies. The shell that calls them is thin.
--
--Two tests. Is this data crossing a boundary right now? If not, the validation is redundant. Can this be a pure function the shell just calls? If yes, extract it.
-diff --git a/principle-build-the-lever/SKILL.md b/principle-build-the-lever/SKILL.md
-deleted file mode 100644
-index f198473..0000000
---- a/principle-build-the-lever/SKILL.md
-+++ /dev/null
-@@ -1,15 +0,0 @@
-----
--name: principle-build-the-lever
--description: "Apply to any non-trivial work, not just bulk work: edits, migrations, analyses, checks. Build the tool that does it or proves it (codemod, script, generator, or a skill your subagents follow) instead of working by hand. The tool is the artifact a reviewer can rerun."
--user-invocable: false
-----
--
--# Build the Lever
--
--When the work isn't trivial, build the tool that does it (a codemod, script, generator, or rerunnable check) instead of doing it by hand. The bar is triviality, not repetition. Skip the tool only for a couple of obvious edits.
--
--- Do the first unit by hand, then build the tool and prove it by rerunning it on that unit. Make it safe to rerun.
--- For a comparison tool, seed one known-bad change for each output it claims to compare, and confirm the tool reports each mismatch. If required input is missing, the tool must refuse or report the result as inconclusive, never as a match. Keep these controls with the experiment and rerun them before you trust its results.
--- A deterministic tool beats fan-out. When you do fan out, write the recipe, the verification contract, and the fences as one skill the delegates read and cannot edit.
--- Applying this produces a file. No script, codemod, generator, or delegate skill in the diff means you didn't apply it. Commit it when the work outlives the session.
--- Build the smallest script that does or proves the job, never a framework.
-diff --git a/principle-encode-lessons-in-structure/SKILL.md b/principle-encode-lessons-in-structure/SKILL.md
-deleted file mode 100644
-index 2c66bfe..0000000
---- a/principle-encode-lessons-in-structure/SKILL.md
-+++ /dev/null
-@@ -1,11 +0,0 @@
-----
--name: principle-encode-lessons-in-structure
--description: "Apply when you catch yourself writing the same instruction a second time, or notice a recurring correction. Encode the rule as a lint, metadata flag, runtime check, or script instead of more text."
--user-invocable: false
-----
--
--# Encode Lessons in Structure
--
--If the lesson needs judgment and cannot be encoded, make the instruction more prominent and add an example of the failure mode.
--
--**Corollary:** If the fix is structural, only use the structural fix. The instruction is the symptom.
-diff --git a/principle-exhaust-the-design-space/SKILL.md b/principle-exhaust-the-design-space/SKILL.md
-deleted file mode 100644
-index c72ea8d..0000000
---- a/principle-exhaust-the-design-space/SKILL.md
-+++ /dev/null
-@@ -1,9 +0,0 @@
-----
--name: principle-exhaust-the-design-space
--description: "Apply when facing a novel UI interaction or architectural decision with no precedent in the codebase. Build 2-3 competing prototypes and compare side by side before committing."
--user-invocable: false
-----
--
--# Exhaust the Design Space
--
--It also applies to product design decisions where user experience depends on feel, not logic.
-diff --git a/principle-experience-first/SKILL.md b/principle-experience-first/SKILL.md
-deleted file mode 100644
-index ff4bf14..0000000
---- a/principle-experience-first/SKILL.md
-+++ /dev/null
-@@ -1,19 +0,0 @@
-----
--name: principle-experience-first
--description: "Apply when product, UX, or feature-scope tradeoffs come up. Choose user delight over implementation convenience; ship fewer polished features over more rough ones."
--user-invocable: false
-----
--
--# Experience First
--
--When implementation convenience conflicts with user delight, choose delight.
--
--- Every feature, control, and option must be justified
--- Ship less, ship better (polished experience with three features beats rough one with ten)
--- Prototype before committing (design decisions are cheaper in throwaway HTML than production code)
--- Get the details right (transitions, alignment, spacing, feedback, error states)
--- Tighten the core loop (every feature should serve the central workflow or get out of the way)
--
--The user is whoever consumes the work. For a UI that is the end user. For a library or an internal API it is the colleague who imports it. The engineer who maintains the code next is a user too. Weigh their experience the same way, and explain impact from their perspective.
--
--Foundations should serve the experience. Foundational thinking governs the *sequence* of work. This principle governs the *target*.
-diff --git a/principle-explain-the-number/SKILL.md b/principle-explain-the-number/SKILL.md
-deleted file mode 100644
-index f22fca2..0000000
---- a/principle-explain-the-number/SKILL.md
-+++ /dev/null
-@@ -1,14 +0,0 @@
-----
--name: principle-explain-the-number
--description: "Apply before you measure, and before you trust, report, or act on a number you measured: a speedup, a regression, a throughput, a latency, or an eval result. Find what limits it, and rule out that it measured something other than the work you think."
--user-invocable: false
-----
--
--# Explain the Number
--
--- **Write the decision before you run.** Name the result that would change it, and the noise floor. Stop when the run-to-run spread is larger than the effect.
--- **Ask "why not double?"** Name the resource or code path that bounds the result, from a profile or counters taken during a run. A guess from reading the code is not a limiter.
--- **List what else the number could be measuring** (errors, skipped or cached work, code that never ran, an untuned side, noise, a piece too small to matter) and rule out each one with evidence.
--- **Keep the run count, the spread, and the limiter with the number.**
--
--For a performance number, run the [benchmark-checklist](../benchmark-checklist/SKILL.md) skill. For an eval result, ask whether every run did the task, whether the gap holds across trials and models, and whether the scenario matters.
-diff --git a/principle-fix-root-causes/SKILL.md b/principle-fix-root-causes/SKILL.md
-deleted file mode 100644
-index 3e3a42f..0000000
---- a/principle-fix-root-causes/SKILL.md
-+++ /dev/null
-@@ -1,14 +0,0 @@
-----
--name: principle-fix-root-causes
--description: "Apply when debugging. Trace each symptom back to the first place the system went wrong and fix it there. A guard is a fix only when the state it handles is legitimate."
--user-invocable: false
-----
--
--# Fix Root Causes
--
--Fix the fault, not the place where it surfaced. The root cause is the first place the system did something it should not do, or failed to handle a state it should handle.
--
--- Reproduce first. Ask "why" until the answer is a wrong decision in the code. When stuck, instrument and read the actual state.
--- Ask whether the state that triggered the symptom is legitimate. If it is, handle it where the code broke. If it should never exist, a check there hides the bug, so find what produced it. Guards, retries, swallowed errors, clamped values, and discarded state are the usual ways to hide a bug.
--- Fix the pattern, not the instance. Find every place with the same fault.
--- If the deciding fact took a deep dig, propose the cheap, always-on signal that would have shown it at first look.
-diff --git a/principle-foundational-thinking/SKILL.md b/principle-foundational-thinking/SKILL.md
-deleted file mode 100644
-index bfb59b1..0000000
---- a/principle-foundational-thinking/SKILL.md
-+++ /dev/null
-@@ -1,13 +0,0 @@
-----
--name: principle-foundational-thinking
--description: "Apply before writing logic: choosing core types and data structures, sequencing scaffold-vs-feature work, asking what concurrent actors share. Get the data structures right so downstream code becomes obvious."
--user-invocable: false
-----
--
--# Foundational Thinking
--
--Get the data shape right before writing logic. Define core types early, trace every access pattern, and choose structures that match the dominant paths. DRY the structure, not every line.
--
--Before sharing state between actors, ask what happens if another actor modifies it concurrently. If the answer is not "nothing", isolate.
--
--Scaffold first. Whatever helps every later phase (CI, tests, shared types) goes first, after removing dead code. Keep commits small and single-purpose.
-diff --git a/principle-guard-the-context-window/SKILL.md b/principle-guard-the-context-window/SKILL.md
-deleted file mode 100644
-index 53ec1b3..0000000
---- a/principle-guard-the-context-window/SKILL.md
-+++ /dev/null
-@@ -1,12 +0,0 @@
-----
--name: principle-guard-the-context-window
--description: "Apply when context is filling up: large outputs, long files, repeated reads, fan-out planning. Route bulk to subagents; keep summaries in the main thread, not raw payloads."
--user-invocable: false
-----
--
--# Guard the Context Window
--
--**Why:** Context overflow degrades reasoning quality, creates compression artifacts, and halts progress.
--
--**Pattern:**
--- **Size phases and cap scope.** Limit files per phase, set turn budgets, account for mechanism costs.
-diff --git a/principle-laziness-protocol/SKILL.md b/principle-laziness-protocol/SKILL.md
-deleted file mode 100644
-index a7e9e5b..0000000
---- a/principle-laziness-protocol/SKILL.md
-+++ /dev/null
-@@ -1,10 +0,0 @@
-----
--name: principle-laziness-protocol
--description: "Apply when refactoring, evaluating diff size, or tempted to add abstractions, layers, or signal threading. Bias toward deletion and the smallest change that solves the problem."
--user-invocable: false
-----
--
--# Laziness Protocol
--
--- **Consolidate decisions.** Do not repeat the same choice in several places. Put it behind one source of truth and pass the result as a simple flag.
--- **Minimize the diff.** Make the smallest change that solves the problem. Fewer lines beat "elegant" boilerplate.
-diff --git a/principle-make-operations-idempotent/SKILL.md b/principle-make-operations-idempotent/SKILL.md
-deleted file mode 100644
-index 3e27345..0000000
---- a/principle-make-operations-idempotent/SKILL.md
-+++ /dev/null
-@@ -1,15 +0,0 @@
-----
--name: principle-make-operations-idempotent
--description: "Apply when designing commands, lifecycle steps, or processing loops that run amid crashes, restarts, and retries. Converge to the same end state regardless of partial prior runs."
--user-invocable: false
-----
--
--# Make Operations Idempotent
--
--Design every state-changing operation to converge to the correct state however many times it runs and wherever the previous run stopped.
--
--Derive each step from the state that exists, not from what the previous run meant to do. Read the current state, compare it to the goal, and apply only the difference.
--
--Anything a run leaves behind (a lock, a temporary file, a half-written record, a claimed job) must be recognizable as stale by the next run, by evidence that holds wherever the previous run could have stopped. Write to a temporary path and rename it into place.
--
--The test: what happens if this runs twice? What if the previous run crashed at every possible point? If the answer depends on what was left behind, add a reconciliation step.
-diff --git a/principle-migrate-callers-then-delete-legacy-apis/SKILL.md b/principle-migrate-callers-then-delete-legacy-apis/SKILL.md
-deleted file mode 100644
-index 4fc3dc0..0000000
---- a/principle-migrate-callers-then-delete-legacy-apis/SKILL.md
-+++ /dev/null
-@@ -1,14 +0,0 @@
-----
--name: principle-migrate-callers-then-delete-legacy-apis
--description: "Apply when introducing a new internal API while old callers still exist. Migrate callers and delete the old API in the same wave instead of preserving compatibility layers."
--user-invocable: false
-----
--
--# Migrate Callers Then Delete Legacy APIs
--
--- Update tests to assert the new contract, and delete tests that only protect pre-refactor implementation details
--
--**When this applies:**
--- No external users depend on backward compatibility
--- The project can absorb coordinated breaking changes
--- The new API is part of a simplification or refactor initiative
-diff --git a/principle-minimize-reader-load/SKILL.md b/principle-minimize-reader-load/SKILL.md
-deleted file mode 100644
-index bee80c6..0000000
---- a/principle-minimize-reader-load/SKILL.md
-+++ /dev/null
-@@ -1,15 +0,0 @@
-----
--name: principle-minimize-reader-load
--description: "Apply when reviewing or shaping code that's hard to trace. Count layers between question and answer, and hidden state in the reader's head; collapse one-caller wrappers and shrink mutable scope."
--user-invocable: false
-----
--
--# Minimize Reader Load
--
--Reader load is the work a reader must do to understand code. It has two independent axes: layers to trace between the question and the answer, and hidden or mutable state to hold in their head. Guard both.
--
--- Collapse layers that only forward: wrappers with one caller, adapters with no second implementation, pass-through methods. Inline them.
--- Shrink state scope: returns over mutations, locals over fields, fields over module state, module state over globals. Derive instead of sync.
--- Name an invariant once at the boundary, not in every consumer.
--
--The test: can a new reader answer "where does X come from?" and "what can change X?" in under 30 seconds? If not, cut layers or cut state.
-diff --git a/principle-model-the-domain/SKILL.md b/principle-model-the-domain/SKILL.md
-deleted file mode 100644
-index 42f5ad4..0000000
---- a/principle-model-the-domain/SKILL.md
-+++ /dev/null
-@@ -1,15 +0,0 @@
-----
--name: principle-model-the-domain
--description: "Apply when writing stateful logic, or when code branches a lot or repeats a shape assumption across files."
--user-invocable: false
-----
--
--# Model the Domain
--
--Encode the domain in a data structure instead of scattering it across conditionals. The right structure makes invalid states unrepresentable and deletes branches.
--
--Reach for a state machine instead of scattered booleans or phase checks, a typed model instead of loose parameters, a map, registry, or discriminated union instead of branching spread across files, a reducer instead of ad hoc mutations, and an index, queue, or normalized collection where the access pattern calls for it.
--
--Do not force it. Keep boring code when the shape is clear, local, and unlikely to grow, and distrust an abstraction that adds indirection without removing branches or invalid states.
--
--The sign that you skipped this: a feature that grows an if/else chain by one more branch, or a second boolean that must stay in sync with the first.
-diff --git a/principle-never-block-on-the-human/SKILL.md b/principle-never-block-on-the-human/SKILL.md
-deleted file mode 100644
-index f4d3fad..0000000
---- a/principle-never-block-on-the-human/SKILL.md
-+++ /dev/null
-@@ -1,15 +0,0 @@
-----
--name: principle-never-block-on-the-human
--description: "Apply when tempted to ask 'should I do X?' on reversible work."
--user-invocable: false
-----
--
--# Never Block on the Human
--
--The human supervises asynchronously. Agents must stay unblocked. Make reasonable decisions, proceed, and let the human course-correct after the fact. Since code changes are reversible and reviewable, a wrong decision usually costs less than blocking.
--
--- Proceed, then present. Do the work, show the result. Don't ask "should I do X?" Do X, explain why.
--- Make the system self-healing. When you notice a problem, log it and fix it in the next round.
--- Irreversible actions (force-push, delete production data, send external messages) still require confirmation.
--- Reversible actions (write code, edit notes, split tasks) should proceed without blocking.
--- Product direction comes from the human. Execution should not block.
-diff --git a/principle-outcome-oriented-execution/SKILL.md b/principle-outcome-oriented-execution/SKILL.md
-deleted file mode 100644
-index 935bc52..0000000
---- a/principle-outcome-oriented-execution/SKILL.md
-+++ /dev/null
-@@ -1,21 +0,0 @@
-----
--name: principle-outcome-oriented-execution
--description: "Apply during planned rewrites and migrations with explicit phase boundaries. Converge on the target architecture; don't preserve smooth intermediate states with throwaway compatibility code."
--user-invocable: false
-----
--
--# Outcome-Oriented Execution
--
--Optimize for the intended, verifiable end state rather than preserving smooth intermediate states.
--
--**Why:** Keeping every intermediate step fully stable often creates temporary compatibility code that becomes long-lived debt. Converge on the target architecture and prove correctness at explicit verification boundaries.
--
--**Core rule:**
--- Prioritize end-state integrity over transitional stability
--- Intermediate breakage is acceptable when it is planned, scoped, and reversible
--
--**Guardrails:**
--- Use this for planned rewrites and migrations with explicit phase boundaries
--- Declare where temporary breakage is acceptable
--- Keep high-signal checks for actively touched areas while migrating
--- Require full static and runtime verification at plan completion
-diff --git a/principle-prove-it-works/SKILL.md b/principle-prove-it-works/SKILL.md
-deleted file mode 100644
-index 68b5d03..0000000
---- a/principle-prove-it-works/SKILL.md
-+++ /dev/null
-@@ -1,17 +0,0 @@
-----
--name: principle-prove-it-works
--description: "Apply after completing a task, before declaring done. Verify against the real artifact (run the feature, read the actual value, inspect the diff), not a proxy, self-report, or 'it compiles.'"
--user-invocable: false
-----
--
--# Prove It Works
--
--Verify every output by checking the real thing directly: run the feature, read the actual value, inspect the diff. Proxies (file mtimes, self-reports, cached output, "it compiles") do not count. When a check fails, suspect the observation method before the system.
--
--Before you report success (merged, sent, started), read the real state and the exit code. Truncated output (`| tail -1`) and your own echo prove nothing.
--
--Verify the process as well as the outcome. A correct result can rest on a broken process: a clause reconstructed from the user's paste instead of the durable record, a constraint honored by chance from a file never read. For each fact you relied on, name the record it came from and confirm that record is the one the project's rules point at.
--
--Red is a colour, not a measurement. A failing check proves the instrument only when the failure content is the disagreement you predicted. Quote the assertion's diff (`Extra items in the right set`), never the assertion (`assert {...} == {...}`). A convergence probe keys on behavior only the new artifact can produce, never an identity field the old one also emits.
--
--Script the check when you can. A deterministic script that reruns the comparison beats a one-time look. Keep its output where the human can see it, and commit it only when the trail must be auditable later.
-diff --git a/principle-redesign-from-first-principles/SKILL.md b/principle-redesign-from-first-principles/SKILL.md
-deleted file mode 100644
-index f016dda..0000000
---- a/principle-redesign-from-first-principles/SKILL.md
-+++ /dev/null
-@@ -1,16 +0,0 @@
-----
--name: principle-redesign-from-first-principles
--description: "Apply when integrating a new requirement into an existing design."
--user-invocable: false
-----
--
--# Redesign From First Principles
--
--When integrating a change, don't bolt it onto the existing design. Redesign as if the requirement had been a foundational assumption from the start.
--
--- Read all affected files and understand the current design
--- Ask: "if we were writing this from scratch with this new requirement, what would we build?"
--- Propagate the change through every reference: types, docs, examples, rationale sections
--- Think about the whole redesign, then deliver it incrementally
--
--This is the method for preserving option value when integrating changes into an existing design.
-diff --git a/principle-separate-before-serializing-shared-state/SKILL.md b/principle-separate-before-serializing-shared-state/SKILL.md
-deleted file mode 100644
-index abd9987..0000000
---- a/principle-separate-before-serializing-shared-state/SKILL.md
-+++ /dev/null
-@@ -1,11 +0,0 @@
-----
--name: principle-separate-before-serializing-shared-state
--description: "Apply when concurrent actors might write to the same file, branch, key, or state object. Eliminate the sharing first; serialize structurally only when one shared writer is a real invariant."
--user-invocable: false
-----
--
--# Separate Before Serializing Shared State
--
--When concurrent actors might write the same file, branch, key, or object, first ask whether they need one shared object or are publishing independent facts. Default to giving each actor its own file, key, branch, or state directory, and merge only where the state is read. Two workers writing their own field into one `state.json` is still shared mutation.
--
--Only when one shared write target is a real invariant, serialize access structurally (a lockfile, a single writer, sequential phases, compare-and-swap). Instructions are not concurrency control, and "we need a lock" is a smell to check first.
-diff --git a/principle-sequence-verifiable-units/SKILL.md b/principle-sequence-verifiable-units/SKILL.md
-deleted file mode 100644
-index fa16ef1..0000000
---- a/principle-sequence-verifiable-units/SKILL.md
-+++ /dev/null
-@@ -1,13 +0,0 @@
-----
--name: principle-sequence-verifiable-units
--description: "Apply to multi-step work (sweeps, migrations, runs of similar edits) and to how you stack commits and PRs. Break work into small units that each end in a verifiable state, check each before the next, and order delivery so the sequence proves itself to a reviewer."
--user-invocable: false
-----
--
--# Sequence work into verifiable units
--
--Order work as small units that each end in a state you can check, and do not advance until the current one is green.
--
--In a sweep, migration, or run of similar edits, each unit is a bracket: known-good state, one change, run the check, proceed. Run the per-unit check even when a tool does the edits.
--
--Deliver in the order that proves the work: the failing test first, then the fix. The subtraction before the reshape. The baseline before the treatment. Each commit lands on its own.
-diff --git a/principle-subtract-before-you-add/SKILL.md b/principle-subtract-before-you-add/SKILL.md
-deleted file mode 100644
-index b528a0c..0000000
---- a/principle-subtract-before-you-add/SKILL.md
-+++ /dev/null
-@@ -1,18 +0,0 @@
-----
--name: principle-subtract-before-you-add
--description: "Apply when sequencing an addition, refactor, or rewrite. Remove dead code, redundant validators, and stub references first, then build on the simpler base."
--user-invocable: false
-----
--
--# Subtract Before You Add
--
--When evolving a system, remove complexity first, then build. Default to subtraction.
--
--Make simplification a continual investment. Leave the design slightly simpler and more capable behind the same or smaller surface than you found it.
--
--- Sequence removal before construction
--- Cut before you polish (get to the minimum before investing in quality)
--- Design for observed usage, not speculative edge cases
--- No speculative validators, parsers, or guards beyond what the spec demands
--- Simplify prompts (remove redundant instructions, excessive templates)
--- When a reference has no novel content, delete it rather than leaving a stub
-diff --git a/principle-test-behavior-not-implementation/SKILL.md b/principle-test-behavior-not-implementation/SKILL.md
-deleted file mode 100644
-index dae4c5f..0000000
---- a/principle-test-behavior-not-implementation/SKILL.md
-+++ /dev/null
-@@ -1,16 +0,0 @@
-----
--name: principle-test-behavior-not-implementation
--description: "Apply when you write, change, or keep a test. Assert what the code's users can observe, so that the test fails when that behavior breaks and keeps passing when only the internals change."
--user-invocable: false
-----
--
--# Test Behavior, Not Implementation
--
--A test is a claim about what users of the code can observe through its interface: return values, errors, state they can read back, and effects on outside systems. Private helpers, internal call order, and intermediate data are implementation.
--
--Judge each test against two imagined edits:
--
--- **Break the behavior** (a wrong value, a skipped or doubled effect). If the test still passes, it proves nothing. The usual causes are a loose assertion, an expected value computed by the code under test, and an assertion on data the test built itself.
--- **Change the internals** and keep every observable result. If the test fails, it is pinned to the implementation.
--
--Keep a test that catches the first edit and survives the second. Rewrite or delete the rest. Drive the code through its public interface with a concrete input, and derive the expected value from the requirement. What an external service receives is behavior. A call to an internal helper is not. Pair "this never happens" with a case where it does happen. Assert the error type that callers branch on, not the message. A constant pin is behavior when the value is a promise to users, such as a documented default, so name that promise.
-diff --git a/principle-type-system-discipline/SKILL.md b/principle-type-system-discipline/SKILL.md
-deleted file mode 100644
-index 0309dc5..0000000
---- a/principle-type-system-discipline/SKILL.md
-+++ /dev/null
-@@ -1,15 +0,0 @@
-----
--name: principle-type-system-discipline
--description: "Apply when designing types, reviewing a function signature, or writing code in any statically-typed language. Make illegal states unrepresentable, brand semantic primitives, parse external data at boundaries, exhaust variants, derive from authoritative schemas."
--user-invocable: false
-----
--
--# Type System Discipline
--
--Make the compiler reject impossible states, mismatched primitives, and unhandled variants.
--
--- **Brand semantic primitives.** If two arguments share a primitive type but mean different things, give each its own type. Validate once at creation.
--- **External data is untyped until parsed.** JSON, RPC payloads, CLI args, config, environment variables, and database rows go through a parse function at the boundary that returns the typed model.
--- **Derive types from authoritative schemas.** When a schema file owns a shape, derive the type from it instead of hand-rolling a parallel one.
--
--For TypeScript syntax, see the **typescript-best-practices** skill.
 diff --git a/recall/SKILL.md b/recall/SKILL.md
 index b22eddb..181f041 100644
 --- a/recall/SKILL.md
@@ -1401,19 +931,19 @@ index 2e34251..0cda2e8 100644
  - Product UI strings are not documentation. Use your product's copy guidelines for those.
  - Indent code snippets with tabs. Write real paths. Make every count or tree claim true at the commit that lands it, and include the command that regenerates it.
 diff --git a/typescript-best-practices/SKILL.md b/typescript-best-practices/SKILL.md
-index 4bb79b7..74ac011 100644
+index 6408d68..28f9215 100644
 --- a/typescript-best-practices/SKILL.md
 +++ b/typescript-best-practices/SKILL.md
-@@ -8,7 +8,7 @@ paths: ["**/*.ts", "**/*.tsx"]
+@@ -14,7 +14,7 @@ On Muse, read the [platform mapping](../poteto-mode/references/muse-tools.md), i
  
- On Muse, read the [platform mapping](../poteto-mode/references/muse-tools.md), including its per-skill notes, before following this skill.
+ On Antigravity, read the [platform mapping](../poteto-mode/references/agy-tools.md), including its per-skill notes, before following this skill.
  
 -Apply the **type-system-discipline** principle skill first.
 +Apply [design guidance](../poteto-mode/references/engineering-design.md) first.
  
  | Rule | Summary |
  |------|---------|
-@@ -23,7 +23,7 @@ Apply the **type-system-discipline** principle skill first.
+@@ -29,7 +29,7 @@ Apply the **type-system-discipline** principle skill first.
  | Type guards | Must verify the claim. A lying guard is worse than `as` because the bug hides behind a name that says it's safe. Name them `isX` or `hasX`. |
  | Exhaustiveness | Inline `const _exhaustive: never = x;` in default arms so the compiler errors when a new variant is added. |
  | `satisfies` over `as` | Validates the value without widening literal types. |

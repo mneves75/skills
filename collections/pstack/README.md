@@ -11,16 +11,15 @@ the agent (see [Support by agent](#support-by-agent)).
 
 | Source | Commit | Version |
 |---|---|---|
-| [`michael-denyer/pstack-claude`](https://github.com/michael-denyer/pstack-claude), the Claude Code port the skills are taken from | `66181d3c70fb605a670578a1b46c23ff0f3caebb` | 0.9.153 |
-| [`cursor/plugins`](https://github.com/cursor/plugins), the official upstream | `0b46ec399d55f2829e88822998f53b84944837d3` | pstack 0.15.46 |
+| [`michael-denyer/pstack-claude`](https://github.com/michael-denyer/pstack-claude), the Claude Code port the skills are taken from | `1ab6b82cbacb04897094e1a3870357882e1e616d` | 0.9.158 |
+| [`cursor/plugins`](https://github.com/cursor/plugins), the official upstream | `b7b93c36be9bcc36a74db438e0fd385d660bc559` | pstack 0.15.48 |
 
 The sync refuses a port whose upstream pins have fallen behind the official commit:
-[`UPSTREAM`](UPSTREAM) records each port component (`pstack` at `0b46ec3`, `cursor-team-kit`,
+[`UPSTREAM`](UPSTREAM) records each port component (`pstack` at `ca782ed`, `cursor-team-kit`,
 `thermos`) as identical, on the paths the port takes, to that official commit. On top of the
-port, the sync applies the thirteen patches in [`adaptations/`](adaptations/), in name order; each
-patch opens with what it changes and where it came from (including importing upstream `/reframe`
-from `cursor/plugins@9e278fe`, pstack `0.15.48`, and preserving GitHub app/workflow identity in
-REST `watch-pr/cloud-reader.ts` deduplication). Upstream `0.9.153` also retired
+port, the sync applies the fourteen patches in [`adaptations/`](adaptations/), in name order; each
+patch opens with what it changes and where it came from (including preserving GitHub app/workflow
+identity in REST `watch-pr/cloud-reader.ts` deduplication). Upstream `0.9.153` also retired
 `poteto-mode/scripts/check-plan.mjs` when simplifying `multi-phase-plan.md` to prose. `UPSTREAM`
 records each patch's SHA-256.
 
@@ -70,8 +69,8 @@ names collide.
 
 ## Opt-in skills and their tools
 
-One skill is new in this 2.0.0 sync: `reframe` (explicit-only, imported from upstream
-`cursor/plugins@9e278fe`). Six earlier additions remain from previous syncs: `statechart`,
+`reframe` (explicit-only) now comes from the port itself, which ships upstream's version since
+`0.9.158`. Six earlier additions remain from previous syncs: `statechart`,
 `create-formal-verification-skill`, `maintain-formal-verification-skill`, `ketchup-video`,
 `in-your-own-words` and `sharpen`. `reframe`, the first four earlier additions, and the `thermos`
 reviews say in their description that they run only when invoked by name. That is an instruction to
@@ -134,14 +133,18 @@ the adaptation.
     continuity notes to `codex-tools.md` and `poteto-help/references/prompting.md`.
 11. **Agy fallback** (`11`). Documents the `gemini-4-neon-xhigh` coding and isolated review
     fallback after `gpt-6.2-sol` in `codex-tools.md` with container and data-disclosure bounds.
-12. **Upstream `/reframe` and catalog hygiene** (`12`). Imports explicit-only `/reframe` from
-    `cursor/plugins@9e278fe`, drops references to excluded `dsh-tools.md` (DeepSeek disabled),
+12. **`/reframe` invocation and catalog hygiene** (`12`). Keeps `/reframe` explicit-only (the
+    port now ships the skill itself), drops references to excluded `dsh-tools.md` (DeepSeek disabled),
     tightens `typescript-best-practices` and `how` descriptions against false triggers, and
     aligns `poteto-mode/worker.md` with local-only autonomy.
 13. **REST check-run app identity** (`13`). Includes GitHub app (`app.id`/`app.slug`) and workflow
     (`workflow_id`) identity in `poteto-mode/scripts/watch-pr/cloud-reader.ts` deduplication so two
     distinct non-Actions apps sharing a check name (such as `build`) cannot drop a failing check,
     covered by a regression test in `cloud-reader.test.ts`.
+14. **`poteto-mode` routing** (`14`). Its description names the explicit trigger, Codex metadata
+    (`agents/openai.yaml`) sets `allow_implicit_invocation: false`, and a boundary paragraph says
+    that when another operator mode is active, that mode selects skills and gates, the poteto
+    playbooks run the steps they cover, and the stricter gate wins.
 
 Frontmatter keys outside the Agent Skills spec move under `metadata:` (`poteto-mode`'s
 `menu-description`, `typescript-best-practices`' `paths`), so strict loaders accept every
@@ -152,7 +155,7 @@ description still names those files.
 
 | Name | Why |
 |---|---|
-| `principle-*` (24 skills), `unslop` | Retired by `02`; their guidance is in the engineering references |
+| `principle-*` (24 skills), `unslop` | Retired by `02`; their guidance is in the engineering references. The 24 `principle-*` directories are also listed in `sources.json` `exclude`, so files upstream adds under them never reach the tree |
 | `make-bot-ui` | Targets Grok Bot webhooks; the port does not carry it and no supporting product ships here |
 
 The sync fails if a retired name comes back as a skill or is still named in any file.

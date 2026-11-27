@@ -1,0 +1,36 @@
+Adaptation 14-poteto-mode-routing
+
+Require explicit invocation in the description and Codex metadata. When modes overlap, apply the stricter gate and use the poteto playbooks for execution.
+
+Rebased to port commit 1ab6b82.
+
+diff --git a/poteto-mode/SKILL.md b/poteto-mode/SKILL.md
+index 37f3829..ac9495d 100644
+--- a/poteto-mode/SKILL.md
++++ b/poteto-mode/SKILL.md
+@@ -1,10 +1,12 @@
+ ---
+ name: poteto-mode
+-description: "Use the Pstack playbooks when the user requests poteto mode or its engineering workflow style."
++description: "Use the pstack engineering workflow playbooks when the user types /poteto-mode or asks for poteto mode."
+ ---
+ 
+ # Poteto mode
+ 
++When another operator mode is active (for example, mneves-mode), that mode selects the skills and gates. Use the poteto playbooks to execute the steps they cover. When both modes set a gate, apply the stricter one.
++
+ Bundled skills live at `../<name>/SKILL.md` from this file, so put this file's absolute path in every `poteto-agent` prompt.
+ 
+ ## Platform Adaptation
+diff --git a/poteto-mode/agents/openai.yaml b/poteto-mode/agents/openai.yaml
+new file mode 100644
+index 0000000..1e61cb4
+--- /dev/null
++++ b/poteto-mode/agents/openai.yaml
+@@ -0,0 +1,6 @@
++interface:
++  display_name: "Poteto Mode"
++  short_description: "Run pstack engineering workflow playbooks"
++  default_prompt: "Use $poteto-mode to run the pstack playbook for this task and verify the requested outcome."
++policy:
++  allow_implicit_invocation: false

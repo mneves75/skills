@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-11-27
+
+### Changed
+- **collections/pstack re-pinned:** `collections/pstack` now follows `pstack-claude` `1ab6b82`
+  (`0.9.158`) and `cursor/plugins` `b7b93c3` (pstack `0.15.48`). All 13 adaptations are rebased
+  onto the new upstream wording (Codex dispatch steps, structured-question guidance, the
+  effort sentence in six skills). `12` no longer creates `/reframe`, which the port now ships,
+  and keeps only its explicit-only invocation. The 24 retired `principle-*` directories move
+  from deletions in `02` to `sources.json` excludes, so files upstream adds under them (such as
+  the new `agents/openai.yaml`) never reach the tree. The `setup-pstack` effort examples become
+  model-neutral (`model-id @xhigh`). Upstream `watch-pr` now reports a merge conflict when no CI
+  rollup exists.
+
+### Added
+- **`poteto-mode` routing (adaptation `14`):** an explicit-trigger description, Codex
+  `agents/openai.yaml` with `allow_implicit_invocation: false`, and a boundary paragraph: when
+  another operator mode such as `mneves-mode` is active, that mode selects skills and gates, the
+  poteto playbooks run the steps they cover, and the stricter gate wins.
+
 ## [2.0.0] - 2026-11-24
 
 ### Breaking Changes

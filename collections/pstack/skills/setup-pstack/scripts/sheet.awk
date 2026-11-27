@@ -60,7 +60,7 @@ function sheet_trim(s) {
   return s
 }
 
-# Drops a role value's reasoning effort suffix, as in `gpt-5.5 @xhigh`.
+# Drops a role value's reasoning effort suffix, as in `model-id @xhigh`.
 # Call sheet_roles first.
 function sheet_model(e,    level) {
   if (match(e, /[ \t]+@[a-z]+$/)) {

@@ -4,12 +4,13 @@ Claude-side roles run on Opus and Fable only at xhigh effort, Codex on Sol at hi
 host's advisor route. poteto-mode works without asking only on the local machine and pauses before push,
 deploy, publish, send, any external write, credentials or scope expansion. Updated for pstack 0.15.46 /
 pstack-claude 0.9.153 where architect, how, reflect and why no longer carry separate Models sections.
+Use a model-neutral example to show reasoning suffix syntax.
 
-Fork source: https://github.com/mneves75/pstack-claude commits 80d8fde, 5cadccb, 4f82ca1, bb07856 (rebased to 66181d3).
+Fork source: https://github.com/mneves75/pstack-claude commits 80d8fde, 5cadccb, 4f82ca1, bb07856 (rebased to 1ab6b82).
 Applies to the port's plugins/pstack/skills tree after the patches numbered before it.
 
 diff --git a/arena/SKILL.md b/arena/SKILL.md
-index 6fcb7f6..9753ef0 100644
+index 7986170..c36dc07 100644
 --- a/arena/SKILL.md
 +++ b/arena/SKILL.md
 @@ -21,7 +21,7 @@ Every candidate gets the same prompt, so the prompt is the contract.
@@ -32,10 +33,10 @@ index 6fcb7f6..9753ef0 100644
  
  ## Reasoning effort
  
--A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
-+A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
+-A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Codex, pass `model` and `reasoning_effort` only as the platform mapping's schema check allows. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
++A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Codex, pass `model` and `reasoning_effort` only as the platform mapping's schema check allows. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
 diff --git a/interrogate/SKILL.md b/interrogate/SKILL.md
-index 96dc345..cf9b6ce 100644
+index fff0037..4bff131 100644
 --- a/interrogate/SKILL.md
 +++ b/interrogate/SKILL.md
 @@ -41,8 +41,8 @@ Skip arena Phases C, D, and E. Adversaries find different failures, so the verdi
@@ -47,20 +48,20 @@ index 96dc345..cf9b6ce 100644
  
  ## Reasoning effort
  
--A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
-+A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
+-A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Codex, pass `model` and `reasoning_effort` only as the platform mapping's schema check allows. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
++A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Codex, pass `model` and `reasoning_effort` only as the platform mapping's schema check allows. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
 diff --git a/no-comments/SKILL.md b/no-comments/SKILL.md
-index 8fbe14b..b96df38 100644
+index e1d695d..ced57c2 100644
 --- a/no-comments/SKILL.md
 +++ b/no-comments/SKILL.md
 @@ -42,4 +42,4 @@ Role defaults, stamped from `plugins/pstack/models.json` (edit there, rerun `too
  
  ## Reasoning effort
  
--A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
-+A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
+-A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Codex, pass `model` and `reasoning_effort` only as the platform mapping's schema check allows. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
++A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Codex, pass `model` and `reasoning_effort` only as the platform mapping's schema check allows. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
 diff --git a/poteto-mode/SKILL.md b/poteto-mode/SKILL.md
-index 632b952..962d543 100644
+index a8c9567..269276c 100644
 --- a/poteto-mode/SKILL.md
 +++ b/poteto-mode/SKILL.md
 @@ -78,9 +78,11 @@ Read the leaf skill in full for any principle you apply. Each entry names when i
@@ -90,13 +91,13 @@ index 632b952..962d543 100644
  
  ## Reasoning effort
  
--A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
-+A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
+-A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Codex, pass `model` and `reasoning_effort` only as the platform mapping's schema check allows. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
++A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Codex, pass `model` and `reasoning_effort` only as the platform mapping's schema check allows. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
 diff --git a/poteto-mode/references/codex-tools.md b/poteto-mode/references/codex-tools.md
-index 99d36c2..debbaf3 100644
+index 89dea8a..4df5018 100644
 --- a/poteto-mode/references/codex-tools.md
 +++ b/poteto-mode/references/codex-tools.md
-@@ -49,12 +49,13 @@ poteto-mode's Subagents section sets Claude-specific defaults (`subagent_type: "
+@@ -56,12 +56,13 @@ poteto-mode's Subagents section sets Claude-specific defaults (`subagent_type: "
  
  ## Model names
  
@@ -106,17 +107,17 @@ index 99d36c2..debbaf3 100644
 -- Single-model roles: your primary Codex model (for example `gpt-6.2-sol`).
 -- Roles that default to the Claude worker model (`feature, refactoring`): your fast Codex code model (for example `gpt-6.2-sol`).
 -- Roles that default to the strongest Claude model (`strongest judgment`): your strongest Codex model (for example `gpt-6.2-astra`).
--- Diverse-model panels (`arena`, `interrogate`): the adversarial signal comes from model diversity, so use the distinct Codex models available to you. A good default panel on ChatGPT is `gpt-6.2-astra`, `gpt-6.2-sol`, `gpt-6.1-terra`, `gpt-6-luna`. If only one model family is reachable, vary reasoning effort and note in the verdict that diversity was reduced.
+-- Diverse-model panels (`arena`, `interrogate`): the adversarial signal comes from model diversity, so use the distinct Codex models available to you. A good default panel on ChatGPT is `gpt-6.2-astra`, `gpt-6.2-sol`, `gpt-6.1-terra`, `gpt-6-luna`. If only one model family is reachable, or `spawn_agent` exposes no `model` field, vary reasoning effort where the schema has `reasoning_effort`, and note in the verdict that diversity was reduced.
 +- Single-model execution roles: `gpt-6.2-sol` at `high` reasoning.
 +- Roles that default to the Claude worker model (`feature, refactoring`): `gpt-6.2-sol` at `high` reasoning.
 +- Roles that default to the strongest Claude model (`strongest judgment`): `gpt-6.2-sol` at `high` reasoning.
-+- Execution and review panels (`arena`, `interrogate`): use `gpt-6.2-sol` at `high` reasoning. Note reduced model diversity when every participant uses the same model; independent contexts do not provide cross-model independence.
++- Execution and review panels (`arena`, `interrogate`): use `gpt-6.2-sol` at `high` reasoning. Note reduced model diversity when every participant uses the same model or the spawn schema exposes no `model` field; independent contexts do not provide cross-model independence.
 +- Planning (`architect`) and read-only advice: select the host's dedicated planning/advisor route and its effort, rather than an execution alias. Never use that route for implementation or code review.
  
  `/setup-pstack` writes the configured model list. On Codex, set it to your Codex model slugs.
  
 diff --git a/poteto-mode/references/copilot-tools.md b/poteto-mode/references/copilot-tools.md
-index ff8d854..c0416f7 100644
+index ca691e0..4060082 100644
 --- a/poteto-mode/references/copilot-tools.md
 +++ b/poteto-mode/references/copilot-tools.md
 @@ -52,7 +52,7 @@ Skills name Claude Code model aliases in their Models sections. Those aliases ar
@@ -129,10 +130,10 @@ index ff8d854..c0416f7 100644
  ## Session routing hook
  
 diff --git a/poteto-mode/references/pi-tools.md b/poteto-mode/references/pi-tools.md
-index 362f6fc..6a29fba 100644
+index 8db0222..3f636d9 100644
 --- a/poteto-mode/references/pi-tools.md
 +++ b/poteto-mode/references/pi-tools.md
-@@ -55,15 +55,13 @@ Skills name models by the Claude aliases in their Models sections. On Pi, pass t
+@@ -56,15 +56,13 @@ Skills name models by the Claude aliases in their Models sections. On Pi, pass t
  | Alias | `anthropic` | `openai` | `openai-codex` |
  | --- | --- | --- | --- |
  | `opus` | `anthropic/claude-opus-5-5` | `openai/gpt-6.1-sol` | `openai-codex/gpt-6.1-sol` |
@@ -193,23 +194,49 @@ index 375e198..dfce63a 100644
 -- Default reasoning effort: `session`
 +- Default reasoning effort: `xhigh`
  - Single-role default: `opus`
+diff --git a/setup-pstack/copilot.md b/setup-pstack/copilot.md
+index b46bf0e..17d9294 100644
+--- a/setup-pstack/copilot.md
++++ b/setup-pstack/copilot.md
+@@ -25,7 +25,7 @@ A Copilot sheet uses step 6's role lines and settings under this header in place
+ ```markdown
+ # pstack model configuration
+ 
+-Per-role model choices for pstack skills on GitHub Copilot, written by setup-pstack. Every role keeps its line; rerun setup-pstack to change one. A value of `inherit-parent` or `auto` runs that role on the parent session's model (the `task` call omits `model`); an alias entry in a panel list still counts toward that panel's fan-out. A model may carry a reasoning effort, as in `gpt-5.5 @xhigh` (levels: low, medium, high, xhigh, max), which the `task` call passes as `reasoning_effort`. `default effort` sets the level for a value without one; `session` keeps the parent session's effort. `session hook: off` stops the SessionStart hook from injecting the poteto-mode mandate; any other value, or no line, leaves it on. `panel vendors: any` records that the user kept a panel whose models come from one vendor.
++Per-role model choices for pstack skills on GitHub Copilot, written by setup-pstack. Every role keeps its line; rerun setup-pstack to change one. A value of `inherit-parent` or `auto` runs that role on the parent session's model (the `task` call omits `model`); an alias entry in a panel list still counts toward that panel's fan-out. A model may carry a reasoning effort, as in `model-id @xhigh` (levels: low, medium, high, xhigh, max), which the `task` call passes as `reasoning_effort`. `default effort` sets the level for a value without one; `session` keeps the parent session's effort. `session hook: off` stops the SessionStart hook from injecting the poteto-mode mandate; any other value, or no line, leaves it on. `panel vendors: any` records that the user kept a panel whose models come from one vendor.
+ ```
+ 
+ ## Detect models
+diff --git a/setup-pstack/scripts/sheet.awk b/setup-pstack/scripts/sheet.awk
+index 4e3b9b4..197cab3 100644
+--- a/setup-pstack/scripts/sheet.awk
++++ b/setup-pstack/scripts/sheet.awk
+@@ -60,7 +60,7 @@ function sheet_trim(s) {
+   return s
+ }
+ 
+-# Drops a role value's reasoning effort suffix, as in `gpt-5.5 @xhigh`.
++# Drops a role value's reasoning effort suffix, as in `model-id @xhigh`.
+ # Call sheet_roles first.
+ function sheet_model(e,    level) {
+   if (match(e, /[ \t]+@[a-z]+$/)) {
 diff --git a/swarm/SKILL.md b/swarm/SKILL.md
-index ae2e218..d57fed1 100644
+index 5985cea..aa4c4fe 100644
 --- a/swarm/SKILL.md
 +++ b/swarm/SKILL.md
 @@ -55,4 +55,4 @@ Role defaults, stamped from `plugins/pstack/models.json` (edit there, rerun `too
  
  ## Reasoning effort
  
--A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
-+A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
+-A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Codex, pass `model` and `reasoning_effort` only as the platform mapping's schema check allows. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
++A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Codex, pass `model` and `reasoning_effort` only as the platform mapping's schema check allows. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
 diff --git a/thermos/SKILL.md b/thermos/SKILL.md
-index 1337e97..6d63f19 100644
+index cee5a70..960c85f 100644
 --- a/thermos/SKILL.md
 +++ b/thermos/SKILL.md
 @@ -37,4 +37,4 @@ Role defaults, stamped from `plugins/pstack/models.json` (edit there, rerun `too
  
  ## Reasoning effort
  
--A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
-+A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
+-A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `session` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Codex, pass `model` and `reasoning_effort` only as the platform mapping's schema check allows. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.
++A role value in the override sheet may name a reasoning effort after its model, as in `opus @xhigh`. Levels on Claude Code: `low`, `medium`, `high`, `xhigh`, `max`. Which ones apply depends on the model. A value without `@` takes the sheet's `default effort` line, a level or `session`, and `xhigh` when the sheet has no such line. On Claude Code, `session` sets no effort. On other runtimes, follow the platform mapping for `session`. Strip the suffix before reading the model: `inherit-parent` or `auto` still omits `model` at every level, and a model name is passed as `model`. Pass the level as the dispatch's effort field and keep the `subagent_type` you would otherwise use. That is `effort` on the Claude Code `Agent` call and `reasoning_effort` on Codex's `spawn_agent`. On Codex, pass `model` and `reasoning_effort` only as the platform mapping's schema check allows. On Muse it is `effort` on a Workflow child; a `subagent_spawn` dispatch keeps the session's effort.

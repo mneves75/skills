@@ -13,6 +13,8 @@ follows the same install rule; it and ketchup-video gain fallbacks for a missing
 Fork source: https://github.com/mneves75/pstack-claude commits none (this repository).
 Applies to the port's plugins/pstack/skills tree after the patches numbered before it.
 
+Rebased to port commit 1ab6b82.
+
 diff --git a/babysit/SKILL.md b/babysit/SKILL.md
 index f847c1b..46ae697 100644
 --- a/babysit/SKILL.md

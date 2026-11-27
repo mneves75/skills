@@ -9,6 +9,8 @@ authorization, get-pr-comments reads every page. Restores a worktree-cleanup saf
 Fork source: https://github.com/mneves75/pstack-claude commits none (this repository).
 Applies to the port's plugins/pstack/skills tree after the patches numbered before it.
 
+Rebased to port commit 1ab6b82.
+
 diff --git a/automate-me/SKILL.md b/automate-me/SKILL.md
 index 8d832de..201d781 100644
 --- a/automate-me/SKILL.md
@@ -209,7 +211,7 @@ index dedf2a2..9f1a114 100644
  
  # Thermo Nuclear Review
 diff --git a/thermos/SKILL.md b/thermos/SKILL.md
-index 6d63f19..37fb58e 100644
+index 960c85f..53bb1a5 100644
 --- a/thermos/SKILL.md
 +++ b/thermos/SKILL.md
 @@ -1,6 +1,6 @@
