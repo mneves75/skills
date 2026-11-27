@@ -21,6 +21,7 @@ adaptation: 11-agy-yolo-fallback.patch sha256:b3d7e46aff02ab3ff84d049e312bfba593
 adaptation: 12-upstream-reframe-and-hygiene.patch sha256:fe16f667a8d0f001b7c3aa0abd1feaaf17b9fed22ce358279f22682d2549d973
 adaptation: 13-watch-pr-app-identity.patch sha256:00629773c285ead2051be3d01030956fc8d0610c17d48dbc1b5ea1bfce14e784
 adaptation: 14-poteto-mode-routing.patch sha256:f21c1417d2078abe4d94c7fe3ec4f331fd5a125caa990a5376fa3dfb46ff0849
+adaptation: 15-how-explore-agent.patch sha256:e88c15459573af284013e2e6b95a790c8b5728aec08401f7a5e3af0649f5aedf
 excluded: poteto-mode/references/dsh-tools.md
 excluded: principle-attack-the-premise
 excluded: principle-boundary-discipline
