@@ -241,7 +241,9 @@ BASE_SHA=$(git rev-parse --verify 'origin/main^{commit}') || exit 1
 HEAD_SHA=$(git rev-parse --verify 'HEAD^{commit}') || exit 1
 ORIGINAL_REVIEW_ARGS=(--mode branch --base "$BASE_SHA" --max-priority P3)
 
+# Usage: run_agy_branch_review_fallback <reviewer_first_fallback_model_from_Defaults>
 run_agy_branch_review_fallback() (
+  model="${1:?pass the reviewer row first fallback model from the orchestrator Defaults block}"
   wt=$(mktemp -d) || exit $?
   _cleanup_agy_wt() {
     git worktree remove --force "$wt" 2>/dev/null || rm -rf -- "$wt"
@@ -252,12 +254,12 @@ run_agy_branch_review_fallback() (
     || { _cleanup_agy_wt; exit 1; }
   rc=0
   (cd "$wt" && python3 /path/to/autoreview/scripts/autoreview \
-    "${ORIGINAL_REVIEW_ARGS[@]}" --engine agy --model gemini-4-neon-xhigh) || rc=$?
+    "${ORIGINAL_REVIEW_ARGS[@]}" --engine agy --model "$model") || rc=$?
   _cleanup_agy_wt
   exit "$rc"
 )
 
-run_agy_branch_review_fallback
+run_agy_branch_review_fallback "$REVIEW_FALLBACK_MODEL"
 ```
 
 - **Local/uncommitted targets (`--mode local` / `--mode uncommitted`)**: do **not** use a clean

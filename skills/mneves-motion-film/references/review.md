@@ -2,7 +2,8 @@
 
 Both run in a fresh context on the reviewer seat (a model other than the one that built the
 film), from a folder holding only their inputs. Copy the inputs there; never point a reviewer at
-the repository.
+the repository. When no model other than the builder can run, still run the muted test, report
+the review round as blocked, and deliver with the open problems listed.
 
 ## Dispatch
 

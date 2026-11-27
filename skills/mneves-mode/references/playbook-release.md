@@ -14,11 +14,11 @@ Plain "ship" never authorizes a deploy. A deploy needs an explicit `ship-staging
    - the candidate's identity and preview bindings that can write;
    - the observation window;
    - where a code rollback cannot undo a state change.
-4. **Merge and tag.** Only with the user's authorization in this request. Then delete the branch
-   and the worktree the task created.
-5. **Deploy and prove live.** `mneves-ship-deploy` deploys the gated artifact and checks the
-   live version against the candidate, then tags. After production succeeds, tear down the
-   staging resources the release started.
+4. **Merge.** Only with the user's authorization in this request. Then delete the branch and
+   the worktree the task created. Tag here only for a release that nothing deploys.
+5. **Deploy, prove live, then tag.** `mneves-ship-deploy` deploys the gated artifact, checks the
+   live version against the candidate, and only then tags it. After production succeeds, tear
+   down the staging resources the release started.
 
 If a required gate's skill is unavailable, report `BLOCKED`. Stop before merging, deploying or
 tagging, and never fabricate a gate record.

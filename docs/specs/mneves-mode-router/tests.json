@@ -32,11 +32,13 @@
   },
   {
    "name": "hygiene rot guard + planted controls",
-   "status": "PENDING"
+   "status": "PASS",
+   "evidence": "check-catalog-hygiene.test.py test_router_rot_guard: 6 subtests (valid, unknown token, row without fallback, oversize body, oversize playbook, oversize total) pass; lifting ROUTER_MAX_PLAYBOOK_BYTES or ROUTER_MAX_TOTAL_BYTES makes its control fail; real tree: catalog-hygiene OK, 0 errors"
   },
   {
    "name": "skill dispositions (66 skills)",
-   "status": "PENDING"
+   "status": "PASS",
+   "evidence": "skill-dispositions.md: 23 root + 43 pstack rows; 28 rows re-read by the main session; 3 agent claims refuted (ship-deploy fallbacks, modernize force-with-lease, handoff description); fixed here: orchestrator review-fallback model id, motion-film step order and reviewer fallback; 13 pstack patch candidates and 3 owner calls reported, none retired"
   },
   {
    "name": "AGENTS.md command block",

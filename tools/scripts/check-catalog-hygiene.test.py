@@ -209,15 +209,18 @@ class CatalogHygieneTest(unittest.TestCase):
             self.assertTrue(res["ok"], res)
 
     def test_router_rot_guard(self) -> None:
-        def build(root: Path, body: str, rows: str) -> None:
+        def build(root: Path, body: str, rows: str, extra: dict[str, str]) -> None:
             make_fixture(root)
             rdir = root / "skills" / "mneves-mode" / "references"
             rdir.mkdir(parents=True)
+            links = "".join(f" [{name}](references/{name})" for name in extra)
             (rdir.parent / "SKILL.md").write_text(
                 "---\nname: mneves-mode\ndescription: Explicit operator mode that orders phases and gates.\n---\n\n"
-                f"{body}\n\nSee [siblings](references/optional-siblings.md).\n",
+                f"{body}\n\nSee [siblings](references/optional-siblings.md).{links}\n",
                 encoding="utf-8",
             )
+            for name, text in extra.items():
+                (rdir / name).write_text(text, encoding="utf-8")
             (rdir / "optional-siblings.md").write_text(
                 "| Skill | Public source | Used for | Fallback |\n|---|---|---|---|\n" + rows, encoding="utf-8"
             )
@@ -228,16 +231,18 @@ class CatalogHygieneTest(unittest.TestCase):
 
         good_row = "| `beta-ext` | `someone/skills` | Testing | Do it by hand |\n"
         cases = {
-            "valid": ("Use `alpha`, `beta-ext`, `pstack` and `BLOCKED`.", good_row, None),
-            "unknown token": ("Use `alpha` and `delegate-wave`.", good_row, "unknown skill token `delegate-wave`"),
-            "row without fallback": ("Use `beta-ext`.", "| `beta-ext` | `someone/skills` | Testing |  |\n",
+            "valid": ("Use `alpha`, `beta-ext`, `pstack` and `BLOCKED`.", good_row, {}, None),
+            "unknown token": ("Use `alpha` and `delegate-wave`.", good_row, {}, "unknown skill token `delegate-wave`"),
+            "row without fallback": ("Use `beta-ext`.", "| `beta-ext` | `someone/skills` | Testing |  |\n", {},
                                      "needs a public source and a fallback"),
-            "oversize body": ("line\n" * 161, good_row, "router SKILL.md over"),
+            "oversize body": ("line\n" * 161, good_row, {}, "router SKILL.md over"),
+            "oversize playbook": ("Use `alpha`.", good_row, {"playbook-big.md": "word " * 520}, "playbook over"),
+            "oversize total": ("Use `alpha`.", good_row, {"notes.md": "word " * 6200}, "SKILL.md plus references over"),
         }
-        for label, (body, rows, expected) in cases.items():
+        for label, (body, rows, extra, expected) in cases.items():
             with self.subTest(label), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
-                build(root, body, rows)
+                build(root, body, rows, extra)
                 res = MOD.check_repo(root)
                 if expected is None:
                     self.assertTrue(res["ok"], res["errors"])

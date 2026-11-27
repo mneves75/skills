@@ -82,13 +82,16 @@ when it does not apply to the task; say which ones you skipped and why.
    branch.
 9. **Pre-deploy security verdict** on the exact commit (`mneves-security`), before any deploying
    push, merge or tag.
-10. **Merge and tag:** only with the user's authorization in this request. Then delete the
-    branch and the worktree the task created.
-11. **Deploy:** only on an explicit `ship-staging` or `ship-prod` (`mneves-ship-deploy`). Prove it
-    live, then tear down the staging resources the task started.
-12. **Cleanup:** remove the scratch files, worktrees and caches the task created. List what is
+10. **Readiness** on the same commit before a staging or production deploy
+    (`mneves-production-readiness`).
+11. **Merge:** only with the user's authorization in this request. Then delete the branch and
+    the worktree the task created. Tag here only when no deploy follows.
+12. **Deploy:** only on an explicit `ship-staging` or `ship-prod` (`mneves-ship-deploy`). It
+    proves the release live, then tags it, then tears down the staging resources the task
+    started.
+13. **Cleanup:** remove the scratch files, worktrees and caches the task created. List what is
     left with its exact removal command.
-13. **Report** (section 7).
+14. **Report** (section 7).
 
 Two rules hold throughout. On a long task, keep the status in a checked-in file, so the work
 survives a lost context. Stop before any action under section 8's hard stops.
