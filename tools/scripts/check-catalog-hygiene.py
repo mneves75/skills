@@ -50,11 +50,12 @@ ROUTER_MAX_PLAYBOOK_BYTES = 2560
 ROUTER_MAX_TOTAL_BYTES = 30 * 1024
 # CommonMark inline scan, left to right: outside a code span a backslash escapes the next
 # character; a span opens on a maximal backtick run and closes on a run of the same length, and
-# backslashes inside it are literal. Group 2 is the span content; escapes leave it None.
-ROUTER_SPAN_RE = re.compile(r"\\[\s\S]|(?<!`)(`+)(?!`)([^\n]*?[^`\n])\1(?!`)")
+# backslashes inside it are literal. A run with no closer is consumed whole as text. Group 2 is
+# the span content; the other branches leave it None.
+ROUTER_SPAN_RE = re.compile(r"\\[\s\S]|(`+)(?!`)([^\n]*?[^`\n])\1(?!`)|`+")
 ROUTER_TOKEN_RE = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
 ROUTER_YAML_TOKEN_RE = re.compile(r"\$([a-z][a-z0-9]*(?:-[a-z0-9]+)*)")
-SIBLING_SOURCE_RE = re.compile(r"`[A-Za-z0-9][\w.-]*/(?!\.\.?`)[\w.-]+`|https://\S+")
+SIBLING_SOURCE_RE = re.compile(r"`[A-Za-z0-9][\w.-]*/(?!\.+`)[\w.-]+`|https://\S+")
 SIBLING_ROW_RE = re.compile(r"^\|\s*`([a-z0-9-]+)`\s*\|(.*)$", re.MULTILINE)
 
 _MARKED_EXTRACT_JS = r"""
