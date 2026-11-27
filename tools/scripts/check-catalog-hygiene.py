@@ -50,9 +50,13 @@ ROUTER_MAX_PLAYBOOK_BYTES = 2560
 ROUTER_MAX_TOTAL_BYTES = 30 * 1024
 # CommonMark inline scan, left to right: outside a code span a backslash escapes the next
 # character; a span opens on a maximal backtick run and closes on a run of the same length, and
-# backslashes inside it are literal. A run with no closer is consumed whole as text. Group 2 is
-# the span content; the other branches leave it None.
-ROUTER_SPAN_RE = re.compile(r"\\[\s\S]|(`+)(?!`)([^\n]*?[^`\n])\1(?!`)|`+")
+# backslashes inside it are literal. A span may cross a line break but not a blank line. A run
+# with no closer is consumed whole as text. Group 2 is the span content; the other branches
+# leave it None.
+ROUTER_SPAN_RE = re.compile(r"\\[\s\S]|(`+)(?!`)((?:[^\n]|\n(?![ \t]*\n))*?[^`])\1(?!`)|`+")
+# Path segments after a skill name that mean the span points into that skill's directory.
+ROUTER_SKILL_SUBPATHS = frozenset({"", "SKILL.md", "references", "agents"})
+ROUTER_PLACEHOLDER_RE = re.compile(r"[\W_]*|(?i:tbd|todo|tba|n/?a|none)")
 ROUTER_TOKEN_RE = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
 ROUTER_YAML_TOKEN_RE = re.compile(r"\$([a-z][a-z0-9]*(?:-[a-z0-9]+)*)")
 SIBLING_SOURCE_RE = re.compile(r"`[A-Za-z0-9][\w.-]*/(?!\.+`)[\w.-]+`|https://\S+")
@@ -445,10 +449,32 @@ def _check_index_docs(root: Path, skill_names: list[str], errors: list[str]) -> 
                 errors.append(f"{rel_doc}: missing root skill `{name}`")
 
 
-def _check_router(root: Path, skill_names: list[str], errors: list[str]) -> None:
-    rdir = root / "skills" / ROUTER
-    if not rdir.is_dir():
-        return
+def _router_word_name(word: str) -> str:
+    """The skill one span word names: `plugin:name`, `skills/name/...`, `name/SKILL.md`, `name/`."""
+    word = word.rsplit(":", 1)[-1]
+    parts = word.split("/")
+    if "skills" in parts[:-1]:
+        return parts[parts.index("skills") + 1]
+    if len(parts) > 1 and parts[1] in ROUTER_SKILL_SUBPATHS:
+        return parts[0]
+    return word
+
+
+def _router_span_names(content: str) -> set[str]:
+    """Skill-shaped names a code span shows a reader. A multi-word span names a skill only as a
+    `/name` or `$name` command; other multi-word spans are shell commands or prose."""
+    text = " ".join(content.split()).strip("\"'()[]<>").rstrip(".,:;").strip("\"'()")
+    words = text.split(" ")
+    if text[:1] in "/$":
+        name = _router_word_name(words[0][1:])
+    elif len(words) == 1:
+        name = _router_word_name(words[0])
+    else:
+        return set()
+    return {name} if ROUTER_TOKEN_RE.fullmatch(name) else set()
+
+
+def _router_known(root: Path, rdir: Path, skill_names: list[str], errors: list[str]) -> set[str]:
     known = set(skill_names) | ROUTER_TOKEN_ALLOWLIST
     pstack = root / "collections" / "pstack" / "skills"
     if pstack.is_dir():
@@ -457,37 +483,39 @@ def _check_router(root: Path, skill_names: list[str], errors: list[str]) -> None
     if siblings.is_file():
         for name, rest in SIBLING_ROW_RE.findall(siblings.read_text(encoding="utf-8")):
             cells = [c.strip() for c in rest.split("|")]
-            if len(cells) < 3 or not SIBLING_SOURCE_RE.search(cells[0]) or not cells[2]:
+            if len(cells) < 3 or not SIBLING_SOURCE_RE.search(cells[0]) or ROUTER_PLACEHOLDER_RE.fullmatch(cells[2]):
                 errors.append(
                     f"skills/{ROUTER}/references/optional-siblings.md: `{name}` needs a public source "
                     "(`owner/repo` or an https URL) and a fallback"
                 )
             known.add(name)
-    total = 0
-    for path in [rdir / "SKILL.md", *sorted((rdir / "references").glob("*.md"))]:
+    return known
+
+
+def _check_router(root: Path, skill_names: list[str], errors: list[str]) -> None:
+    rdir = root / "skills" / ROUTER
+    if not rdir.is_dir():
+        return
+    known = _router_known(root, rdir, skill_names, errors)
+    total = sum(p.stat().st_size for p in rdir.rglob("*") if p.is_file())
+    if total > ROUTER_MAX_TOTAL_BYTES:
+        errors.append(f"skills/{ROUTER}: SKILL.md plus references over {ROUTER_MAX_TOTAL_BYTES} bytes ({total})")
+    refs = sorted(p for p in (rdir / "references").rglob("*") if p.suffix in {".md", ".txt"} and p.is_file())
+    for path in [rdir / "SKILL.md", *refs]:
         text = path.read_text(encoding="utf-8")
         rel = path.relative_to(root).as_posix()
         size = len(text.encode("utf-8"))
-        total += size
         if path.name == "SKILL.md" and (size > ROUTER_MAX_BODY_BYTES or len(text.splitlines()) > ROUTER_MAX_BODY_LINES):
             errors.append(f"{rel}: router SKILL.md over {ROUTER_MAX_BODY_BYTES} bytes or {ROUTER_MAX_BODY_LINES} lines")
         if path.name.startswith("playbook-") and size > ROUTER_MAX_PLAYBOOK_BYTES:
             errors.append(f"{rel}: playbook over {ROUTER_MAX_PLAYBOOK_BYTES} bytes ({size})")
-        # A code span names a skill in any form a reader would type or open: padded, `/name`,
-        # `$name`, `name/SKILL.md`, or with trailing punctuation inside the backticks.
-        spans = (
-            m[2].strip().rstrip(".,:;").lstrip("/$").removesuffix("/SKILL.md")
-            for m in ROUTER_SPAN_RE.finditer(text)
-            if m[2]
-        )
-        for token in sorted({s for s in spans if ROUTER_TOKEN_RE.fullmatch(s)} - known):
+        names = set().union(*(_router_span_names(m[2]) for m in ROUTER_SPAN_RE.finditer(text) if m[2]))
+        for token in sorted(names - known):
             errors.append(f"{rel}: unknown skill token `{token}` (add an optional-siblings.md row or drop it)")
     yaml_path = rdir / "agents" / "openai.yaml"
     if yaml_path.is_file():
         for token in sorted(set(ROUTER_YAML_TOKEN_RE.findall(yaml_path.read_text(encoding="utf-8"))) - known):
             errors.append(f"skills/{ROUTER}/agents/openai.yaml: unknown skill token `${token}`")
-    if total > ROUTER_MAX_TOTAL_BYTES:
-        errors.append(f"skills/{ROUTER}: SKILL.md plus references over {ROUTER_MAX_TOTAL_BYTES} bytes ({total})")
 
 
 def check_repo(root: Path) -> dict:

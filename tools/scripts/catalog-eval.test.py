@@ -199,6 +199,13 @@ class CatalogEvalTest(unittest.TestCase):
             self.assertNotEqual(p.returncode, 0)
             self.assertIn("must match", p.stderr)
 
+            broken = Path(tmp) / "broken.json"
+            broken.write_text("[{", encoding="utf-8")
+            p = run(*base, "--out", str(Path(tmp) / "broken"), "--catalog-extra", str(broken))
+            self.assertNotEqual(p.returncode, 0)
+            self.assertIn("not valid JSON", p.stderr)
+            self.assertNotIn("Traceback", p.stderr)
+
             blank = Path(tmp) / "blank.json"
             blank.write_text(json.dumps([{"name": "gamma-ext", "description": "  "}]), encoding="utf-8")
             p = run(*base, "--out", str(Path(tmp) / "blank"), "--catalog-extra", str(blank))

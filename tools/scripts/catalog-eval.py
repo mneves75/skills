@@ -396,7 +396,10 @@ def load_extra(path: Path | None, external: set[str]) -> list[dict[str, str]]:
         if external:
             sys.exit(f"cases name external skills {sorted(external)}; pass --catalog-extra with their descriptions")
         return []
-    entries = json.loads(path.read_text(encoding="utf-8"))
+    try:
+        entries = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        sys.exit(f"--catalog-extra {path}: not valid JSON ({exc})")
     if not isinstance(entries, list) or not all(
         isinstance(e, dict)
         and isinstance(e.get("name"), str)

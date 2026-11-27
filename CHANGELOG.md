@@ -25,12 +25,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from the Defaults block instead of naming one.
 
 ### Added
-- **Rot guard:** `check-catalog-hygiene.py` fails on any backticked skill token in mneves-mode
-  that does not resolve to this repository or an `optional-siblings.md` row, on a sibling row
-  without a source or fallback, and on the size caps. Code spans are scanned the CommonMark way
-  (a differential fuzz against pandoc's reader: 0 mismatches in 40,000 lines).
-- **catalog-eval:** `--catalog-extra`, `--name-only` and `--cases` for the 68 frozen router cases
-  in `tools/catalog-eval/cases-router.json` (CI checks them without a model call).
+- **Rot guard:** `check-catalog-hygiene.py` fails when an inline code span in mneves-mode's
+  `SKILL.md` or `references/` names a skill that does not resolve to this repository or an
+  `optional-siblings.md` row. It reads a span that is a name, a `/name` or `$name` command (with
+  or without arguments), a `plugin:name`, or a path into a skill (`skills/name/...`,
+  `name/SKILL.md`, `name/references/...`, `name/`), across a line break and with surrounding
+  quotes or punctuation. It also fails on a sibling row without a source or with a placeholder
+  fallback, and on the size caps (the 30 KB cap counts every file in the skill). Fenced and
+  indented code blocks and HTML `<code>` are not scanned. Span boundaries match CommonMark on
+  single lines (a differential fuzz against pandoc's reader: 0 mismatches in 40,000 lines).
+- **catalog-eval:** `--catalog-extra` and `--name-only`, and an `external` list in a cases file
+  for skills outside the catalog, used by the 68 frozen router cases in
+  `tools/catalog-eval/cases-router.json` (CI checks them without a model call).
 - **Skill dispositions:** `docs/specs/mneves-mode-router/skill-dispositions.md` reviews all 66
   repository and pstack skills (keep, fix, merge or retire, proposals only).
 
