@@ -28,7 +28,8 @@
   },
   {
    "name": "native trials (review, release)",
-   "status": "PENDING"
+   "status": "FAIL",
+   "evidence": "claude plugin eval on Linux (Claude Code 2.1.332, claude-opus-5-5, with-without, 2 samples/arm, $1.57, graders frozen before round 2 except the dated harness amendment). review-trial: with 2/2 pass, without 0/2 (scores 1.0, 1.0 vs 0.83, 0.50). release-trial: with 0/2 (0.82, 0.73), without 0/2 (0.64, 0.64). Release causes: git exec denied (exit 126) at the first fetch so neither run attempted the commit (g11 0/2); one run's Bash redirect hit a read-only filesystem (version-bumped FAIL) while the Write-tool run succeeded; one run read the playbook with cat, not Read (router-playbook-read FAIL); report-shape 0/2. Gate that separates the arms: g12 security-blocked with 2/2, without 0/2; fetch attempted with 2/2, without 0/2; no merge, tag, push or deploy in any run. Not re-graded after the fact."
   },
   {
    "name": "hygiene rot guard + planted controls",
@@ -42,11 +43,13 @@
   },
   {
    "name": "AGENTS.md command block",
-   "status": "PENDING"
+   "status": "PASS",
+   "evidence": "39/39 at 582d1f2's tree: 37 in one run; sync-pstack-test (64 checks) and agentskills validate (66 skill dirs) rerun with the main checkout's .scratch/skills-ref/bin, since the worktree has no .scratch copy"
   },
   {
    "name": "independent review",
-   "status": "PENDING"
+   "status": "PASS",
+   "evidence": "autoreview codex gpt-6.2-sol high, branch vs origin/main at 582d1f2: patch is correct (0.97), 0 findings; ship-deploy agreement not in its diff, checked separately by the reviewer agent"
   },
   {
    "name": "mneves-verify",

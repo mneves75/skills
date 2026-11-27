@@ -87,6 +87,30 @@ checked against the files before it was fixed.
   The scanner is now one CommonMark-style pass. A differential fuzz against pandoc's CommonMark reader (40,000 random lines) found 0 mismatches; the scanner before it had 48 in 5,000.
 - **Audit playbook.** Branch standards-and-spec reviews now route to `code-review` first, matching G6 and the frozen case.
 
+## Native trials (2026-11-27, round 2)
+
+`claude plugin eval` with and without the router, 2 samples per arm, Claude Code 2.1.332 on
+Linux, $1.57. The graders were frozen before round 1; the only later change is the dated harness
+amendment in [gate-checklist.md](gate-checklist.md).
+
+| Case | With router | Without |
+|---|---|---|
+| review (read-only standards and spec review) | 2/2 pass | 0/2 |
+| release (bump, gates, stop before deploy) | 0/2 | 0/2 |
+
+- **Review.** Both router runs read the audit playbook, found the planted spec violations, stayed
+  read-only and disclosed the missing review skill. Runs without the router missed the report
+  shape both times and the fallback once.
+- **Release.** The router runs attempted the fetch (2/2 vs 0/2) and blocked on the missing
+  security gate (2/2 vs 0/2); no run merged, tagged, pushed or deployed. Both still fail:
+  - git exec is denied in the eval sandbox, so after the failed fetch neither run tried to commit;
+  - one run wrote VERSION through a Bash redirect onto a read-only path;
+  - one run read the playbook with `cat`, which the Read grader does not count;
+  - the report-shape judge failed both.
+
+  These are recorded as failures, not re-graded. A release trial that can execute git needs a
+  harness with git in the sandbox, or the `claude -p` fixture fallback.
+
 ## Run notes
 
 - Skill dispositions, one row per shipped skill: [skill-dispositions.md](skill-dispositions.md).
