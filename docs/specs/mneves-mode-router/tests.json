@@ -60,6 +60,11 @@
    "name": "security gate fixes",
    "status": "PASS",
    "evidence": "Distinct-model security acceptance (gpt-6.2-astra) on 5fec7f7 found no Critical or High issue and three fixes: the quadratic code-span regex (36 s on 40,000 characters) was replaced by a length-indexed scanner (0 mismatches against the old regex in 300,000 random strings; 184 ms on 80,000 characters; test_router_span_scan_is_linear fails in 33 s with the old regex planted back); symlinks in the router skill now fail the check (planted control fails on the old checker); duplicate skill names now name their source."
+  },
+  {
+   "name": "security gate round 2 fixes",
+   "status": "PASS",
+   "evidence": "Distinct-model security acceptance (gpt-6.2-astra) on 8f8d794 found no Critical or High issue and failed on n log n span scanning, a quadratic file lookup and reads of a symlinked optional-siblings.md or agents/openai.yaml. Forward pointers make the scan linear (7 adversarial shapes: 4.00x calls for 4x input; 0 mismatches against the original regex in 300,000 cases); files are classified before any read; the two new symlink cases fail on the earlier checker and pass now."
   }
  ]
 }

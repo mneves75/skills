@@ -285,6 +285,13 @@ class CatalogHygieneTest(unittest.TestCase):
             # A linked file would be read and sized from outside the skill.
             "symlinked reference": ("Use `alpha`.", good_row, {}, "symlink in the router skill",
                                     {"skills/mneves-mode/references/linked.md": Path("../../../README.md")}),
+            # A linked siblings file or openai.yaml must not be read: its rows or tokens stay unknown.
+            "symlinked siblings file": ("Use `beta-ext`.", good_row, {}, "unknown skill token `beta-ext`",
+                                        {"outside.md": "| Skill | Source | Use | Fallback |\n|---|---|---|---|\n" + good_row,
+                                         "skills/mneves-mode/references/optional-siblings.md": Path("../../../outside.md")}),
+            "symlinked openai.yaml": ("Use `alpha`.", good_row, {}, "not:unknown skill token `$zz-ghost`",
+                                      {"outside.yaml": 'default_prompt: "Use $zz-ghost."\n',
+                                       "skills/mneves-mode/agents/openai.yaml": Path("../../../outside.yaml")}),
         }
         for label, (body, rows, extra, expected, tree) in cases.items():
             with self.subTest(label), tempfile.TemporaryDirectory() as tmp:
@@ -292,6 +299,7 @@ class CatalogHygieneTest(unittest.TestCase):
                 build(root, body, rows, extra)
                 for rel, text in tree.items():
                     (root / rel).parent.mkdir(parents=True, exist_ok=True)
+                    (root / rel).unlink(missing_ok=True)
                     if isinstance(text, Path):
                         (root / rel).symlink_to(text)
                     else:
@@ -299,6 +307,9 @@ class CatalogHygieneTest(unittest.TestCase):
                 res = MOD.check_repo(root)
                 if expected is None:
                     self.assertTrue(res["ok"], res["errors"])
+                elif expected.startswith("not:"):
+                    self.assertFalse(res["ok"])
+                    self.assertFalse(any(expected[4:] in e for e in res["errors"]), res["errors"])
                 else:
                     self.assertFalse(res["ok"])
                     self.assertTrue(any(expected in e for e in res["errors"]), res["errors"])

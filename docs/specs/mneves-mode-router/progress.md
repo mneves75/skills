@@ -134,6 +134,15 @@ fixes:
 - **Duplicate skill names.** When two installed skills share a name, the mode now says which
   source the host loaded.
 
+Round 2, on `8f8d794`, again found no Critical or High issue. It failed on two points, both now fixed:
+- **Scan cost.** The scan used a binary search per opener (n log n), and the reference check was
+  quadratic in file count. Forward pointers and a set replace them. On seven adversarial shapes, 4× the input makes
+  exactly 4.00× the calls. There are 0 mismatches against the original regex in 300,000 cases.
+- **Linked files.** A linked `optional-siblings.md` or `agents/openai.yaml` was still read. Files are now
+  classified before any read, and only regular files are opened. Both new test cases fail on the
+  earlier checker.
+- **Not fixed.** A FIFO or other special file in the skill is not checked: git cannot store one.
+
 ## Run notes
 
 - Skill dispositions, one row per shipped skill: [skill-dispositions.md](skill-dispositions.md).

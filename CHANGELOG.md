@@ -35,8 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and HTML `<code>` are not parsed as code: a name in them is checked only where backticks
   around it form a span, so a bare name in a tilde-fenced or indented block, or in `<code>`,
   is not caught. Span boundaries match CommonMark on single lines (a differential fuzz against
-  pandoc's reader: 0 mismatches in 40,000 lines). The scan runs in near-linear time, and a
-  symlink anywhere in the skill fails the check.
+  pandoc's reader: 0 mismatches in 40,000 lines). The scan runs in linear time. A
+  symlink anywhere in the skill fails the check, and only regular files are read.
 - **catalog-eval:** `--catalog-extra` and `--name-only`, and an `external` list in a cases file
   for skills outside the catalog, used by the 68 frozen router cases in
   `tools/catalog-eval/cases-router.json` (CI checks them without a model call).

@@ -21,7 +21,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import bisect
 import json
 from pathlib import Path
 import re
@@ -461,18 +460,20 @@ def _router_word_name(word: str) -> str:
 
 
 def _router_spans(text: str) -> list[str]:
-    """Code-span contents, CommonMark inline rules, scanned left to right in O(n log n).
+    """Code-span contents, CommonMark inline rules, scanned left to right in linear time.
 
     Outside a span a backslash escapes the next character; a span opens on a backtick run and
     closes on the next maximal run of the same length, and backslashes inside it are literal. A
-    span may cross a line break but not a blank line. A run with no closer is text. Closers are
-    looked up by run length, so an unclosed run never rescans the rest of the paragraph (a lazy
-    regular expression does, which is quadratic on many unclosed runs)."""
+    span may cross a line break but not a blank line. A run with no closer is text. Openers only
+    move right, so one forward pointer per run length finds the next closer and one more finds
+    the next blank line; neither moves back (a lazy regular expression rescans the paragraph for
+    each unclosed run, which is quadratic)."""
     closers: dict[int, list[int]] = {}
     for m in ROUTER_RUN_RE.finditer(text):
         closers.setdefault(len(m[0]), []).append(m.start())
+    nxt: dict[int, int] = {}
     blanks = [(m.start(), m.start() + len(m[1])) for m in ROUTER_BLANK_RE.finditer(text)]
-    blank_starts = [start for start, _ in blanks]
+    b = 0
     spans: list[str] = []
     i = 0
     while m := ROUTER_STOP_RE.search(text, i):
@@ -481,12 +482,18 @@ def _router_spans(text: str) -> list[str]:
             i += 2
             continue
         end = ROUTER_RUN_RE.match(text, i).end()
+        # A run right after an escaped backtick is shorter than its maximal run, so it may have
+        # no closers of its own length.
         same = closers.get(end - i, [])
-        k = bisect.bisect_left(same, end)
+        k = nxt.get(end - i, 0)
+        while k < len(same) and same[k] < end:
+            k += 1
+        nxt[end - i] = k
         if k < len(same):
             close = same[k]
             # Blank-line ends grow with their starts, so the first blank after the opener decides.
-            b = bisect.bisect_left(blank_starts, end)
+            while b < len(blanks) and blanks[b][0] < end:
+                b += 1
             if b == len(blanks) or blanks[b][1] > close:
                 spans.append(text[end:close])
                 i = close + (end - i)
@@ -509,13 +516,13 @@ def _router_span_names(content: str) -> set[str]:
     return {name} if ROUTER_TOKEN_RE.fullmatch(name) else set()
 
 
-def _router_known(root: Path, rdir: Path, skill_names: list[str], errors: list[str]) -> set[str]:
+def _router_known(root: Path, rdir: Path, skill_names: list[str], files: set[Path], errors: list[str]) -> set[str]:
     known = set(skill_names) | ROUTER_TOKEN_ALLOWLIST
     pstack = root / "collections" / "pstack" / "skills"
     if pstack.is_dir():
         known |= {p.name for p in pstack.iterdir() if (p / "SKILL.md").is_file()}
     siblings = rdir / "references" / "optional-siblings.md"
-    if siblings.is_file():
+    if siblings in files:
         for name, rest in SIBLING_ROW_RE.findall(siblings.read_text(encoding="utf-8")):
             cells = [c.strip() for c in rest.split("|")]
             if len(cells) < 3 or not SIBLING_SOURCE_RE.search(cells[0]) or ROUTER_PLACEHOLDER_RE.fullmatch(cells[2]):
@@ -531,16 +538,19 @@ def _check_router(root: Path, skill_names: list[str], errors: list[str]) -> None
     rdir = root / "skills" / ROUTER
     if not rdir.is_dir():
         return
-    known = _router_known(root, rdir, skill_names, errors)
-    entries = sorted(rdir.rglob("*"))
-    for p in entries:
+    # Classify first: only regular files are ever read, so nothing is followed out of the skill.
+    files: set[Path] = set()
+    for p in sorted(rdir.rglob("*")):
+        rel = p.relative_to(root).as_posix()
         if p.is_symlink():
-            errors.append(f"{p.relative_to(root).as_posix()}: symlink in the router skill (ship regular files only)")
-    files = [p for p in entries if p.is_file() and not p.is_symlink()]
+            errors.append(f"{rel}: symlink in the router skill (ship regular files only)")
+        elif p.is_file():
+            files.add(p)
+    known = _router_known(root, rdir, skill_names, files, errors)
     total = sum(p.stat().st_size for p in files)
     if total > ROUTER_MAX_TOTAL_BYTES:
         errors.append(f"skills/{ROUTER}: SKILL.md plus references over {ROUTER_MAX_TOTAL_BYTES} bytes ({total})")
-    refs = [p for p in files if p.is_relative_to(rdir / "references") and p.suffix in {".md", ".txt"}]
+    refs = sorted(p for p in files if p.is_relative_to(rdir / "references") and p.suffix in {".md", ".txt"})
     for path in [p for p in [rdir / "SKILL.md", *refs] if p in files]:
         text = path.read_text(encoding="utf-8")
         rel = path.relative_to(root).as_posix()
@@ -553,7 +563,7 @@ def _check_router(root: Path, skill_names: list[str], errors: list[str]) -> None
         for token in sorted(names - known):
             errors.append(f"{rel}: unknown skill token `{token}` (add an optional-siblings.md row or drop it)")
     yaml_path = rdir / "agents" / "openai.yaml"
-    if yaml_path.is_file():
+    if yaml_path in files:
         for token in sorted(set(ROUTER_YAML_TOKEN_RE.findall(yaml_path.read_text(encoding="utf-8"))) - known):
             errors.append(f"skills/{ROUTER}/agents/openai.yaml: unknown skill token `${token}`")
 
