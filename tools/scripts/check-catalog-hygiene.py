@@ -40,6 +40,16 @@ MAX_SKILL_LINES = 500
 WARN_DESC_CHARS = 220
 MAX_DESC_CHARS = 350
 UPSTREAM_BARE_BASENAME_EXEMPT = frozenset({"security-audit"})
+# mneves-mode names skills in backticks. Every kebab-case token must resolve to a root skill, a
+# pstack skill, an optional-siblings.md row or this allowlist, so a private name fails closed.
+ROUTER = "mneves-mode"
+ROUTER_TOKEN_ALLOWLIST = frozenset({"pstack", "ship-staging", "ship-prod"})
+ROUTER_MAX_BODY_BYTES = 10 * 1024
+ROUTER_MAX_BODY_LINES = 160
+ROUTER_MAX_PLAYBOOK_BYTES = 2560
+ROUTER_MAX_TOTAL_BYTES = 30 * 1024
+ROUTER_TOKEN_RE = re.compile(r"`([a-z][a-z0-9]*(?:-[a-z0-9]+)*)`")
+SIBLING_ROW_RE = re.compile(r"^\|\s*`([a-z0-9-]+)`\s*\|(.*)$", re.MULTILINE)
 
 _MARKED_EXTRACT_JS = r"""
 import { pathToFileURL } from "node:url";
@@ -428,6 +438,39 @@ def _check_index_docs(root: Path, skill_names: list[str], errors: list[str]) -> 
                 errors.append(f"{rel_doc}: missing root skill `{name}`")
 
 
+def _check_router(root: Path, skill_names: list[str], errors: list[str]) -> None:
+    rdir = root / "skills" / ROUTER
+    if not rdir.is_dir():
+        return
+    known = set(skill_names) | ROUTER_TOKEN_ALLOWLIST
+    pstack = root / "collections" / "pstack" / "skills"
+    if pstack.is_dir():
+        known |= {p.name for p in pstack.iterdir() if p.is_dir()}
+    siblings = rdir / "references" / "optional-siblings.md"
+    if siblings.is_file():
+        for name, rest in SIBLING_ROW_RE.findall(siblings.read_text(encoding="utf-8")):
+            cells = [c.strip() for c in rest.split("|")]
+            if len(cells) < 3 or not cells[0] or not cells[2]:
+                errors.append(
+                    f"skills/{ROUTER}/references/optional-siblings.md: `{name}` needs a public source and a fallback"
+                )
+            known.add(name)
+    total = 0
+    for path in [rdir / "SKILL.md", *sorted((rdir / "references").glob("*.md"))]:
+        text = path.read_text(encoding="utf-8")
+        rel = path.relative_to(root).as_posix()
+        size = len(text.encode("utf-8"))
+        total += size
+        if path.name == "SKILL.md" and (size > ROUTER_MAX_BODY_BYTES or len(text.splitlines()) > ROUTER_MAX_BODY_LINES):
+            errors.append(f"{rel}: router SKILL.md over {ROUTER_MAX_BODY_BYTES} bytes or {ROUTER_MAX_BODY_LINES} lines")
+        if path.name.startswith("playbook-") and size > ROUTER_MAX_PLAYBOOK_BYTES:
+            errors.append(f"{rel}: playbook over {ROUTER_MAX_PLAYBOOK_BYTES} bytes ({size})")
+        for token in sorted(set(ROUTER_TOKEN_RE.findall(text)) - known):
+            errors.append(f"{rel}: unknown skill token `{token}` (add an optional-siblings.md row or drop it)")
+    if total > ROUTER_MAX_TOTAL_BYTES:
+        errors.append(f"skills/{ROUTER}: SKILL.md plus references over {ROUTER_MAX_TOTAL_BYTES} bytes ({total})")
+
+
 def check_repo(root: Path) -> dict:
     root = root.resolve()
     skills_dir = root / "skills"
@@ -458,6 +501,7 @@ def check_repo(root: Path) -> dict:
             skill_stats.append(stat)
 
     _check_index_docs(root, skill_names, errors)
+    _check_router(root, skill_names, errors)
 
     return {
         "ok": not errors,

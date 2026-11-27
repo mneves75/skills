@@ -4,16 +4,21 @@
   catalog-eval.py check [--cases PATH] [--root PATH] [--include-pstack]
   catalog-eval.py run --out DIR [--samples N] [--providers claude,codex] [--cases-only ID,...]
                       [--claude-cmd CMD] [--codex-cmd CMD] [--cases PATH] [--root PATH] [--include-pstack]
+                      [--catalog-extra PATH] [--name-only NAME,...]
 
 `check` is deterministic and makes no model calls: it validates cases.json and confirms every
 named expected/forbidden skill exists under skills/ (or is "none"), case IDs are unique and
-filename-safe, and expected/forbidden sets are disjoint.
+filename-safe, and expected/forbidden sets are disjoint. A cases file may list third-party
+skills under a top-level "external" array; check accepts those names without descriptions.
 
 `run` builds a prompt containing ONLY the live skills/*/SKILL.md `name` and `description`
 fields (never docs/skill-routing.md or skill bodies), calls Claude and/or Codex without tools
 and with a strict JSON enum schema over ["none", *skill_names], grades every sample, and writes
 per-sample records plus summary.json (including per-cluster pass rates and the confusion matrix)
-under DIR.
+under DIR. When the cases name external skills, `--catalog-extra` must supply exactly those
+names with descriptions (a JSON list of {name, description} read at run time, never committed).
+`--name-only` lists skills whose descriptions are dropped, as a host does when its skill listing
+runs out of budget.
 """
 from __future__ import annotations
 
@@ -99,7 +104,7 @@ def load_catalog(root: Path, include_pstack: bool = False) -> list[dict[str, str
 
 
 def format_catalog(entries: list[dict[str, str]]) -> str:
-    return "\n".join(f"- {e['name']}: {e['description']}" for e in entries)
+    return "\n".join(f"- {e['name']}: {e['description']}" if e["description"] else f"- {e['name']}" for e in entries)
 
 
 def build_schema(skill_names: list[str]) -> dict:
@@ -169,7 +174,14 @@ def validate_cases(spec: object, skill_names: set[str]) -> list[str]:
     cases = spec.get("cases")
     if not isinstance(cases, list) or not cases:
         return problems + ["cases must be a non-empty list"]
-    valid_targets = skill_names | {"none"}
+    external = spec.get("external", [])
+    if not isinstance(external, list) or not all(isinstance(x, str) and x for x in external):
+        problems.append("external must be a list of skill names")
+        external = []
+    clash = sorted(set(external) & skill_names)
+    if clash:
+        problems.append(f"external names also in the catalog: {clash}")
+    valid_targets = skill_names | set(external) | {"none"}
     seen: set[str] = set()
     for idx, case in enumerate(cases):
         problems.extend(_validate_one_case(idx, case, valid_targets, seen))
@@ -379,6 +391,23 @@ def command_check(args: argparse.Namespace) -> int:
     return 0
 
 
+def load_extra(path: Path | None, external: set[str]) -> list[dict[str, str]]:
+    if path is None:
+        if external:
+            sys.exit(f"cases name external skills {sorted(external)}; pass --catalog-extra with their descriptions")
+        return []
+    entries = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(entries, list) or not all(
+        isinstance(e, dict) and isinstance(e.get("name"), str) and isinstance(e.get("description"), str)
+        for e in entries
+    ):
+        sys.exit(f"--catalog-extra {path}: expected a JSON list of {{name, description}}")
+    names = [e["name"] for e in entries]
+    if len(set(names)) != len(names) or set(names) != external:
+        sys.exit(f"--catalog-extra {path}: names must match the cases' external list {sorted(external)} exactly")
+    return [{"name": e["name"], "description": e["description"]} for e in entries]
+
+
 def command_run(args: argparse.Namespace) -> int:
     root = args.root.resolve()
     out_dir = args.out.resolve()
@@ -391,12 +420,19 @@ def command_run(args: argparse.Namespace) -> int:
         sys.exit("--samples must be >= 1")
 
     catalog = load_catalog(root, include_pstack=args.include_pstack)
-    skill_names = [e["name"] for e in catalog]
     cases_bytes = args.cases.read_bytes()
     spec = json.loads(cases_bytes)
-    problems = validate_cases(spec, set(skill_names))
+    problems = validate_cases(spec, {e["name"] for e in catalog})
     if problems:
         sys.exit("\n".join(problems))
+    external = set(spec.get("external", []))
+    catalog += load_extra(args.catalog_extra, external)
+    hidden = {n.strip() for n in args.name_only.split(",") if n.strip()}
+    unknown = sorted(hidden - {e["name"] for e in catalog})
+    if unknown:
+        sys.exit(f"--name-only {unknown}: not in the catalog")
+    catalog = [{**e, "description": ""} if e["name"] in hidden else e for e in catalog]
+    skill_names = [e["name"] for e in catalog]
 
     cases = _select_cases(spec["cases"], args.cases_only)
     catalog_text = format_catalog(catalog)
@@ -429,6 +465,8 @@ def command_run(args: argparse.Namespace) -> int:
         "catalog_sha256": hashlib.sha256(catalog_text.encode("utf-8")).hexdigest(),
         "catalog_skill_count": len(catalog),
         "catalog_description_chars": sum(len(e["description"]) for e in catalog),
+        "external": sorted(external),
+        "name_only": sorted(hidden),
         "providers": providers,
         "models": {
             "claude": {"model": CLAUDE_MODEL, "effort": CLAUDE_EFFORT},
@@ -460,6 +498,8 @@ def main() -> int:
             p.add_argument("--cases-only", default="")
             p.add_argument("--claude-cmd", default="claude")
             p.add_argument("--codex-cmd", default="codex")
+            p.add_argument("--catalog-extra", type=Path, default=None)
+            p.add_argument("--name-only", default="")
     args = parser.parse_args()
     return command_check(args) if args.command == "check" else command_run(args)
 

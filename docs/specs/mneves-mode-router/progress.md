@@ -1,0 +1,65 @@
+# mneves-mode v3: an explicit director over the whole catalog
+
+## Scope
+
+Approved request (2026-11-27): "enhance my mneves-mode … I want something like mneves-mode to
+direct the use of all my skills, like poteto-mode". The poteto-mode re-pin ships separately
+(`feat/pstack-repin`). This branch holds the router, its eval, the skill dispositions, and the
+fixes those findings justify.
+
+Decided:
+- **Explicit-only.** `mneves-mode` stays explicit-only: `/mneves-mode` is its only trigger.
+- **Policy amendment.** `AGENTS.md` keeps "no global umbrella" for discovery. It is amended so an explicit-only router may name skills and order phases, as long as no skill depends on it to be discovered or run.
+- **Private material.** Private and dormant skills go in an owner overlay outside this repository.
+
+## Evidence before writing (T0)
+
+The owner's local transcripts were measured. Raw data and per-skill counts stay in a private
+note outside this repository; only totals appear here.
+- **Windows.** `/poteto-mode` was measured over 60 days. `/mneves-mode` has existed only since
+  2026-11-24, so its window is 3 days.
+- **Router use in real work.** Claude: typed `/mneves-mode` 0 and `/poteto-mode` 0. Codex
+  (1,114 threads): user messages invoke neither router (0). Every `SKILL.md` read of either
+  router came from editing them in this repository, except one installed-path `poteto-mode`
+  read, also inside a session on this repository.
+- **What directs skills today.** It is a pasted standing prompt, repeated across sessions. It
+  names `improve`, Pocock's `code-review`, `tdd` with a complexity floor, `mneves-prune-tests`,
+  `mneves-verify` to 100%, `mneves-security` and `mneves-ship-deploy`.
+- **Wrong-pick corrections.** None found ("no, use X"). The mining script was not validated on a
+  planted positive, so this is absence of evidence only.
+- **Codex usage collector.** It counts a completed `CommandExecution` whose command reads
+  `skills/<name>/SKILL.md`, once per thread. It was checked against one known thread.
+
+What follows:
+- The **ceiling probe** (selection without a router) measures discovery only.
+- The value v3 can add is **sequencing and gates**: turning the pasted prompt into one typed command.
+- **Falsifier:** 0 typed uses in the 30 days after release, then shrink or retire it (owner's call).
+
+## Ceiling probe (A0, no router)
+
+- **Frozen first.** The cases (`tools/catalog-eval/cases-router.json`) and the
+  [gate checklist](gate-checklist.md) were hashed before any v3 text was written. Each case was
+  labelled twice, by the drafter and by a blind fresh-context labeller, and `expected` is the
+  union of both label sets. Top picks agreed on 67 of 68 cases, with 0 conflicts.
+- **Setup.** The catalog was this repository plus the third-party skills named in `external`.
+  Their descriptions were read at run time and never committed. The two least-used skills were
+  listed by name only, as the host listing drops them. Model `claude-opus-5-5` at medium effort,
+  1 sample per case.
+- **Result.**
+
+  | Label set | Passed |
+  |---|---|
+  | Union | 68 of 68 |
+  | Drafter only | 66 of 68 |
+  | Blind labeller only | 68 of 68 |
+
+  No run picked a forbidden skill or an explicit-only skill.
+- **Decision.** The result is above the 95% rule, so v3 carries no tie-breaker rows. It orders
+  phases and enforces gates, and it routes nothing that discovery already gets right. The A2 arm
+  (with the router) is not run, because no routing claim is made. Only native trials, graded
+  against the checklist, can show whether the gates run.
+
+## Run notes
+
+- Branches: `feat/router-v3` (this one) and `feat/pstack-repin`, each from `origin/main` `ce8a4d6`.
+- See [tests.json](tests.json) for the status of each check.

@@ -1,0 +1,54 @@
+{
+ "scope": "mneves-mode v3 router, eval, skill dispositions",
+ "checks": [
+  {
+   "name": "origin reconciliation",
+   "status": "PASS",
+   "evidence": "worktree from origin/main ce8a4d6 after fetch"
+  },
+  {
+   "name": "router usage baseline (60 days)",
+   "status": "PASS",
+   "evidence": "Claude typed 0/0 (poteto 60 days, mneves-mode 3 days); Codex user messages 0; Codex SKILL.md reads all repository development, 1 installed-path poteto read inside a repository session"
+  },
+  {
+   "name": "routing corrections mined",
+   "status": "PASS",
+   "evidence": "none found; collector not validated on a planted positive (absence of evidence only); dominant pattern is a pasted standing prompt"
+  },
+  {
+   "name": "frozen router cases",
+   "status": "PASS",
+   "evidence": "tools/catalog-eval/cases-router.json sha256 a74066eb…; gate-checklist.md sha256 0d957ed7…; both frozen before any v3 text; 68 cases, blind second labeller, top-pick agreement 67/68, 0 conflicts"
+  },
+  {
+   "name": "Stage 1 selection eval (A0 vs A2)",
+   "status": "PASS",
+   "evidence": "A0 (no router, 2 name-only entries) claude-opus-5-5 medium, 1 sample: 68/68 union, 66/68 draft-only, 68/68 labeller-only, 0 forbidden, 0 explicit-only picks; at or above the 95% ceiling rule, so v3 carries no tie-breaker rows and A2 is not run (routing claim not needed)"
+  },
+  {
+   "name": "native trials (review, release)",
+   "status": "PENDING"
+  },
+  {
+   "name": "hygiene rot guard + planted controls",
+   "status": "PENDING"
+  },
+  {
+   "name": "skill dispositions (66 skills)",
+   "status": "PENDING"
+  },
+  {
+   "name": "AGENTS.md command block",
+   "status": "PENDING"
+  },
+  {
+   "name": "independent review",
+   "status": "PENDING"
+  },
+  {
+   "name": "mneves-verify",
+   "status": "PENDING"
+  }
+ ]
+}

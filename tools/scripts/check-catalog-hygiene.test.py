@@ -208,6 +208,43 @@ class CatalogHygieneTest(unittest.TestCase):
             res = MOD.check_repo(root)
             self.assertTrue(res["ok"], res)
 
+    def test_router_rot_guard(self) -> None:
+        def build(root: Path, body: str, rows: str) -> None:
+            make_fixture(root)
+            rdir = root / "skills" / "mneves-mode" / "references"
+            rdir.mkdir(parents=True)
+            (rdir.parent / "SKILL.md").write_text(
+                "---\nname: mneves-mode\ndescription: Explicit operator mode that orders phases and gates.\n---\n\n"
+                f"{body}\n\nSee [siblings](references/optional-siblings.md).\n",
+                encoding="utf-8",
+            )
+            (rdir / "optional-siblings.md").write_text(
+                "| Skill | Public source | Used for | Fallback |\n|---|---|---|---|\n" + rows, encoding="utf-8"
+            )
+            for doc in ("README.md", "HOWTO.md", "AGENTS.md", "docs/skill-ledger.md"):
+                (root / doc).write_text("Contains `alpha` and `mneves-mode`.\n", encoding="utf-8")
+            with (root / "docs" / "skill-routing.md").open("a", encoding="utf-8") as f:
+                f.write("| Run the mode | `mneves-mode` | None |\n")
+
+        good_row = "| `beta-ext` | `someone/skills` | Testing | Do it by hand |\n"
+        cases = {
+            "valid": ("Use `alpha`, `beta-ext`, `pstack` and `BLOCKED`.", good_row, None),
+            "unknown token": ("Use `alpha` and `delegate-wave`.", good_row, "unknown skill token `delegate-wave`"),
+            "row without fallback": ("Use `beta-ext`.", "| `beta-ext` | `someone/skills` | Testing |  |\n",
+                                     "needs a public source and a fallback"),
+            "oversize body": ("line\n" * 161, good_row, "router SKILL.md over"),
+        }
+        for label, (body, rows, expected) in cases.items():
+            with self.subTest(label), tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                build(root, body, rows)
+                res = MOD.check_repo(root)
+                if expected is None:
+                    self.assertTrue(res["ok"], res["errors"])
+                else:
+                    self.assertFalse(res["ok"])
+                    self.assertTrue(any(expected in e for e in res["errors"]), res["errors"])
+
 
 if __name__ == "__main__":
     unittest.main()
