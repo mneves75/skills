@@ -55,6 +55,11 @@
    "name": "mneves-verify",
    "status": "PASS",
    "evidence": "gpt-6.2-astra high via codex-auto, fresh context, 11 frozen criteria from the plan, run on git archive of aa2032f: PASS 11/11. Rounds 1-4 (be4ca5a, 7aeda30, dd04232, 77029fb) failed on a private skill name in shipped cases and specs, inaccurate CHANGELOG claims (code-block scanning, disposition attribution) and an archive without the locked marked dependency (also fails on origin/main; passes after bun install as CI runs it); each fixed or disproved, and @mneves75 in the ledger was accepted as the required public waiver owner. Ubuntu CI steps passed on aa2032f."
+  },
+  {
+   "name": "security gate fixes",
+   "status": "PASS",
+   "evidence": "Distinct-model security acceptance (gpt-6.2-astra) on 5fec7f7 found no Critical or High issue and three fixes: the quadratic code-span regex (36 s on 40,000 characters) was replaced by a length-indexed scanner (0 mismatches against the old regex in 300,000 random strings; 184 ms on 80,000 characters; test_router_span_scan_is_linear fails in 33 s with the old regex planted back); symlinks in the router skill now fail the check (planted control fails on the old checker); duplicate skill names now name their source."
   }
  ]
 }

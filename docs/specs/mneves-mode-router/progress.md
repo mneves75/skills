@@ -122,6 +122,18 @@ amendment in [gate-checklist.md](gate-checklist.md).
 - **Round 5, at `aa2032f`:** PASS on all 11 criteria. The Ubuntu CI steps passed on the same head.
 - **Still unproven:** end-to-end release execution. The native release trial could not run git.
 
+## Security gate (2026-11-27)
+
+The distinct-model security acceptance on `5fec7f7` found no Critical or High issue and three
+fixes:
+- **Span scan was quadratic.** Escaped openers that never close (`\``a` repeated) made the
+  lazy regex rescan each paragraph: 36 s on 40,000 characters. A length-indexed scanner replaced
+  it: 0 mismatches against the old regex in 300,000 random strings, and 184 ms on 80,000
+  characters. The new test fails in 33 s with the old regex planted back.
+- **Symlinks were followed.** The router check now fails on any symlink in the skill.
+- **Duplicate skill names.** When two installed skills share a name, the mode now says which
+  source the host loaded.
+
 ## Run notes
 
 - Skill dispositions, one row per shipped skill: [skill-dispositions.md](skill-dispositions.md).

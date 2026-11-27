@@ -21,6 +21,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import bisect
 import json
 from pathlib import Path
 import re
@@ -48,12 +49,11 @@ ROUTER_MAX_BODY_BYTES = 10 * 1024
 ROUTER_MAX_BODY_LINES = 160
 ROUTER_MAX_PLAYBOOK_BYTES = 2560
 ROUTER_MAX_TOTAL_BYTES = 30 * 1024
-# CommonMark inline scan, left to right: outside a code span a backslash escapes the next
-# character; a span opens on a maximal backtick run and closes on a run of the same length, and
-# backslashes inside it are literal. A span may cross a line break but not a blank line. A run
-# with no closer is consumed whole as text. Group 2 is the span content; the other branches
-# leave it None.
-ROUTER_SPAN_RE = re.compile(r"\\[\s\S]|(`+)(?!`)((?:[^\n]|\n(?![ \t]*\n))*?[^`])\1(?!`)|`+")
+# Code-span scanning (see _router_spans): backtick runs, blank lines, and the next character
+# that can change scanner state.
+ROUTER_RUN_RE = re.compile(r"`+")
+ROUTER_BLANK_RE = re.compile(r"(?=(\n[ \t]*\n))")
+ROUTER_STOP_RE = re.compile(r"[\\`]")
 # Path segments after a skill name that mean the span points into that skill's directory.
 ROUTER_SKILL_SUBPATHS = frozenset({"", "SKILL.md", "references", "agents"})
 ROUTER_PLACEHOLDER_RE = re.compile(r"[\W_]*|(?i:tbd|todo|tba|n/?a|none)")
@@ -460,6 +460,41 @@ def _router_word_name(word: str) -> str:
     return word
 
 
+def _router_spans(text: str) -> list[str]:
+    """Code-span contents, CommonMark inline rules, scanned left to right in O(n log n).
+
+    Outside a span a backslash escapes the next character; a span opens on a backtick run and
+    closes on the next maximal run of the same length, and backslashes inside it are literal. A
+    span may cross a line break but not a blank line. A run with no closer is text. Closers are
+    looked up by run length, so an unclosed run never rescans the rest of the paragraph (a lazy
+    regular expression does, which is quadratic on many unclosed runs)."""
+    closers: dict[int, list[int]] = {}
+    for m in ROUTER_RUN_RE.finditer(text):
+        closers.setdefault(len(m[0]), []).append(m.start())
+    blanks = [(m.start(), m.start() + len(m[1])) for m in ROUTER_BLANK_RE.finditer(text)]
+    blank_starts = [start for start, _ in blanks]
+    spans: list[str] = []
+    i = 0
+    while m := ROUTER_STOP_RE.search(text, i):
+        i = m.start()
+        if text[i] == "\\":
+            i += 2
+            continue
+        end = ROUTER_RUN_RE.match(text, i).end()
+        same = closers.get(end - i, [])
+        k = bisect.bisect_left(same, end)
+        if k < len(same):
+            close = same[k]
+            # Blank-line ends grow with their starts, so the first blank after the opener decides.
+            b = bisect.bisect_left(blank_starts, end)
+            if b == len(blanks) or blanks[b][1] > close:
+                spans.append(text[end:close])
+                i = close + (end - i)
+                continue
+        i = end
+    return spans
+
+
 def _router_span_names(content: str) -> set[str]:
     """Skill-shaped names a code span shows a reader. A multi-word span names a skill only as a
     `/name` or `$name` command; other multi-word spans are shell commands or prose."""
@@ -497,11 +532,16 @@ def _check_router(root: Path, skill_names: list[str], errors: list[str]) -> None
     if not rdir.is_dir():
         return
     known = _router_known(root, rdir, skill_names, errors)
-    total = sum(p.stat().st_size for p in rdir.rglob("*") if p.is_file())
+    entries = sorted(rdir.rglob("*"))
+    for p in entries:
+        if p.is_symlink():
+            errors.append(f"{p.relative_to(root).as_posix()}: symlink in the router skill (ship regular files only)")
+    files = [p for p in entries if p.is_file() and not p.is_symlink()]
+    total = sum(p.stat().st_size for p in files)
     if total > ROUTER_MAX_TOTAL_BYTES:
         errors.append(f"skills/{ROUTER}: SKILL.md plus references over {ROUTER_MAX_TOTAL_BYTES} bytes ({total})")
-    refs = sorted(p for p in (rdir / "references").rglob("*") if p.suffix in {".md", ".txt"} and p.is_file())
-    for path in [rdir / "SKILL.md", *refs]:
+    refs = [p for p in files if p.is_relative_to(rdir / "references") and p.suffix in {".md", ".txt"}]
+    for path in [p for p in [rdir / "SKILL.md", *refs] if p in files]:
         text = path.read_text(encoding="utf-8")
         rel = path.relative_to(root).as_posix()
         size = len(text.encode("utf-8"))
@@ -509,7 +549,7 @@ def _check_router(root: Path, skill_names: list[str], errors: list[str]) -> None
             errors.append(f"{rel}: router SKILL.md over {ROUTER_MAX_BODY_BYTES} bytes or {ROUTER_MAX_BODY_LINES} lines")
         if path.name.startswith("playbook-") and size > ROUTER_MAX_PLAYBOOK_BYTES:
             errors.append(f"{rel}: playbook over {ROUTER_MAX_PLAYBOOK_BYTES} bytes ({size})")
-        names = set().union(*(_router_span_names(m[2]) for m in ROUTER_SPAN_RE.finditer(text) if m[2]))
+        names = set().union(*(_router_span_names(span) for span in _router_spans(text)))
         for token in sorted(names - known):
             errors.append(f"{rel}: unknown skill token `{token}` (add an optional-siblings.md row or drop it)")
     yaml_path = rdir / "agents" / "openai.yaml"

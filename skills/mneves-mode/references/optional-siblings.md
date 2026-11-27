@@ -12,8 +12,8 @@ installed, say so once and use its fallback.
 | `domain-modeling` | `mattpocock/skills` | Glossary and decision records | A short glossary note |
 | `improve` | `shadcn/improve` | Read-only improvement survey | A ranked read-only survey in the session |
 
-Two installed skills can share a name, as `tdd` does. Use whichever one the host lists. Both are
-test-first.
+Two installed skills can share a name, as `tdd` does. Use the one the host lists, and say which
+source it came from. Both are test-first.
 
 The `pstack` skills (`how`, `architect`, `interrogate`, `blast-radius`, `fix-ci`,
 `fix-merge-conflicts`, `make-pr-easy-to-review`, `teach`, `technical-writing`, `poteto-mode`)

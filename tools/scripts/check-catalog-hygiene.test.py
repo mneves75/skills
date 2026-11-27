@@ -5,6 +5,7 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 import tempfile
+import time
 import unittest
 
 SCRIPT = Path(__file__).resolve().parent / "check-catalog-hygiene.py"
@@ -281,6 +282,9 @@ class CatalogHygieneTest(unittest.TestCase):
             "oversize body": ("line\n" * 161, good_row, {}, "router SKILL.md over", {}),
             "oversize playbook": ("Use `alpha`.", good_row, {"playbook-big.md": "word " * 520}, "playbook over", {}),
             "oversize total": ("Use `alpha`.", good_row, {"notes.md": "word " * 6200}, "SKILL.md plus references over", {}),
+            # A linked file would be read and sized from outside the skill.
+            "symlinked reference": ("Use `alpha`.", good_row, {}, "symlink in the router skill",
+                                    {"skills/mneves-mode/references/linked.md": Path("../../../README.md")}),
         }
         for label, (body, rows, extra, expected, tree) in cases.items():
             with self.subTest(label), tempfile.TemporaryDirectory() as tmp:
@@ -288,13 +292,25 @@ class CatalogHygieneTest(unittest.TestCase):
                 build(root, body, rows, extra)
                 for rel, text in tree.items():
                     (root / rel).parent.mkdir(parents=True, exist_ok=True)
-                    (root / rel).write_text(text, encoding="utf-8")
+                    if isinstance(text, Path):
+                        (root / rel).symlink_to(text)
+                    else:
+                        (root / rel).write_text(text, encoding="utf-8")
                 res = MOD.check_repo(root)
                 if expected is None:
                     self.assertTrue(res["ok"], res["errors"])
                 else:
                     self.assertFalse(res["ok"])
                     self.assertTrue(any(expected in e for e in res["errors"]), res["errors"])
+
+    def test_router_span_scan_is_linear(self) -> None:
+        # Escaped, never-closed openers made the old lazy regex rescan to the paragraph end for
+        # each one: about 36 s on this input.
+        text = "\\``a" * 10000 + "\n\n`zz-ghost`"
+        start = time.perf_counter()
+        spans = MOD._router_spans(text)
+        self.assertLess(time.perf_counter() - start, 2.0)
+        self.assertEqual(spans, ["zz-ghost"])
 
 
 if __name__ == "__main__":
