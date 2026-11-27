@@ -21,8 +21,9 @@ Plain "ship" never authorizes a deploy. A deploy needs an explicit `ship-staging
    exact candidate and target. Then delete the branch and the worktree the task created. Tag
    here only for a release that nothing deploys.
 5. **Deploy, prove live, then tag.** `mneves-ship-deploy` deploys the gated artifact, checks the
-   live version against the candidate, and only then tags it. After production succeeds, tear
-   down the staging resources the release started.
+   live version against the candidate, and only then applies that target's tag (beta for
+   staging, `vX.Y.Z` for production). After production succeeds, tear down the staging
+   resources the release started.
 
 If a required gate's skill is unavailable, report `BLOCKED`. Stop before merging, deploying or
 tagging, and never fabricate a gate record.

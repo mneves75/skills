@@ -51,7 +51,7 @@ ROUTER_MAX_TOTAL_BYTES = 30 * 1024
 ROUTER_SPAN_RE = re.compile(r"`([^`\n]+)`")
 ROUTER_TOKEN_RE = re.compile(r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*")
 ROUTER_YAML_TOKEN_RE = re.compile(r"\$([a-z][a-z0-9]*(?:-[a-z0-9]+)*)")
-SIBLING_SOURCE_RE = re.compile(r"`[\w.-]+/[\w.-]+`|https://\S+")
+SIBLING_SOURCE_RE = re.compile(r"`[A-Za-z0-9][\w.-]*/[A-Za-z0-9][\w.-]*`|https://\S+")
 SIBLING_ROW_RE = re.compile(r"^\|\s*`([a-z0-9-]+)`\s*\|(.*)$", re.MULTILINE)
 
 _MARKED_EXTRACT_JS = r"""
@@ -470,8 +470,12 @@ def _check_router(root: Path, skill_names: list[str], errors: list[str]) -> None
         if path.name.startswith("playbook-") and size > ROUTER_MAX_PLAYBOOK_BYTES:
             errors.append(f"{rel}: playbook over {ROUTER_MAX_PLAYBOOK_BYTES} bytes ({size})")
         # A code span names a skill in any form a reader would type or open: padded, `/name`,
-        # `$name`, `name/SKILL.md`, or with trailing punctuation inside the backticks.
-        spans = (s.strip().lstrip("/$").removesuffix("/SKILL.md").rstrip(".,:;") for s in ROUTER_SPAN_RE.findall(text))
+        # `$name`, `name/SKILL.md`, or with trailing punctuation inside the backticks. An escaped
+        # backtick is not a delimiter, so drop it before pairing.
+        spans = (
+            s.strip().rstrip(".,:;").lstrip("/$").removesuffix("/SKILL.md")
+            for s in ROUTER_SPAN_RE.findall(text.replace("\\`", ""))
+        )
         for token in sorted({s for s in spans if ROUTER_TOKEN_RE.fullmatch(s)} - known):
             errors.append(f"{rel}: unknown skill token `{token}` (add an optional-siblings.md row or drop it)")
     yaml_path = rdir / "agents" / "openai.yaml"

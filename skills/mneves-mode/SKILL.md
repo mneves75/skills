@@ -92,8 +92,9 @@ when it does not apply to the task; say which ones you skipped and why.
     exact candidate and target. Then delete the branch and the worktree the task created. Tag
     here only when no deploy follows.
 12. **Deploy:** only on an explicit `ship-staging` or `ship-prod` (`mneves-ship-deploy`). It
-    proves the release live, then tags it. After production succeeds, it tears down the staging
-    resources the task started; `ship-staging` stops after the staging proof.
+    proves the release live, then applies that target's tag (beta for staging, `vX.Y.Z` for
+    production). After production succeeds, it tears down the staging resources the task
+    started; `ship-staging` stops after the staging proof and its beta tag.
 13. **Cleanup:** remove the scratch files, worktrees and caches the task created. List what is
     left with its exact removal command.
 14. **Report** (section 7).
