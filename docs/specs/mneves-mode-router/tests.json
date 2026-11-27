@@ -19,7 +19,7 @@
   {
    "name": "frozen router cases",
    "status": "PASS",
-   "evidence": "tools/catalog-eval/cases-router.json sha256 a74066eb…; gate-checklist.md sha256 0d957ed7…; both frozen before any v3 text; 68 cases, blind second labeller, top-pick agreement 67/68, 0 conflicts; gate-checklist amended 2026-11-27 before any trial (dated section, frozen rows unchanged): tag after live proof, readiness gate G12a, G1 before editing only, staging teardown after production only; amended sha256 a619e47f…; post-freeze rename 2026-11-27 after the independent verifier flagged a private skill name in shipped files: tf-prune label and external entry mneves-prune-tests -> prune-tests (case intent unchanged), gate-checklist G8 names an owner test-pruning skill; new sha256 cases 7711acf5…, gate-checklist 25098b84…; the A0 probe result was recorded on the old hash"
+   "evidence": "tools/catalog-eval/cases-router.json sha256 a74066eb…; gate-checklist.md sha256 0d957ed7…; both frozen before any v3 text; 68 cases, blind second labeller, top-pick agreement 67/68, 0 conflicts; gate-checklist amended 2026-11-27 before any trial (dated section, frozen rows unchanged): tag after live proof, readiness gate G12a, G1 before editing only, staging teardown after production only; amended sha256 a619e47f…; post-freeze rename 2026-11-27 after the independent verifier flagged a private skill name in shipped files: tf-prune label and external entry renamed from a private skill name to prune-tests (case intent unchanged), gate-checklist G8 names an owner test-pruning skill; new sha256 cases 7711acf5…, gate-checklist 25098b84…; the A0 probe result was recorded on the old hash"
   },
   {
    "name": "Stage 1 selection eval (A0 vs A2)",
