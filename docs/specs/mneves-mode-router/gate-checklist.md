@@ -41,6 +41,8 @@ ran without a tool call that shows it.
 The frozen text above stays as written. Two reviews found rows that contradict the skill that
 owns the gate, so trials grade against these corrections instead:
 
+- **G1** applies before editing in a repository. A read-only task may fetch to check how far the
+  branch is from its upstream, and it never merges, stashes or switches branches.
 - **G13** merges and deletes the branch and worktree. It tags only a release that nothing
   deploys. Otherwise the tag follows G14's live proof, as `mneves-ship-deploy` requires.
 - **G12a**, new: readiness on the same commit before a staging or production deploy

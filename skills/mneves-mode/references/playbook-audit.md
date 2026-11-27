@@ -12,7 +12,8 @@
    | Why coding agents struggle in a repository | `mneves-agent-readiness` |
    | ChatGPT Search crawlers and citations | `mneves-chatgpt-search` |
    | Proof against acceptance criteria | `mneves-verify` |
-   | Review of a fixed Git target | `autoreview` |
+   | Standards and spec review of a branch | `code-review`, else `autoreview` |
+   | Independent adversarial review of a fixed Git target | `autoreview` |
    | Improvement survey with handoff plans | `improve` |
 
 3. **Fallback.** Name the missing skill and run direct read-only checks on the exact target.
