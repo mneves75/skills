@@ -40,8 +40,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   for skills outside the catalog, used by the 68 frozen router cases in
   `tools/catalog-eval/cases-router.json` (CI checks them without a model call).
 - **Skill dispositions:** `docs/specs/mneves-mode-router/skill-dispositions.md` reviews all 66
-  repository and pstack skills (keep, fix, merge or retire). Rows marked fixed are fixed in this
-  release; merges and retirements are proposals only.
+  repository and pstack skills (keep, fix, merge or retire). Rows marked fixed were fixed in this
+  release or, for pstack skills, by the 2.1.0 re-pin; merges and retirements are proposals only.
 
 ### Fixed
 - **mneves-motion-film:** step 4 no longer depends on step 5's fact check, and a review round
