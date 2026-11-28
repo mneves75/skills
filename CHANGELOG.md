@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-11-28
+
 ### Fixed
 - **pstack `how`:** adaptation 15 names the Claude Code equivalent of `readonly: true`, the
   read-only `Explore` agent; Claude Code's `Agent` tool has no `readonly` parameter, so the
