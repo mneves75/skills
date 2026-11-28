@@ -12,7 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **mneves-mode merge step:** the lease-guarded delete goes to the remote whose push URL is the
   PR's repository, so in a clone with several remotes a same-named branch at the same SHA on another
-  remote is never the target.
+  remote is never the target. That remote must have exactly one push URL (`git remote get-url
+  --push --all`), since a push goes to every push URL; when none qualifies, the branch is kept.
 
 ## [2.2.1] - 2026-11-28
 

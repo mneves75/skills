@@ -94,10 +94,10 @@ when it does not apply to the task; say which ones you skipped and why.
     from a branch it created, the PR is not from a fork and no open PR uses the branch as its base:
     `git push --force-with-lease=refs/heads/<branch>:<merged head SHA> origin --delete refs/heads/<branch>`.
     Name the full ref both times: a bare branch name can resolve to a tag of the same name, which
-    the lease does not cover. Push to the remote whose push URL
-    (`git remote get-url --push origin`) is the PR's repository; in a clone with several remotes,
-    put that remote's name in place of origin. If the push is refused or any condition fails,
-    keep the branch and report it. Tag here only when no deploy follows.
+    the lease does not cover. Push to a remote with exactly one push URL, the PR's repository
+    (`git remote get-url --push --all origin` prints one line): a push goes to every push URL.
+    In a clone with several remotes, put that remote's name in place of origin. If no remote
+    qualifies, the push is refused or any condition fails, keep the branch and report it. Tag here only when no deploy follows.
 12. **Deploy:** only on an explicit `ship-staging` or `ship-prod` (`mneves-ship-deploy`). It
     proves the release live, then applies that target's tag (beta for staging, `vX.Y.Z` for
     production). After production succeeds, it tears down the staging resources the task
