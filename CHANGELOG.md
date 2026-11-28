@@ -16,7 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   own `scripts/` folder, where a standalone skill install puts it, not from a plugin root.
 - **mneves-mode merge step:** removes the worktree and local branch with `git branch -d`, and deletes
   the remote branch only for a non-fork PR this session opened, with no dependent PR, in one
-  compare-and-delete push (`--force-with-lease` on the merged head SHA); otherwise keeps and reports it.
+  compare-and-delete push (`--force-with-lease` on the merged head SHA, with the full `refs/heads/`
+  ref so a same-named tag is never the target); otherwise keeps and reports it.
 
 ## [2.2.0] - 2026-11-27
 

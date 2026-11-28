@@ -92,8 +92,10 @@ when it does not apply to the task; say which ones you skipped and why.
     exact candidate and target. Then remove the worktree and the local branch the task created
     (`git branch -d`, never `-D`). Delete the remote branch only when this session opened the PR
     from a branch it created, the PR is not from a fork and no open PR uses the branch as its base:
-    `git push --force-with-lease=refs/heads/<branch>:<merged head SHA> origin --delete <branch>`.
-    If the push is refused or any condition fails, keep the branch and report it. Tag here only
+    `git push --force-with-lease=refs/heads/<branch>:<merged head SHA> origin --delete refs/heads/<branch>`.
+    Name the full ref both times: a bare `<branch>` can resolve to a tag of the same name, which
+    the lease does not cover. If the push is refused or any condition fails, keep the branch and
+    report it. Tag here only
     when no deploy follows.
 12. **Deploy:** only on an explicit `ship-staging` or `ship-prod` (`mneves-ship-deploy`). It
     proves the release live, then applies that target's tag (beta for staging, `vX.Y.Z` for
