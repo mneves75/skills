@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.2] - 2026-11-28
+
 ### Fixed
 - **mneves-mode merge step:** the lease-guarded delete goes to the remote whose push URL is the
   PR's repository, so in a clone with several remotes a same-named branch at the same SHA on another
