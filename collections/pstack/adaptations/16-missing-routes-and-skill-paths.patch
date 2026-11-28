@@ -1,4 +1,4 @@
-Adaptation 15-missing-routes-and-skill-paths
+Adaptation 16-missing-routes-and-skill-paths
 
 A poteto-mode route names a bundled skill that a trimmed install may not carry: skip it and
 say so instead of improvising it. reflect finds its scripts in its own folder, where a
