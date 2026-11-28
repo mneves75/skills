@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-11-28
+
 ### Fixed
 - **pstack `how`:** adaptation 15 names the Claude Code equivalent of `readonly: true`, the
   read-only `Explore` agent; Claude Code's `Agent` tool has no `readonly` parameter, so the
@@ -14,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **pstack adaptation 16:** `poteto-mode` skips, and names, a route whose bundled skill a trimmed
   install does not carry instead of improvising it; `reflect` runs its transcript finder from its
   own `scripts/` folder, where a standalone skill install puts it, not from a plugin root.
+- **pstack adaptation 17:** `reflect` quotes the paths of its two scripts, so an install folder
+  whose path contains a space runs the skill's own scripts, never a file at a prefix of that path.
+  Patch 16's header now names itself 16, and the collection README and skill ledger count and
+  attribute patches 15 to 17 correctly.
+- **mneves-mode merge step:** removes the worktree and local branch with `git branch -d`, and deletes
+  the remote branch only for a non-fork PR this session opened, with no dependent PR, in one
+  compare-and-delete push (`--force-with-lease` on the merged head SHA, with the full `refs/heads/`
+  ref so a same-named tag is never the target); otherwise keeps and reports it.
 
 ## [2.2.0] - 2026-11-27
 

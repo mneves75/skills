@@ -22,7 +22,8 @@ adaptation: 12-upstream-reframe-and-hygiene.patch sha256:fe16f667a8d0f001b7c3aa0
 adaptation: 13-watch-pr-app-identity.patch sha256:00629773c285ead2051be3d01030956fc8d0610c17d48dbc1b5ea1bfce14e784
 adaptation: 14-poteto-mode-routing.patch sha256:f21c1417d2078abe4d94c7fe3ec4f331fd5a125caa990a5376fa3dfb46ff0849
 adaptation: 15-how-explore-agent.patch sha256:e88c15459573af284013e2e6b95a790c8b5728aec08401f7a5e3af0649f5aedf
-adaptation: 16-missing-routes-and-skill-paths.patch sha256:e409cfae73f86ec7338c14f7aa55a4eff2d04d414b5e5bad7d53db00a30c87a7
+adaptation: 16-missing-routes-and-skill-paths.patch sha256:35f23d3d4fe3d2e0b4d48009212c805e33b8965d1a9db4aa56bfd817f104f3be
+adaptation: 17-quote-reflect-script-paths.patch sha256:ab0478be2dc2b30e46045ef3040d8a0d8e77c5912d0e4a763bd607739a836932
 excluded: poteto-mode/references/dsh-tools.md
 excluded: principle-attack-the-premise
 excluded: principle-boundary-discipline
